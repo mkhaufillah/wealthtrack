@@ -161,17 +161,8 @@ dig +short A wealthtrack.filla.id
 ## Step 4: Firewall
 
 ```bash
-sudo ufw allow ssh
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo ufw enable
-
-# Verifikasi
-sudo ufw status
-# Hasil:
-# 22/tcp    ALLOW
-# 80/tcp    ALLOW
-# 443/tcp   ALLOW
 ```
 
 ## Step 5: Deploy Flow (Initial)
