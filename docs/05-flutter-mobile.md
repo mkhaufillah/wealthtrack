@@ -70,8 +70,8 @@ Divider:     #E8E8E8    — Light border
 │                              │
 │                              │
 │         💰 WealthTrack       │  <- App logo + name, 48px
-│     Kelola keuangan lebih    │
-│           mudah              │  <- Tagline, 14px
+│     Manage your finances     │
+│           easier             │  <- Tagline, 14px
 │                              │
 │  ┌────────────────────────┐  │
 │  │  Username               │  │  <- Text field, 12px rounded
@@ -84,13 +84,13 @@ Divider:     #E8E8E8    — Light border
 │  └────────────────────────┘  │
 │                              │
 │  ┌────────────────────────┐  │
-│  │       Masuk             │  │  <- Primary button, accent bg
+│  │       Login               │  │  <- Primary button
 │  └────────────────────────┘  │
 │                              │
-│  Belum punya akun? Daftar   │  <- Link text
+│  Don't have an account? Register  │  <- Link text
 │                              │
 │  ┌────────────────────────┐  │
-│  │  Atau masuk sebagai     │  │
+│  │  Or login as             │  │
 │  │  Filla (default)        │  │  <- Quick login chip
 │  └────────────────────────┘  │
 │                              │
@@ -111,37 +111,37 @@ Divider:     #E8E8E8    — Light border
 │  08:30                        │
 │                              │
 │  ┌────────────────────────┐  │
-│  │  💰 Saldo Bulan Ini    │  │  <- Balance card
+│  │  💰 Monthly Balance      │  │  <- Balance card
 │  │  Rp12.450.000          │  │  <- 32px, bold
 │  │  ─────────────────     │  │
-│  │  Pemasukan  Pengeluaran │  │
+│  │  Income    Expense       │  │
 │  │  Rp15.000.000 Rp2.550.000│  │  <- 14px
-│  │  🟢 +12.4% dari bulan  │  │
-│  │       lalu             │  │
+│  │  🟢 +12.4% from last │  │
+│  │       month             │  │
 │  └────────────────────────┘  │
 │                              │
 │  ┌────────────┬────────────┐ │
-│  │ Pemasukan  │ Pengeluaran│ │  <- Quick stat cards
+│  │ Income      │ Expense     │ │  <- Quick stat cards
 │  │ Rp15.000.000│ Rp2.550.000│ │
 │  │ 🟢        │ 🔴         │ │
 │  └────────────┴────────────┘ │
 │                              │
-│  Pengeluaran Terbaru         │  <- Section title
+│  Recent Transactions        │  <- Section title
 │                              │
 │  ┌────────────────────────┐  │
-│  │ 🍜  Makan Siang        │  │
-│  │     Rp45.000           │  │
-│  │      Hari ini 12:30    │  │  <- Transaction tile
+│  │ 🍜  Lunch               │  │
+│  │     -Rp45.000           │  │
+│  │      Today 12:30        │  │  <- Transaction tile
 │  ├────────────────────────┤  │
-│  │ 🚗  Bensin             │  │
-│  │     Rp100.000          │  │
-│  │      Hari ini 07:15    │  │
+│  │ 🚗  Gas                 │  │
+│  │     -Rp100.000          │  │
+│  │      Today 07:15        │  │
 │  ├────────────────────────┤  │
-│  │ 🛒  Belanja Bulanan    │  │
-│  │     Rp350.000          │  │
-│  │      26 Mei 2026       │  │
+│  │ 🛒  Monthly Groceries   │  │
+│  │     -Rp350.000          │  │
+│  │      May 26             │  │
 │  ├────────────────────────┤  │
-│  │ Lihat Semua →          │  │  <- Link to full list
+ │  │ View All →              │  │  <- Link to full list
 │  └────────────────────────┘  │
 │                              │
 │          [➕]                 │  <- FAB, highlight color
@@ -151,18 +151,18 @@ Divider:     #E8E8E8    — Light border
 
 **States:**
 - **Loading:** Shimmer skeleton for balance card + 3 transaction tiles
-- **Empty (no transactions):** Show illustration + "Belum ada transaksi bulan ini. Tambah sekarang!" + CTA button
-- **Error (API fail):** Error card with "Gagal memuat data" + Retry button
-- **Offline:** Subtle banner "Mode offline — data mungkin tidak terbaru"
+- **Empty (no transactions):** Show illustration + "No transactions this month. Add one now!" + CTA button
+- **Error (API fail):** Error card with "Failed to load data" + Retry button
+- **Offline:** Subtle banner "Offline mode — data may not be up to date"
 
 ### 2.3 Add Transaction
 
 ```
 ┌──────────────────────────────┐
-│  ← Tambah Transaksi          │  <- AppBar with back
+│  ← Add Transaction            │  <- AppBar with back
 │                              │
 │  ┌────────────────────────┐  │
-│  │  [Pengeluaran] [Pemasukan]│  <- Segmented control
+│  │  [Expense] [Income]   │  <- Segmented control
 │  └────────────────────────┘  │
 │                              │
 │  ┌────────────────────────┐  │
@@ -170,33 +170,33 @@ Divider:     #E8E8E8    — Light border
 │  │  [  50.000        ]    │  │  <- Large, 32px, auto-formatted
 │  └────────────────────────┘  │
 │                              │
-│  Kategori                    │
+│  Category                    │
 │  ┌────┬────┬────┬────┬───┐  │
-│  │ 🍜 │ 🚗 │ 🛒 │ 🎬 │ 📄│  │  <- Horizontal scroll chips
-│  │Makan│Trans│Belanja│Hiburan│  │
+│  │ 🍜 │ 🚗 │ 🛒 │ 🎬 │  │  │  <- Horizontal scroll chips
+│Lunch│Gas│Groceries│Fun│
 │  └────┴────┴────┴────┴───┘  │
 │  ─────── scrolling ──────── │
 │  ┌────┬────┬────┬────┬───┐  │
-│  │ 🏥 │ 📚 │ 🏦 │ 👶 │ 📤│  │
+│  │ 🏥 │ 📚 │ 🏦 │ 👶 │  │  │
 │  └────┴────┴────┴────┴───┘  │
 │                              │
-│  Deskripsi                   │
+│  Description                   │
 │  ┌────────────────────────┐  │
 │  │  [________________]    │  │  <- Text field
 │  └────────────────────────┘  │
 │                              │
-│  Tanggal                     │
+│  Date                     │
 │  ┌────────────────────────┐  │
-│  │  📅 26 Mei 2026      ▼ │  │  <- Date picker (today default)
+│  │  📅 May 26, 2026      ▼ │  │  <- Date picker (today default)
 │  └────────────────────────┘  │
 │                              │
-│  Catatan (opsional)          │
+│  Note (optional)          │
 │  ┌────────────────────────┐  │
 │  │  [________________]    │  │  <- Text field, multiline
 │  └────────────────────────┘  │
 │                              │
 │  ┌────────────────────────┐  │
-│  │       Simpan            │  │  <- Primary button
+│  │       Save              │  │  <- Primary button
 │  └────────────────────────┘  │
 │                              │
 └──────────────────────────────┘
@@ -205,33 +205,33 @@ Divider:     #E8E8E8    — Light border
 **States:**
 - **Validation error:** Field border turns red, inline message
 - **Saving:** Button shows spinner, all fields disabled
-- **Success:** Show snackbar "✅ Transaksi berhasil dicatat" → pop back to dashboard
-- **Error (API):** Snackbar "❌ Gagal menyimpan. Coba lagi."
+- **Success:** Show snackbar "✅ Transaction recorded successfully" → pop back to dashboard
+- **Error (API):** Snackbar "❌ Failed to save. Try again."
 - **Category unselected:** Button disabled until category picked
 
 ### 2.4 Transaction List
 
 ```
 ┌──────────────────────────────┐
-│  ← Transaksi                 │  <- AppBar
+│  ← Transactions              │  <- AppBar
 │                              │
 │  ┌────────────────────────┐  │
-│  │  📅 01-31 Mei 2026   ▼│  │  <- Date range filter
-│  │  [Semua]  [Makan]  [🚗]│  │  <- Category chips (horizontal)
+│  │  📅 May 1-31, 2026  ▼│  │  <- Date range filter
+│  │  [All]  [Food]  [🚗]  │  │  <- Category chips (horizontal)
 │  └────────────────────────┘  │
 │                              │
 │  ┌────────────────────────┐  │
-│  │ 🍜  Makan Siang        │  │
-│  │     -Rp45.000          │  │  <- Red for expense
-│  │      26 Mei 2026       │  │
+│  │ 🍜  Lunch               │  │
+│  │     -Rp45.000           │  │  <- Red for expense
+│  │      May 26             │  │
 │  ├────────────────────────┤  │
-│  │ 💰  Gaji Bulanan       │  │
+│  │ 💰  Monthly Salary      │  │
 │  │     +Rp15.000.000      │  │  <- Green for income
-│  │      25 Mei 2026       │  │
+│  │      May 25             │  │
 │  ├────────────────────────┤  │
-│  │ 🚗  Bensin             │  │
-│  │     -Rp100.000         │  │
-│  │      25 Mei 2026       │  │
+│  │ 🚗  Gas                 │  │
+│  │     -Rp100.000          │  │
+│  │      May 25             │  │
 │  ├────────────────────────┤  │
 │  │      ... loading ...     │  │  <- Infinite scroll
 │  └────────────────────────┘  │
@@ -244,7 +244,7 @@ Divider:     #E8E8E8    — Light border
 
 **States:**
 - **Loading:** Shimmer for first 5 items
-- **Empty (no results):** "Tidak ada transaksi" + illustration
+- **Empty (no results):** "No transactions found" + illustration
 - **Error:** Retry button
 - **Loading more:** Small spinner at bottom of list
 - **Swipe to delete:** Red background with trash icon
@@ -280,9 +280,9 @@ Divider:     #E8E8E8    — Light border
 **Bottom Navigation (after login):**
 ```
 Tab 1: 📊 Dashboard  ← default
-Tab 2: 📋 Transaksi
-Tab 3: 📈 Laporan
-Tab 4: 👤 Profil
+Tab 2: 📋 Transactions
+Tab 3: 📈 Reports
+Tab 4: 👤 Profile
 ```
 
 ## 4. Code Architecture
@@ -352,7 +352,7 @@ mobile/lib/
     │   └── app_scaffold.dart
     └── utils/
         ├── currency_formatter.dart   # IDR formatting: Rp1.500.000
-        └── date_formatter.dart       # "26 Mei 2026", "Hari ini", "Kemarin"
+        └── date_formatter.dart       # "May 26, 2026", "Today", "Yesterday"
 ```
 
 ## 5. API Client Configuration
@@ -360,10 +360,10 @@ mobile/lib/
 ```dart
 // lib/core/constants.dart
 class AppConstants {
-  // 🔴 PRODUCTION: pakai domain
+  // 🔴 PRODUCTION: use domain
   static const String apiBaseUrl = 'https://wealthtrack.filla.id/api/v1';
 
-  // 🟢 DEVELOPMENT (VPS local): untuk testing dari VPS terminal
+  // 🟢 DEVELOPMENT (VPS local): for testing from VPS terminal
   // static const String apiBaseUrl = 'http://127.0.0.1:8080/api/v1';
 
   static const Duration connectTimeout = Duration(seconds: 10);
@@ -508,10 +508,10 @@ Flutter App ──HTTPS──► wealthtrack.filla.id :443
                          FastAPI
 ```
 
-**Firewall:** Hanya port 80 dan 443 yang terbuka. Port 8080 di localhost — default deny.
+**Firewall:** Only ports 80 and 443 are open. Port 8080 on localhost — default deny.
 
 ```bash
-# ✅ Yang benar
+# ✅ Correct
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 ```

@@ -41,7 +41,7 @@ uv pip install -r backend/requirements.txt
 
 ## Step 3: Database Path & Config
 
-**DB tetap di `~/.keuangan/finance.db`** — jangan bikin baru.
+**DB stays at `~/.keuangan/finance.db`** — do not create a new one.
 
 `backend/app/core/config.py`
 
@@ -72,8 +72,8 @@ settings = Settings()
 
 ## Step 4: Migration Script (Run ONCE)
 
-Sebelum mulai FastAPI, jalankan migrasi untuk menambah kolom baru ke DB existing.
-Script ini **aman dijalankan ulang** — ngecek keberadaan kolom sebelum ALTER TABLE.
+Before starting FastAPI, run the migration to add new columns to the existing DB.
+This script is **safe to re-run** — it checks column existence before ALTER TABLE.
 
 `backend/app/migrate_db.py`
 
@@ -114,9 +114,9 @@ def run_migration():
     """)
 
     # 2. Seed default users (password default: "password123")
-    # Hash dihasilkan dari passlib.hash bcrypt — ganti dengan hash real setelah deploy
+    # Hash generated via passlib.hash bcrypt — replace with a real hash after deployment
     import hashlib
-    # Placeholder hash — ganti via API nanti
+    # Placeholder hash — replace via the API later
     dummy_hash = "$2b$12$LJ3m4ys3Lk0TSwHCpNqrPOkODhBIjs5y7Kwe5mCpMOABsERy7aEJa"
     users_data = [
         (1, 'filla', 'Filla', dummy_hash, 'admin'),
@@ -746,8 +746,8 @@ chmod +x backend/run.sh
 ./backend/run.sh
 ```
 
-> `--host 127.0.0.1` — hanya localhost, tidak exposed ke public.
-> Nginx akan reverse proxy ke port ini.
+> `--host 127.0.0.1` — localhost only, not exposed to the public.
+> Nginx will reverse-proxy to this port.
 
 ## Step 12: Verify
 
@@ -761,7 +761,7 @@ curl -X POST "http://127.0.0.1:8080/api/v1/auth/login" \
   -d '{"username": "filla", "password": "password123"}'
 
 # Test list categories (should show 15 existing categories)
-TOKEN="<token_dari_login>"
+TOKEN="<token_from_login>"
 curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/api/v1/categories"
 
 # Test list transactions (should show 27 existing transactions)
@@ -771,7 +771,7 @@ curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/api/v1/transaction
 curl -X POST "http://127.0.0.1:8080/api/v1/transactions" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"type":"expense","category_id":1,"amount":25000,"description":"Test dari API","note":"","date":"2026-05-26"}'
+  -d '{"type":"expense","category_id":1,"amount":25000,"description":"Test from API","note":"","date":"2026-05-26"}'
 
 # Test daily summary
 curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/api/v1/summaries/daily"

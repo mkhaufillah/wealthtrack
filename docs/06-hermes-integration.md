@@ -1,45 +1,45 @@
-# Hermes Integration — Verifikasi
+# Hermes Integration — Verification
 
-Hermes sudah terintegrasi dengan WealthTrack secara otomatis. Tidak perlu perubahan apa pun.
+Hermes is already integrated with WealthTrack automatically. No changes needed.
 
-## Yang Jalan Otomatis
+## Running Automatically
 
-| Komponen | Fungsi | DB |
-|----------|--------|----|
-| Cron "Daily Finance Summary" | Laporan harian 20:00 WIB | `~/.keuangan/finance.db` (via finance_db.py) |
-| Skill "financial-tracker" | Catat transaksi dari chat | `~/.keuangan/finance.db` (via finance_db.py) |
+| Component | Function | Database |
+|----------|----------|----------|
+| Cron "Daily Finance Summary" | Daily report at 8 PM WIB | `~/.keuangan/finance.db` (via finance_db.py) |
+| Skill "financial-tracker" | Record transactions from chat | `~/.keuangan/finance.db` (via finance_db.py) |
 
-Keduanya pakai `finance_db.py` yang schema-nya **backward compatible** — kolom `user_id`, `date`, `note` udah ditambah via migration tanpa mengganggu fungsi lama.
+Both use `finance_db.py` which is **backward compatible** — columns `user_id`, `date`, `note` were added via migration without breaking existing functionality.
 
-## Test: Cron Jalan
+## Test: Cron Works
 
 ```bash
-# Cek cron masih active
+# Check cron is active
 hermes cron list
 
-# Cari "Daily Finance Summary" — pastikan status active
-# Run manual untuk test
-hermes cron run --job-id <id_dari_list>
+# Look for "Daily Finance Summary" — verify status is active
+# Run manually to test
+hermes cron run --job-id <id_from_list>
 ```
 
-## Test: Skill Financial-Tracker
+## Test: Financial-Tracker Skill
 
 ```bash
-# Cek apakah skill masih bisa baca DB
+# Verify the skill can still read the DB
 python3 ~/.hermes/skills/productivity/financial-tracker/scripts/finance_db.py recent 3
 ```
 
-Output yang diharapkan: 3 transaksi terakhir muncul.
+Expected output: 3 most recent transactions appear.
 
-## Test: Data Konsisten
+## Test: Data Consistency
 
-Transaksi yang dimasukin via Hermes (chat atau cron) harus muncul juga di API:
+Transactions entered via Hermes (chat or cron) must also appear via the API:
 
 ```bash
-# 1. Cek dari Hermes
+# 1. Check from Hermes
 python3 ~/.hermes/skills/productivity/financial-tracker/scripts/finance_db.py recent 5
 
-# 2. Cek dari FastAPI
+# 2. Check from FastAPI
 TOKEN=$(curl -s -X POST http://127.0.0.1:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"filla","password":"password123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
@@ -48,24 +48,25 @@ curl -s "http://127.0.0.1:8080/api/v1/transactions?per_page=5" \
   -H "Authorization: Bearer $TOKEN" | python3 -c "
 import sys,json
 d = json.load(sys.stdin)
-print(f'Total transaksi di FastAPI: {d[\"meta\"][\"total\"]}')
-print(f'Sama dengan hasil dari finance_db.py? Harusnya iya.')
+print(f'Total transactions in FastAPI: {d[\"meta\"][\"total\"]}')
+print(f'Should match finance_db.py output — same database.')
 "
 ```
 
 ## Troubleshooting
 
-**Cron gagal:** `hermes cron list` — cek kolom `Last run`. Kalau error, jalankan manual:
+**Cron fails:** `hermes cron list` — check the `Last run` column. If there's an error, run manually:
 ```bash
 python3 ~/.hermes/scripts/daily_finance_report.py
 ```
 
-**Skill error:** Pastikan migration udah jalan:
+**Skill error:** Make sure migration has been run:
 ```bash
 cd ~/dev/wealthtrack && .venv/bin/python -m backend.app.migrate_db
 ```
-Migration aman di-repeat — cuma nambah kolom kalau belum ada.
+Migration is safe to re-run — only adds columns if they don't exist.
 
-## Kesimpulan
+## Summary
 
-**Zero change required.** Hermes cron dan skill tetap pakai `finance_db.py` → `~/.keuangan/finance.db`. WealthTrack FastAPI juga pakai DB yang sama. Semua kompatibel.
+**Zero changes required.** Hermes cron and skill continue using `finance_db.py` → `~/.keuangan/finance.db`. WealthTrack FastAPI uses the same database. Everything is compatible.
+

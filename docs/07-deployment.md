@@ -36,13 +36,13 @@
 
 ## Key Differences from Standard Setup
 
-| Aspek | Sebelum (doc lama) | Sesudah (update) |
+| Aspect | Before (old doc) | After (update) |
 |-------|-------------------|-------------------|
 | DB path | `~/.hermes/data/wealthtrack.db` | `~/.keuangan/finance.db` (existing) |
 | FastAPI bind | `0.0.0.0:8080` | `127.0.0.1:8080` (localhost only) |
 | Public exposure | Port 8080 langsung | Nginx reverse proxy via 443 |
 | Domain | — | `wealthtrack.filla.id` |
-| Firewall | Cuma 80 + 443 (8080 tidak perlu diatur — default deny) |
+| Firewall | Only 80 + 443 (8080 doesn't need to be configured — default deny) |
 
 ## Step 1: Systemd Service for FastAPI
 
@@ -105,7 +105,7 @@ server {
     listen 443 ssl http2;
     server_name wealthtrack.filla.id;
 
-    # SSL — akan diisi certbot nanti
+    # SSL — will be filled by certbot later
     ssl_certificate /etc/letsencrypt/live/wealthtrack.filla.id/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/wealthtrack.filla.id/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -125,7 +125,7 @@ server {
         proxy_set_header Connection "upgrade";
     }
 
-    # Static files (optional, untuk frontend)
+    # Static files (optional, for frontend)
     location /static/ {
         alias /home/filla/dev/wealthtrack/backend/static/;
         expires 30d;
@@ -144,18 +144,18 @@ sudo systemctl reload nginx
 
 ## Step 3: SSL Certificate (Let's Encrypt)
 
-Jalankan **SETELAH** DNS `wealthtrack.filla.id` sudah mengarah ke IP VPS.
+Run **AFTER** DNS `wealthtrack.filla.id` points to the VPS IP.
 
 ```bash
 sudo certbot --nginx -d wealthtrack.filla.id --non-interactive --agree-tos -m khaufillahmohammad@gmail.com
 ```
 
-Jika DNS belum siap, jalankan nanti:
+If DNS is not ready yet, run this later:
 
 ```bash
-# Cek DNS dulu
+# Check DNS first
 dig +short A wealthtrack.filla.id
-# Harusnya return IP VPS: 2.27.165.124
+# Should return VPS IP: 2.27.165.124
 ```
 
 ## Step 4: Firewall
@@ -177,13 +177,13 @@ source .venv/bin/activate
 # 3. Install/update deps
 uv pip install -r backend/requirements.txt
 
-# 4. Run migration (hanya sekali, atau kalau ada perubahan schema)
+# 4. Run migration (once only, or when schema changes)
 uv run python -m backend.app.migrate_db
 
 # 5. Restart service
 sudo systemctl restart wealthtrack
 
-# 6. Reload nginx (kalau ada perubahan config)
+# 6. Reload nginx (if config changed)
 sudo systemctl reload nginx
 
 # 7. Verifikasi
@@ -250,9 +250,9 @@ class AppConstants {
 
 - [ ] DNS `wealthtrack.filla.id` → VPS IP (`2.27.165.124`)
 - [ ] FastAPI systemd service running
-- [ ] DB migration sudah jalan
-- [ ] Nginx config terpasang
-- [ ] SSL certificate (jalankan certbot setelah DNS siap)
+- [ ] DB migration already ran
+- [ ] Nginx config installed
+- [ ] SSL certificate (run certbot after DNS is ready)
 - [ ] Firewall: 80+443 open (8080 default deny via ufw)
-- [ ] Backup cron terpasang
+- [ ] Backup cron installed
 - [ ] Hermes cron `Daily Finance Summary` masih jalan (cek via `hermes cron list`)

@@ -25,7 +25,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
                   │    Flutter    │
                   │    Mobile     │
                   │  (Android +   │
-                  │   iOS nanti)  │
+                  │   iOS later)  │
                   └──────────────┘
 ```
 
@@ -33,7 +33,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 
 | Layer | Tech | Reason |
 |-------|------|--------|
-| Database | SQLite (via aiosqlite) — `~/.keuangan/finance.db` | Zero maintenance, 1-file backup, menggunakan DB existing |
+| Database | SQLite (via aiosqlite) — `~/.keuangan/finance.db` | Zero maintenance, 1-file backup, uses existing DB |
 | Backend | FastAPI (Python) | Async, auto-docs, lightweight |
 | Mobile | Flutter | Cross-platform, one codebase |
 | Auth | JWT (simple username/password) | Self-contained, no Firebase dependency |
@@ -41,12 +41,12 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 
 ## Single Source of Truth
 
-**SQLite adalah single source of truth (tetap).** Menggunakan DB yang sudah ada di `~/.keuangan/finance.db`.
+**SQLite is the single source of truth.** Uses the existing `~/.keuangan/finance.db`.
 
-- Hermes (cron/skill financial-tracker) — langsung ke SQLite, **tanpa perubahan**
-- FastAPI — baca/tulis SQLite yang **sama**
-- Flutter — baca/tulis via FastAPI API
-- Data existing (27 transaksi) tetap aman, nggak perlu migrasi data
+- Hermes (cron/skill financial-tracker) — direct to SQLite, **no changes needed**
+- FastAPI — reads/writes the **same** SQLite
+- Flutter — reads/writes via FastAPI API
+- Existing data (27 transactions) remains safe, no data migration needed
 
 ## Project Structure
 
@@ -99,7 +99,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 
 | Method | Who | Data Source |
 |--------|-----|-------------|
-| Chat "rekap" | User via Hermes | SQLite (direct) |
+| Chat "recap" | User via Hermes | SQLite (direct) |
 | Cron summary | Scheduled | SQLite (direct) |
 | Mobile dashboard | Flutter | FastAPI REST API (HTTP GET) |
 

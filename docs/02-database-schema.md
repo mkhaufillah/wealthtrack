@@ -2,10 +2,10 @@
 
 ## Database File
 
-**Path:** `~/.keuangan/finance.db` (existing database, 24KB, 27 transaksi)
+**Path:** `~/.keuangan/finance.db` (existing database, 24KB, 27 transactions)
 
-> Menggunakan DB yang sudah ada dari `financial-tracker` skill. Semua data existing tetap aman.
-> Cron dan skill `financial-tracker` tetap kompatibel — tidak perlu perubahan.
+> Uses the existing database from the `financial-tracker` skill. All existing data remains safe.
+> Cron and `financial-tracker` skill remain fully compatible — no changes needed.
 
 ## Configuration
 
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 ```
 
-15 kategori sudah ada: 5 income + 10 expense (from `finance_db.py`).
+15 categories seeded: 5 income + 10 expense (from `finance_db.py`).
 
 ### `budgets` — unchanged
 
@@ -99,9 +99,9 @@ ALTER TABLE transactions ADD COLUMN note TEXT DEFAULT '';
 
 **Backward compatibility:**
 - Old transactions: `user_id = NULL`, `date = NULL`, `note = ''`
-- Script `finance_db.py` tetap bisa INSERT karena dia pake kolom eksplisit (tidak `INSERT *`)
-- FastAPI bisa baca semua data, old + new
-- Cron tetap jalan tanpa perubahan
+- Script `finance_db.py` can still INSERT because it uses explicit column names (not `INSERT *`)
+- FastAPI can read all data, old + new
+- Cron keeps running without changes
 
 ## Migration Script
 
@@ -193,8 +193,8 @@ if __name__ == "__main__":
 
 ## Amount Format
 
-Semua amount disimpan sebagai REAL (float, integer dalam IDR) — kompatibel dengan `finance_db.py`.
-Tidak ada desimal. Display formatting dilakukan di Flutter / Hermes output.
+All amounts stored as REAL (float, integer in IDR) — compatible with `finance_db.py`.
+No decimals. Display formatting is done in Flutter / Hermes output.
 
 ## Backup
 
