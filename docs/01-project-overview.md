@@ -12,8 +12,8 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 │                                                       │
 │  ┌──────────┐    ┌─────────────┐    ┌─────────────┐  │
 │  │  Hermes   │    │   FastAPI    │    │   SQLite     │  │
-│  │ (cron +   │───►│  (port 8080) │───►│ wealthtrack  │  │
-│  │  agent)   │    │             │    │   .db       │  │
+│  │ (cron +   │───►│  (port 8080) │───►│ finance.db │  │
+│  │  agent)   │    │             │    │             │  │
 │  └──────────┘    └──────┬──────┘    └─────────────┘  │
 │                         │                             │
 │                    HTTP/JSON                          │

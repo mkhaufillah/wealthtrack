@@ -13,14 +13,14 @@ Both connect **directly to SQLite** (same DB file FastAPI uses).
 
 ```bash
 # Both Hermes scripts and FastAPI use the same path:
-~/.hermes/data/wealthtrack.db
+~/.keuangan/finance.db
 ```
 
 ## Step 1: Update Daily Finance Summary Cron
 
 The existing cron runs `daily_finance_report.py`. This script currently reads from the old format. Update it to:
 
-1. Connect to `~/.hermes/data/wealthtrack.db`
+1. Connect to `~/.keuangan/finance.db`
 2. Read today's transactions
 3. Generate the summary in the existing format (numbered list, grouped by user)
 
@@ -35,7 +35,7 @@ import os
 from datetime import date
 from pathlib import Path
 
-DB_PATH = os.path.expanduser("~/.hermes/data/wealthtrack.db")
+DB_PATH = os.path.expanduser("~/.keuangan/finance.db")
 
 def run():
     today = date.today().isoformat()
@@ -172,7 +172,7 @@ User asks to record an expense or income.
    import sqlite3
    from pathlib import Path
    
-   db = sqlite3.connect(str(Path.home() / ".hermes" / "data" / "wealthtrack.db"))
+   db = sqlite3.connect(str(Path.home() / ".keuangan" / "finance.db"))
    db.execute(
        "INSERT INTO transactions (user_id, category_id, type, amount, description, date) VALUES (?, ?, ?, ?, ?, ?)",
        (1, cat_id, "expense", amount, description, date.isoformat())
@@ -216,7 +216,7 @@ import os
 from pathlib import Path
 from datetime import date
 
-DB_PATH = os.path.expanduser("~/.hermes/data/wealthtrack.db")
+DB_PATH = os.path.expanduser("~/.keuangan/finance.db")
 FILLA_USER_ID = 1  # filla
 NAHDA_USER_ID = 2  # nahda
 # Default: user is filla unless specified

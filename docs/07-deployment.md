@@ -42,7 +42,7 @@
 | FastAPI bind | `0.0.0.0:8080` | `127.0.0.1:8080` (localhost only) |
 | Public exposure | Port 8080 langsung | Nginx reverse proxy via 443 |
 | Domain | — | `wealthtrack.filla.id` |
-| Firewall | 8080 open | Cuma 80 + 443 |
+| Firewall | Cuma 80 + 443 (8080 tidak perlu diatur — default deny) |
 
 ## Step 1: Systemd Service for FastAPI
 
@@ -164,7 +164,6 @@ dig +short A wealthtrack.filla.id
 sudo ufw allow ssh
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo ufw deny 8080/tcp    # pastikan port API tidak terbuka
 sudo ufw enable
 
 # Verifikasi
@@ -173,7 +172,6 @@ sudo ufw status
 # 22/tcp    ALLOW
 # 80/tcp    ALLOW
 # 443/tcp   ALLOW
-# 8080/tcp  DENY
 ```
 
 ## Step 5: Deploy Flow (Initial)
@@ -264,6 +262,6 @@ class AppConstants {
 - [ ] DB migration sudah jalan
 - [ ] Nginx config terpasang
 - [ ] SSL certificate (jalankan certbot setelah DNS siap)
-- [ ] Firewall: 80+443 open, 8080 restricted
+- [ ] Firewall: 80+443 open (8080 default deny via ufw)
 - [ ] Backup cron terpasang
 - [ ] Hermes cron `Daily Finance Summary` masih jalan (cek via `hermes cron list`)

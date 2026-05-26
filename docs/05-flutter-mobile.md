@@ -508,16 +508,12 @@ Flutter App ──HTTPS──► wealthtrack.filla.id :443
                          FastAPI
 ```
 
-**Firewall:** Hanya port 80 dan 443 yang terbuka. Port 8080 tidak di-expose.
+**Firewall:** Hanya port 80 dan 443 yang terbuka. Port 8080 di localhost — default deny.
 
 ```bash
 # ✅ Yang benar
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo ufw deny 8080/tcp    # port API tidak boleh diakses langsung
-
-# ❌ Yang salah (tidak boleh!)
-# sudo ufw allow 8080/tcp
 ```
 
 **Domain:** API dipanggil via `https://wealthtrack.filla.id/api/v1/...` — SSL di-handle nginx.
