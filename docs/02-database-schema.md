@@ -1,8 +1,13 @@
 # Database Schema — WealthTrack
 
-## Configuration (mandatory)
+## Database File
 
-Enable these PRAGMAs on every connection:
+**Path:** `~/.keuangan/finance.db` (existing database, 24KB, 27 transaksi)
+
+> Menggunakan DB yang sudah ada dari `financial-tracker` skill. Semua data existing tetap aman.
+> Cron dan skill `financial-tracker` tetap kompatibel — tidak perlu perubahan.
+
+## Configuration
 
 ```sql
 PRAGMA journal_mode = WAL;          -- concurrent reads + writes
@@ -10,125 +15,191 @@ PRAGMA foreign_keys = ON;           -- enforce FK constraints
 PRAGMA busy_timeout = 5000;         -- wait 5s before giving up on lock
 ```
 
-## Table: `users`
+## Existing Tables (untouched)
+
+### `categories` — unchanged
 
 ```sql
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS categories (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    username    TEXT NOT NULL UNIQUE,
-    display_name TEXT NOT NULL,
-    password_hash TEXT NOT NULL,      -- bcrypt hash
-    role        TEXT NOT NULL DEFAULT 'user',  -- 'user' | 'admin'
-    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-    updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    name        TEXT NOT NULL,
+    type        TEXT NOT NULL CHECK(type IN ('income', 'expense')),
+    icon        TEXT DEFAULT '',
+    is_default  INTEGER DEFAULT 0,
+    sort_order  INTEGER DEFAULT 0
+);
+```
+
+15 kategori sudah ada: 5 income + 10 expense (from `finance_db.py`).
+
+### `budgets` — unchanged
+
+```sql
+CREATE TABLE IF NOT EXISTS budgets (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    month         TEXT NOT NULL,
+    category_id   INTEGER,
+    category_name TEXT,
+    budget_amount REAL NOT NULL,
+    UNIQUE(month, category_name),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+```
+
+## New Table (added by WealthTrack)
+
+### `users`
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT NOT NULL UNIQUE,
+    display_name  TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    role          TEXT NOT NULL DEFAULT 'user',
+    created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 ```
 
 Seed data:
-- `filla` — Filla
-- `nahda` — Nahda
+| id | username | display_name |
+|----|----------|-------------|
+| 1 | filla | Filla |
+| 2 | nahda | Nahda |
 
-## Table: `categories`
+## Modified Table — `transactions`
 
-```sql
-CREATE TABLE categories (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT NOT NULL,
-    type        TEXT NOT NULL CHECK(type IN ('expense','income')),
-    icon        TEXT DEFAULT '',       -- emoji or icon name
-    color       TEXT DEFAULT '#6C63FF',
-    is_default  INTEGER NOT NULL DEFAULT 0,  -- seeded categories
-    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-);
-
-CREATE UNIQUE INDEX idx_cat_name_type ON categories(name, type);
-```
-
-### Default Categories (seed)
-
-| Type | Name | Icon | Color |
-|------|------|------|-------|
-| expense | Makan & Minum | 🍽️ | #FF6B6B |
-| expense | Transportasi | 🚗 | #4ECDC4 |
-| expense | Belanja Bulanan | 🛒 | #45B7D1 |
-| expense | Tagihan & Listrik | 💡 | #96CEB4 |
-| expense | Kesehatan | 🏥 | #FFEAA7 |
-| expense | Hiburan | 🎬 | #DDA0DD |
-| expense | Pendidikan | 📚 | #98D8C8 |
-| expense | Hadiah & Donasi | 🎁 | #F7DC6F |
-| expense | Lainnya | 📦 | #BDC3C7 |
-| income | Gaji | 💰 | #2ECC71 |
-| income | Bonus | 🎉 | #27AE60 |
-| income | Lainnya | 💵 | #7F8C8D |
-
-## Table: `transactions`
+### Existing columns (untouched, for backward compatibility)
 
 ```sql
-CREATE TABLE transactions (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id     INTEGER NOT NULL REFERENCES users(id),
-    category_id INTEGER NOT NULL REFERENCES categories(id),
-    type        TEXT NOT NULL CHECK(type IN ('expense','income')),
-    amount      INTEGER NOT NULL CHECK(amount > 0),   -- in Rupiah (IDR)
-    description TEXT NOT NULL DEFAULT '',
-    note        TEXT DEFAULT '',
-    date        TEXT NOT NULL,                         -- 'YYYY-MM-DD'
-    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-    updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-);
-
-CREATE INDEX idx_txn_user_date ON transactions(user_id, date);
-CREATE INDEX idx_txn_category ON transactions(category_id);
-CREATE INDEX idx_txn_type ON transactions(type);
-```
-
-**amount** disimpan sebagai INTEGER (IDR, in Rupiah, tanpa desimal). Format display dilakukan di Flutter / Hermes output.
-
-## Table: `budgets` (optional, P4)
-
-```sql
-CREATE TABLE budgets (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id     INTEGER NOT NULL REFERENCES users(id),
-    category_id INTEGER NOT NULL REFERENCES categories(id),
-    month       TEXT NOT NULL,         -- 'YYYY-MM'
-    amount      INTEGER NOT NULL,      -- budget ceiling in IDR
-    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-    updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-    UNIQUE(user_id, category_id, month)
+CREATE TABLE IF NOT EXISTS transactions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    type          TEXT NOT NULL CHECK(type IN ('income', 'expense')),
+    amount        REAL NOT NULL,
+    category_id   INTEGER,
+    category_name TEXT,
+    description   TEXT,
+    source        TEXT DEFAULT 'manual',
+    image_path    TEXT,
+    created_at    TEXT DEFAULT (datetime('now', 'localtime')),
+    -- NEW columns added via ALTER TABLE:
+    -- user_id      INTEGER REFERENCES users(id),
+    -- date         TEXT,
+    -- note         TEXT DEFAULT ''
 );
 ```
 
-## Table: `sync_log` (for diagnostics)
+### New columns (added via migration, not CREATE TABLE)
 
 ```sql
-CREATE TABLE sync_log (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    source      TEXT NOT NULL,          -- 'hermes', 'api', 'flutter'
-    action      TEXT NOT NULL,          -- 'insert', 'update', 'delete'
-    table_name  TEXT NOT NULL,
-    record_id   INTEGER,
-    status      TEXT NOT NULL DEFAULT 'ok',
-    message     TEXT DEFAULT '',
-    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-);
+ALTER TABLE transactions ADD COLUMN user_id INTEGER REFERENCES users(id);
+ALTER TABLE transactions ADD COLUMN date TEXT;
+ALTER TABLE transactions ADD COLUMN note TEXT DEFAULT '';
 ```
 
-## Database File
+**Backward compatibility:**
+- Old transactions: `user_id = NULL`, `date = NULL`, `note = ''`
+- Script `finance_db.py` tetap bisa INSERT karena dia pake kolom eksplisit (tidak `INSERT *`)
+- FastAPI bisa baca semua data, old + new
+- Cron tetap jalan tanpa perubahan
 
-**Location:** `~/.hermes/data/wealthtrack.db`
+## Migration Script
 
-Or if you prefer a shared location: `~/dev/wealthtrack/data/wealthtrack.db`
+Run once after WealthTrack deployment. Safe to run multiple times (checks column existence).
 
-> Recommendation: keep it at `~/.hermes/data/wealthtrack.db` so Hermes scripts can access it without path confusion. FastAPI config points to the same path.
+```python
+import sqlite3
+import os
 
-## Migration Strategy
+DB_PATH = os.path.expanduser("~/.keuangan/finance.db")
 
-No migration framework. Schema is versioned in `init_db.py`.
+def migrate():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA foreign_keys=OFF;")  # allow ALTER during migration
 
-When schema changes:
-1. Write `alter_table.sql` migration in `scripts/migrate_v2.py`
-2. Run manually before deploying new backend version
-3. Keep backup of `.db` before migration
+    # 1. Create users table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            display_name TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user',
+            created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+    """)
 
-For MVP: no migrations needed. Schema is designed for P1-P3.
+    # 2. Seed default users
+    users = [
+        (1, 'filla', 'Filla', '$2b$12$LJ3m4ys3Lk0TSwHCpNqrPOkODhBIjs5y7Kwe5mCpMOABsERy7aEJa', 'admin'),
+        (2, 'nahda', 'Nahda', '$2b$12$LJ3m4ys3Lk0TSwHCpNqrPOkODhBIjs5y7Kwe5mCpMOABsERy7aEJa', 'user'),
+    ]
+    for uid, uname, dname, pw_hash, role in users:
+        conn.execute(
+            "INSERT OR IGNORE INTO users (id, username, display_name, password_hash, role) VALUES (?, ?, ?, ?, ?)",
+            (uid, uname, dname, pw_hash, role)
+        )
+
+    # 3. Add new columns to transactions (safe: checks existence first)
+    cursor = conn.execute("PRAGMA table_info(transactions)")
+    existing_cols = [row[1] for row in cursor.fetchall()]
+
+    if 'user_id' not in existing_cols:
+        conn.execute("ALTER TABLE transactions ADD COLUMN user_id INTEGER REFERENCES users(id)")
+    if 'date' not in existing_cols:
+        conn.execute("ALTER TABLE transactions ADD COLUMN date TEXT")
+    if 'note' not in existing_cols:
+        conn.execute("ALTER TABLE transactions ADD COLUMN note TEXT DEFAULT ''")
+
+    # 4. Backfill: set user_id = 1 (filla) for old transactions
+    conn.execute("UPDATE transactions SET user_id = 1 WHERE user_id IS NULL")
+
+    # 5. Backfill: set date = created_at for old transactions that have NULL date
+    conn.execute("UPDATE transactions SET date = substr(created_at, 1, 10) WHERE date IS NULL AND created_at IS NOT NULL")
+
+    conn.commit()
+    conn.close()
+    print("Migration complete.")
+
+if __name__ == "__main__":
+    migrate()
+```
+
+## Schema Diagram (after migration)
+
+```
+┌──────────────┐       ┌──────────────────────────────────┐       ┌──────────────┐
+│    users     │       │           transactions            │       │  categories  │
+├──────────────┤       ├──────────────────────────────────┤       ├──────────────┤
+│ id (PK)      │◄──────│ user_id (FK)                     │       │ id (PK)      │
+│ username     │       │ id (PK)                          │◄──────│ category_id  │
+│ display_name │       │ type                             │       │ name         │
+│ password_hash│       │ amount     (REAL, in Rupiah)     │       │ type         │
+│ role         │       │ category_id (FK → categories)    │       │ icon         │
+│ created_at   │       │ category_name (denormalized)     │       │ is_default   │
+└──────────────┘       │ description                      │       │ sort_order   │
+                       │ source       ('manual','api',etc) │       └──────────────┘
+                       │ image_path   (invoice photo)     │
+                       │ user_id      (NEW)               │       ┌──────────────┐
+                       │ date         (NEW: YYYY-MM-DD)   │       │   budgets    │
+                       │ note         (NEW: optional)     │       ├──────────────┤
+                       │ created_at   (timestamp)         │       │ id (PK)      │
+                       └──────────────────────────────────┘       │ month        │
+                                                                  │ category_id  │
+                                                                  │ category_name│
+                                                                  │ budget_amount│
+                                                                  └──────────────┘
+```
+
+## Amount Format
+
+Semua amount disimpan sebagai REAL (float, integer dalam IDR) — kompatibel dengan `finance_db.py`.
+Tidak ada desimal. Display formatting dilakukan di Flutter / Hermes output.
+
+## Backup
+
+Karena ini single file: backup = copy file.
+
+```bash
+cp ~/.keuangan/finance.db ~/wealthtrack-backups/finance-$(date +%Y%m%d).db
+```

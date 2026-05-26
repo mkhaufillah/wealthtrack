@@ -3,31 +3,46 @@
 ## Architecture on VPS
 
 ```
-┌──────────────────────────────────────────────────┐
-│  VPS (Ubuntu 22.04)                              │
-│                                                   │
-│  ┌────────────────────┐                           │
-│  │  Hermes Agent      │  (runs as user: filla)    │
-│  │  ~/.hermes/        │                           │
-│  │  ├── scripts/      │                           │
-│  │  │   ├── daily_*   │                           │
-│  │  │   └── add_txn*  │                           │
-│  │  └── data/         │                           │
-│  │       └── wealth.  │                           │
-│  │           track.db  │◄──── SQLite file         │
-│  └────────────────────┘          ▲                │
-│                                  │                │
-│  ┌────────────────────┐          │                │
-│  │  FastAPI (systemd) │──────────┘                │
-│  │  port 8080         │                           │
-│  └────────────────────┘                           │
-│         │                                         │
-│  ┌──────┴───────┐                                 │
-│  │  nginx       │  (reverse proxy, HTTPS, P4)     │
-│  │  port 443    │                                 │
-│  └──────────────┘                                 │
-└──────────────────────────────────────────────────┘
+                          ┌─────────────────────────────────────────────┐
+                          │              VPS (Ubuntu 22.04)              │
+                          │                                              │
+  ──► wealthtrack.filla.id ──► Nginx :80 (redirect to 443)               │
+                              Nginx :443 (SSL)                            │
+                                  │                                       │
+                                  ▼                                       │
+                            Reverse Proxy                                  │
+                                  │                                       │
+                                  ▼                                       │
+                          FastAPI :8080 (localhost only)                   │
+                              │                                            │
+                              ▼                                            │
+                    ┌─────────────────┐                                    │
+                    │  ~/.keuangan/   │                                    │
+                    │  finance.db     │◄──── Hermes cron juga baca ini     │
+                    └─────────────────┘                                    │
+                                                                           │
+              ┌─────────────────────────────────────┐                      │
+              │  Hermes Agent (same VPS)            │                      │
+              │  ├── cron: daily_finance_report.py  │──► SQLite langsung   │
+              │  ├── skill: financial-tracker       │──► SQLite langsung   │
+              │  └── chat: add_transaction.py       │──► SQLite langsung   │
+              └─────────────────────────────────────┘                      │
+              ┌─────────────────────────────────────┐                      │
+              │  Flutter Mobile (via internet)      │                      │
+              │  ──► https://wealthtrack.filla.id   │──► Nginx ──► FastAPI│
+              └─────────────────────────────────────┘                      │
+                                                                           │
 ```
+
+## Key Differences from Standard Setup
+
+| Aspek | Sebelum (doc lama) | Sesudah (update) |
+|-------|-------------------|-------------------|
+| DB path | `~/.hermes/data/wealthtrack.db` | `~/.keuangan/finance.db` (existing) |
+| FastAPI bind | `0.0.0.0:8080` | `127.0.0.1:8080` (localhost only) |
+| Public exposure | Port 8080 langsung | Nginx reverse proxy via 443 |
+| Domain | — | `wealthtrack.filla.id` |
+| Firewall | 8080 open | Cuma 80 + 443 |
 
 ## Step 1: Systemd Service for FastAPI
 
@@ -42,8 +57,8 @@ After=network.target
 Type=simple
 User=filla
 WorkingDirectory=/home/filla/dev/wealthtrack
-Environment=PATH=/home/filla/dev/wealthtrack/.venv/bin
-ExecStart=/home/filla/dev/wealthtrack/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8080
+Environment=PATH=/home/filla/.local/bin:/home/filla/dev/wealthtrack/.venv/bin
+ExecStart=/home/filla/dev/wealthtrack/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8080
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -62,124 +77,193 @@ sudo systemctl start wealthtrack
 sudo systemctl status wealthtrack
 ```
 
-## Step 2: Firewall
+## Step 2: Nginx Reverse Proxy
+
+### Install Nginx
+
+```bash
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+
+### Configure Virtual Host
+
+Create `/etc/nginx/sites-available/wealthtrack`:
+
+```nginx
+server {
+    listen 80;
+    server_name wealthtrack.filla.id;
+
+    # Redirect HTTP → HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name wealthtrack.filla.id;
+
+    # SSL — akan diisi certbot nanti
+    ssl_certificate /etc/letsencrypt/live/wealthtrack.filla.id/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/wealthtrack.filla.id/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # Reverse proxy ke FastAPI
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket support (future use)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # Static files (optional, untuk frontend)
+    location /static/ {
+        alias /home/filla/dev/wealthtrack/backend/static/;
+        expires 30d;
+    }
+}
+```
+
+Enable site:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/wealthtrack /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default  # optional: disable default site
+sudo nginx -t  # test config
+sudo systemctl reload nginx
+```
+
+## Step 3: SSL Certificate (Let's Encrypt)
+
+Jalankan **SETELAH** DNS `wealthtrack.filla.id` sudah mengarah ke IP VPS.
+
+```bash
+sudo certbot --nginx -d wealthtrack.filla.id --non-interactive --agree-tos -m khaufillahmohammad@gmail.com
+```
+
+Jika DNS belum siap, jalankan nanti:
+
+```bash
+# Cek DNS dulu
+dig +short A wealthtrack.filla.id
+# Harusnya return IP VPS: 2.27.165.124
+```
+
+## Step 4: Firewall
 
 ```bash
 sudo ufw allow ssh
-sudo ufw allow 8080/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw deny 8080/tcp    # pastikan port API tidak terbuka
 sudo ufw enable
+
+# Verifikasi
+sudo ufw status
+# Hasil:
+# 22/tcp    ALLOW
+# 80/tcp    ALLOW
+# 443/tcp   ALLOW
+# 8080/tcp  DENY
 ```
 
-## Step 3: Verify Service
+## Step 5: Deploy Flow (Initial)
 
 ```bash
-# Check logs
-journalctl -u wealthtrack -f
+# 1. Pull repo
+cd ~/dev/wealthtrack && git pull
 
-# Test API
-curl http://localhost:8080/api/v1/auth/login \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"username": "filla", "password": "password123"}'
+# 2. Aktifkan venv
+source .venv/bin/activate
 
-# Test from phone (replace with VPS IP)
-curl http://<VPS_IP>:8080/api/v1/auth/login \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"username": "filla", "password": "password123"}'
+# 3. Install/update deps
+uv pip install -r backend/requirements.txt
+
+# 4. Run migration (hanya sekali, atau kalau ada perubahan schema)
+uv run python -m backend.app.migrate_db
+
+# 5. Restart service
+sudo systemctl restart wealthtrack
+
+# 6. Reload nginx (kalau ada perubahan config)
+sudo systemctl reload nginx
+
+# 7. Verifikasi
+curl https://wealthtrack.filla.id/api/v1/categories -H "Authorization: Bearer $(curl -s -X POST https://wealthtrack.filla.id/api/v1/auth/login -H 'Content-Type: application/json' -d '{"username":"filla","password":"password123"}' | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')"
 ```
 
-## Step 4: Auto-Start on Boot
+## Step 6: Deploy Flow (Updates)
 
 ```bash
-sudo systemctl enable wealthtrack
+cd ~/dev/wealthtrack && git pull
+source .venv/bin/activate
+uv pip install -r backend/requirements.txt
+sudo systemctl restart wealthtrack
 ```
 
-The service auto-restarts on crash (Restart=on-failure) and starts on boot.
-
-## Step 5: Backup Strategy (P4, but recommended)
-
-### SQLite Backup Script
+## Step 7: Backup SQLite
 
 ```bash
 #!/bin/bash
 # ~/dev/wealthtrack/scripts/backup.sh
 BACKUP_DIR=~/wealthtrack-backups
-mkdir -p $BACKUP_DIR
-cp ~/.hermes/data/wealthtrack.db $BACKUP_DIR/wealthtrack-$(date +%Y%m%d-%H%M%S).db
+mkdir -p "$BACKUP_DIR"
+cp ~/.keuangan/finance.db "$BACKUP_DIR/finance-$(date +%Y%m%d-%H%M%S).db"
 # Keep last 30 days
-ls -t $BACKUP_DIR/*.db | tail -n +31 | xargs rm -f 2>/dev/null
+ls -t "$BACKUP_DIR"/*.db | tail -n +31 | xargs rm -f 2>/dev/null
+echo "Backup done: $(ls -lh "$BACKUP_DIR"/*.db | tail -1)"
 ```
 
-Cron: daily backup
+Cron:
 
 ```bash
 0 2 * * * ~/dev/wealthtrack/scripts/backup.sh
 ```
 
-### Restore
+## Step 8: Monitoring
+
 ```bash
-# Stop service, copy backup, restart
-sudo systemctl stop wealthtrack
-cp ~/wealthtrack-backups/wealthtrack-20260526.db ~/.hermes/data/wealthtrack.db
-sudo systemctl start wealthtrack
+# Cek service
+sudo systemctl status wealthtrack
+
+# Cek log
+journalctl -u wealthtrack -n 50 --no-pager
+
+# Cek nginx
+sudo nginx -t
+sudo systemctl status nginx
+
+# HTTP endpoint health check
+curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/auth/login
 ```
 
-## Step 6: HTTPS — For Production (P4)
+## Flutter App Configuration
 
-When you want to expose the API publicly (for Flutter app from outside your LAN):
+Di Flutter, API base URL diatur ke:
 
-```nginx
-# /etc/nginx/sites-available/wealthtrack
-server {
-    listen 443 ssl;
-    server_name wealthtrack.yourdomain.com;
-
-    ssl_certificate /etc/letsencrypt/live/wealthtrack.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/wealthtrack.yourdomain.com/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-
-server {
-    listen 80;
-    server_name wealthtrack.yourdomain.com;
-    return 301 https://$server_name$request_uri;
+```dart
+// lib/core/constants.dart
+class AppConstants {
+  static const String apiBaseUrl = 'https://wealthtrack.filla.id/api/v1';
 }
 ```
 
-```bash
-sudo apt install nginx certbot python3-certbot-nginx
-sudo certbot --nginx -d wealthtrack.yourdomain.com
-```
+## Deployment Checklist
 
-## Step 7: Monitoring Health
-
-Simple health check endpoint (already in FastAPI):
-
-```bash
-# Every 5 minutes, log uptime
-*/5 * * * * curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/docs | logger -t wealthtrack-health
-```
-
-Or use the built-in systemd health checks:
-
-```bash
-systemctl is-active wealthtrack
-```
-
-## P1 Deployment Checklist
-
-- [x] FastAPI service created
-- [x] Systemd unit configured
-- [x] Service auto-starts on boot
-- [x] Firewall allows port 8080
-- [x] Seed data created (default users + categories)
-- [ ] Test login from Swagger UI
-- [ ] Test login from Flutter (once built)
-- [ ] Test Hermes cron (update existing cron)
-- [ ] Verify DB file exists at ~/.hermes/data/wealthtrack.db
+- [ ] DNS `wealthtrack.filla.id` → VPS IP (`2.27.165.124`)
+- [ ] FastAPI systemd service running
+- [ ] DB migration sudah jalan
+- [ ] Nginx config terpasang
+- [ ] SSL certificate (jalankan certbot setelah DNS siap)
+- [ ] Firewall: 80+443 open, 8080 restricted
+- [ ] Backup cron terpasang
+- [ ] Hermes cron `Daily Finance Summary` masih jalan (cek via `hermes cron list`)

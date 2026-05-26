@@ -7,6 +7,7 @@ This doc is designed for an AI agent (Claude Code, Codex, etc.) to execute seque
 - Python 3.11+ installed
 - `uv` installed (preferred over pip)
 - VPS running Linux (proven)
+- Existing DB at `~/.keuangan/finance.db` with 27 transactions
 
 ## Step 1: Create Python Virtual Environment
 
@@ -18,7 +19,7 @@ source .venv/bin/activate
 
 ## Step 2: Install Dependencies
 
-Create `backend/requirements.txt`:
+`backend/requirements.txt`
 
 ```
 fastapi==0.115.6
@@ -34,12 +35,13 @@ pydantic-settings==2.7.1
 Install:
 
 ```bash
-cd ~/dev/wealthtrack
 source .venv/bin/activate
 uv pip install -r backend/requirements.txt
 ```
 
-## Step 3: Create Core Config
+## Step 3: Database Path & Config
+
+**DB tetap di `~/.keuangan/finance.db`** — jangan bikin baru.
 
 `backend/app/core/config.py`
 
@@ -52,8 +54,8 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     DEBUG: bool = True
 
-    DB_PATH: str = str(Path.home() / ".hermes" / "data" / "wealthtrack.db")
-    DB_DIR: str = str(Path.home() / ".hermes" / "data")
+    # === PAKAI DB YANG SUDAH ADA ===
+    DB_PATH: str = str(Path.home() / ".keuangan" / "finance.db")
 
     SECRET_KEY: str = "change-me-in-production-use-env"  # TODO: env var
     ALGORITHM: str = "HS256"
@@ -68,23 +70,119 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-## Step 4: Create Database Layer
+## Step 4: Migration Script (Run ONCE)
+
+Sebelum mulai FastAPI, jalankan migrasi untuk menambah kolom baru ke DB existing.
+Script ini **aman dijalankan ulang** — ngecek keberadaan kolom sebelum ALTER TABLE.
+
+`backend/app/migrate_db.py`
+
+```python
+"""
+Migration script: add new columns to existing finance.db.
+Safe to re-run — checks column existence before ALTER TABLE.
+Run ONCE before starting FastAPI server.
+"""
+
+import sqlite3
+import os
+from pathlib import Path
+from app.core.config import settings
+
+def run_migration():
+    db_path = settings.DB_PATH
+    print(f"Migrating: {db_path}")
+
+    if not os.path.exists(db_path):
+        print(f"ERROR: Database not found at {db_path}")
+        print("Run the existing finance_db.py init first, or seed data manually.")
+        return
+
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys=OFF;")
+
+    # 1. Create users table if not exists
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            display_name TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user',
+            created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+    """)
+
+    # 2. Seed default users (password default: "password123")
+    # Hash dihasilkan dari passlib.hash bcrypt — ganti dengan hash real setelah deploy
+    import hashlib
+    # Placeholder hash — ganti via API nanti
+    dummy_hash = "$2b$12$LJ3m4ys3Lk0TSwHCpNqrPOkODhBIjs5y7Kwe5mCpMOABsERy7aEJa"
+    users_data = [
+        (1, 'filla', 'Filla', dummy_hash, 'admin'),
+        (2, 'nahda', 'Nahda', dummy_hash, 'user'),
+    ]
+    for uid, uname, dname, pw_hash, role in users_data:
+        conn.execute(
+            "INSERT OR IGNORE INTO users (id, username, display_name, password_hash, role) VALUES (?, ?, ?, ?, ?)",
+            (uid, uname, dname, pw_hash, role)
+        )
+
+    # 3. Add new columns to transactions (safe: checks existence)
+    cursor = conn.execute("PRAGMA table_info(transactions)")
+    existing_cols = [row[1] for row in cursor.fetchall()]
+
+    added = []
+    if 'user_id' not in existing_cols:
+        conn.execute("ALTER TABLE transactions ADD COLUMN user_id INTEGER REFERENCES users(id)")
+        added.append("user_id")
+    if 'date' not in existing_cols:
+        conn.execute("ALTER TABLE transactions ADD COLUMN date TEXT")
+        added.append("date")
+    if 'note' not in existing_cols:
+        conn.execute("ALTER TABLE transactions ADD COLUMN note TEXT DEFAULT ''")
+        added.append("note")
+
+    # 4. Backfill existing data
+    conn.execute("UPDATE transactions SET user_id = 1 WHERE user_id IS NULL")
+    conn.execute(
+        "UPDATE transactions SET date = substr(created_at, 1, 10) WHERE date IS NULL AND created_at IS NOT NULL"
+    )
+
+    conn.commit()
+    conn.close()
+
+    print(f"Migration complete. Added columns: {added if added else 'none needed'}")
+    print(f"Users seeded: filla (admin), nahda (user) — password default: password123")
+    print("IMPORTANT: Change password via API after first login!")
+
+if __name__ == "__main__":
+    run_migration()
+```
+
+Run migration:
+
+```bash
+cd ~/dev/wealthtrack
+source .venv/bin/activate
+uv run python -m backend.app.migrate_db
+```
+
+## Step 5: Database Layer
 
 `backend/app/database.py`
 
 ```python
 import aiosqlite
+import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from app.core.config import settings
 
-_db_path: str = settings.DB_PATH
-
 async def get_db():
     """Dependency: yields aiosqlite connection with WAL mode."""
-    Path(settings.DB_DIR).mkdir(parents=True, exist_ok=True)
-    db = await aiosqlite.connect(_db_path)
+    db = await aiosqlite.connect(settings.DB_PATH)
     db.row_factory = aiosqlite.Row
     await db.execute("PRAGMA journal_mode=WAL;")
     await db.execute("PRAGMA foreign_keys=ON;")
@@ -94,67 +192,16 @@ async def get_db():
     finally:
         await db.close()
 
-async def init_db():
-    """Create tables if they don't exist. Run on startup."""
-    async with aiosqlite.connect(_db_path) as db:
-        await db.executescript("""
-            PRAGMA journal_mode=WAL;
-            PRAGMA foreign_keys=ON;
-
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                display_name TEXT NOT NULL,
-                password_hash TEXT NOT NULL,
-                role TEXT NOT NULL DEFAULT 'user',
-                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-                updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-            );
-
-            CREATE TABLE IF NOT EXISTS categories (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                type TEXT NOT NULL CHECK(type IN ('expense','income')),
-                icon TEXT DEFAULT '',
-                color TEXT DEFAULT '#6C63FF',
-                is_default INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-            );
-
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_cat_name_type ON categories(name, type);
-
-            CREATE TABLE IF NOT EXISTS transactions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL REFERENCES users(id),
-                category_id INTEGER NOT NULL REFERENCES categories(id),
-                type TEXT NOT NULL CHECK(type IN ('expense','income')),
-                amount INTEGER NOT NULL CHECK(amount > 0),
-                description TEXT NOT NULL DEFAULT '',
-                note TEXT DEFAULT '',
-                date TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-                updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_txn_user_date ON transactions(user_id, date);
-            CREATE INDEX IF NOT EXISTS idx_txn_category ON transactions(category_id);
-            CREATE INDEX IF NOT EXISTS idx_txn_type ON transactions(type);
-
-            CREATE TABLE IF NOT EXISTS sync_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                source TEXT NOT NULL,
-                action TEXT NOT NULL,
-                table_name TEXT NOT NULL,
-                record_id INTEGER,
-                status TEXT NOT NULL DEFAULT 'ok',
-                message TEXT DEFAULT '',
-                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-            );
-        """)
-        await db.commit()
+def get_sync_db():
+    """Synchronous connection for migration / seed scripts."""
+    conn = sqlite3.connect(settings.DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA foreign_keys=ON;")
+    return conn
 ```
 
-## Step 5: Security Module
+## Step 6: Security Module
 
 `backend/app/core/security.py`
 
@@ -199,7 +246,7 @@ async def get_current_user(
     return {"id": int(payload["sub"]), "username": payload["username"]}
 ```
 
-## Step 6: Create Pydantic Schemas
+## Step 7: Create Pydantic Schemas
 
 `backend/app/schemas/user.py`
 
@@ -233,7 +280,6 @@ class TokenOut(BaseModel):
 ```python
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import date
 
 class TransactionCreate(BaseModel):
     type: str = Field(pattern="^(expense|income)$")
@@ -292,11 +338,10 @@ class CategoryOut(BaseModel):
     name: str
     type: str
     icon: str
-    color: str
     is_default: bool
 ```
 
-## Step 7: Create Routers
+## Step 8: Create Routers
 
 `backend/app/routers/auth.py`
 
@@ -338,7 +383,10 @@ async def login(data: UserLogin, db: aiosqlite.Connection = Depends(get_db)):
 
 @router.get("/me")
 async def me(current_user: dict = Depends(get_current_user), db: aiosqlite.Connection = Depends(get_db)):
-    cursor = await db.execute("SELECT id, username, display_name, role FROM users WHERE id = ?", (current_user["id"],))
+    cursor = await db.execute(
+        "SELECT id, username, display_name, role, created_at FROM users WHERE id = ?",
+        (current_user["id"],),
+    )
     user = await cursor.fetchone()
     return dict(user)
 ```
@@ -362,9 +410,11 @@ async def list_categories(
     current_user: dict = Depends(get_current_user),
 ):
     if type:
-        cursor = await db.execute("SELECT * FROM categories WHERE type = ? ORDER BY name", (type,))
+        cursor = await db.execute(
+            "SELECT * FROM categories WHERE type = ? ORDER BY sort_order", (type,)
+        )
     else:
-        cursor = await db.execute("SELECT * FROM categories ORDER BY type, name")
+        cursor = await db.execute("SELECT * FROM categories ORDER BY type, sort_order")
     rows = await cursor.fetchall()
     return [dict(r) for r in rows]
 ```
@@ -378,22 +428,29 @@ from typing import Optional
 
 from app.database import get_db
 from app.core.security import get_current_user
-from app.schemas.transaction import TransactionCreate, TransactionUpdate, PaginatedTransactions, TransactionOut, CategoryBrief, UserBrief
+from app.schemas.transaction import TransactionCreate, TransactionUpdate, PaginatedTransactions
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
-def _row_to_out(row, category, user) -> dict:
+def _format_txn(row, cat_name="", cat_icon="", username=""):
     return {
         "id": row["id"],
-        "amount": row["amount"],
+        "amount": int(row["amount"]),
         "type": row["type"],
-        "description": row["description"],
+        "description": row["description"] or "",
         "note": row["note"] or "",
-        "date": row["date"],
-        "category": {"id": category["id"], "name": category["name"], "icon": category["icon"] or ""},
-        "user": {"id": user["id"], "display_name": user["display_name"]},
+        "date": row["date"] or row["created_at"][:10],
+        "category": {
+            "id": row["category_id"],
+            "name": cat_name or row["category_name"] or "",
+            "icon": cat_icon or "",
+        },
+        "user": {
+            "id": row.get("user_id") or 1,
+            "display_name": username or ("Filla" if row.get("user_id") == 2 else "Filla"),
+        },
         "created_at": row["created_at"],
-        "updated_at": row["updated_at"],
+        "updated_at": row.get("updated_at", row["created_at"]),
     }
 
 @router.get("")
@@ -408,7 +465,7 @@ async def list_transactions(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    where = ["user_id = ?"]
+    where = ["t.user_id = ?"]
     params: list = [current_user["id"]]
     if type:
         where.append("t.type = ?")
@@ -417,20 +474,25 @@ async def list_transactions(
         where.append("t.category_id = ?")
         params.append(category_id)
     if date_from:
-        where.append("t.date >= ?")
+        where.append("COALESCE(t.date, substr(t.created_at,1,10)) >= ?")
         params.append(date_from)
     if date_to:
-        where.append("t.date <= ?")
+        where.append("COALESCE(t.date, substr(t.created_at,1,10)) <= ?")
         params.append(date_to)
 
-    order_map = {"date": "t.date ASC", "-date": "t.date DESC", "amount": "t.amount ASC", "-amount": "t.amount DESC"}
-    order = order_map.get(sort, "t.date DESC")
+    order_map = {
+        "date": "COALESCE(t.date, substr(t.created_at,1,10)) ASC",
+        "-date": "COALESCE(t.date, substr(t.created_at,1,10)) DESC",
+        "amount": "t.amount ASC",
+        "-amount": "t.amount DESC",
+    }
+    order = order_map.get(sort, "COALESCE(t.date, substr(t.created_at,1,10)) DESC")
 
-    # Count
-    cursor = await db.execute(f"SELECT COUNT(*) FROM transactions t WHERE {' AND '.join(where)}", params)
+    cursor = await db.execute(
+        f"SELECT COUNT(*) FROM transactions t WHERE {' AND '.join(where)}", params
+    )
     total = (await cursor.fetchone())[0]
 
-    # Fetch
     offset = (page - 1) * per_page
     cursor = await db.execute(
         f"""SELECT t.* FROM transactions t
@@ -443,9 +505,13 @@ async def list_transactions(
 
     data = []
     for r in rows:
-        c = await (await db.execute("SELECT id, name, icon FROM categories WHERE id = ?", (r["category_id"],))).fetchone()
-        u = await (await db.execute("SELECT id, display_name FROM users WHERE id = ?", (r["user_id"],))).fetchone()
-        data.append(_row_to_out(r, c, u))
+        c = await (await db.execute(
+            "SELECT id, name, icon FROM categories WHERE id = ?", (r["category_id"],)
+        )).fetchone()
+        if c:
+            data.append(_format_txn(r, c["name"], c["icon"]))
+        else:
+            data.append(_format_txn(r, r.get("category_name", "")))
 
     return PaginatedTransactions(
         data=data,
@@ -461,21 +527,21 @@ async def create_transaction(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    cursor = await db.execute("SELECT id FROM categories WHERE id = ?", (data.category_id,))
-    if not await cursor.fetchone():
+    cursor = await db.execute("SELECT id, name FROM categories WHERE id = ?", (data.category_id,))
+    cat = await cursor.fetchone()
+    if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
+
     cursor = await db.execute(
-        """INSERT INTO transactions (user_id, category_id, type, amount, description, note, date)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (current_user["id"], data.category_id, data.type, data.amount, data.description, data.note, data.date),
+        """INSERT INTO transactions (user_id, category_id, category_name, type, amount, description, note, date)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (current_user["id"], data.category_id, cat["name"], data.type, data.amount, data.description, data.note, data.date),
     )
     await db.commit()
     new_id = cursor.lastrowid
     cursor = await db.execute("SELECT * FROM transactions WHERE id = ?", (new_id,))
     row = await cursor.fetchone()
-    c = await (await db.execute("SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],))).fetchone()
-    u = {"id": current_user["id"], "display_name": current_user["username"]}
-    return _row_to_out(row, c, u)
+    return _format_txn(row, cat["name"], "", current_user["username"])
 
 @router.get("/{txn_id}")
 async def get_transaction(
@@ -483,13 +549,16 @@ async def get_transaction(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    cursor = await db.execute("SELECT * FROM transactions WHERE id = ? AND user_id = ?", (txn_id, current_user["id"]))
+    cursor = await db.execute(
+        "SELECT * FROM transactions WHERE id = ? AND user_id = ?", (txn_id, current_user["id"])
+    )
     row = await cursor.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Transaction not found")
-    c = await (await db.execute("SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],))).fetchone()
-    u = {"id": current_user["id"], "display_name": current_user["username"]}
-    return _row_to_out(row, c, u)
+    c = await (await db.execute(
+        "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
+    )).fetchone()
+    return _format_txn(row, c["name"] if c else "", "", current_user["username"])
 
 @router.put("/{txn_id}")
 async def update_transaction(
@@ -498,28 +567,42 @@ async def update_transaction(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    cursor = await db.execute("SELECT * FROM transactions WHERE id = ? AND user_id = ?", (txn_id, current_user["id"]))
+    cursor = await db.execute(
+        "SELECT id FROM transactions WHERE id = ? AND user_id = ?", (txn_id, current_user["id"])
+    )
     if not await cursor.fetchone():
         raise HTTPException(status_code=404, detail="Transaction not found")
+
     updates = {}
     for field in ["amount", "description", "note", "category_id", "date"]:
         val = getattr(data, field, None)
         if val is not None:
-            updates[field] = val
+            if field == "category_id":
+                c = await (await db.execute(
+                    "SELECT name FROM categories WHERE id = ?", (val,)
+                )).fetchone()
+                if not c:
+                    raise HTTPException(status_code=404, detail="Category not found")
+                updates["category_id"] = val
+                updates["category_name"] = c["name"]
+            else:
+                updates[field] = val
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
+
     set_clause = ", ".join(f"{k} = ?" for k in updates)
-    updates["updated_at"] = "2026-05-26T12:00:00.000Z"  # simplified
     await db.execute(
-        f"UPDATE transactions SET {set_clause}, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?",
+        f"UPDATE transactions SET {set_clause} WHERE id = ?",
         list(updates.values()) + [txn_id],
     )
     await db.commit()
+
     cursor = await db.execute("SELECT * FROM transactions WHERE id = ?", (txn_id,))
     row = await cursor.fetchone()
-    c = await (await db.execute("SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],))).fetchone()
-    u = {"id": current_user["id"], "display_name": current_user["username"]}
-    return _row_to_out(row, c, u)
+    c = await (await db.execute(
+        "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
+    )).fetchone()
+    return _format_txn(row, c["name"] if c else "", "", current_user["username"])
 
 @router.delete("/{txn_id}", status_code=204)
 async def delete_transaction(
@@ -527,7 +610,9 @@ async def delete_transaction(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    cursor = await db.execute("SELECT id FROM transactions WHERE id = ? AND user_id = ?", (txn_id, current_user["id"]))
+    cursor = await db.execute(
+        "SELECT id FROM transactions WHERE id = ? AND user_id = ?", (txn_id, current_user["id"])
+    )
     if not await cursor.fetchone():
         raise HTTPException(status_code=404, detail="Transaction not found")
     await db.execute("DELETE FROM transactions WHERE id = ?", (txn_id,))
@@ -561,7 +646,8 @@ async def daily_summary(
     cursor = await db.execute(
         """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
            FROM transactions t
-           WHERE t.user_id = ? AND t.date >= ? AND t.date <= ?
+           WHERE t.user_id = ? AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
            GROUP BY t.type""",
         (current_user["id"], d_from, d_to),
     )
@@ -577,7 +663,9 @@ async def daily_summary(
     cursor = await db.execute(
         """SELECT c.id, c.name, c.icon, SUM(t.amount) as total, COUNT(*) as count
            FROM transactions t JOIN categories c ON t.category_id = c.id
-           WHERE t.user_id = ? AND t.date >= ? AND t.date <= ? AND t.type = 'expense'
+           WHERE t.user_id = ? AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+             AND t.type = 'expense'
            GROUP BY c.id ORDER BY total DESC""",
         (current_user["id"], d_from, d_to),
     )
@@ -593,12 +681,12 @@ async def daily_summary(
 
     return {
         "date_from": d_from, "date_to": d_to,
-        "total_income": income, "total_expense": expense,
-        "balance": income - expense, "by_category": categories,
+        "total_income": int(income), "total_expense": int(expense),
+        "balance": int(income - expense), "by_category": categories,
     }
 ```
 
-## Step 8: Wire Everything in main.py
+## Step 9: Wire Everything in main.py
 
 `backend/app/main.py`
 
@@ -608,15 +696,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.database import init_db
 from app.routers import auth, categories, transactions, summaries
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await init_db()
-    yield
-
-app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifespan)
+app = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
 
 app.add_middleware(
     CORSMiddleware,
@@ -632,61 +714,22 @@ app.include_router(transactions.router, prefix="/api/v1")
 app.include_router(summaries.router, prefix="/api/v1")
 ```
 
-## Step 9: Seed Default Data
+## Step 10: Run Migration First!
 
-`backend/app/seed.py` — run this once after init_db.
-
-```python
-import aiosqlite
-import asyncio
-from pathlib import Path
-from app.core.security import hash_password
-from app.core.config import settings
-
-DEFAULT_CATEGORIES = [
-    ("Makan & Minum", "expense", "🍽️", "#FF6B6B"),
-    ("Transportasi", "expense", "🚗", "#4ECDC4"),
-    ("Belanja Bulanan", "expense", "🛒", "#45B7D1"),
-    ("Tagihan & Listrik", "expense", "💡", "#96CEB4"),
-    ("Kesehatan", "expense", "🏥", "#FFEAA7"),
-    ("Hiburan", "expense", "🎬", "#DDA0DD"),
-    ("Pendidikan", "expense", "📚", "#98D8C8"),
-    ("Hadiah & Donasi", "expense", "🎁", "#F7DC6F"),
-    ("Lainnya", "expense", "📦", "#BDC3C7"),
-    ("Gaji", "income", "💰", "#2ECC71"),
-    ("Bonus", "income", "🎉", "#27AE60"),
-    ("Lainnya", "income", "💵", "#7F8C8D"),
-]
-
-async def seed():
-    Path(settings.DB_DIR).mkdir(parents=True, exist_ok=True)
-    async with aiosqlite.connect(settings.DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-
-        # Seed users
-        users = [("filla", "Filla", "password123"), ("nahda", "Nahda", "password123")]
-        for u, dn, pw in users:
-            existing = await (await db.execute("SELECT id FROM users WHERE username = ?", (u,))).fetchone()
-            if not existing:
-                pw_hash = hash_password(pw)
-                await db.execute("INSERT INTO users (username, display_name, password_hash) VALUES (?, ?, ?)", (u, dn, pw_hash))
-                print(f"  Created user: {u}")
-
-        # Seed categories
-        for name, typ, icon, color in DEFAULT_CATEGORIES:
-            existing = await (await db.execute("SELECT id FROM categories WHERE name = ? AND type = ?", (name, typ))).fetchone()
-            if not existing:
-                await db.execute("INSERT INTO categories (name, type, icon, color, is_default) VALUES (?, ?, ?, ?, 1)", (name, typ, icon, color))
-                print(f"  Created category: {name} ({typ})")
-
-        await db.commit()
-        print("Seed complete!")
-
-if __name__ == "__main__":
-    asyncio.run(seed())
+```bash
+cd ~/dev/wealthtrack
+source .venv/bin/activate
+uv run python -m backend.app.migrate_db
 ```
 
-## Step 10: Run Server
+Expected output:
+```
+Migrating: /home/filla/.keuangan/finance.db
+Migration complete. Added columns: ['user_id', 'date', 'note']
+Users seeded: filla (admin), nahda (user) — password default: password123
+```
+
+## Step 11: Run Server
 
 `backend/run.sh`
 
@@ -695,30 +738,47 @@ if __name__ == "__main__":
 cd "$(dirname "$0")/.."
 source .venv/bin/activate
 cd backend
-uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+uvicorn app.main:app --host 127.0.0.1 --port 8080 --reload
 ```
 
 ```bash
 chmod +x backend/run.sh
-# Seed data first
-cd ~/dev/wealthtrack && uv run python -m backend.app.seed
-# Then run server
 ./backend/run.sh
 ```
 
-## Step 11: Verify
+> `--host 127.0.0.1` — hanya localhost, tidak exposed ke public.
+> Nginx akan reverse proxy ke port ini.
+
+## Step 12: Verify
 
 ```bash
-# Health check
-curl http://localhost:8080/docs  # Should return Swagger UI
-curl -X POST "http://localhost:8080/api/v1/auth/login" \
+# Health check (from VPS)
+curl http://127.0.0.1:8080/docs
+
+# Test login
+curl -X POST "http://127.0.0.1:8080/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"username": "filla", "password": "password123"}'
-# Should return JWT token
+
+# Test list categories (should show 15 existing categories)
+TOKEN="<token_dari_login>"
+curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/api/v1/categories"
+
+# Test list transactions (should show 27 existing transactions)
+curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/api/v1/transactions"
+
+# Test add transaction
+curl -X POST "http://127.0.0.1:8080/api/v1/transactions" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"expense","category_id":1,"amount":25000,"description":"Test dari API","note":"","date":"2026-05-26"}'
+
+# Test daily summary
+curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/api/v1/summaries/daily"
 ```
 
 ## Next Steps After Backend Works
 
-1. Update Hermes cron script to use this DB (see `docs/06-hermes-integration.md`)
-2. Build Flutter mobile app (see `docs/05-flutter-mobile.md`)
-3. Deploy FastAPI as systemd service (see `docs/07-deployment.md`)
+1. Setup nginx reverse proxy (see `docs/07-deployment.md`)
+2. Update Hermes cron (see `docs/06-hermes-integration.md`)
+3. Build Flutter mobile app (see `docs/05-flutter-mobile.md`)

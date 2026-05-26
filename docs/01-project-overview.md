@@ -33,7 +33,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 
 | Layer | Tech | Reason |
 |-------|------|--------|
-| Database | SQLite (via aiosqlite) | Zero maintenance, 1-file backup, handles 50MB+ easily |
+| Database | SQLite (via aiosqlite) — `~/.keuangan/finance.db` | Zero maintenance, 1-file backup, menggunakan DB existing |
 | Backend | FastAPI (Python) | Async, auto-docs, lightweight |
 | Mobile | Flutter | Cross-platform, one codebase |
 | Auth | JWT (simple username/password) | Self-contained, no Firebase dependency |
@@ -41,12 +41,12 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 
 ## Single Source of Truth
 
-**SQLite is the only database.** No Firestore, no Firebase, no Postgres.
+**SQLite adalah single source of truth (tetap).** Menggunakan DB yang sudah ada di `~/.keuangan/finance.db`.
 
-- Hermes writes directly to SQLite
-- FastAPI writes to SQLite
-- Flutter reads/writes via FastAPI API
-- Cron reads from SQLite directly
+- Hermes (cron/skill financial-tracker) — langsung ke SQLite, **tanpa perubahan**
+- FastAPI — baca/tulis SQLite yang **sama**
+- Flutter — baca/tulis via FastAPI API
+- Data existing (27 transaksi) tetap aman, nggak perlu migrasi data
 
 ## Project Structure
 
