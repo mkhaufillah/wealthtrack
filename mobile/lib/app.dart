@@ -12,12 +12,15 @@ import 'features/transactions/ui/add_transaction_screen.dart';
 import 'features/profile/ui/profile_screen.dart';
 import 'shared/widgets/app_scaffold.dart';
 
+final _isAuthenticatedProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).isAuthenticated;
+});
+
 final goRouterProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authProvider);
+  final loggedIn = ref.watch(_isAuthenticatedProvider);
   return GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
-      final loggedIn = auth.isAuthenticated;
       final loggingIn = state.matchedLocation == '/login';
       final registering = state.matchedLocation == '/register';
 

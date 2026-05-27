@@ -4,7 +4,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/empty_state.dart';
-import '../../../shared/utils/currency_formatter.dart';
 import '../providers/transaction_provider.dart';
 import 'widgets/transaction_tile.dart';
 
@@ -43,23 +42,16 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         itemBuilder: (context, i) {
                           final txn = state.transactions[i];
                           return Card(
-                            child: ListTile(
-                              leading: Container(
-                                width: 40, height: 40,
-                                decoration: BoxDecoration(
-                                  color: (txn.type == 'expense' ? AppColors.highlight : AppColors.success).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Center(child: Text(txn.category.icon, style: const TextStyle(fontSize: 20))),
-                              ),
-                              title: Text(txn.description.isEmpty ? txn.category.name : txn.description,
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                              subtitle: Text('${txn.category.name} · ${txn.date}',
-                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                              trailing: Text('${txn.type == 'expense' ? "-" : "+"}${formatCurrency(txn.amount)}',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
-                                  color: txn.type == 'expense' ? AppColors.highlight : AppColors.success)),
-                            ),
+                            child: TransactionTile(data: {
+                              'type': txn.type,
+                              'category': {
+                                'icon': txn.category.icon,
+                                'name': txn.category.name,
+                              },
+                              'amount': txn.amount,
+                              'description': txn.description,
+                              'date': txn.date,
+                            }),
                           );
                         },
                       ),

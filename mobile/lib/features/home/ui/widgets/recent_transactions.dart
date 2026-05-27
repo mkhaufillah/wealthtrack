@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/utils/currency_formatter.dart';
-import '../../../../shared/utils/date_formatter.dart';
 import '../../../transactions/ui/widgets/transaction_tile.dart';
 
 class RecentTransactions extends StatelessWidget {

@@ -52,7 +52,12 @@ class _AmountFieldState extends State<AmountField> {
       keyboardType: TextInputType.number,
       textAlign: TextAlign.center,
       decoration: InputDecoration(
-        prefixText: 'Rp ',
+        prefix: const Text('Rp ',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textSecondary,
+            )),
         hintText: showHint ? '0' : null,
         hintStyle: const TextStyle(
           fontSize: 32,

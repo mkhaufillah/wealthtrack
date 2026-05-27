@@ -31,12 +31,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  void _quickLogin() {
-    _usernameCtrl.text = 'filla';
-    _passwordCtrl.text = 'password123';
-    _login();
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -123,17 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         : () => context.push('/register'),
                     child: const Text("Don't have an account? Register"),
                   ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: isLoading ? null : _quickLogin,
-                    icon: const Icon(Icons.person, size: 18),
-                    label: const Text('Quick login as Filla'),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.divider),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
-                    ),
-                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),

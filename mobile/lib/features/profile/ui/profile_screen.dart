@@ -369,104 +369,123 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          left: 24,
-          right: 24,
-          top: 24,
-        ),
-        child: Form(
-          key: _pwFormKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Change Password',
-                  style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _currentPwCtrl,
-                obscureText: _obscureCurrent,
-                decoration: InputDecoration(
-                  labelText: 'Current Password',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscureCurrent
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined),
-                    onPressed: () =>
-                        setState(() => _obscureCurrent = !_obscureCurrent),
+      builder: (ctx) {
+        // StatefulBuilder so setState works inside the bottom sheet overlay
+        bool obscureCurrent = true;
+        bool obscureNew = true;
+        bool obscureConfirm = true;
+        bool changing = false;
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              left: 24,
+              right: 24,
+              top: 24,
+            ),
+            child: Form(
+              key: _pwFormKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Change Password',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _currentPwCtrl,
+                    obscureText: obscureCurrent,
+                    decoration: InputDecoration(
+                      labelText: 'Current Password',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscureCurrent
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined),
+                        onPressed: () =>
+                            setSheetState(() => obscureCurrent = !obscureCurrent),
+                      ),
+                    ),
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Required' : null,
+                    enabled: !changing,
                   ),
-                ),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Required' : null,
-                enabled: !_changingPassword,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _newPwCtrl,
-                obscureText: _obscureNew,
-                decoration: InputDecoration(
-                  labelText: 'New Password',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscureNew
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined),
-                    onPressed: () =>
-                        setState(() => _obscureNew = !_obscureNew),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _newPwCtrl,
+                    obscureText: obscureNew,
+                    decoration: InputDecoration(
+                      labelText: 'New Password',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscureNew
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined),
+                        onPressed: () =>
+                            setSheetState(() => obscureNew = !obscureNew),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Required';
+                      if (v.length < 6) return 'Min 6 characters';
+                      return null;
+                    },
+                    enabled: !changing,
                   ),
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Required';
-                  if (v.length < 6) return 'Min 6 characters';
-                  return null;
-                },
-                enabled: !_changingPassword,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _confirmPwCtrl,
-                obscureText: _obscureConfirm,
-                decoration: InputDecoration(
-                  labelText: 'Confirm New Password',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscureConfirm
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined),
-                    onPressed: () =>
-                        setState(() => _obscureConfirm = !_obscureConfirm),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _confirmPwCtrl,
+                    obscureText: obscureConfirm,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm New Password',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscureConfirm
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined),
+                        onPressed: () => setSheetState(
+                            () => obscureConfirm = !obscureConfirm),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v != _newPwCtrl.text) return 'Passwords do not match';
+                      return null;
+                    },
+                    enabled: !changing,
                   ),
-                ),
-                validator: (v) {
-                  if (v != _newPwCtrl.text) return 'Passwords do not match';
-                  return null;
-                },
-                enabled: !_changingPassword,
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: changing ? null : () async {
+                        if (!_pwFormKey.currentState!.validate()) return;
+                        setSheetState(() => changing = true);
+                        try {
+                          await _changePassword();
+                          if (ctx.mounted) Navigator.of(ctx).pop();
+                        } finally {
+                          setSheetState(() => changing = false);
+                        }
+                      },
+                      child: changing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('Change Password'),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _changingPassword ? null : _changePassword,
-                  child: _changingPassword
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Change Password'),
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

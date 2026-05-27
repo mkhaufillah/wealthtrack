@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/providers/app_providers.dart';
-import '../../../shared/utils/currency_formatter.dart';
 import '../../home/providers/dashboard_provider.dart';
 import '../providers/transaction_provider.dart';
 import 'widgets/amount_field.dart';
