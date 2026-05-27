@@ -8,6 +8,7 @@ import 'features/auth/ui/register_screen.dart';
 import 'features/home/ui/home_screen.dart';
 import 'features/transactions/ui/transaction_list_screen.dart';
 import 'features/transactions/ui/add_transaction_screen.dart';
+import 'features/transactions/models/transaction_model.dart';
 import 'features/profile/ui/profile_screen.dart';
 import 'features/reports/ui/reports_screen.dart';
 import 'shared/providers/theme_provider.dart';
@@ -46,7 +47,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/transactions/add',
-        builder: (_, __) => const AddTransactionScreen(),
+        builder: (_, state) => AddTransactionScreen(
+          editTransaction: state.extra is TransactionModel ? state.extra as TransactionModel : null,
+        ),
       ),
     ],
   );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/utils/date_formatter.dart';
@@ -51,15 +52,29 @@ class TransactionTile extends StatelessWidget {
               color: isExpense ? AppColors.highlight : AppColors.success,
             ),
           ),
-          if (onTransferOwner != null) ...[
-            const SizedBox(width: 4),
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
-              padding: EdgeInsets.zero,
-              onSelected: (value) {
-                if (value == 'change_owner') onTransferOwner!();
-              },
-              itemBuilder: (_) => [
+          const SizedBox(width: 4),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
+            padding: EdgeInsets.zero,
+            onSelected: (value) {
+              if (value == 'edit') {
+                context.push('/transactions/add', extra: transaction);
+              } else if (value == 'change_owner') {
+                onTransferOwner!();
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, size: 18),
+                    SizedBox(width: 8),
+                    Text('Edit'),
+                  ],
+                ),
+              ),
+              if (onTransferOwner != null)
                 const PopupMenuItem(
                   value: 'change_owner',
                   child: Row(
@@ -70,9 +85,8 @@ class TransactionTile extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ],
       ),
     );

@@ -36,6 +36,11 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
     catch (e) { state = state.copyWith(error: e.toString()); return false; }
   }
 
+  Future<bool> update(int id, Map<String, dynamic> data) async {
+    try { await _repo.update(id, data); await load(refresh: true); return true; }
+    catch (e) { state = state.copyWith(error: e.toString()); return false; }
+  }
+
   Future<bool> delete(int id) async {
     try { await _repo.delete(id); await load(refresh: true); return true; }
     catch (e) { state = state.copyWith(error: e.toString()); return false; }

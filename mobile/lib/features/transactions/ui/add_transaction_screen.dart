@@ -5,11 +5,13 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../home/providers/dashboard_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../models/transaction_model.dart';
 import 'widgets/amount_field.dart';
 import 'widgets/category_picker.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
-  const AddTransactionScreen({super.key});
+  final TransactionModel? editTransaction;
+  const AddTransactionScreen({super.key, this.editTransaction});
   @override
   ConsumerState<AddTransactionScreen> createState() => _AddTransactionScreenState();
 }
@@ -20,17 +22,31 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   final _noteCtrl = TextEditingController();
   bool _isExpense = true;
   int? _selectedCategoryId;
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate;
   bool _isSaving = false;
 
   List<CategoryChip> _categories = [];
   List<CategoryChip> _expenseCategories = [];
   List<CategoryChip> _incomeCategories = [];
 
+  bool get _isEditing => widget.editTransaction != null;
+
   @override
   void initState() {
     super.initState();
+    _selectedDate = DateTime.now();
     _loadAllCategories();
+    if (_isEditing) _prefillFields();
+  }
+
+  void _prefillFields() {
+    final txn = widget.editTransaction!;
+    _amountCtrl.text = txn.amount.toString();
+    _descCtrl.text = txn.description;
+    _noteCtrl.text = txn.note;
+    _isExpense = txn.type == 'expense';
+    _selectedCategoryId = txn.category.id;
+    _selectedDate = DateTime.tryParse(txn.date) ?? DateTime.now();
   }
 
   Future<void> _loadAllCategories() async {
@@ -45,7 +61,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         _incomeCategories = (List<Map<String, dynamic>>.from(incomeRes.data)).map((e) => CategoryChip(
           id: e['id'] as int, name: e['name'] as String, icon: e['icon'] as String? ?? '📦',
         )).toList();
-        _categories = _expenseCategories;
+        _categories = _isExpense ? _expenseCategories : _incomeCategories;
       });
     } catch (_) {}
   }
@@ -69,14 +85,19 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     if (_selectedCategoryId == null) { _showError('Please select a category'); return; }
 
     setState(() => _isSaving = true);
-    final success = await ref.read(transactionListProvider.notifier).create({
+    final notifier = ref.read(transactionListProvider.notifier);
+    final data = {
       'type': _isExpense ? 'expense' : 'income',
       'category_id': _selectedCategoryId,
       'amount': amount,
       'description': _descCtrl.text.trim(),
       'note': _noteCtrl.text.trim(),
       'date': '${_selectedDate.toIso8601String().substring(0, 10)}',
-    });
+    };
+
+    final success = _isEditing
+        ? await notifier.update(widget.editTransaction!.id, data)
+        : await notifier.create(data);
 
     if (!mounted) return;
     setState(() => _isSaving = false);
@@ -85,11 +106,12 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       ref.read(homeRefreshProvider.notifier).state++;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text('Transaction recorded', style: TextStyle(color: Colors.white)),
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(_isEditing ? 'Transaction updated' : 'Transaction recorded',
+                  style: const TextStyle(color: Colors.white)),
             ],
           ),
           backgroundColor: AppColors.success,
@@ -132,7 +154,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Add Transaction')),
+      appBar: AppBar(title: Text(_isEditing ? 'Edit Transaction' : 'Add Transaction')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -217,7 +239,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 onPressed: _isSaving ? null : _save,
                 child: _isSaving
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Save'),
+                    : Text(_isEditing ? 'Update' : 'Save'),
               ),
             ),
           ],
