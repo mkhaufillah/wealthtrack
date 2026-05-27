@@ -55,17 +55,23 @@ void main() {
       await tester.pumpWidget(MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(
-          body: AmountField(controller: controller),
+          body: Column(
+            children: [
+              // Focusable sibling so we can reliably move focus away
+              const TextField(),
+              AmountField(controller: controller),
+            ],
+          ),
         ),
       ));
 
-      // Focus the field
-      await tester.tap(find.byType(TextField));
+      // Focus the amount field (second TextField in the Column)
+      await tester.tap(find.byType(TextField).last);
       await tester.pump();
       expect(find.text('0'), findsNothing);
 
-      // Unfocus by tapping elsewhere
-      await tester.tapAt(const Offset(0, 0));
+      // Move focus to the sibling field above
+      await tester.tap(find.byType(TextField).first);
       await tester.pump();
       // Since still empty, hint should reappear
       expect(find.text('0'), findsOneWidget);
