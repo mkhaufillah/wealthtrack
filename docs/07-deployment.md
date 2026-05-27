@@ -18,7 +18,7 @@
                           |        ▼                                                      │
                           |  ┌─────────────────┐                                          │
                           |  │  ~/.keuangan/   │                                          │
-                          |  │  finance.db     │◄──── Hermes cron juga baca ini           │
+                          |  │  finance.db     │◄──── Hermes cron also read this           │
                           |  └─────────────────┘                                          │
                           |                                                               │
                           |  ┌─────────────────────────────────────┐                      │
@@ -32,6 +32,7 @@
                           |  │  ──► https://wealthtrack.filla.id   │──► Nginx ──► FastAPI │
                           |  └─────────────────────────────────────┘                      │
                           |                                                               │
+  	                      └───────────────────────────────────────────────────────────────┘
 ```
 
 ## Key Differences from Standard Setup
