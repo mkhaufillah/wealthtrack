@@ -1,0 +1,16 @@
+# Flutter
+.dart_tool/
+.packages
+build/
+.generated/
+*.g.dart
+*.freezed.dart
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
