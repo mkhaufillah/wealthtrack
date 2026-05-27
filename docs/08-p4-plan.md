@@ -1,15 +1,17 @@
 # P4 Plan — Revised
 
-**See also:** [Project Overview](01-project-overview.md) · [Backend API](03-backend-api.md) · [Flutter Mobile](05-flutter-mobile.md)
+**See also:** [Project Overview](01-project-overview.md) · [Backend API](03-backend-api.md) · [Flutter Mobile](05-flutter-mobile.md) · [Dark Mode](09-dark-mode.md) · [Edit Transaction](10-edit-transaction.md)
 
-**Based on discussion 2026-05-27.** Updated from original P4 scope.
+**Based on discussion 2026-05-27.** Updated 2026-05-27: Dark mode and edit transaction date completed, moved out of P4.
 
 ## Priority Order
 
 | Prio | Feature | Estimasi | Dependencies | Status |
 |------|---------|----------|-------------|--------|
-| P0 | **Change Transaction Owner** | 0.5 hr | None | 🔴 Not started |
-| P1 | **Charts (Reports Page)** | 2-3 hr | Summary endpoints (ready) | 🔴 Not started |
+| P0 | **Change Transaction Owner** | 0.5 hr | None | ✅ Done |
+| P1 | **Charts (Reports Page)** | 2-3 hr | Summary endpoints (ready) | ✅ Done |
+| — | **Dark Mode** | — | — | ✅ Done — see [09-dark-mode.md](09-dark-mode.md) |
+| — | **Edit Transaction Date** | — | — | ✅ Done — see [10-edit-transaction.md](10-edit-transaction.md) |
 | P2 | **Export Excel** | 1 hr | Transaction endpoints (ready) | 🔴 Not started |
 | P3 | **Budgets** | 2-3 hr | Categories + transactions (ready) | 🔴 Not started |
 | P4 | **OCR / Smart Input** | 3-4 hr | OpenCode Go API key | 🔴 Not started |
