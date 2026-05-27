@@ -73,7 +73,21 @@ def run_migration():
         else:
             print("  ✓ no new columns needed (already migrated)")
 
-        # 4. Backfill existing data
+        # 5. Create budgets table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS budgets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                month TEXT NOT NULL,
+                category_id INTEGER NOT NULL,
+                category_name TEXT NOT NULL,
+                budget_amount INTEGER NOT NULL,
+                UNIQUE(user_id, month, category_id)
+            );
+        """)
+        print("  ✓ budgets table ready")
+
+        # 6. Backfill existing data
         conn.execute("UPDATE transactions SET user_id = 1 WHERE user_id IS NULL")
         conn.execute(
             "UPDATE transactions SET date = substr(created_at, 1, 10) WHERE date IS NULL AND created_at IS NOT NULL"

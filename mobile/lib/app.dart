@@ -11,6 +11,7 @@ import 'features/transactions/ui/add_transaction_screen.dart';
 import 'features/transactions/models/transaction_model.dart';
 import 'features/profile/ui/profile_screen.dart';
 import 'features/reports/ui/reports_screen.dart';
+import 'features/budgets/ui/budgets_screen.dart';
 import 'shared/providers/theme_provider.dart';
 import 'shared/widgets/app_scaffold.dart';
 
@@ -42,6 +43,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const TransactionListScreen(),
           ),
           GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
+          GoRoute(path: '/budgets', builder: (_, __) => const BudgetsScreen()),
           GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
         ],
       ),
