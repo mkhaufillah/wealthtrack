@@ -117,9 +117,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Widget _buildContent(ReportState state) {
     final report = state.monthly!;
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
+    ListView children = [
         _buildSummaryCards(report),
         const SizedBox(height: 20),
         if (report.categories.isNotEmpty) ...[
@@ -128,16 +126,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           _buildCategoryBreakdown(report.categories, report.totalExpense),
           const SizedBox(height: 20),
         ],
+        if (report.dailySnapshot.isNotEmpty) ...[
+          _buildSectionHeader('Daily Breakdown', Icons.calendar_view_day),
+          const SizedBox(height: 8),
+          _buildDailySnapshot(report.dailySnapshot),
+          const SizedBox(height: 20),
+        ],
         if (state.household != null && state.household!.byUser.length > 1) ...[
           _buildSectionHeader('Household Split', Icons.people_outline),
           const SizedBox(height: 8),
           _buildHouseholdSplit(state.household!),
           const SizedBox(height: 20),
-        ],
-        if (report.dailySnapshot.isNotEmpty) ...[
-          _buildSectionHeader('Daily Breakdown', Icons.calendar_view_day),
-          const SizedBox(height: 8),
-          _buildDailySnapshot(report.dailySnapshot),
         ],
         if (state.household != null && state.household!.byCategory.isNotEmpty && state.household!.byUser.length > 1) ...[
           _buildSectionHeader('Household Category Breakdown', Icons.pie_chart_outline),
@@ -150,7 +149,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           const SizedBox(height: 8),
           _buildHouseholdDailyBreakdown(state.householdTransactions),
         ],
-      ],
+      ];
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: children,
     );
   }
 
@@ -350,7 +352,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 6),
                       Text(
                         'I: Rp${_formatAmount(u.totalIncome)} / E: Rp${_formatAmount(u.totalExpense)}',
                         style: const TextStyle(
@@ -454,7 +456,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final sorted = List<CategoryBreakdown>.from(categories)
       ..sort((a, b) => b.total.compareTo(a.total));
 
-    return Column(
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
       children: sorted.map((cat) {
         final fraction = totalExpense > 0 ? cat.total / totalExpense : 0.0;
         return Padding(
@@ -518,6 +526,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         );
       }).toList(),
+    );
     );
   }
 
