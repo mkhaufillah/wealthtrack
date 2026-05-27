@@ -53,3 +53,7 @@ class PaginationMeta(BaseModel):
 class PaginatedTransactions(BaseModel):
     data: list[TransactionOut]
     meta: PaginationMeta
+
+
+class TransferOwnerIn(BaseModel):
+    user_id: int = Field(gt=0, description="New owner user ID, must be in same household")

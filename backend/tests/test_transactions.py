@@ -300,3 +300,106 @@ class TestDeleteTransaction:
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         assert resp.status_code == 404
+
+
+class TestTransferOwner:
+    async def test_owner_transfers_to_household_member(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Owner can transfer transaction to another household member."""
+        # Transaction 1 is owned by filla (user_id=1)
+        resp = await client.put(
+            "/api/v1/transactions/1/owner",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"user_id": 2},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["user"]["id"] == 2
+        assert data["user"]["display_name"] == "Nahda"
+
+    async def test_admin_transfers_others_transaction(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Household admin can transfer any household member's transaction."""
+        # Transfer nahda's transaction (we need one owned by nahda first)
+        # Create a transaction for nahda
+        create = await client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "type": "expense",
+                "category_id": 1,
+                "amount": 10000,
+                "description": "Filla creates for admin test",
+                "date": "2026-05-27",
+            },
+        )
+        txn_id = create.json()["id"]
+        assert create.json()["user"]["id"] == 1  # filla owns it
+
+        # Transfer to nahda (user 2)
+        resp = await client.put(
+            f"/api/v1/transactions/{txn_id}/owner",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"user_id": 2},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["user"]["id"] == 2
+
+    async def test_non_owner_cannot_transfer(
+        self, client: AsyncClient, filla_token: str, nahda_token: str
+    ):
+        """Non-owner, non-admin cannot transfer."""
+        # Create a transaction as filla
+        create = await client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "type": "expense",
+                "category_id": 1,
+                "amount": 5000,
+                "description": "Transfer test",
+                "date": "2026-05-27",
+            },
+        )
+        txn_id = create.json()["id"]
+
+        # Nahda (member, not owner) tries to transfer — should fail
+        resp = await client.put(
+            f"/api/v1/transactions/{txn_id}/owner",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+            json={"user_id": 1},
+        )
+        assert resp.status_code == 403
+
+    async def test_transfer_outside_household_fails(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Cannot transfer to user outside household."""
+        # User 999 doesn't exist in any household
+        resp = await client.put(
+            "/api/v1/transactions/1/owner",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"user_id": 999},
+        )
+        assert resp.status_code == 400
+
+    async def test_transfer_nonexistent_transaction(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Transfer non-existent transaction returns 404."""
+        resp = await client.put(
+            "/api/v1/transactions/99999/owner",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"user_id": 2},
+        )
+        assert resp.status_code == 404
+
+    async def test_transfer_requires_auth(self, client: AsyncClient):
+        """Without auth, returns 401."""
+        resp = await client.put(
+            "/api/v1/transactions/1/owner",
+            json={"user_id": 2},
+        )
+        assert resp.status_code == 401

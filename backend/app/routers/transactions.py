@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.database import get_db
 from app.core.security import get_current_user
-from app.schemas.transaction import TransactionCreate, TransactionUpdate, PaginatedTransactions, PaginationMeta
+from app.schemas.transaction import TransactionCreate, TransactionUpdate, PaginatedTransactions, PaginationMeta, TransferOwnerIn
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -285,6 +285,81 @@ async def update_transaction(
     c = await (
         await db.execute(
             "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
+        )
+    ).fetchone()
+    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "")
+
+
+@router.put("/{txn_id}/owner")
+async def transfer_owner(
+    txn_id: int,
+    data: TransferOwnerIn,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Transfer transaction ownership to another household member."""
+    # 1. Fetch transaction
+    cursor = await db.execute(
+        "SELECT id, user_id FROM transactions WHERE id = ?",
+        (txn_id,),
+    )
+    txn = await cursor.fetchone()
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    # 2. Only current owner OR household admin can transfer
+    cursor = await db.execute(
+        "SELECT hm.role, hm.household_id FROM household_members hm WHERE hm.user_id = ?",
+        (current_user["id"],),
+    )
+    hm = await cursor.fetchone()
+    if not hm:
+        raise HTTPException(status_code=404, detail="Not a member of any household")
+
+    is_admin = hm["role"] == "admin"
+    is_owner = txn["user_id"] == current_user["id"]
+
+    if not (is_owner or is_admin):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the transaction owner or a household admin can transfer ownership",
+        )
+
+    household_id = hm["household_id"]
+
+    # 3. Validate target user exists in the same household
+    cursor = await db.execute(
+        "SELECT user_id FROM household_members WHERE user_id = ? AND household_id = ?",
+        (data.user_id, household_id),
+    )
+    if not await cursor.fetchone():
+        raise HTTPException(
+            status_code=400,
+            detail="Target user is not a member of your household",
+        )
+
+    # 4. Perform transfer
+    await db.execute(
+        "UPDATE transactions SET user_id = ? WHERE id = ?",
+        (data.user_id, txn_id),
+    )
+    await db.commit()
+
+    # 5. Return updated transaction
+    cursor = await db.execute(
+        """SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
+                  t.description, t.note, t.date, t.user_id, t.created_at,
+                  u.display_name AS user_display_name
+           FROM transactions t
+           LEFT JOIN users u ON t.user_id = u.id
+           WHERE t.id = ?""",
+        (txn_id,),
+    )
+    row = await cursor.fetchone()
+    c = await (
+        await db.execute(
+            "SELECT id, name, icon FROM categories WHERE id = ?",
+            (row["category_id"],),
         )
     ).fetchone()
     return _format_txn(row, c["name"] if c else "", c["icon"] if c else "")
