@@ -8,6 +8,8 @@ import sqlite3
 import os
 from pathlib import Path
 from passlib.context import CryptContext
+import secrets
+import string
 
 DB_PATH = os.path.expanduser("~/.keuangan/finance.db")
 PWD_CTX = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -91,5 +93,93 @@ def run_migration():
         conn.close()
 
 
+def run_household_migration():
+    """
+    Phase 2: add households + household_members tables.
+    Creates a default 'Home' household and assigns existing users to it.
+    Safe to re-run (idempotent via IF NOT EXISTS).
+    """
+    if not os.path.exists(DB_PATH):
+        print(f"ERROR: Database not found at {DB_PATH}")
+        return False
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA foreign_keys=OFF;")
+
+    try:
+        # 1. Create households table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS households (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                invite_code TEXT UNIQUE NOT NULL,
+                created_by INTEGER NOT NULL REFERENCES users(id),
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            );
+        """)
+        print("  ✓ households table ready")
+
+        # 2. Create household_members table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS household_members (
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                household_id INTEGER NOT NULL REFERENCES households(id),
+                role TEXT NOT NULL DEFAULT 'member',
+                joined_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                PRIMARY KEY (user_id, household_id)
+            );
+        """)
+        print("  ✓ household_members table ready")
+
+        # 3. Check if there's already a household — skip if yes
+        cursor = conn.execute("SELECT COUNT(*) as cnt FROM households")
+        if cursor.fetchone()[0] > 0:
+            print("  ✓ households already exist, skipping seed")
+        else:
+            # Generate invite code
+            alphabet = string.ascii_uppercase + string.digits
+            code = ''.join(secrets.choice(alphabet) for _ in range(8))
+
+            # Create default household (created_by = first user = 1/Filla)
+            conn.execute(
+                "INSERT INTO households (name, invite_code, created_by) VALUES (?, ?, ?)",
+                ("Home", code, 1),
+            )
+            print("  ✓ default 'Home' household created")
+
+            # Assign existing users (filla=1, nahda=2) to the household
+            cursor = conn.execute("SELECT id FROM users ORDER BY id")
+            users = [r[0] for r in cursor.fetchall()]
+            for uid in users:
+                role = "admin" if uid == 1 else "member"
+                conn.execute(
+                    "INSERT INTO household_members (user_id, household_id, role) VALUES (?, 1, ?)",
+                    (uid, role),
+                )
+            print(f"  ✓ assigned {len(users)} existing users to household")
+
+        # 4. Backfill user transactions — ensure household_id is set
+        # (no household_id column on transactions — we filter via user -> household_members join)
+        # Verify
+        cursor = conn.execute("""
+            SELECT COUNT(*) FROM household_members hm
+            JOIN households h ON hm.household_id = h.id
+        """)
+        count = cursor.fetchone()[0]
+        print(f"  ✓ verified: {count} member(s) in household")
+
+        conn.commit()
+        print("\n✅ Household migration complete!")
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        print(f"❌ Household migration failed: {e}")
+        return False
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     run_migration()
+    run_household_migration()

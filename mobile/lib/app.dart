@@ -10,6 +10,7 @@ import 'features/home/ui/home_screen.dart';
 import 'features/transactions/ui/transaction_list_screen.dart';
 import 'features/transactions/ui/add_transaction_screen.dart';
 import 'features/profile/ui/profile_screen.dart';
+import 'features/reports/ui/reports_screen.dart';
 import 'shared/widgets/app_scaffold.dart';
 
 final _isAuthenticatedProvider = Provider<bool>((ref) {
@@ -39,7 +40,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             path: '/transactions',
             builder: (_, __) => const TransactionListScreen(),
           ),
-          GoRoute(path: '/reports', builder: (_, __) => const ReportsPlaceholder()),
+          GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
           GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
         ],
       ),
@@ -89,10 +90,4 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
       debugShowCheckedModeBanner: false,
     );
   }
-}
-
-class ReportsPlaceholder extends StatelessWidget {
-  const ReportsPlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) => const Center(child: Text('Reports — Coming soon'));
 }

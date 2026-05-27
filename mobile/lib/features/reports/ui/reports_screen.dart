@@ -1,0 +1,442 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/error_display.dart';
+import '../providers/report_provider.dart';
+import '../models/report_model.dart';
+
+class ReportsScreen extends ConsumerStatefulWidget {
+  const ReportsScreen({super.key});
+
+  @override
+  ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
+}
+
+class _ReportsScreenState extends ConsumerState<ReportsScreen> {
+  late DateTime _currentMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
+    // Load on first build — defer to post-frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMonth();
+    });
+  }
+
+  String get _monthParam => DateFormat('yyyy-MM').format(_currentMonth);
+
+  void _loadMonth() {
+    final monthStr = _monthParam;
+    final firstDay = DateFormat('yyyy-MM-01').format(_currentMonth);
+    final lastDay = DateFormat('yyyy-MM-dd').format(
+      DateTime(_currentMonth.year, _currentMonth.month + 1, 0),
+    );
+    ref.read(reportProvider.notifier).load(monthStr);
+    ref.read(reportProvider.notifier).loadHousehold(dateFrom: firstDay, dateTo: lastDay);
+  }
+
+  void _prevMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
+    });
+    _loadMonth();
+  }
+
+  void _nextMonth() {
+    final next = DateTime(_currentMonth.year, _currentMonth.month + 1);
+    if (next.isAfter(DateTime.now())) return;
+    setState(() {
+      _currentMonth = next;
+    });
+    _loadMonth();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(reportProvider);
+
+    return RefreshIndicator(
+      onRefresh: () async => _loadMonth(),
+      child: Column(
+        children: [
+          _buildMonthPicker(),
+          Expanded(
+            child: state.isLoading
+                ? const LoadingIndicator()
+                : state.error != null
+                    ? ErrorDisplay(message: state.error!, onRetry: _loadMonth)
+                    : state.monthly != null
+                        ? _buildContent(state)
+                        : const LoadingIndicator(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMonthPicker() {
+    final now = DateTime.now();
+    final canGoNext =
+        DateTime(_currentMonth.year, _currentMonth.month + 1).isBefore(
+              DateTime(now.year, now.month + 1),
+            );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: AppColors.surface,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: _prevMonth,
+          ),
+          Text(
+            DateFormat('MMMM yyyy').format(_currentMonth),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: canGoNext ? _nextMonth : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(ReportState state) {
+    final report = state.monthly!;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSummaryCards(report),
+        const SizedBox(height: 20),
+        if (report.categories.isNotEmpty) ...[
+          _buildSectionHeader('Category Breakdown', Icons.pie_chart_outline),
+          const SizedBox(height: 8),
+          _buildCategoryBreakdown(report.categories, report.totalExpense),
+          const SizedBox(height: 20),
+        ],
+        if (state.household != null && state.household!.byUser.length > 1) ...[
+          _buildSectionHeader('Household Split', Icons.people_outline),
+          const SizedBox(height: 8),
+          _buildHouseholdSplit(state.household!),
+          const SizedBox(height: 20),
+        ],
+        if (report.dailySnapshot.isNotEmpty) ...[
+          _buildSectionHeader('Daily Breakdown', Icons.calendar_view_day),
+          const SizedBox(height: 8),
+          _buildDailySnapshot(report.dailySnapshot),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSummaryCards(MonthlyReport report) {
+    return Row(
+      children: [
+        Expanded(child: _buildStatCard('Income', report.totalIncome, AppColors.success)),
+        const SizedBox(width: 8),
+        Expanded(child: _buildStatCard('Expense', report.totalExpense, AppColors.highlight)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatCard(
+            'Balance',
+            report.balance,
+            report.balance >= 0 ? AppColors.success : AppColors.highlight,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(String label, int amount, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Rp${_formatAmount(amount)}',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.textSecondary),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryBreakdown(List<CategoryBreakdown> categories, int totalExpense) {
+    // Sort by total descending
+    final sorted = List<CategoryBreakdown>.from(categories)
+      ..sort((a, b) => b.total.compareTo(a.total));
+
+    return Column(
+      children: sorted.map((cat) {
+        final fraction = totalExpense > 0 ? cat.total / totalExpense : 0.0;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 28,
+                child: Text(cat.icon, style: const TextStyle(fontSize: 16)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  cat.categoryName,
+                  style: const TextStyle(fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 4,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: fraction,
+                    minHeight: 8,
+                    backgroundColor: AppColors.divider,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      cat.categoryName.contains('Makan')
+                          ? Colors.orange
+                          : cat.categoryName.contains('Transport')
+                              ? Colors.blue
+                              : cat.categoryName.contains('Housing') ||
+                                        cat.categoryName.contains('Rumah')
+                                    ? Colors.purple
+                                    : cat.categoryName.contains('Health') ||
+                                              cat.categoryName.contains('Kesehatan')
+                                          ? Colors.red
+                                          : cat.categoryName.contains('Entertainment') ||
+                                                    cat.categoryName.contains('Hiburan')
+                                                ? Colors.teal
+                                                : AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 65,
+                child: Text(
+                  '${cat.percentage.toStringAsFixed(1)}%',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildHouseholdSplit(HouseholdReport hh) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: hh.byUser.map((u) {
+          final total = u.totalExpense + (u.totalIncome);
+          final maxTotal = hh.byUser
+              .map((e) => e.totalExpense + e.totalIncome)
+              .reduce((a, b) => a > b ? a : b);
+          final fraction = maxTotal > 0 ? total / maxTotal : 0.0;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: u.displayName == 'Nahda'
+                      ? Colors.pink.shade100
+                      : Colors.blue.shade100,
+                  child: Text(
+                    u.displayName.isNotEmpty ? u.displayName[0] : '?',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: u.displayName == 'Nahda'
+                          ? Colors.pink.shade700
+                          : Colors.blue.shade700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    u.displayName,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: fraction,
+                          minHeight: 8,
+                          backgroundColor: AppColors.divider,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            u.displayName == 'Nahda'
+                                ? Colors.pink.shade300
+                                : Colors.blue.shade300,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'I: Rp${_formatAmount(u.totalIncome)} / E: Rp${_formatAmount(u.totalExpense)}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildDailySnapshot(List<DailySnapshot> days) {
+    // Show only days that have activity
+    final filtered = days.where((d) => d.expense > 0 || d.income > 0).toList();
+    if (filtered.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text(
+          'No transactions this month',
+          style: TextStyle(color: AppColors.textSecondary),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return Column(
+      children: filtered.reversed.map((day) {
+        final date = DateTime.tryParse(day.date);
+        final dayLabel = date != null ? DateFormat('MMM dd').format(date) : day.date;
+        final weekday = date != null ? DateFormat('E').format(date) : '';
+        return Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 44,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      dayLabel,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      weekday,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (day.expense > 0)
+                      Text(
+                        '-Rp${_formatAmount(day.expense)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.highlight,
+                        ),
+                      ),
+                    if (day.income > 0)
+                      Text(
+                        '+Rp${_formatAmount(day.income)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.success,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _formatAmount(int amount) {
+    final formatter = NumberFormat('#,###', 'id_ID');
+    return formatter.format(amount);
+  }
+}

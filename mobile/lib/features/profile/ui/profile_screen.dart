@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/network/api_client.dart';
+import '../../../shared/providers/app_providers.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../data/household_repository.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -30,10 +33,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _changingPassword = false;
   bool _deleting = false;
 
+  // Household state
+  Map<String, dynamic>? _household;
+  List<dynamic> _members = [];
+  bool _isAdmin = false;
+  bool _loadingHousehold = true;
+  bool _joining = false;
+
   @override
   void initState() {
     super.initState();
     _displayNameCtrl = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHousehold());
   }
 
   @override
@@ -70,8 +81,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  Future<void> _changePassword() async {
-    if (!_pwFormKey.currentState!.validate()) return;
+  /// Returns true on success, false on validation failure or API error.
+  /// Does NOT pop any route — caller (bottom sheet) handles that.
+  Future<bool> _changePassword() async {
+    if (!_pwFormKey.currentState!.validate()) return false;
     setState(() => _changingPassword = true);
     try {
       await ref.read(authProvider.notifier).changePassword(
@@ -80,11 +93,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           );
       if (mounted) {
         setState(() => _changingPassword = false);
-        context.pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Password changed successfully')),
         );
       }
+      return true;
     } catch (e) {
       if (mounted) {
         setState(() => _changingPassword = false);
@@ -92,6 +105,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           SnackBar(content: Text('Failed: $e')),
         );
       }
+      return false;
     }
   }
 
@@ -136,6 +150,191 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Future<void> _loadHousehold() async {
+    try {
+      final repo = HouseholdRepository(ref.read(apiClientProvider));
+      final data = await repo.getMyHousehold();
+      if (mounted) {
+        setState(() {
+          _household = data['household'] as Map<String, dynamic>?;
+          _members = data['members'] as List<dynamic>? ?? [];
+          _isAdmin = data['is_admin'] as bool? ?? false;
+          _loadingHousehold = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingHousehold = false);
+    }
+  }
+
+  void _showJoinHouseholdSheet() {
+    final codeCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        bool joining = false;
+        return StatefulBuilder(
+          builder: (context, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              left: 24,
+              right: 24,
+              top: 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Join Household',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                const Text(
+                  'Enter the invite code from your household admin to join.',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: codeCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Invite Code',
+                    hintText: 'e.g. ABC1234',
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.characters,
+                  enabled: !joining,
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: joining
+                        ? null
+                        : () async {
+                            final code = codeCtrl.text.trim();
+                            if (code.length != 8) return;
+                            setSheetState(() => joining = true);
+                            try {
+                              final repo = HouseholdRepository(ref.read(apiClientProvider));
+                              await repo.joinHousehold(code);
+                              if (ctx.mounted) Navigator.of(ctx).pop();
+                              await _loadHousehold();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('✅ Joined household')),
+                                );
+                              }
+                            } catch (e) {
+                              if (ctx.mounted) {
+                                setSheetState(() => joining = false);
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(content: Text('❌ $e')),
+                                );
+                              }
+                            }
+                          },
+                    child: joining
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Join'),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCreateHouseholdSheet() {
+    final nameCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        bool creating = false;
+        return StatefulBuilder(
+          builder: (context, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              left: 24,
+              right: 24,
+              top: 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Create Household',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Household Name',
+                    hintText: 'e.g. Home',
+                    border: OutlineInputBorder(),
+                  ),
+                  enabled: !creating,
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: creating
+                        ? null
+                        : () async {
+                            final name = nameCtrl.text.trim();
+                            if (name.isEmpty) return;
+                            setSheetState(() => creating = true);
+                            try {
+                              final repo = HouseholdRepository(ref.read(apiClientProvider));
+                              await repo.createHousehold(name);
+                              if (ctx.mounted) Navigator.of(ctx).pop();
+                              await _loadHousehold();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('✅ Household created')),
+                                );
+                              }
+                            } catch (e) {
+                              if (ctx.mounted) {
+                                setSheetState(() => creating = false);
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(content: Text('❌ $e')),
+                                );
+                              }
+                            }
+                          },
+                    child: creating
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Create'),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
@@ -155,6 +354,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               children: [
                 // ── User info card ──
                 _buildUserCard(user),
+                const SizedBox(height: 16),
+
+                // ── Household section ──
+                _buildHouseholdSection(),
                 const SizedBox(height: 24),
 
                 // ── Account settings ──
@@ -281,6 +484,171 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHouseholdSection() {
+    if (_loadingHousehold) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(8),
+          child: SizedBox(
+            width: 16, height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    if (_household == null) {
+      // Not in a household — show join/create options
+      return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        color: AppColors.surface,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.home_outlined, size: 18, color: AppColors.textSecondary),
+                  const SizedBox(width: 8),
+                  const Text('Household',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _showJoinHouseholdSheet,
+                  icon: const Icon(Icons.person_add_outlined, size: 18),
+                  label: const Text('Join Household'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: _showCreateHouseholdSheet,
+                  icon: const Icon(Icons.add_circle_outline, size: 18),
+                  label: const Text('Create New'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // In a household — show details
+    final hh = _household!;
+    final inviteCode = hh['invite_code'] as String? ?? '';
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: AppColors.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.home, size: 18, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  hh['name'] as String? ?? 'Home',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                if (_isAdmin) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text('admin',
+                        style: TextStyle(fontSize: 10, color: AppColors.primary)),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Invite code
+            Row(
+              children: [
+                const Icon(Icons.link, size: 14, color: AppColors.textSecondary),
+                const SizedBox(width: 6),
+                Text(
+                  'Code: $inviteCode',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    // Copy to clipboard
+                    _copyToClipboard(inviteCode);
+                  },
+                  child: const Icon(Icons.copy, size: 16, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            if (_members.length > 1) ...[
+              const SizedBox(height: 10),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+              const Text('Members',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              const SizedBox(height: 4),
+              ...(_members.map((m) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 10,
+                          backgroundColor: m['display_name'] == 'Nahda'
+                              ? Colors.pink.shade100
+                              : Colors.blue.shade100,
+                          child: Text(
+                            (m['display_name'] as String? ?? '?')[0],
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          m['display_name'] as String? ?? '',
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        if (m['role'] == 'admin') ...[
+                          const SizedBox(width: 4),
+                          Text('(admin)',
+                              style: TextStyle(
+                                  fontSize: 11, color: AppColors.textSecondary)),
+                        ],
+                      ],
+                    ),
+                  ))),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _copyToClipboard(String text) {
+    // Use Clipboard API
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('📋 Invite code copied!'),
+        duration: Duration(seconds: 2),
       ),
     );
   }
@@ -462,10 +830,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onPressed: changing ? null : () async {
                         if (!_pwFormKey.currentState!.validate()) return;
                         setSheetState(() => changing = true);
-                        try {
-                          await _changePassword();
-                          if (ctx.mounted) Navigator.of(ctx).pop();
-                        } finally {
+                        final success = await _changePassword();
+                        if (success && ctx.mounted) {
+                          Navigator.of(ctx).pop();
+                        } else if (!success && ctx.mounted) {
                           setSheetState(() => changing = false);
                         }
                       },

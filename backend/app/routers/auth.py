@@ -130,6 +130,21 @@ async def delete_account(
     current_user: dict = Depends(get_current_user),
     db: aiosqlite.Connection = Depends(get_db),
 ):
+    # Delete all members of households owned by this user (cascade)
+    await db.execute(
+        "DELETE FROM household_members WHERE household_id IN (SELECT id FROM households WHERE created_by = ?)",
+        (current_user["id"],),
+    )
+    # Delete household membership for this user
+    await db.execute(
+        "DELETE FROM household_members WHERE user_id = ?",
+        (current_user["id"],),
+    )
+    # Delete households owned by this user
+    await db.execute(
+        "DELETE FROM households WHERE created_by = ?",
+        (current_user["id"],),
+    )
     # Delete all transactions owned by this user
     await db.execute(
         "DELETE FROM transactions WHERE user_id = ?",

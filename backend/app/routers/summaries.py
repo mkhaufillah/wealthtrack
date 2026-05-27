@@ -106,18 +106,64 @@ async def household_summary(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Household-wide summary across ALL users. Requires authentication."""
+    """Household-wide summary across members of the current user's household."""
     today = date.today().isoformat()
     d_from = date_from or today
     d_to = date_to or today
 
+    # Get the user's household ID
+    cursor = await db.execute(
+        "SELECT household_id FROM household_members WHERE user_id = ?",
+        (current_user["id"],),
+    )
+    hm = await cursor.fetchone()
+    if not hm:
+        # User not in a household — return personal-only summary
+        # (same shape but with only current user's data)
+        cursor = await db.execute(
+            """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
+               FROM transactions t
+               WHERE t.user_id = ?
+                 AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+                 AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+               GROUP BY t.type""",
+            (current_user["id"], d_from, d_to),
+        )
+        rows = await cursor.fetchall()
+        income = 0
+        expense = 0
+        for r in rows:
+            if r["type"] == "income":
+                income = r["total"]
+            else:
+                expense = r["total"]
+        return {
+            "date_from": d_from,
+            "date_to": d_to,
+            "total_income": int(income),
+            "total_expense": int(expense),
+            "balance": int(income - expense),
+            "by_category": [],
+            "by_user": [
+                {
+                    "user_id": current_user["id"],
+                    "display_name": current_user.get("display_name", ""),
+                    "total_expense": int(expense),
+                    "total_income": int(income),
+                }
+            ],
+        }
+
+    household_id = hm["household_id"]
+
     cursor = await db.execute(
         """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
            FROM transactions t
+           JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
            WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
              AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
            GROUP BY t.type""",
-        (d_from, d_to),
+        (household_id, d_from, d_to),
     )
     rows = await cursor.fetchall()
     income = 0
@@ -132,11 +178,12 @@ async def household_summary(
         """SELECT c.id, c.name, c.icon, SUM(t.amount) as total, COUNT(*) as count
            FROM transactions t
            JOIN categories c ON t.category_id = c.id
+           JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
            WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
              AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
              AND t.type = 'expense'
            GROUP BY c.id ORDER BY total DESC""",
-        (d_from, d_to),
+        (household_id, d_from, d_to),
     )
     by_cat = await cursor.fetchall()
     categories = []
@@ -160,10 +207,11 @@ async def household_summary(
                   COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income
            FROM transactions t
            JOIN users u ON t.user_id = u.id
+           JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
            WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
              AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
            GROUP BY t.user_id ORDER BY total_expense DESC""",
-        (d_from, d_to),
+        (household_id, d_from, d_to),
     )
     by_user = await cursor.fetchall()
     users = [

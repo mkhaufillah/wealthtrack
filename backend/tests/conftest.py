@@ -97,6 +97,20 @@ def create_test_db(db_path: str):
             date TEXT,
             note TEXT DEFAULT ''
         );
+        CREATE TABLE IF NOT EXISTS households (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            invite_code TEXT UNIQUE NOT NULL,
+            created_by INTEGER NOT NULL REFERENCES users(id),
+            created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+        CREATE TABLE IF NOT EXISTS household_members (
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            household_id INTEGER NOT NULL REFERENCES households(id),
+            role TEXT NOT NULL DEFAULT 'member',
+            joined_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            PRIMARY KEY (user_id, household_id)
+        );
     """)
 
     for u in DEFAULT_USERS:
@@ -115,6 +129,18 @@ def create_test_db(db_path: str):
             "INSERT OR IGNORE INTO transactions (id, type, amount, category_id, category_name, description, note, date, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, date('now', '-' || ? || ' days'), 1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
             t + (day_offset,),
         )
+
+    # Seed default household — all existing users are members
+    conn.execute(
+        "INSERT OR IGNORE INTO households (id, name, invite_code, created_by) VALUES (1, 'Home', 'TESTCODE1', 1)"
+    )
+    for uid in [1, 2]:
+        role = 'admin' if uid == 1 else 'member'
+        conn.execute(
+            "INSERT OR IGNORE INTO household_members (user_id, household_id, role) VALUES (?, 1, ?)",
+            (uid, role),
+        )
+
     conn.commit()
     conn.close()
 
