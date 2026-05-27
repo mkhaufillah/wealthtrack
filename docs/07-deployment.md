@@ -149,7 +149,7 @@ sudo systemctl reload nginx
 
 Run **AFTER** DNS `wealthtrack.filla.id` points to the VPS IP.
 
-> 💡 **One-command deploy:** `bash deploy/deploy.sh` — does steps 1-6 automatically.
+> 💡 **One-command deploy:** `bash deploy/deploy.sh` — does steps 1-7 automatically (installs certbot if missing).
 > Or follow each step manually below.
 
 ```bash
