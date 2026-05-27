@@ -157,7 +157,7 @@ async def household_summary(
     household_id = hm["household_id"]
 
     cursor = await db.execute(
-        """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
+        """SELECT t.type, CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) as total, COUNT(*) as count
            FROM transactions t
            JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
            WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
@@ -200,18 +200,19 @@ async def household_summary(
             }
         )
 
-    # By user
+    # By user — LEFT JOIN from household_members so users with 0 transactions still appear
     cursor = await db.execute(
-        """SELECT t.user_id, u.display_name,
-                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense,
-                  COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income
-           FROM transactions t
-           JOIN users u ON t.user_id = u.id
-           JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
-           WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-           GROUP BY t.user_id ORDER BY total_expense DESC""",
-        (household_id, d_from, d_to),
+        """SELECT hm.user_id, u.display_name,
+                  CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS INTEGER) as total_expense,
+                  CAST(COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) AS INTEGER) as total_income
+           FROM household_members hm
+           JOIN users u ON hm.user_id = u.id
+           LEFT JOIN transactions t ON t.user_id = hm.user_id
+               AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+               AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+           WHERE hm.household_id = ?
+           GROUP BY hm.user_id ORDER BY total_expense DESC""",
+        (d_from, d_to, household_id),
     )
     by_user = await cursor.fetchall()
     users = [
@@ -291,8 +292,8 @@ async def monthly_summary(
 
     cursor = await db.execute(
         """SELECT COALESCE(t.date, substr(t.created_at,1,10)) as date,
-                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as expense,
-                  COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as income
+                  CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS INTEGER) as expense,
+                  CAST(COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) AS INTEGER) as income
            FROM transactions t
            WHERE t.user_id = ?
              AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?

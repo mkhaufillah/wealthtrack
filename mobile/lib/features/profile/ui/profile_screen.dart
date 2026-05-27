@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
@@ -644,7 +645,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _copyToClipboard(String text) {
-    // Use Clipboard API
+    Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('📋 Invite code copied!'),
