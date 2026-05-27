@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../home/providers/dashboard_provider.dart';
@@ -24,6 +25,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   int? _selectedCategoryId;
   late DateTime _selectedDate;
   bool _isSaving = false;
+  bool _isScanning = false;
 
   List<CategoryChip> _categories = [];
   List<CategoryChip> _expenseCategories = [];
@@ -77,6 +79,52 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   @override
   void dispose() { _amountCtrl.dispose(); _descCtrl.dispose(); _noteCtrl.dispose(); super.dispose(); }
+
+  Future<void> _scanReceipt() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.camera);
+      if (picked == null) return;
+
+      setState(() => _isScanning = true);
+      final api = ref.read(apiClientProvider);
+      final res = await api.uploadFile('/ocr/process', picked.path);
+      final data = res.data as Map<String, dynamic>;
+
+      if (data.containsKey('amount') && data['amount'] != null) {
+        _amountCtrl.text = data['amount'].toString();
+      }
+      if (data.containsKey('description') && data['description'] != null && (data['description'] as String).isNotEmpty) {
+        _descCtrl.text = data['description'] as String;
+      }
+      if (data.containsKey('date') && data['date'] != null && (data['date'] as String).isNotEmpty) {
+        final parsed = DateTime.tryParse(data['date'] as String);
+        if (parsed != null) setState(() => _selectedDate = parsed);
+      }
+      if (data.containsKey('type') && data['type'] == 'income') {
+        _toggleType(false);
+      }
+      setState(() => _isScanning = false);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              const Text('Receipt scanned — review fields then save'),
+            ],
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      setState(() => _isScanning = false);
+      if (!mounted) return;
+      _showError('OCR failed: $e');
+    }
+  }
 
   Future<void> _save() async {
     final amountText = _amountCtrl.text.replaceAll('Rp', '').replaceAll('.', '').replaceAll(',', '').trim();
@@ -154,7 +202,19 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text(_isEditing ? 'Edit Transaction' : 'Add Transaction')),
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Edit Transaction' : 'Add Transaction'),
+        actions: [
+          if (!_isEditing)
+            IconButton(
+              icon: _isScanning
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.camera_alt_outlined),
+              onPressed: _isScanning ? null : _scanReceipt,
+              tooltip: 'Scan receipt',
+            ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

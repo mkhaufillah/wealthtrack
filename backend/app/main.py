@@ -9,7 +9,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.core.limiter import limiter
-from app.routers import auth, categories, transactions, summaries, health, households, exports, budgets
+from app.routers import auth, categories, transactions, summaries, health, households, exports, budgets, ocr
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
 
@@ -51,3 +51,4 @@ app.include_router(health.router, prefix="/api/v1")
 app.include_router(households.router, prefix="/api/v1")
 app.include_router(exports.router, prefix="/api/v1")
 app.include_router(budgets.router, prefix="/api/v1")
+app.include_router(ocr.router, prefix="/api/v1")

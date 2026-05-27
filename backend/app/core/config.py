@@ -24,6 +24,8 @@ class Settings(BaseSettings):
         '["http://localhost:8080", "http://127.0.0.1:8080", "https://wealthtrack.filla.id"]'
     )
 
+    OPENCODE_GO_API_KEY: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         import json

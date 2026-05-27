@@ -48,6 +48,13 @@ class ApiClient {
   Future<Response> download(String path, String savePath) =>
       _dio.download(path, savePath);
 
+  Future<Response> uploadFile(String path, String filePath) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(filePath),
+    });
+    return _dio.post(path, data: formData);
+  }
+
   Exception handleError(dynamic error) {
     if (error is DioException) {
       if (error.response?.statusCode == 401) return UnauthorizedException();
