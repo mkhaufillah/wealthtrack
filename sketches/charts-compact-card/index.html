@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WealthTrack Charts — Compact Card</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #1A1A2E;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .phone {
+    width: 390px;
+    background: #F5F6FA;
+    border-radius: 40px;
+    padding: 20px 16px 30px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .status-bar {
+    display: flex; justify-content: space-between; padding: 0 4px 16px;
+    color: #1A1A2E; font-size: 13px; font-weight: 600;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+  }
+  .header h1 { font-size: 22px; color: #1A1A2E; font-weight: 700; }
+  .header select {
+    padding: 6px 12px; border-radius: 20px; border: 1px solid #E8E8E8;
+    font-size: 13px; background: white; color: #1A1A2E;
+  }
+  .summary-cards {
+    display: flex; gap: 10px; margin-bottom: 20px;
+  }
+  .summary-card {
+    flex: 1; background: white; border-radius: 16px; padding: 14px 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .summary-card .label { font-size: 11px; color: #7F8C8D; margin-bottom: 4px; }
+  .summary-card .value { font-size: 18px; font-weight: 700; }
+  .summary-card .value.income { color: #2ECC71; }
+  .summary-card .value.expense { color: #E94560; }
+  .summary-card .value.balance { color: #1A1A2E; }
+
+  .section-title {
+    font-size: 14px; font-weight: 600; color: #1A1A2E; margin-bottom: 12px; margin-top: 4px;
+  }
+
+  /* Pie chart placeholder */
+  .pie-container {
+    background: white; border-radius: 16px; padding: 20px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .pie-chart {
+    width: 120px; height: 120px; border-radius: 50%;
+    background: conic-gradient(
+      #E94560 0% 30%,
+      #F39C12 30% 45%,
+      #3498DB 45% 58%,
+      #2ECC71 58% 68%,
+      #9B59B6 68% 78%,
+      #E8E8E8 78% 100%
+    );
+    flex-shrink: 0;
+  }
+  .pie-legend { flex: 1; }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px;
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { color: #7F8C8D; flex: 1; }
+  .legend-value { font-weight: 600; color: #1A1A2E; }
+  .legend-pct { color: #7F8C8D; font-size: 11px; width: 35px; text-align: right; }
+
+  /* Bar chart */
+  .bar-chart-card {
+    background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .bar-group { margin-bottom: 14px; }
+  .bar-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+  .bar-label { color: #1A1A2E; }
+  .bar-amount { font-weight: 600; color: #1A1A2E; }
+  .bar-track {
+    height: 8px; background: #F0F0F0; border-radius: 4px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .bar-fill.food { background: #E94560; width: 32%; }
+  .bar-fill.bills { background: #F39C12; width: 24%; }
+  .bar-fill.transport { background: #3498DB; width: 12%; }
+  .bar-fill.baby { background: #2ECC71; width: 18%; }
+  .bar-fill.shopping { background: #9B59B6; width: 14%; }
+
+  /* Trend sparkline */
+  .trend-card {
+    background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .trend-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .trend-header h3 { font-size: 14px; font-weight: 600; }
+  .trend-toggle {
+    display: flex; gap: 4px; background: #F0F0F0; border-radius: 20px; padding: 2px;
+  }
+  .trend-toggle button {
+    border: none; background: transparent; padding: 4px 12px; border-radius: 18px;
+    font-size: 11px; cursor: pointer; color: #7F8C8D;
+  }
+  .trend-toggle button.active { background: white; color: #1A1A2E; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  .sparkline-svg { width: 100%; height: 60px; }
+  .sparkline-line { fill: none; stroke: #E94560; stroke-width: 2; }
+  .sparkline-area { fill: url(#grad); opacity: 0.15; }
+  .sparkline-line.income { stroke: #2ECC71; }
+  .sparkline-area.income-area { fill: url(#gradIncome); opacity: 0.15; }
+
+  .daily-list { margin-top: 8px; }
+  .daily-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid #F5F5F5; font-size: 13px;
+  }
+  .daily-row:last-child { border-bottom: none; }
+  .daily-date { color: #7F8C8D; width: 80px; }
+  .daily-bar-track {
+    flex: 1; height: 6px; background: #F0F0F0; border-radius: 3px; margin: 0 12px; overflow: hidden;
+    display: flex;
+  }
+  .daily-bar-fill { height: 100%; border-radius: 3px; }
+  .daily-expense { color: #E94560; font-weight: 600; width: 70px; text-align: right; }
+
+  .nav-bar {
+    display: flex; justify-content: space-around; margin-top: 8px; padding-top: 12px;
+    border-top: 1px solid #E8E8E8;
+  }
+  .nav-item { text-align: center; font-size: 10px; color: #7F8C8D; cursor: pointer; }
+  .nav-item.active { color: #0F3460; font-weight: 600; }
+  .nav-icon { font-size: 20px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>🔋 92%</span>
+  </div>
+
+  <div class="header">
+    <h1>📊 Reports</h1>
+    <select><option>May 2026</option><option>Apr 2026</option></select>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="label">Income</div>
+      <div class="value income">+Rp22,3jt</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Expense</div>
+      <div class="value expense">-Rp18,5jt</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Balance</div>
+      <div class="value balance">+Rp3,8jt</div>
+    </div>
+  </div>
+
+  <!-- Pie: Category Breakdown -->
+  <div class="section-title">📦 Spending by Category</div>
+  <div class="pie-container">
+    <div class="pie-chart"></div>
+    <div class="pie-legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#E94560"></span><span class="legend-label">Food & Drink</span><span class="legend-value">Rp5,9jt</span><span class="legend-pct">30%</span></div>
+      <div class="legend-item"><span class="legend-dot" style="background:#F39C12"></span><span class="legend-label">Bills</span><span class="legend-value">Rp4,5jt</span><span class="legend-pct">24%</span></div>
+      <div class="legend-item"><span class="legend-dot" style="background:#3498DB"></span><span class="legend-label">Transport</span><span class="legend-value">Rp2,2jt</span><span class="legend-pct">12%</span></div>
+      <div class="legend-item"><span class="legend-dot" style="background:#2ECC71"></span><span class="legend-label">Baby</span><span class="legend-value">Rp3,3jt</span><span class="legend-pct">18%</span></div>
+      <div class="legend-item"><span class="legend-dot" style="background:#9B59B6"></span><span class="legend-label">Shopping</span><span class="legend-value">Rp2,6jt</span><span class="legend-pct">14%</span></div>
+    </div>
+  </div>
+
+  <!-- Bar: Top Categories -->
+  <div class="section-title">📊 Category Comparison</div>
+  <div class="bar-chart-card">
+    <div class="bar-group">
+      <div class="bar-header"><span class="bar-label">🍜 Food & Drink</span><span class="bar-amount">Rp5.920.000</span></div>
+      <div class="bar-track"><div class="bar-fill food"></div></div>
+    </div>
+    <div class="bar-group">
+      <div class="bar-header"><span class="bar-label">📄 Bills</span><span class="bar-amount">Rp4.500.000</span></div>
+      <div class="bar-track"><div class="bar-fill bills"></div></div>
+    </div>
+    <div class="bar-group">
+      <div class="bar-header"><span class="bar-label">👶 Baby</span><span class="bar-amount">Rp3.350.000</span></div>
+      <div class="bar-track"><div class="bar-fill baby"></div></div>
+    </div>
+    <div class="bar-group">
+      <div class="bar-header"><span class="bar-label">🛒 Shopping</span><span class="bar-amount">Rp2.600.000</span></div>
+      <div class="bar-track"><div class="bar-fill shopping"></div></div>
+    </div>
+    <div class="bar-group">
+      <div class="bar-header"><span class="bar-label">🚗 Transport</span><span class="bar-amount">Rp2.200.000</span></div>
+      <div class="bar-track"><div class="bar-fill transport"></div></div>
+    </div>
+  </div>
+
+  <!-- Trend line -->
+  <div class="section-title">📈 Monthly Trend</div>
+  <div class="trend-card">
+    <div class="trend-header">
+      <h3>Income vs Expense</h3>
+      <div class="trend-toggle">
+        <button class="active">6M</button>
+        <button>1Y</button>
+        <button>All</button>
+      </div>
+    </div>
+    <svg class="sparkline-svg" viewBox="0 0 340 60">
+      <defs>
+        <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E94560"/><stop offset="100%" stop-color="#E94560" stop-opacity="0"/></linearGradient>
+        <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2ECC71"/><stop offset="100%" stop-color="#2ECC71" stop-opacity="0"/></linearGradient>
+      </defs>
+      <!-- Income line -->
+      <path class="sparkline-line income" d="M0,50 L30,45 L60,48 L90,35 L120,30 L150,25 L180,20 L210,15 L240,12 L270,8 L300,10 L330,5"/>
+      <path class="sparkline-area income-area" d="M0,50 L30,45 L60,48 L90,35 L120,30 L150,25 L180,20 L210,15 L240,12 L270,8 L300,10 L330,5 L330,60 L0,60 Z"/>
+      <!-- Expense line -->
+      <path class="sparkline-line" d="M0,40 L30,42 L60,38 L90,44 L120,35 L150,37 L180,30 L210,28 L240,32 L270,25 L300,22 L330,18"/>
+      <path class="sparkline-area" d="M0,40 L30,42 L60,38 L90,44 L120,35 L150,37 L180,30 L210,28 L240,32 L270,25 L300,22 L330,18 L330,60 L0,60 Z"/>
+    </svg>
+  </div>
+
+  <!-- Daily Snapshot -->
+  <div class="section-title">📅 Daily Activity</div>
+  <div class="bar-chart-card">
+    <div class="daily-list">
+      <div class="daily-row"><span class="daily-date">May 27</span><div class="daily-bar-track"><div class="daily-bar-fill" style="width:45%;background:#E94560"></div><div class="daily-bar-fill" style="width:12%;background:#2ECC71"></div></div><span class="daily-expense">-Rp521rb</span></div>
+      <div class="daily-row"><span class="daily-date">May 26</span><div class="daily-bar-track"><div class="daily-bar-fill" style="width:35%;background:#E94560"></div></div><span class="daily-expense">-Rp420rb</span></div>
+      <div class="daily-row"><span class="daily-date">May 25</span><div class="daily-bar-track"><div class="daily-bar-fill" style="width:80%;background:#E94560"></div><div class="daily-bar-fill" style="width:5%;background:#2ECC71"></div></div><span class="daily-expense">-Rp890rb</span></div>
+      <div class="daily-row"><span class="daily-date">May 24</span><div class="daily-bar-track"><div class="daily-bar-fill" style="width:18%;background:#E94560"></div></div><span class="daily-expense">-Rp210rb</span></div>
+      <div class="daily-row"><span class="daily-date">May 23</span><div class="daily-bar-track"><div class="daily-bar-fill" style="width:55%;background:#E94560"></div><div class="daily-bar-fill" style="width:8%;background:#2ECC71"></div></div><span class="daily-expense">-Rp645rb</span></div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav-bar">
+    <div class="nav-item"><div class="nav-icon">🏠</div>Home</div>
+    <div class="nav-item"><div class="nav-icon">💳</div>Transactions</div>
+    <div class="nav-item active"><div class="nav-icon">📊</div>Reports</div>
+    <div class="nav-item"><div class="nav-icon">👤</div>Profile</div>
+  </div>
+</div>
+</body>
+</html>

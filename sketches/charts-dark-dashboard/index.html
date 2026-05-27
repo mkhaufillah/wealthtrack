@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WealthTrack Charts — Visual Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #0F0F23;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .phone {
+    width: 390px;
+    background: #1A1A2E;
+    border-radius: 40px;
+    padding: 20px 16px 30px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .status-bar {
+    display: flex; justify-content: space-between; padding: 0 4px 16px;
+    color: #8899AA; font-size: 13px; font-weight: 500;
+  }
+
+  /* Hero ring */
+  .hero {
+    text-align: center; margin-bottom: 24px; position: relative;
+  }
+  .hero-ring {
+    width: 180px; height: 180px; border-radius: 50%; margin: 0 auto 12px;
+    position: relative;
+    background: conic-gradient(#E94560 0deg 108deg, #2ECC71 108deg 216deg, #1A1A2E 216deg 360deg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hero-ring-inner {
+    width: 130px; height: 130px; border-radius: 50%;
+    background: #1A1A2E; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .hero-ring-inner .net { font-size: 11px; color: #8899AA; }
+  .hero-ring-inner .amount { font-size: 26px; font-weight: 700; color: white; }
+  .hero-ring-inner .period { font-size: 11px; color: #556677; }
+  .hero-legend {
+    display: flex; justify-content: center; gap: 24px; margin-top: 8px;
+  }
+  .hero-legend-item { text-align: center; }
+  .hero-legend-item .val { font-size: 18px; font-weight: 700; }
+  .hero-legend-item .lbl { font-size: 11px; color: #8899AA; }
+  .val.income { color: #2ECC71; }
+  .val.expense { color: #E94560; }
+
+  /* Month selector */
+  .month-scroll {
+    display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .month-scroll::-webkit-scrollbar { display: none; }
+  .month-chip {
+    padding: 6px 16px; border-radius: 20px; background: #16213E;
+    color: #8899AA; font-size: 12px; white-space: nowrap; cursor: pointer; border: none;
+  }
+  .month-chip.active { background: #0F3460; color: white; font-weight: 600; }
+
+  /* Card */
+  .card {
+    background: #16213E; border-radius: 16px; padding: 16px; margin-bottom: 14px;
+  }
+  .card-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+  }
+  .card-title { font-size: 14px; font-weight: 600; color: white; }
+  .card-action {
+    font-size: 11px; color: #0F3460; background: rgba(15,52,96,0.3);
+    padding: 4px 10px; border-radius: 12px; cursor: pointer; border: none; color: #88BBEE;
+  }
+
+  /* Radial bars */
+  .radial-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  }
+  .radial-item { text-align: center; }
+  .radial-ring {
+    width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 6px;
+    position: relative;
+  }
+  .radial-ring-inner {
+    position: absolute; inset: 5px; border-radius: 50%;
+    background: #16213E; display: flex; align-items: center;
+    justify-content: center; font-size: 12px; font-weight: 700; color: white;
+  }
+  .radial-label { font-size: 11px; color: #8899AA; }
+
+  /* Bar spark */
+  .spark-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .spark-row:last-child { margin-bottom: 0; }
+  .spark-icon { font-size: 16px; width: 24px; text-align: center; }
+  .spark-info { flex: 1; }
+  .spark-label { font-size: 12px; color: white; }
+  .spark-sub { font-size: 10px; color: #556677; }
+  .spark-bar {
+    height: 16px; background: #0F0F23; border-radius: 8px; overflow: hidden; margin-top: 3px;
+  }
+  .spark-fill { height: 100%; border-radius: 8px; }
+  .spark-val { font-size: 13px; font-weight: 600; color: white; min-width: 70px; text-align: right; }
+
+  /* Line chart area */
+  .line-chart { margin-top: 8px; }
+  .line-svg { width: 100%; height: 80px; }
+  .line-path { fill: none; stroke-width: 2.5; }
+  .line-path.inc { stroke: #2ECC71; }
+  .line-path.exp { stroke: #E94560; }
+  .line-area-inc { fill: url(#incGrad); opacity: 0.1; }
+  .line-area-exp { fill: url(#expGrad); opacity: 0.1; }
+  .chart-xlabels {
+    display: flex; justify-content: space-between; margin-top: 4px;
+    font-size: 9px; color: #556677;
+  }
+
+  .nav-bar {
+    display: flex; justify-content: space-around; margin-top: 8px; padding-top: 12px;
+    border-top: 1px solid #16213E;
+  }
+  .nav-item { text-align: center; font-size: 10px; color: #556677; cursor: pointer; }
+  .nav-item.active { color: #2ECC71; font-weight: 600; }
+  .nav-icon { font-size: 20px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>🔋 92%</span>
+  </div>
+
+  <!-- Hero ring -->
+  <div class="hero">
+    <div class="hero-ring">
+      <div class="hero-ring-inner">
+        <span class="net">NET BALANCE</span>
+        <span class="amount">+Rp3.850.000</span>
+        <span class="period">May 1 - May 27</span>
+      </div>
+    </div>
+    <div class="hero-legend">
+      <div class="hero-legend-item"><div class="val income">+Rp22,3jt</div><div class="lbl">Income</div></div>
+      <div class="hero-legend-item"><div class="val expense">-Rp18,5jt</div><div class="lbl">Expense</div></div>
+    </div>
+  </div>
+
+  <!-- Month scroll -->
+  <div class="month-scroll">
+    <button class="month-chip">Jan</button>
+    <button class="month-chip">Feb</button>
+    <button class="month-chip">Mar</button>
+    <button class="month-chip">Apr</button>
+    <button class="month-chip active">May</button>
+    <button class="month-chip">Jun</button>
+  </div>
+
+  <!-- Category radial bars -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🏷️ Top Categories</span>
+      <button class="card-action">See all →</button>
+    </div>
+    <div class="radial-grid">
+      <div class="radial-item">
+        <div class="radial-ring" style="background: conic-gradient(#E94560 0deg 115deg, #0F0F23 115deg 360deg)">
+          <div class="radial-ring-inner">32%</div>
+        </div>
+        <div class="radial-label">🍜 Food</div>
+      </div>
+      <div class="radial-item">
+        <div class="radial-ring" style="background: conic-gradient(#F39C12 0deg 86deg, #0F0F23 86deg 360deg)">
+          <div class="radial-ring-inner">24%</div>
+        </div>
+        <div class="radial-label">📄 Bills</div>
+      </div>
+      <div class="radial-item">
+        <div class="radial-ring" style="background: conic-gradient(#2ECC71 0deg 65deg, #0F0F23 65deg 360deg)">
+          <div class="radial-ring-inner">18%</div>
+        </div>
+        <div class="radial-label">👶 Baby</div>
+      </div>
+      <div class="radial-item">
+        <div class="radial-ring" style="background: conic-gradient(#3498DB 0deg 43deg, #0F0F23 43deg 360deg)">
+          <div class="radial-ring-inner">12%</div>
+        </div>
+        <div class="radial-label">🚗 Transport</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category bars detailed -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📊 Spending Detail</span>
+      <span style="font-size:11px;color:#556677">May 2026</span>
+    </div>
+    <div class="spark-row">
+      <span class="spark-icon">🍜</span>
+      <div class="spark-info">
+        <div class="spark-label">Food & Drink</div>
+        <div class="spark-bar"><div class="spark-fill" style="width:58%;background:#E94560"></div></div>
+      </div>
+      <span class="spark-val">Rp5,9jt</span>
+    </div>
+    <div class="spark-row">
+      <span class="spark-icon">📄</span>
+      <div class="spark-info">
+        <div class="spark-label">Bills & Loans</div>
+        <div class="spark-bar"><div class="spark-fill" style="width:44%;background:#F39C12"></div></div>
+      </div>
+      <span class="spark-val">Rp4,5jt</span>
+    </div>
+    <div class="spark-row">
+      <span class="spark-icon">👶</span>
+      <div class="spark-info">
+        <div class="spark-label">Baby Needs</div>
+        <div class="spark-bar"><div class="spark-fill" style="width:33%;background:#2ECC71"></div></div>
+      </div>
+      <span class="spark-val">Rp3,4jt</span>
+    </div>
+    <div class="spark-row">
+      <span class="spark-icon">🛒</span>
+      <div class="spark-info">
+        <div class="spark-label">Shopping</div>
+        <div class="spark-bar"><div class="spark-fill" style="width:26%;background:#9B59B6"></div></div>
+      </div>
+      <span class="spark-val">Rp2,6jt</span>
+    </div>
+    <div class="spark-row">
+      <span class="spark-icon">🚗</span>
+      <div class="spark-info">
+        <div class="spark-label">Transport</div>
+        <div class="spark-bar"><div class="spark-fill" style="width:22%;background:#3498DB"></div></div>
+      </div>
+      <span class="spark-val">Rp2,2jt</span>
+    </div>
+  </div>
+
+  <!-- Trend line -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📈 Trend</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:10px;color:#2ECC71">⬆ Income</span>
+        <span style="font-size:10px;color:#E94560">⬇ Expense</span>
+      </div>
+    </div>
+    <div class="line-chart">
+      <svg class="line-svg" viewBox="0 0 340 80">
+        <defs>
+          <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2ECC71"/><stop offset="100%" stop-color="#2ECC71" stop-opacity="0"/></linearGradient>
+          <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E94560"/><stop offset="100%" stop-color="#E94560" stop-opacity="0"/></linearGradient>
+        </defs>
+        <path class="line-path inc line-area-inc" d="M0,65 Q28,60 56,58 Q84,45 113,42 Q141,38 170,32 Q198,28 226,20 Q255,14 283,12 Q311,8 340,6"/>
+        <path class="line-path inc" d="M0,65 Q28,60 56,58 Q84,45 113,42 Q141,38 170,32 Q198,28 226,20 Q255,14 283,12 Q311,8 340,6"/>
+        <path class="line-path exp line-area-exp" d="M0,55 Q28,52 56,50 Q84,48 113,44 Q141,42 170,38 Q198,35 226,32 Q255,28 283,25 Q311,22 340,20"/>
+        <path class="line-path exp" d="M0,55 Q28,52 56,50 Q84,48 113,44 Q141,42 170,38 Q198,35 226,32 Q255,28 283,25 Q311,22 340,20"/>
+      </svg>
+      <div class="chart-xlabels">
+        <span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="nav-bar">
+    <div class="nav-item"><div class="nav-icon">🏠</div>Home</div>
+    <div class="nav-item"><div class="nav-icon">💳</div>Txns</div>
+    <div class="nav-item active"><div class="nav-icon">📊</div>Reports</div>
+    <div class="nav-item"><div class="nav-icon">👤</div>Profile</div>
+  </div>
+</div>
+</body>
+</html>
