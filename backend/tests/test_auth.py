@@ -148,3 +148,108 @@ class TestAuthMe:
             headers={"Authorization": f"Bearer {fake_token}"},
         )
         assert resp.status_code == 404
+
+
+class TestUpdateProfile:
+    async def test_update_display_name(self, client: AsyncClient, filla_token: str):
+        """Update display name returns updated user."""
+        resp = await client.put(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"display_name": "Filla Baru"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["display_name"] == "Filla Baru"
+        assert data["username"] == "filla"
+
+    async def test_update_no_token(self, client: AsyncClient):
+        """Update without auth returns 401."""
+        resp = await client.put(
+            "/api/v1/auth/me",
+            json={"display_name": "Hacker"},
+        )
+        assert resp.status_code == 401
+
+    async def test_update_empty_name(self, client: AsyncClient, filla_token: str):
+        """Empty display name returns 422."""
+        resp = await client.put(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"display_name": ""},
+        )
+        assert resp.status_code == 422
+
+
+class TestChangePassword:
+    async def test_change_password_success(self, client: AsyncClient, filla_token: str):
+        """Change password with correct current password succeeds."""
+        resp = await client.put(
+            "/api/v1/auth/password",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"current_password": "password123", "new_password": "newpass456"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["message"] == "Password updated successfully"
+
+        # Can login with new password
+        login_resp = await client.post(
+            "/api/v1/auth/login",
+            json={"username": "filla", "password": "newpass456"},
+        )
+        assert login_resp.status_code == 200
+
+        # Old password no longer works
+        old_login = await client.post(
+            "/api/v1/auth/login",
+            json={"username": "filla", "password": "password123"},
+        )
+        assert old_login.status_code == 401
+
+    async def test_change_password_wrong_current(self, client: AsyncClient, filla_token: str):
+        """Wrong current password returns 401."""
+        resp = await client.put(
+            "/api/v1/auth/password",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"current_password": "wrongpassword", "new_password": "newpass456"},
+        )
+        assert resp.status_code == 401
+        assert "incorrect" in resp.json()["detail"].lower()
+
+    async def test_change_password_no_token(self, client: AsyncClient):
+        """Change password without auth returns 401."""
+        resp = await client.put(
+            "/api/v1/auth/password",
+            json={"current_password": "pw", "new_password": "newpass456"},
+        )
+        assert resp.status_code == 401
+
+
+class TestDeleteAccount:
+    async def test_delete_account_success(self, client: AsyncClient, filla_token: str):
+        """Delete account returns 204 and user can no longer access /me."""
+        resp = await client.delete(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 204
+
+        # User no longer exists
+        me_resp = await client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert me_resp.status_code == 404
+
+        # Login fails
+        login_resp = await client.post(
+            "/api/v1/auth/login",
+            json={"username": "filla", "password": "password123"},
+        )
+        assert login_resp.status_code == 401
+
+    async def test_delete_account_no_token(self, client: AsyncClient):
+        """Delete without auth returns 401."""
+        resp = await client.delete("/api/v1/auth/me")
+        assert resp.status_code == 401

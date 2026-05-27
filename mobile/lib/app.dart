@@ -9,6 +9,7 @@ import 'features/auth/ui/register_screen.dart';
 import 'features/home/ui/home_screen.dart';
 import 'features/transactions/ui/transaction_list_screen.dart';
 import 'features/transactions/ui/add_transaction_screen.dart';
+import 'features/profile/ui/profile_screen.dart';
 import 'shared/widgets/app_scaffold.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -36,7 +37,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const TransactionListScreen(),
           ),
           GoRoute(path: '/reports', builder: (_, __) => const ReportsPlaceholder()),
-          GoRoute(path: '/profile', builder: (_, __) => const ProfilePlaceholder()),
+          GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
         ],
       ),
       GoRoute(
@@ -47,11 +48,36 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class WealthTrackApp extends ConsumerWidget {
+class WealthTrackApp extends ConsumerStatefulWidget {
   const WealthTrackApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WealthTrackApp> createState() => _WealthTrackAppState();
+}
+
+class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(authProvider.notifier).checkAuth().then((_) {
+      if (mounted) setState(() => _initialized = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_initialized) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        home: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
     final router = ref.watch(goRouterProvider);
     return MaterialApp.router(
       title: 'WealthTrack',
@@ -66,10 +92,4 @@ class ReportsPlaceholder extends StatelessWidget {
   const ReportsPlaceholder({super.key});
   @override
   Widget build(BuildContext context) => const Center(child: Text('Reports — Coming soon'));
-}
-
-class ProfilePlaceholder extends StatelessWidget {
-  const ProfilePlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) => const Center(child: Text('Profile — Coming soon'));
 }

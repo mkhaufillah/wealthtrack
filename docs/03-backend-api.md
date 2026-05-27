@@ -66,6 +66,58 @@ Returns current user info. Requires Bearer token.
 }
 ```
 
+### PUT `/api/v1/auth/me`
+
+Update current user's display name. Requires Bearer token.
+
+```json
+// Request
+{
+  "display_name": "Filla Baru"
+}
+
+// Response 200
+{
+  "id": 1,
+  "username": "filla",
+  "display_name": "Filla Baru",
+  "role": "admin",
+  "created_at": "2026-05-26T17:15:01.077Z"
+}
+```
+
+### PUT `/api/v1/auth/password`
+
+Change password. Requires Bearer token + current password verification.
+
+```json
+// Request
+{
+  "current_password": "password123",
+  "new_password": "newsecure456"
+}
+
+// Response 200
+{
+  "message": "Password updated successfully"
+}
+
+// Error 401 — wrong current password
+{
+  "detail": "Current password is incorrect"
+}
+```
+
+### DELETE `/api/v1/auth/me`
+
+Delete the current user account and all associated transactions. Requires Bearer token.
+
+```json
+// Response 204 (No Content)
+```
+
+**Note:** This is irreversible. All transactions owned by this user are also deleted (CASCADE).
+
 ## Categories
 
 ### GET `/api/v1/categories`

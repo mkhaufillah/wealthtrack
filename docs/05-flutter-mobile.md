@@ -246,32 +246,82 @@ Divider:     #E8E8E8    — Light border
 - **Swipe to delete:** Red background with trash icon
 - **Tap detail:** Slide right → detail screen
 
+### 2.5 Profile Screen
+
+```
+┌────────────────────────────────┐
+│  ← Profile                     │  <- AppBar with back
+│                                │
+│  ┌──────────────────────────┐  │
+│  │  👤                       │  │  <- User avatar placeholder
+│  │  Filla                   │  │  <- Display name, 20px bold
+│  │  @filla                  │  │  <- Username, 14px secondary
+│  │  Role: admin             │  │  <- Role badge
+│  └──────────────────────────┘  │
+│                                │
+│  Account Settings              │  <- Section title
+│                                │
+│  ┌──────────────────────────┐  │
+│  │  ✏️  Edit Profile         │  │  <- Tap → edit display name
+│  ├──────────────────────────┤  │
+│  │  🔒  Change Password      │  │  <- Tap → change password form
+│  ├──────────────────────────┤  │
+│  │  🚪  Logout               │  │  <- Tap → confirm → logout
+│  ├──────────────────────────┤  │
+│  │  🗑️  Delete Account       │  │  <- Tap → confirm → delete
+│  └──────────────────────────┘  │
+│                                │
+│  ┌──────────────────────────┐  │
+│  │  App Version 1.0.0       │  │  <- Footer info
+│  └──────────────────────────┘  │
+└────────────────────────────────┘
+```
+
+**States:**
+- **Editing profile:** Inline form replaces the info card — text field for display_name, Save and Cancel buttons
+- **Changing password:** Bottom sheet or push screen with: current password, new password, confirm new password fields
+- **Logout:** Confirmation dialog "Are you sure you want to logout?" → Yes clears token → redirects to `/login`
+- **Delete account:** Confirmation dialog "This will permanently delete your account and all transactions. This cannot be undone." → type "DELETE" to confirm → API call → redirect to `/login`
+- **Error (save/change/delete):** Snackbar with error message
+- **Loading:** Buttons show spinner during API calls
+
 ## 3. User Flow (MVP)
 
 ```
 [Launch]
    │
    ▼
-[Splash] ──► [Check Token]
-               │
-          ┌────┴────┐
-          ▼         ▼
-     [Token     [No Token]
-      Valid]        │
-          │         ▼
-          │    [Login Screen]
-          │         │
-          └─── Login OK
-                  │
-                  ▼
-           [Home Dashboard]
-           │     │      │
-           ▼     ▼      ▼
-     [Add Txn] [List] [Detail]
-           │     │
-           ▼     ▼
-     [Save & Back to Home]
+[ProviderScope init] ──► [checkAuth() — load token from storage]
+                           │
+                      ┌────┴────┐
+                      ▼         ▼
+                 [Token     [No Token]
+                  Valid]        │
+                      │         ▼
+                      │    [Login Screen]
+                      │         │
+                      └─── Login OK
+                              │
+                              ▼
+                       [Home Dashboard]
+                       │     │      │
+                       ▼     ▼      ▼
+                 [Add Txn] [List] [Detail]
+                       │     │
+                       ▼     ▼
+                 [Save & Back to Home]
 ```
+
+**checkAuth() startup flow:**
+1. App initialises all Riverpod providers
+2. `authProvider` starts in `AuthStatus.initial` (isAuthenticated: false)
+3. `main.dart` calls `checkAuth()` via `ref` inside a `Future` or a startup widget
+4. `checkAuth()` reads token from `SecureStorage`:
+   - **No token** → sets `AuthStatus.unauthenticated` → GoRouter redirects to `/login`
+   - **Token exists** → calls `GET /auth/me` to validate:
+     - **API succeeds** → sets `AuthStatus.authenticated` → GoRouter stays on `/home`
+     - **API fails** (expired/invalid) → clears token → sets `unauthenticated` → redirects to `/login`
+5. GoRouter's redirect callback watches `authProvider.isAuthenticated` — when it flips, the redirect fires automatically
 
 **Bottom Navigation (after login):**
 ```
@@ -339,6 +389,14 @@ mobile/lib/
 │   └── reports/  (P4, placeholder for now)
 │       ├── providers/
 │       └── ui/
+│
+│   └── profile/
+│       ├── data/
+│       │   └── profile_repository.dart
+│       ├── providers/
+│       │   └── profile_provider.dart
+│       └── ui/
+│           └── profile_screen.dart
 │
 └── shared/
     ├── widgets/

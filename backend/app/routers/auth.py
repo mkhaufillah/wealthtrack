@@ -8,7 +8,14 @@ from app.core.security import (
     create_access_token,
     get_current_user,
 )
-from app.schemas.user import UserRegister, UserLogin, TokenOut
+from app.schemas.user import (
+    UserRegister,
+    UserLogin,
+    TokenOut,
+    UpdateProfileIn,
+    ChangePasswordIn,
+    MessageOut,
+)
 from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -64,3 +71,71 @@ async def me(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return dict(user)
+
+
+@router.put("/me")
+async def update_profile(
+    data: UpdateProfileIn,
+    current_user: dict = Depends(get_current_user),
+    db: aiosqlite.Connection = Depends(get_db),
+):
+    await db.execute(
+        "UPDATE users SET display_name = ? WHERE id = ?",
+        (data.display_name, current_user["id"]),
+    )
+    await db.commit()
+
+    cursor = await db.execute(
+        "SELECT id, username, display_name, role, created_at FROM users WHERE id = ?",
+        (current_user["id"],),
+    )
+    user = await cursor.fetchone()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return dict(user)
+
+
+@router.put("/password")
+async def change_password(
+    data: ChangePasswordIn,
+    current_user: dict = Depends(get_current_user),
+    db: aiosqlite.Connection = Depends(get_db),
+):
+    cursor = await db.execute(
+        "SELECT password_hash FROM users WHERE id = ?",
+        (current_user["id"],),
+    )
+    user = await cursor.fetchone()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not verify_password(data.current_password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    new_hash = hash_password(data.new_password)
+    await db.execute(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        (new_hash, current_user["id"]),
+    )
+    await db.commit()
+
+    return MessageOut(message="Password updated successfully")
+
+
+@router.delete("/me", status_code=204)
+async def delete_account(
+    current_user: dict = Depends(get_current_user),
+    db: aiosqlite.Connection = Depends(get_db),
+):
+    # Delete all transactions owned by this user
+    await db.execute(
+        "DELETE FROM transactions WHERE user_id = ?",
+        (current_user["id"],),
+    )
+    # Delete the user
+    await db.execute(
+        "DELETE FROM users WHERE id = ?",
+        (current_user["id"],),
+    )
+    await db.commit()
+    return None
