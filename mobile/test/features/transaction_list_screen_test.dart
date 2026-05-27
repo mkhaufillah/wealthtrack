@@ -6,10 +6,17 @@ import 'package:wealthtrack/features/transactions/data/transaction_repository.da
 import 'package:wealthtrack/features/transactions/models/transaction_model.dart';
 import 'package:wealthtrack/features/transactions/ui/transaction_list_screen.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
+import '../helpers/mocks.dart';
 
-// Minimal mock repo to null-check constructor
-class _MockRepo extends TransactionRepository {
-  _MockRepo() : super(null!);
+/// Mock notifier that does NOT auto-load on init (screen's initState will call
+/// load(), but we override it to be a no-op since we control state directly).
+class _MockTxNotifier extends TransactionListNotifier {
+  _MockTxNotifier() : super(TransactionRepository(MockApiClient()));
+
+  @override
+  Future<void> load({bool refresh = false}) async {
+    // no-op — state is set directly in tests
+  }
 }
 
 final sampleTxn = TransactionModel(
@@ -27,7 +34,7 @@ Widget buildTxListApp({
     overrides: [
       transactionListProvider.overrideWithProvider(
         StateNotifierProvider<TransactionListNotifier, TransactionListState>((ref) {
-          final notifier = TransactionListNotifier(_MockRepo());
+          final notifier = _MockTxNotifier();
           notifier.state = TransactionListState(
             isLoading: isLoading,
             error: error,

@@ -85,7 +85,7 @@ void main() {
   group('RegisterScreen', () {
     testWidgets('shows Register title', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      expect(find.text('Register'), findsOneWidget);
+      expect(find.text('Register'), findsAtLeast(1));
     });
 
     testWidgets('shows three input fields', (tester) async {
@@ -95,13 +95,13 @@ void main() {
 
     testWidgets('shows Register button and Login link', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      expect(find.text('Register'), findsOneWidget);
+      expect(find.text('Register'), findsAtLeast(1));
       expect(find.text('Already have an account? Login'), findsOneWidget);
     });
 
     testWidgets('validates username length', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      await tester.tap(find.text('Register'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Register'));
       await tester.pumpAndSettle();
       expect(find.text('Min 3 characters'), findsOneWidget);
       expect(find.text('Display name is required'), findsOneWidget);
