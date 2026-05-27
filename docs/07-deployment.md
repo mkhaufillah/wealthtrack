@@ -41,7 +41,7 @@
 |-------|-------------------|-------------------|
 | DB path | `~/.hermes/data/wealthtrack.db` | `~/.keuangan/finance.db` (existing) |
 | FastAPI bind | `0.0.0.0:8080` | `127.0.0.1:8080` (localhost only) |
-| Public exposure | Port 8080 langsung | Nginx reverse proxy via 443 |
+| Public exposure | Port 8080 directly | Nginx reverse proxy via 443 |
 | Domain | — | `wealthtrack.filla.id` |
 | Firewall | Only 80 + 443 (8080 doesn't need to be configured — default deny) |
 
@@ -112,7 +112,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
-    # Reverse proxy ke FastAPI
+    # Reverse proxy to FastAPI
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
@@ -172,7 +172,7 @@ sudo ufw allow 443/tcp
 # 1. Pull repo
 cd ~/dev/wealthtrack && git pull
 
-# 2. Aktifkan venv
+# 2. Activate venv
 source .venv/bin/activate
 
 # 3. Install/update deps
@@ -222,13 +222,13 @@ Cron:
 ## Step 8: Monitoring
 
 ```bash
-# Cek service
+# Check service status
 sudo systemctl status wealthtrack
 
-# Cek log
+# Check logs
 journalctl -u wealthtrack -n 50 --no-pager
 
-# Cek nginx
+# Check nginx
 sudo nginx -t
 sudo systemctl status nginx
 

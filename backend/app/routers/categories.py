@@ -4,11 +4,12 @@ from typing import Optional
 
 from app.database import get_db
 from app.core.security import get_current_user
+from app.schemas.category import CategoryOut
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 
-@router.get("")
+@router.get("", response_model=list[CategoryOut])
 async def list_categories(
     type: Optional[str] = Query(None, pattern="^(expense|income)$"),
     db: aiosqlite.Connection = Depends(get_db),

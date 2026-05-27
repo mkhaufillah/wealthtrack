@@ -80,7 +80,6 @@ List all categories. Optional `?type=expense` or `?type=income`.
     "name": "Makan & Minum",
     "type": "expense",
     "icon": "🍽️",
-    "color": "#FF6B6B",
     "is_default": true
   }
 ]

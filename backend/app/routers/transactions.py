@@ -26,7 +26,7 @@ def _format_txn(row, cat_name="", cat_icon="", username=""):
         },
         "user": {
             "id": r.get("user_id", 1) or 1,
-            "display_name": username or ("Filla" if r.get("user_id") == 2 else "Filla"),
+            "display_name": username or ("Nahda" if r.get("user_id") == 2 else "Filla"),
         },
         "created_at": r["created_at"],
         "updated_at": r.get("updated_at", r["created_at"]),
