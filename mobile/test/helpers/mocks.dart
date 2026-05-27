@@ -35,14 +35,22 @@ class MockResponse extends Response {
 class MockApiClient extends ApiClient {
   final Map<String, MockResponse> _getResponses = {};
   final Map<String, MockResponse> _postResponses = {};
+  final Map<String, MockResponse> _putResponses = {};
+  final Set<String> _deletePaths = {};
 
   MockApiClient() : super(storage: MockSecureStorage());
 
-  void onGet(String path, dynamic data) => _getResponses[path] = MockResponse(data);
-  void onPost(String path, dynamic data) => _postResponses[path] = MockResponse(data);
+  void onGet(String path, dynamic data) =>
+      _getResponses[path] = MockResponse(data);
+  void onPost(String path, dynamic data) =>
+      _postResponses[path] = MockResponse(data);
+  void onPut(String path, dynamic data) =>
+      _putResponses[path] = MockResponse(data);
+  void onDelete(String path) => _deletePaths.add(path);
 
   @override
-  Future<Response> get(String path, {Map<String, dynamic>? queryParams}) async {
+  Future<Response> get(String path,
+      {Map<String, dynamic>? queryParams}) async {
     return _getResponses[path] ?? MockResponse(<String, dynamic>{});
   }
 
@@ -52,7 +60,19 @@ class MockApiClient extends ApiClient {
   }
 
   @override
-  Exception handleError(dynamic e) => e is Exception ? e : Exception('Handled: $e');
+  Future<Response> put(String path, {dynamic data}) async {
+    return _putResponses[path] ?? MockResponse(<String, dynamic>{});
+  }
+
+  @override
+  Future<Response> delete(String path) async {
+    // Simulate 204 No Content
+    return MockResponse(null);
+  }
+
+  @override
+  Exception handleError(dynamic e) =>
+      e is Exception ? e : Exception('Handled: $e');
 }
 
 /// Mock [AuthRepository] that returns canned data without real API calls.
@@ -65,12 +85,28 @@ class MockAuthRepository extends AuthRepository {
   }
 
   @override
-  Future<UserModel> register(String username, String displayName, String password) async {
+  Future<UserModel> register(
+      String username, String displayName, String password) async {
     return UserModel(id: 1, username: username, displayName: displayName, role: 'user');
   }
 
   @override
   Future<UserModel> getMe() async {
     return UserModel(id: 1, username: 'mock', displayName: 'Mock', role: 'user');
+  }
+
+  @override
+  Future<UserModel> updateProfile(String displayName) async {
+    return UserModel(id: 1, username: 'mock', displayName: displayName, role: 'user');
+  }
+
+  @override
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    return;
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    return;
   }
 }

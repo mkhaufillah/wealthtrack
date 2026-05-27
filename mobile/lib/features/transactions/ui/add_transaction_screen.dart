@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/utils/currency_formatter.dart';
+import '../../home/providers/dashboard_provider.dart';
 import '../providers/transaction_provider.dart';
 import 'widgets/amount_field.dart';
 import 'widgets/category_picker.dart';
@@ -25,24 +26,39 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   bool _isSaving = false;
 
   List<CategoryChip> _categories = [];
+  List<CategoryChip> _expenseCategories = [];
+  List<CategoryChip> _incomeCategories = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _loadAllCategories();
   }
 
-  Future<void> _loadCategories() async {
+  Future<void> _loadAllCategories() async {
     try {
       final api = ref.read(apiClientProvider);
-      final res = await api.get('/categories');
-      final data = List<Map<String, dynamic>>.from(res.data);
+      final expenseRes = await api.get('/categories', queryParams: {'type': 'expense'});
+      final incomeRes = await api.get('/categories', queryParams: {'type': 'income'});
       setState(() {
-        _categories = data.map((e) => CategoryChip(
+        _expenseCategories = (List<Map<String, dynamic>>.from(expenseRes.data)).map((e) => CategoryChip(
           id: e['id'] as int, name: e['name'] as String, icon: e['icon'] as String? ?? '📦',
         )).toList();
+        _incomeCategories = (List<Map<String, dynamic>>.from(incomeRes.data)).map((e) => CategoryChip(
+          id: e['id'] as int, name: e['name'] as String, icon: e['icon'] as String? ?? '📦',
+        )).toList();
+        _categories = _expenseCategories;
       });
     } catch (_) {}
+  }
+
+  void _toggleType(bool isExpense) {
+    if (isExpense == _isExpense) return;
+    setState(() {
+      _isExpense = isExpense;
+      _categories = isExpense ? _expenseCategories : _incomeCategories;
+      _selectedCategoryId = null;
+    });
   }
 
   @override
@@ -67,6 +83,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
     if (success) {
       if (mounted) {
+        // Signal home screen to reload dashboard
+        ref.read(homeRefreshProvider.notifier).state++;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Transaction recorded'), backgroundColor: AppColors.success),
         );
@@ -115,11 +133,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 children: [
                   Expanded(child: _TypeButton(
                     label: 'Expense', isSelected: _isExpense, color: AppColors.highlight,
-                    onTap: () => setState(() => _isExpense = true),
+                    onTap: () => _toggleType(true),
                   )),
                   Expanded(child: _TypeButton(
                     label: 'Income', isSelected: !_isExpense, color: AppColors.success,
-                    onTap: () => setState(() => _isExpense = false),
+                    onTap: () => _toggleType(false),
                   )),
                 ],
               ),

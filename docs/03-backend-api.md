@@ -102,7 +102,7 @@ Change password. Requires Bearer token + current password verification.
   "message": "Password updated successfully"
 }
 
-// Error 401 — wrong current password
+// Error 400 — wrong current password
 {
   "detail": "Current password is incorrect"
 }

@@ -21,6 +21,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _currentPwCtrl = TextEditingController();
   final _newPwCtrl = TextEditingController();
   final _confirmPwCtrl = TextEditingController();
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
 
   // Loading states
   bool _savingProfile = false;
@@ -385,10 +388,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 20),
               TextFormField(
                 controller: _currentPwCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(
+                obscureText: _obscureCurrent,
+                decoration: InputDecoration(
                   labelText: 'Current Password',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureCurrent
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined),
+                    onPressed: () =>
+                        setState(() => _obscureCurrent = !_obscureCurrent),
+                  ),
                 ),
                 validator: (v) =>
                     v == null || v.isEmpty ? 'Required' : null,
@@ -397,10 +407,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _newPwCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(
+                obscureText: _obscureNew,
+                decoration: InputDecoration(
                   labelText: 'New Password',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureNew
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined),
+                    onPressed: () =>
+                        setState(() => _obscureNew = !_obscureNew),
+                  ),
                 ),
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Required';
@@ -412,10 +429,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _confirmPwCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(
+                obscureText: _obscureConfirm,
+                decoration: InputDecoration(
                   labelText: 'Confirm New Password',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureConfirm
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined),
+                    onPressed: () =>
+                        setState(() => _obscureConfirm = !_obscureConfirm),
+                  ),
                 ),
                 validator: (v) {
                   if (v != _newPwCtrl.text) return 'Passwords do not match';

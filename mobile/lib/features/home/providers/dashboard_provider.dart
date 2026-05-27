@@ -41,3 +41,6 @@ final dashboardProvider = StateNotifierProvider<DashboardNotifier, DashboardStat
   final api = ref.watch(apiClientProvider);
   return DashboardNotifier(api);
 });
+
+/// Increment this counter to signal home screen to refresh dashboard data.
+final homeRefreshProvider = StateProvider<int>((ref) => 0);

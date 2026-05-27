@@ -208,13 +208,13 @@ class TestChangePassword:
         assert old_login.status_code == 401
 
     async def test_change_password_wrong_current(self, client: AsyncClient, filla_token: str):
-        """Wrong current password returns 401."""
+        """Wrong current password returns 400."""
         resp = await client.put(
             "/api/v1/auth/password",
             headers={"Authorization": f"Bearer {filla_token}"},
             json={"current_password": "wrongpassword", "new_password": "newpass456"},
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 400
         assert "incorrect" in resp.json()["detail"].lower()
 
     async def test_change_password_no_token(self, client: AsyncClient):

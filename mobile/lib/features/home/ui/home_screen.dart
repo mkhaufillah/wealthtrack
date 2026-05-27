@@ -25,6 +25,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(dashboardProvider);
 
+    // Reload dashboard when homeRefreshProvider is incremented
+    ref.listen<int>(homeRefreshProvider, (prev, next) {
+      if (prev != next) ref.read(dashboardProvider.notifier).load();
+    });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('WealthTrack')),

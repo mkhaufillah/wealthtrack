@@ -108,4 +108,44 @@ void main() {
       expect(find.text('Min 6 characters'), findsOneWidget);
     });
   });
+
+  group('LoginScreen Eye Icon', () {
+    testWidgets('shows visibility icon on password field', (tester) async {
+      await tester.pumpWidget(buildLoginApp());
+      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.visibility_outlined), findsNothing);
+    });
+
+    testWidgets('toggles password visibility on tap', (tester) async {
+      await tester.pumpWidget(buildLoginApp());
+      // Tap the eye icon
+      await tester.tap(find.byIcon(Icons.visibility_off_outlined));
+      await tester.pump();
+      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.visibility_off_outlined), findsNothing);
+    });
+
+    testWidgets('toggles back to hidden on second tap', (tester) async {
+      await tester.pumpWidget(buildLoginApp());
+      await tester.tap(find.byIcon(Icons.visibility_off_outlined));
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.visibility_outlined));
+      await tester.pump();
+      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+    });
+  });
+
+  group('RegisterScreen Eye Icon', () {
+    testWidgets('shows visibility icon on password field', (tester) async {
+      await tester.pumpWidget(buildRegisterApp());
+      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+    });
+
+    testWidgets('toggles password visibility', (tester) async {
+      await tester.pumpWidget(buildRegisterApp());
+      await tester.tap(find.byIcon(Icons.visibility_off_outlined));
+      await tester.pump();
+      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+    });
+  });
 }

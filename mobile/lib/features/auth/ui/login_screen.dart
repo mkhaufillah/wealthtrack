@@ -14,14 +14,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _obscurePassword = true;
 
   @override
-  void dispose() { _usernameCtrl.dispose(); _passwordCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _usernameCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
     ref.read(authProvider.notifier).login(
-      _usernameCtrl.text.trim(), _passwordCtrl.text,
+      _usernameCtrl.text.trim(),
+      _passwordCtrl.text,
     );
   }
 
@@ -49,29 +55,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 children: [
                   const Text('💰', style: TextStyle(fontSize: 48)),
                   const SizedBox(height: 16),
-                  const Text('WealthTrack', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                  const Text('WealthTrack',
+                      style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary)),
                   const SizedBox(height: 4),
                   const Text('Manage your finances easier',
-                    style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                      style: TextStyle(
+                          fontSize: 14, color: AppColors.textSecondary)),
                   const SizedBox(height: 48),
                   TextFormField(
                     controller: _usernameCtrl,
-                    decoration: const InputDecoration(labelText: 'Username', prefixIcon: Icon(Icons.person_outline)),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Username is required' : null,
+                    decoration: const InputDecoration(
+                        labelText: 'Username',
+                        prefixIcon: Icon(Icons.person_outline)),
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Username is required' : null,
                     enabled: !isLoading,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordCtrl,
-                    decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock_outline)),
-                    obscureText: true,
-                    validator: (v) => v == null || v.isEmpty ? 'Password is required' : null,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscurePassword = !_obscurePassword),
+                      ),
+                    ),
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Password is required' : null,
                     enabled: !isLoading,
                     onFieldSubmitted: (_) => _login(),
                   ),
                   if (authState.error != null) ...[
                     const SizedBox(height: 12),
-                    Text(authState.error!, style: const TextStyle(color: AppColors.highlight, fontSize: 13)),
+                    Text(authState.error!,
+                        style: const TextStyle(
+                            color: AppColors.highlight, fontSize: 13)),
                   ],
                   const SizedBox(height: 24),
                   SizedBox(
@@ -79,13 +108,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: ElevatedButton(
                       onPressed: isLoading ? null : _login,
                       child: isLoading
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
                           : const Text('Login'),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: isLoading ? null : () => context.push('/register'),
+                    onPressed: isLoading
+                        ? null
+                        : () => context.push('/register'),
                     child: const Text("Don't have an account? Register"),
                   ),
                   const SizedBox(height: 8),
@@ -95,7 +130,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     label: const Text('Quick login as Filla'),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppColors.divider),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
                     ),
                   ),
                 ],

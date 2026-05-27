@@ -15,17 +15,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _displayNameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _usernameCtrl.dispose(); _displayNameCtrl.dispose(); _passwordCtrl.dispose();
+    _usernameCtrl.dispose();
+    _displayNameCtrl.dispose();
+    _passwordCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     ref.read(authProvider.notifier).register(
-      _usernameCtrl.text.trim(), _displayNameCtrl.text.trim(), _passwordCtrl.text,
+      _usernameCtrl.text.trim(),
+      _displayNameCtrl.text.trim(),
+      _passwordCtrl.text,
     );
   }
 
@@ -47,28 +52,49 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               children: [
                 TextFormField(
                   controller: _usernameCtrl,
-                  decoration: const InputDecoration(labelText: 'Username', prefixIcon: Icon(Icons.person_outline)),
-                  validator: (v) => v != null && v.trim().length >= 3 ? null : 'Min 3 characters',
+                  decoration: const InputDecoration(
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.person_outline)),
+                  validator: (v) =>
+                      v != null && v.trim().length >= 3 ? null : 'Min 3 characters',
                   enabled: !isLoading,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _displayNameCtrl,
-                  decoration: const InputDecoration(labelText: 'Display Name', prefixIcon: Icon(Icons.badge_outlined)),
-                  validator: (v) => v != null && v.trim().isNotEmpty ? null : 'Display name is required',
+                  decoration: const InputDecoration(
+                      labelText: 'Display Name',
+                      prefixIcon: Icon(Icons.badge_outlined)),
+                  validator: (v) =>
+                      v != null && v.trim().isNotEmpty ? null : 'Display name is required',
                   enabled: !isLoading,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordCtrl,
-                  decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock_outline)),
-                  obscureText: true,
-                  validator: (v) => v != null && v.length >= 6 ? null : 'Min 6 characters',
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                  ),
+                  validator: (v) =>
+                      v != null && v.length >= 6 ? null : 'Min 6 characters',
                   enabled: !isLoading,
                 ),
                 if (authState.error != null) ...[
                   const SizedBox(height: 12),
-                  Text(authState.error!, style: const TextStyle(color: AppColors.highlight, fontSize: 13)),
+                  Text(authState.error!,
+                      style: const TextStyle(
+                          color: AppColors.highlight, fontSize: 13)),
                 ],
                 const SizedBox(height: 24),
                 SizedBox(
@@ -76,7 +102,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   child: ElevatedButton(
                     onPressed: isLoading ? null : _register,
                     child: isLoading
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Text('Register'),
                   ),
                 ),

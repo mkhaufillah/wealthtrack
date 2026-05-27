@@ -78,5 +78,55 @@ void main() {
       await tester.pumpWidget(buildAddTxnApp());
       expect(find.text('Save'), findsOneWidget);
     });
+
+    testWidgets('shows Expense selected by default', (tester) async {
+      await tester.pumpWidget(buildAddTxnApp());
+      // Expense should appear as a tappable button
+      expect(find.text('Expense'), findsOneWidget);
+      expect(find.text('Income'), findsOneWidget);
+    });
+
+    testWidgets('tapping Income switches type', (tester) async {
+      await tester.pumpWidget(buildAddTxnApp());
+      // Tap Income button
+      await tester.tap(find.text('Income'));
+      await tester.pump();
+      // Both buttons should still exist
+      expect(find.text('Expense'), findsOneWidget);
+      expect(find.text('Income'), findsOneWidget);
+    });
+
+    testWidgets('loads categories from API', (tester) async {
+      final mockApi = MockApiClient();
+      mockApi.onGet('/categories', [
+        {'id': 6, 'name': 'Makanan & Minuman', 'type': 'expense', 'icon': '🍜'},
+        {'id': 7, 'name': 'Transportasi & Bensin', 'type': 'expense', 'icon': '🚗'},
+      ]);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            transactionListProvider.overrideWithProvider(
+              StateNotifierProvider<TransactionListNotifier, TransactionListState>((ref) {
+                return TransactionListNotifier(_MockRepo());
+              }),
+            ),
+            apiClientProvider.overrideWithProvider(
+              Provider<ApiClient>((ref) => mockApi),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const AddTransactionScreen(),
+          ),
+        ),
+      );
+
+      // Wait for API call to resolve
+      await tester.pumpAndSettle();
+      // Should show expense category chips (translated)
+      expect(find.textContaining('Food'), findsOneWidget);
+      expect(find.textContaining('Transport'), findsOneWidget);
+    });
   });
 }

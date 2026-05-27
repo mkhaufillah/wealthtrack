@@ -110,7 +110,7 @@ async def change_password(
         raise HTTPException(status_code=404, detail="User not found")
 
     if not verify_password(data.current_password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Current password is incorrect")
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
 
     new_hash = hash_password(data.new_password)
     await db.execute(

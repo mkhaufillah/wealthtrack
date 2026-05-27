@@ -543,7 +543,101 @@ final goRouter = GoRouter(
 | 10 | Shared widgets | `loading_indicator.dart`, `error_display.dart`, `empty_state.dart` | 20 menit |
 | 11 | Polish + test | Error handling, loading states, edge cases | 1 jam |
 
-## 9. State Management Rules
+## 9. UX Notes & Fixes
+
+### 9.1 Password Visibility Toggle
+
+All password fields (login, register, change password) have a visibility toggle eye icon:
+
+```dart
+suffixIcon: IconButton(
+  icon: Icon(_obscurePassword
+      ? Icons.visibility_off_outlined
+      : Icons.visibility_outlined),
+  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+),
+```
+
+**Affected screens:** LoginScreen, RegisterScreen, ProfileScreen (change password bottom sheet).
+
+### 9.2 Change Password Error Handling
+
+The `/auth/password` endpoint returns **400 (Bad Request)** — not 401 — when the current password is incorrect.
+
+**Why not 401?** The API client interceptor clears the stored token on any 401 response. Returning 401 for a wrong password would log the user out, which is incorrect UX. The user should see "Current password is incorrect" without being forced to re-login.
+
+**API client interceptor logic:** Only clears token on 401 to protect against expired/invalid sessions. 400 errors are passed through to the UI without side effects.
+
+### 9.3 Home Dashboard Auto-Refresh
+
+After adding a transaction, the home dashboard reloads automatically.
+
+**Mechanism:**
+1. A `homeRefreshProvider` (`StateProvider<int>`) is defined in `dashboard_provider.dart`
+2. `AddTransactionScreen` increments the counter after successful save: `ref.read(homeRefreshProvider.notifier).state++`
+3. `HomeScreen` listens for changes via `ref.listen<int>(homeRefreshProvider, ...)` and calls `load()`
+4. The dashboard provider fetches fresh data from `/summaries/current-month` and `/transactions`
+
+This pattern avoids coupling between screens while keeping the refresh explicit and testable.
+
+### 9.4 Amount Field Hint Behaviour
+
+The `AmountField` widget uses a placeholder '0' that appears when the field is both **unfocused** AND **empty**. It disappears when the user taps the field (focused) or starts typing — preventing overlap between the cursor and the "0" placeholder.
+
+```dart
+// Show hint '0' only when field is NOT focused AND empty
+final showHint = !_isFocused && !_hasText;
+```
+
+**Implementation:** `AmountField` is a `StatefulWidget` with a `FocusNode` and a controller listener:
+- `_onFocusChange`: tracks whether the field is focused
+- `_onTextChange`: tracks whether the field has any text
+- `hintText` is set to `'0'` only when `showHint` is true, otherwise `null`
+
+### 9.5 Category Name Translation (ID → EN)
+
+Categories in the database are stored in **Indonesian** (shared with Hermes financial-tracker cron/skill). To display them in **English** on the Flutter mobile app without changing the database, a translation layer is used.
+
+**Architecture:**
+```
+Database (Indonesian)                  Flutter UI (English)
+     │                                       ▲
+     │  GET /api/v1/categories               │
+     ▼                                       │
+Backend (passthrough, no change) ──────── translateCategory()
+```
+
+**Implementation:**
+- `shared/utils/category_translator.dart` — Map of Indonesian → English names + `translateCategory()` function
+- `transaction_tile.dart` — calls `translateCategory(categoryName)` on every display
+- `category_picker.dart` — calls `translateCategory(cat.name)` in chip labels
+
+**If no translation exists** (e.g., a new category added via Hermes): the original Indonesian name is shown as-is — the translator is safe by default.
+
+**Does NOT affect:**
+- Database `categories` table
+- `finance_db.py` keyword classification
+- Hermes cron scripts or Daily Finance Summary
+- Backend API responses (still returns Indonesian names)
+
+### 9.6 Category Filtering by Transaction Type
+
+The Add Transaction screen loads categories **filtered by the selected type** (Expense/Income).
+
+**How it works:**
+- On `initState`, two API calls are made in parallel:
+  - `GET /api/v1/categories?type=expense` → expense categories
+  - `GET /api/v1/categories?type=income` → income categories
+- Both lists are cached in separate state variables (`_expenseCategories`, `_incomeCategories`)
+- When the user taps the type toggle, the visible categories switch instantly (no API call)
+- `_selectedCategoryId` is reset to `null` on type switch to prevent stale selection
+
+**Result:**
+- When "Expense" is selected → shows: Food & Drinks, Transport & Fuel, Baby & Child Needs, etc.
+- When "Income" is selected → shows: Salary, Freelance, Investment, etc.
+- No repeated API calls when toggling back and forth
+
+## 10. State Management Rules
 
 1. **Every API call** has: `loading`, `data`, `error` states
 2. **On 401:** clear token → redirect to login. Handled by `auth_provider` listener on `goRouter`
