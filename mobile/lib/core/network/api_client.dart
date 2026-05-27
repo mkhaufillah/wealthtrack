@@ -52,7 +52,7 @@ class ApiClient {
           error.type == DioExceptionType.receiveTimeout) {
         return NetworkException();
       }
-      final msg = error.response?.data?['detail']?.toString() ?? error.message;
+      final msg = error.response?.data?['detail']?.toString() ?? error.message ?? 'Unexpected error';
       return ApiException(msg, statusCode: error.response?.statusCode);
     }
     return ApiException('Unexpected error occurred');
