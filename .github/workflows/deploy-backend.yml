@@ -33,10 +33,10 @@ jobs:
 
             echo "→ Activating venv & installing deps..."
             source .venv/bin/activate
-            uv pip install -q -r backend/requirements.txt
+            /home/filla/.local/bin/uv pip install -q -r backend/requirements.txt
 
             echo "→ Running database migration..."
-            uv run python -m backend.app.migrate_db
+            /home/filla/.local/bin/uv run python -m backend.app.migrate_db
 
             echo "→ Restarting service..."
             sudo systemctl restart wealthtrack
