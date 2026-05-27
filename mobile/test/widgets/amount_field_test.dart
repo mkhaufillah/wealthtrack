@@ -15,52 +15,43 @@ Widget buildAmountField({String initialText = ''}) {
 
 void main() {
   group('AmountField', () {
-    testWidgets('shows Rp prefix', (tester) async {
+    testWidgets('shows Rp 0 hint when empty and unfocused', (tester) async {
       await tester.pumpWidget(buildAmountField());
-      expect(find.text('Rp ', skipOffstage: false), findsOneWidget);
+      expect(find.text('Rp 0'), findsOneWidget);
     });
 
-    testWidgets('shows hint text 0 when empty and unfocused', (tester) async {
-      await tester.pumpWidget(buildAmountField());
-      expect(find.text('0'), findsOneWidget);
-    });
-
-    testWidgets('hides hint 0 when field gains focus', (tester) async {
+    testWidgets('hides hint when field gains focus', (tester) async {
       await tester.pumpWidget(buildAmountField());
       await tester.tap(find.byType(TextField));
       await tester.pump();
-      expect(find.text('0'), findsNothing);
-      expect(find.text('Rp ', skipOffstage: false), findsOneWidget);
+      expect(find.text('Rp 0'), findsNothing);
     });
 
-    testWidgets('shows raw digits when focused', (tester) async {
+    testWidgets('shows Rp with raw digits when focused', (tester) async {
       await tester.pumpWidget(buildAmountField());
       await tester.tap(find.byType(TextField));
       await tester.pump();
-      await tester.enterText(find.byType(TextField), '50000');
+      await tester.enterText(find.byType(TextField), 'Rp 50000');
       await tester.pump();
-      expect(find.text('0'), findsNothing);
-      // Should show raw digits when focused
+      // Should show Rp prefix with raw digits when focused
       final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.controller?.text, '50000');
+      expect(textField.controller?.text, 'Rp 50000');
     });
 
-    testWidgets('formats amount with thousand separators on unfocus',
-        (tester) async {
+    testWidgets('formats amount on unfocus', (tester) async {
       final controller = TextEditingController();
       await tester.pumpWidget(MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(
           body: Column(
             children: [
-              const TextField(), // focusable sibling
+              const TextField(),
               AmountField(controller: controller),
             ],
           ),
         ),
       ));
 
-      // Focus the amount field
       await tester.tap(find.byType(TextField).last);
       await tester.pump();
       await tester.enterText(find.byType(TextField).last, '50000');
@@ -70,12 +61,11 @@ void main() {
       await tester.tap(find.byType(TextField).first);
       await tester.pump();
 
-      // Should be formatted on unfocus
-      expect(controller.text, '50.000');
+      expect(controller.text, 'Rp 50.000');
     });
 
     testWidgets('unformats amount on focus gain', (tester) async {
-      final controller = TextEditingController(text: '50.000');
+      final controller = TextEditingController(text: 'Rp 50.000');
       await tester.pumpWidget(MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(
@@ -89,19 +79,15 @@ void main() {
       ));
       await tester.pump();
 
-      // Initially formatted on unfocus
-      expect(controller.text, '50.000');
+      expect(controller.text, 'Rp 50.000');
 
-      // Focus the amount field
       await tester.tap(find.byType(TextField).last);
       await tester.pump();
 
-      // Should show raw digits
-      expect(controller.text, '50000');
+      expect(controller.text, 'Rp 50000');
     });
 
-    testWidgets('shows hint 0 again when unfocused and empty',
-        (tester) async {
+    testWidgets('shows hint again when unfocused and empty', (tester) async {
       final controller = TextEditingController();
       await tester.pumpWidget(MaterialApp(
         theme: AppTheme.light,
@@ -117,11 +103,11 @@ void main() {
 
       await tester.tap(find.byType(TextField).last);
       await tester.pump();
-      expect(find.text('0'), findsNothing);
+      expect(find.text('Rp 0'), findsNothing);
 
       await tester.tap(find.byType(TextField).first);
       await tester.pump();
-      expect(find.text('0'), findsOneWidget);
+      expect(find.text('Rp 0'), findsOneWidget);
     });
 
     testWidgets('accepts numeric input', (tester) async {
@@ -131,16 +117,14 @@ void main() {
       await tester.enterText(find.byType(TextField), '25000');
       await tester.pump();
       final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.controller?.text, '25000');
+      expect(textField.controller?.text, 'Rp 25000');
     });
 
     testWidgets('formats initial value', (tester) async {
       await tester.pumpWidget(buildAmountField(initialText: '150000'));
       await tester.pump();
-      // Should format immediately
       final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.controller?.text, '150.000');
-      // Hint should not show
+      expect(textField.controller?.text, 'Rp 150.000');
       expect(find.text('0'), findsNothing);
     });
   });

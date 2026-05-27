@@ -34,9 +34,13 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
             : state.error != null
                 ? ErrorDisplay(message: state.error!, onRetry: () => ref.read(transactionListProvider.notifier).load())
                 : state.transactions.isEmpty
-                    ? const SingleChildScrollView(
+                    ? CustomScrollView(
                         physics: AlwaysScrollableScrollPhysics(),
-                        child: EmptyState(message: 'No transactions yet. Add one now!'),
+                        slivers: [
+                          SliverFillRemaining(
+                            child: EmptyState(message: 'No transactions yet. Add one now!'),
+                          ),
+                        ],
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),

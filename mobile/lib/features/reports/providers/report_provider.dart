@@ -10,6 +10,7 @@ class ReportState {
   final MonthlyReport? monthly;
   final HouseholdReport? household;
   final String selectedMonth; // "2026-05" format
+  final List<Map<String, dynamic>> householdTransactions;
 
   const ReportState({
     this.isLoading = false,
@@ -17,6 +18,7 @@ class ReportState {
     this.monthly,
     this.household,
     this.selectedMonth = '',
+    this.householdTransactions = const [],
   });
 
   ReportState copyWith({
@@ -25,6 +27,7 @@ class ReportState {
     MonthlyReport? monthly,
     HouseholdReport? household,
     String? selectedMonth,
+    List<Map<String, dynamic>>? householdTransactions,
   }) =>
       ReportState(
         isLoading: isLoading ?? this.isLoading,
@@ -32,6 +35,7 @@ class ReportState {
         monthly: monthly ?? this.monthly,
         household: household ?? this.household,
         selectedMonth: selectedMonth ?? this.selectedMonth,
+        householdTransactions: householdTransactions ?? this.householdTransactions,
       );
 }
 
@@ -60,6 +64,19 @@ class ReportNotifier extends StateNotifier<ReportState> {
       state = state.copyWith(household: hh);
     } catch (_) {
       // Household is optional — don't block the UI
+    }
+    try {
+      final txns = await _repo.getHouseholdTransactions(
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+      final data = (txns['data'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [];
+      state = state.copyWith(householdTransactions: data);
+    } catch (_) {
+      // Transactions are optional
     }
   }
 }

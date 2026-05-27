@@ -64,7 +64,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   void dispose() { _amountCtrl.dispose(); _descCtrl.dispose(); _noteCtrl.dispose(); super.dispose(); }
 
   Future<void> _save() async {
-    final amountText = _amountCtrl.text.replaceAll('.', '').replaceAll(',', '');
+    final amountText = _amountCtrl.text.replaceAll('Rp', '').replaceAll('.', '').replaceAll(',', '').trim();
     final amount = int.tryParse(amountText);
     if (amount == null || amount <= 0) { _showError('Amount must be greater than 0'); return; }
     if (_selectedCategoryId == null) { _showError('Please select a category'); return; }

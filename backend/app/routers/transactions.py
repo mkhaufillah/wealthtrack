@@ -33,6 +33,82 @@ def _format_txn(row, cat_name="", cat_icon="", display_name=""):
     }
 
 
+@router.get("/household", response_model=PaginatedTransactions)
+async def list_household_transactions(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(100, ge=1, le=200),
+    type: Optional[str] = Query(None, pattern="^(expense|income)$"),
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get transactions of all household members."""
+    cursor = await db.execute(
+        "SELECT household_id FROM household_members WHERE user_id = ?",
+        (current_user["id"],),
+    )
+    hm = await cursor.fetchone()
+    if not hm:
+        raise HTTPException(status_code=404, detail="Not a member of any household")
+    household_id = hm["household_id"]
+
+    where = ["hm2.household_id = ?"]
+    params: list = [household_id]
+    if type:
+        where.append("t.type = ?")
+        params.append(type)
+    if date_from:
+        where.append("COALESCE(t.date, substr(t.created_at,1,10)) >= ?")
+        params.append(date_from)
+    if date_to:
+        where.append("COALESCE(t.date, substr(t.created_at,1,10)) <= ?")
+        params.append(date_to)
+
+    order_map = {
+        "date": "COALESCE(t.date, substr(t.created_at,1,10)) ASC",
+        "-date": "COALESCE(t.date, substr(t.created_at,1,10)) DESC",
+        "amount": "t.amount ASC",
+        "-amount": "t.amount DESC",
+    }
+    order = order_map.get(sort, "COALESCE(t.date, substr(t.created_at,1,10)) DESC")
+
+    join_clause = "FROM transactions t JOIN household_members hm2 ON hm2.user_id = t.user_id"
+
+    cursor = await db.execute(
+        f"SELECT COUNT(*) {join_clause} WHERE {' AND '.join(where)}", params
+    )
+    total = (await cursor.fetchone())[0]
+
+    offset = (page - 1) * per_page
+    cursor = await db.execute(
+        f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
+                   t.description, t.note, t.date, t.user_id, t.created_at,
+                   c.name AS cat_name, c.icon AS cat_icon,
+                   u.display_name AS user_display_name
+            {join_clause}
+            LEFT JOIN categories c ON t.category_id = c.id
+            LEFT JOIN users u ON t.user_id = u.id
+            WHERE {' AND '.join(where)}
+            ORDER BY {order}
+            LIMIT ? OFFSET ?""",
+        params + [per_page, offset],
+    )
+    rows = await cursor.fetchall()
+    data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "") for r in rows]
+
+    return PaginatedTransactions(
+        data=data,
+        meta=PaginationMeta(
+            page=page,
+            per_page=per_page,
+            total=total,
+            total_pages=max(1, (total + per_page - 1) // per_page),
+        ),
+    )
+
+
 @router.get("", response_model=PaginatedTransactions)
 async def list_transactions(
     page: int = Query(1, ge=1),

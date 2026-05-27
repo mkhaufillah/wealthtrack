@@ -139,6 +139,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           const SizedBox(height: 8),
           _buildDailySnapshot(report.dailySnapshot),
         ],
+        if (state.householdTransactions.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _buildSectionHeader('All Household Transactions', Icons.receipt_long),
+          const SizedBox(height: 8),
+          _buildHouseholdTransactions(state.householdTransactions),
+        ],
       ],
     );
   }
@@ -430,6 +436,85 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         ),
                       ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildHouseholdTransactions(List<Map<String, dynamic>> txns) {
+    return Column(
+      children: txns.take(20).map((txn) {
+        final amount = txn['amount'] ?? 0;
+        final isExpense = txn['type'] == 'expense';
+        final user = txn['user'] as Map<String, dynamic>? ?? {};
+        final userName = user['display_name'] as String? ?? '';
+        final category = txn['category'] as Map<String, dynamic>? ?? {};
+        final catIcon = category['icon'] as String? ?? '';
+        final catName = category['name'] as String? ?? '';
+        final desc = txn['description'] as String? ?? '';
+        final txnDate = txn['date'] as String? ?? '';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 28,
+                child: Text(catIcon, style: const TextStyle(fontSize: 14)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      desc.isNotEmpty ? desc : catName,
+                      style: const TextStyle(fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Row(
+                      children: [
+                        if (userName.isNotEmpty)
+                          Text(
+                            userName,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        if (userName.isNotEmpty && txnDate.isNotEmpty)
+                          const Text(' · ',
+                              style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                        if (txnDate.isNotEmpty)
+                          Text(
+                            txnDate,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${isExpense ? '-' : '+'}Rp${_formatAmount(amount is int ? amount : (amount as num).toInt())}',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isExpense ? AppColors.highlight : AppColors.success,
                 ),
               ),
             ],

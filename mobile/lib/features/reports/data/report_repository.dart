@@ -20,4 +20,17 @@ class ReportRepository {
     });
     return HouseholdReport.fromJson(res.data);
   }
+
+  Future<Map<String, dynamic>> getHouseholdTransactions({
+    required String dateFrom,
+    required String dateTo,
+    int perPage = 100,
+  }) async {
+    final res = await _client.get('/transactions/household', queryParams: {
+      'per_page': perPage,
+      'date_from': dateFrom,
+      'date_to': dateTo,
+    });
+    return res.data;
+  }
 }
