@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
+import 'package:wealthtrack/core/storage/secure_storage.dart';
 import 'package:wealthtrack/features/auth/data/auth_repository.dart';
 import 'package:wealthtrack/features/auth/models/token_model.dart';
 import 'package:wealthtrack/features/auth/models/user_model.dart';
@@ -24,20 +25,16 @@ class MockSecureStorage extends SecureStorage {
   Future<void> clearAll() async => _store.clear();
 }
 
-/// A response-like data container for test API responses.
-class MockResponse {
-  final dynamic data;
-  MockResponse(this.data);
+/// A lightweight Dio-like response for test assertions.
+class MockResponse extends Response {
+  MockResponse(dynamic data)
+      : super(data: data, requestOptions: RequestOptions(path: ''));
 }
 
 /// Mock [ApiClient] that returns canned responses without real HTTP calls.
 class MockApiClient extends ApiClient {
   final Map<String, MockResponse> _getResponses = {};
   final Map<String, MockResponse> _postResponses = {};
-  bool throwOnNext = false;
-  Exception? nextError;
-  int getCallCount = 0;
-  int postCallCount = 0;
 
   MockApiClient() : super(storage: MockSecureStorage());
 
@@ -45,14 +42,12 @@ class MockApiClient extends ApiClient {
   void onPost(String path, dynamic data) => _postResponses[path] = MockResponse(data);
 
   @override
-  Future<MockResponse> get(String path, {Map<String, dynamic>? queryParams}) async {
-    getCallCount++;
+  Future<Response> get(String path, {Map<String, dynamic>? queryParams}) async {
     return _getResponses[path] ?? MockResponse(<String, dynamic>{});
   }
 
   @override
-  Future<MockResponse> post(String path, {dynamic data}) async {
-    postCallCount++;
+  Future<Response> post(String path, {dynamic data}) async {
     return _postResponses[path] ?? MockResponse(<String, dynamic>{});
   }
 

@@ -6,6 +6,7 @@ import 'package:wealthtrack/features/transactions/data/transaction_repository.da
 import 'package:wealthtrack/features/transactions/ui/add_transaction_screen.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
 import 'package:wealthtrack/shared/providers/app_providers.dart';
+import 'package:wealthtrack/core/network/api_client.dart';
 import '../helpers/mocks.dart';
 
 class _MockRepo extends TransactionRepository {
