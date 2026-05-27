@@ -424,12 +424,12 @@ Authorization: Bearer <token>
 
 ## CORS
 
-Allow all origins for development. For production in P4, restrict to Flutter app only.
+CORS origins are configured via `settings.cors_origins_list`, which reads from `CORS_ORIGINS` env var (JSON string). Default: Flutter web dev server + production domain.
 
 ```python
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict in production
+    allow_origins=settings.cors_origins_list,
     allow_methods=["*"],
     allow_headers=["*"],
 )

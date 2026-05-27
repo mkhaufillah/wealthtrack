@@ -3,20 +3,18 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/utils/date_formatter.dart';
 import '../../../../shared/utils/category_translator.dart';
+import '../../models/transaction_model.dart';
 
 class TransactionTile extends StatelessWidget {
-  final Map<String, dynamic> data;
-  const TransactionTile({super.key, required this.data});
+  final TransactionModel transaction;
+  const TransactionTile({super.key, required this.transaction});
 
   @override
   Widget build(BuildContext context) {
-    final isExpense = data['type'] == 'expense';
-    final icon = data['category']?['icon'] as String? ?? '📦';
-    final categoryName = data['category']?['name'] as String? ?? '';
-    final translatedCategory = translateCategory(categoryName);
-    final amount = data['amount'] as int;
-    final description = data['description'] as String? ?? '';
-    final date = data['date'] as String? ?? '';
+    final isExpense = transaction.type == 'expense';
+    final icon = transaction.category.icon.isNotEmpty ? transaction.category.icon : '📦';
+    final translatedCategory = translateCategory(transaction.category.name);
+    final description = transaction.description;
 
     return ListTile(
       leading: Container(
@@ -36,12 +34,12 @@ class TransactionTile extends StatelessWidget {
             fontSize: 14, fontWeight: FontWeight.w500),
       ),
       subtitle: Text(
-        '${translatedCategory.isEmpty ? "" : "$translatedCategory · "}${formatDateRelative(date)}',
+        '${translatedCategory.isEmpty ? "" : "$translatedCategory · "}${formatDateRelative(transaction.date)}',
         style: const TextStyle(
             fontSize: 12, color: AppColors.textSecondary),
       ),
       trailing: Text(
-        '${isExpense ? "-" : "+"}${formatCurrency(amount)}',
+        '${isExpense ? "-" : "+"}${formatCurrency(transaction.amount)}',
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,

@@ -12,13 +12,6 @@ class UserLogin(BaseModel):
     password: str
 
 
-class UserOut(BaseModel):
-    id: int
-    username: str
-    display_name: str
-    role: str
-    created_at: str
-
 
 class TokenOut(BaseModel):
     access_token: str

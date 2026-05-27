@@ -49,16 +49,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         itemBuilder: (context, i) {
                           final txn = state.transactions[i];
                           return Card(
-                            child: TransactionTile(data: {
-                              'type': txn.type,
-                              'category': {
-                                'icon': txn.category.icon,
-                                'name': txn.category.name,
-                              },
-                              'amount': txn.amount,
-                              'description': txn.description,
-                              'date': txn.date,
-                            }),
+                            child: TransactionTile(transaction: txn),
                           );
                         },
                       ),

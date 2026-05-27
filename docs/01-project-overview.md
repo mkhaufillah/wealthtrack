@@ -89,9 +89,6 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 │   ├── requirements.txt
 │   └── run.sh                  # Start script
 ├── mobile/                     # Flutter project (initialized separately)
-├── scripts/
-│   ├── init_db.py              # Create tables & seed default categories
-│   └── seed_data.py            # Optional sample data for dev
 ├── docs/                       # Planning docs (this directory)
 └── README.md
 ```

@@ -10,6 +10,10 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,9 +28,23 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
 
       - name: Create platform directories
         run: flutter create --project-name wealthtrack --org com.filla --platforms android .
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-pillow
+          restore-keys: |
+            pip-${{ runner.os }}-
+
+      - name: Generate app icons
+        run: |
+          pip install Pillow
+          python3 generate_icons.py --platforms android
 
       - name: Install dependencies
         run: flutter pub get

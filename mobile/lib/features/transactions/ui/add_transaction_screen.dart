@@ -78,26 +78,25 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       'note': _noteCtrl.text.trim(),
       'date': '${_selectedDate.toIso8601String().substring(0, 10)}',
     });
+
+    if (!mounted) return;
     setState(() => _isSaving = false);
 
     if (success) {
-      if (mounted) {
-        // Signal home screen to reload dashboard
-        ref.read(homeRefreshProvider.notifier).state++;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Text('Transaction recorded', style: TextStyle(color: Colors.white)),
-              ],
-            ),
-            backgroundColor: AppColors.success,
+      ref.read(homeRefreshProvider.notifier).state++;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Text('Transaction recorded', style: TextStyle(color: Colors.white)),
+            ],
           ),
-        );
-        context.pop();
-      }
+          backgroundColor: AppColors.success,
+        ),
+      );
+      context.pop();
     } else {
       _showError('Failed to save. Try again.');
     }

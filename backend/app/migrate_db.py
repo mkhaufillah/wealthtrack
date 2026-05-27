@@ -5,19 +5,20 @@ Run ONCE before starting FastAPI server.
 """
 
 import sqlite3
-import os
 from pathlib import Path
 from passlib.context import CryptContext
 import secrets
 import string
 
-DB_PATH = os.path.expanduser("~/.keuangan/finance.db")
+from app.core.config import settings
+
+DB_PATH = settings.DB_PATH
 PWD_CTX = CryptContext(schemes=["bcrypt"], deprecated="auto")
 DEFAULT_PW_HASH = PWD_CTX.hash("password123")
 
 
 def run_migration():
-    if not os.path.exists(DB_PATH):
+    if not Path(DB_PATH).exists():
         print(f"ERROR: Database not found at {DB_PATH}")
         print("Run the existing finance_db.py init first:")
         print("  python3 ~/.hermes/skills/productivity/financial-tracker/scripts/finance_db.py init")
@@ -99,7 +100,7 @@ def run_household_migration():
     Creates a default 'Home' household and assigns existing users to it.
     Safe to re-run (idempotent via IF NOT EXISTS).
     """
-    if not os.path.exists(DB_PATH):
+    if not Path(DB_PATH).exists():
         print(f"ERROR: Database not found at {DB_PATH}")
         return False
 

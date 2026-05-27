@@ -9,7 +9,7 @@ class TransactionListState {
   final List<TransactionModel> transactions; final int total;
   const TransactionListState({this.isLoading = false, this.error, this.transactions = const [], this.total = 0});
   TransactionListState copyWith({bool? isLoading, String? error, List<TransactionModel>? transactions, int? total}) =>
-      TransactionListState(isLoading: isLoading ?? this.isLoading, error: error,
+    TransactionListState(isLoading: isLoading ?? this.isLoading, error: error ?? this.error,
         transactions: transactions ?? this.transactions, total: total ?? this.total);
 }
 

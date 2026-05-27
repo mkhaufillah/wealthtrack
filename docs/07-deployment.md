@@ -215,7 +215,16 @@ sudo systemctl restart wealthtrack
 sudo systemctl reload nginx
 
 # 7. Verifikasi
-curl https://wealthtrack.filla.id/api/v1/categories -H "Authorization: Bearer $(curl -s -X POST https://wealthtrack.filla.id/api/v1/auth/login -H 'Content-Type: application/json' -d '{"username":"filla","password":"password123"}' | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')"
+```bash
+# Login and test API
+TOKEN=$(curl -s -X POST https://wealthtrack.filla.id/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"filla","password":"password123"}' | \
+  python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+curl -s -H "Authorization: Bearer $TOKEN" \
+  https://wealthtrack.filla.id/api/v1/categories | python3 -m json.tool
+```
 ```
 
 ## Step 6: Deploy Flow (Updates)

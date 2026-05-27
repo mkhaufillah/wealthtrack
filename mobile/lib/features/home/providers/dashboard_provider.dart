@@ -11,7 +11,7 @@ class DashboardState {
 
   DashboardState copyWith({bool? isLoading, String? error, int? totalIncome, int? totalExpense,
     int? balance, List<Map<String, dynamic>>? recentTransactions, int? totalTransactions}) =>
-    DashboardState(isLoading: isLoading ?? this.isLoading, error: error,
+    DashboardState(isLoading: isLoading ?? this.isLoading, error: error ?? this.error,
       totalIncome: totalIncome ?? this.totalIncome, totalExpense: totalExpense ?? this.totalExpense,
       balance: balance ?? this.balance, recentTransactions: recentTransactions ?? this.recentTransactions,
       totalTransactions: totalTransactions ?? this.totalTransactions);

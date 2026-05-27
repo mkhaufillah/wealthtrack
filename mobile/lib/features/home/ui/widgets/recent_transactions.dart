@@ -28,7 +28,7 @@ class RecentTransactions extends StatelessWidget {
               children: [
                 for (var i = 0; i < transactions.length; i++) ...[
                   if (i > 0) const Divider(height: 1),
-                  TransactionTile(data: transactions[i]),
+                  TransactionTile(transaction: transactions[i]),
                 ],
               ],
             ),

@@ -29,7 +29,7 @@ class AuthState {
       AuthState(
         status: status ?? this.status,
         user: user ?? this.user,
-        error: error,
+        error: error ?? this.error,
         isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       );
 }

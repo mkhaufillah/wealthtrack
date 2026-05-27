@@ -66,30 +66,12 @@ CONFIG_LINK="/etc/nginx/sites-enabled/wealthtrack"
 if [ -f "$CONFIG_FILE" ] && nginx_is_http_only && sudo nginx -t 2>/dev/null; then
     echo "  ✓ HTTP-only nginx config already active — skipping"
 else
-    sudo tee "$CONFIG_FILE" > /dev/null <<'NGINX'
-server {
-    listen 80;
-    server_name wealthtrack.filla.id;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /static/ {
-        alias /home/filla/dev/wealthtrack/backend/static/;
-        expires 30d;
-    }
-}
-NGINX
+    python3 deploy/strip_ssl.py < deploy/wealthtrack.nginx | sudo tee "$CONFIG_FILE" > /dev/null
     sudo ln -sf "$CONFIG_FILE" "$CONFIG_LINK"
     sudo rm -f /etc/nginx/sites-enabled/default
     sudo nginx -t
     sudo systemctl reload nginx
-    echo "  ✓ HTTP-only nginx config active"
+    echo "  ✓ HTTP-only nginx config active (generated from deploy/wealthtrack.nginx)"
 fi
 
 # ════════════════════════════════════════════════════

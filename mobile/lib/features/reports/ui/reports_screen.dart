@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/utils/currency_formatter.dart';
 import '../providers/report_provider.dart';
 import '../models/report_model.dart';
 
@@ -184,7 +184,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: Column(
         children: [
           Text(
-            'Rp${_formatAmount(amount)}',
+            formatCurrency(amount),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -355,7 +355,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'I: Rp${_formatAmount(u.totalIncome)} / E: Rp${_formatAmount(u.totalExpense)}',
+'I: ' + formatCurrency(u.totalIncome) + ' / E: ' + formatCurrency(u.totalExpense)
                         style: const TextStyle(
                           fontSize: 10,
                           color: AppColors.textSecondary,
@@ -429,7 +429,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   children: [
                     if (day.expense > 0)
                       Text(
-                        '-Rp${_formatAmount(day.expense)}',
+'-${formatCurrency(day.expense)}'
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.highlight,
@@ -437,7 +437,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                     if (day.income > 0)
                       Text(
-                        '+Rp${_formatAmount(day.income)}',
+'+${formatCurrency(day.income)}'
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.success,
@@ -587,7 +587,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                     const Spacer(),
                     Text(
-                      'E: Rp${_formatAmount(totalExpense)}',
+'E: ' + formatCurrency(totalExpense)
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.highlight,
@@ -596,7 +596,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     if (totalIncome > 0) ...[
                       const SizedBox(width: 8),
                       Text(
-                        'I: Rp${_formatAmount(totalIncome)}',
+'I: ' + formatCurrency(totalIncome)
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.success,
@@ -650,7 +650,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '${isExpense ? '-' : '+'}Rp${_formatAmount(amount is int ? amount : (amount as num).toInt())}',
+'${isExpense ? '-' : '+'}' + formatCurrency(amount is int ? amount : (amount as num).toInt())
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -668,8 +668,4 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  String _formatAmount(int amount) {
-    final formatter = NumberFormat('#,###', 'id_ID');
-    return formatter.format(amount);
-  }
 }

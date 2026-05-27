@@ -19,17 +19,22 @@ source .venv/bin/activate
 
 ## Step 2: Install Dependencies
 
-`backend/requirements.txt`
+`backend/requirements.txt` — Using loose `>=` constraints (check actual file for current versions).
 
 ```
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-aiosqlite==0.20.0
-pydantic==2.10.4
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-multipart==0.0.19
-pydantic-settings==2.7.1
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+aiosqlite>=0.20.0
+pydantic>=2.10.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.19
+pydantic-settings>=2.7.0
+slowapi>=0.1.9
+bcrypt==4.0.1
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
+httpx>=0.28.0
 ```
 
 Install:

@@ -65,7 +65,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         labelText: 'Username',
                         prefixIcon: Icon(Icons.person_outline)),
                     validator: (v) =>
-                        v == null || v.trim().isEmpty ? 'Username is required' : null,
+                        v == null || v.trim().length < 3 ? 'Min 3 characters' : null,
                     enabled: !isLoading,
                   ),
                   const SizedBox(height: 16),
@@ -86,7 +86,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     validator: (v) =>
-                        v == null || v.isEmpty ? 'Password is required' : null,
+                        v == null || v.length < 6 ? 'Min 6 characters' : null,
                     enabled: !isLoading,
                     onFieldSubmitted: (_) => _login(),
                   ),

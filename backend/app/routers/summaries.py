@@ -319,4 +319,4 @@ async def current_month_summary(
     current_user: dict = Depends(get_current_user),
 ):
     """Shorthand — monthly summary for the current month."""
-    return await monthly_summary(None, db, current_user)
+    return await monthly_summary(month=None, db=db, current_user=current_user)

@@ -31,7 +31,7 @@ class ReportState {
   }) =>
       ReportState(
         isLoading: isLoading ?? this.isLoading,
-        error: error,
+        error: error ?? this.error,
         monthly: monthly ?? this.monthly,
         household: household ?? this.household,
         selectedMonth: selectedMonth ?? this.selectedMonth,
