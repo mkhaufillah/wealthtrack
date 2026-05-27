@@ -99,18 +99,30 @@ class _AmountFieldState extends State<AmountField> {
 
   void _onTextChange() {
     if (_updating) return;
-    final text = widget.controller.text;
+    var text = widget.controller.text;
     // Strip out periods while user is typing to keep it clean
-    final clean = text.replaceAll('.', '');
-    if (clean != text) {
+    final noDots = text.replaceAll('.', '');
+    if (noDots != text) {
       _updating = true;
       widget.controller.value = TextEditingValue(
-        text: clean,
-        selection: TextSelection.collapsed(offset: clean.length),
+        text: noDots,
+        selection: TextSelection.collapsed(offset: noDots.length),
       );
       _updating = false;
+      text = noDots;
     }
-    final hasText = widget.controller.text.isNotEmpty;
+    // Ensure "Rp " prefix is always present when content is non-empty
+    if (text.isNotEmpty && !text.startsWith(_rpPrefix)) {
+      _updating = true;
+      final withRp = '$_rpPrefix$text';
+      widget.controller.value = TextEditingValue(
+        text: withRp,
+        selection: TextSelection.collapsed(offset: withRp.length),
+      );
+      _updating = false;
+      text = withRp;
+    }
+    final hasText = text.isNotEmpty && text != _rpPrefix;
     if (hasText != _hasText) {
       setState(() => _hasText = hasText);
     }
