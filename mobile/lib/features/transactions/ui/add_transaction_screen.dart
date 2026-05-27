@@ -85,7 +85,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         // Signal home screen to reload dashboard
         ref.read(homeRefreshProvider.notifier).state++;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Transaction recorded'), backgroundColor: AppColors.success),
+          SnackBar(
+            content: const Text('✅ Transaction recorded', style: TextStyle(color: Colors.white)),
+            backgroundColor: AppColors.success,
+          ),
         );
         context.pop();
       }
@@ -95,10 +98,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('❌ $msg'), backgroundColor: AppColors.highlight),
-    );
-  }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ $msg', style: const TextStyle(color: Colors.white)),
+          backgroundColor: AppColors.highlight,
+        ),
+      );
+    }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
