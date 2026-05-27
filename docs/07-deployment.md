@@ -238,7 +238,7 @@ curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/auth/
 
 ## Flutter App Configuration
 
-Di Flutter, API base URL diatur ke:
+In Flutter, API base URL change to:
 
 ```dart
 // lib/core/constants.dart
