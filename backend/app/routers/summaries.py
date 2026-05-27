@@ -249,7 +249,7 @@ async def monthly_summary(
            WHERE t.user_id = ?
              AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
              AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-           GROUP BY day ORDER BY day""",
+           GROUP BY date ORDER BY date""",
         (current_user["id"], d_from, d_to),
     )
     daily_snapshot = [dict(r) for r in await cursor.fetchall()]
@@ -321,7 +321,7 @@ async def current_month_summary(
            WHERE t.user_id = ?
              AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
              AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-           GROUP BY day ORDER BY day""",
+           GROUP BY date ORDER BY date""",
         (current_user["id"], d_from, d_to),
     )
     daily_snapshot = [dict(r) for r in await cursor.fetchall()]
