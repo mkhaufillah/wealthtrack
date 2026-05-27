@@ -334,6 +334,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Expanded(
                   flex: 3,
                   child: Column(
