@@ -12,6 +12,7 @@ import 'features/transactions/models/transaction_model.dart';
 import 'features/profile/ui/profile_screen.dart';
 import 'features/reports/ui/reports_screen.dart';
 import 'features/budgets/ui/budgets_screen.dart';
+import 'features/ai/ui/ai_advisor_screen.dart';
 import 'shared/providers/theme_provider.dart';
 import 'shared/widgets/app_scaffold.dart';
 
@@ -52,6 +53,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => AddTransactionScreen(
           editTransaction: state.extra is TransactionModel ? state.extra as TransactionModel : null,
         ),
+      ),
+      GoRoute(
+        path: '/ai/advise',
+        builder: (_, __) => const AiAdvisorScreen(),
       ),
     ],
   );

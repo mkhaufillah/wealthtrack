@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
+import '../../../shared/providers/app_providers.dart';
 import '../providers/budget_provider.dart';
 import '../models/budget_model.dart';
 
@@ -72,9 +73,8 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   Widget _buildMonthPicker() {
     final now = DateTime.now();
     final canGoNext =
-        DateTime(_currentMonth.year, _currentMonth.month + 1).isBeforeOrEqualTo(
-              DateTime(now.year, now.month + 1),
-            );
+        !DateTime(_currentMonth.year, _currentMonth.month + 1)
+            .isAfter(DateTime(now.year, now.month + 1));
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

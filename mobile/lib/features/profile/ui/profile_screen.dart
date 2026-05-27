@@ -395,6 +395,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 const SizedBox(height: 8),
                 _buildMenuItem(
+                  icon: Icons.psychology_outlined,
+                  title: 'AI Financial Advisor',
+                  onTap: () => context.push('/ai/advise'),
+                ),
+
+                const SizedBox(height: 8),
+                _buildMenuItem(
                   icon: Icons.delete_forever,
                   title: 'Delete Account',
                   textColor: Colors.redAccent,

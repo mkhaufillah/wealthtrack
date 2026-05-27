@@ -19,6 +19,7 @@ dependencies:
   share_plus: ^10.0.0
   open_file: ^3.5.0
   image_picker: ^1.1.0
+  flutter_markdown: ^0.7.0
 
 dev_dependencies:
   flutter_test:
