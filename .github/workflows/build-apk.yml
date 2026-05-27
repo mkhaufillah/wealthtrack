@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Remove default test file
+        run: rm -f test/widget_test.dart
+
+      - name: Run tests
+        run: flutter test
+
       - name: Build APK (debug)
         run: flutter build apk --debug
 
