@@ -11,7 +11,26 @@ echo "============================================"
 
 cd "$(dirname "$0")/.."
 
+# ─── Helper: check if nginx config is HTTP-only (no SSL refs) ───
+nginx_is_http_only() {
+    grep -q "listen 80;" /etc/nginx/sites-available/wealthtrack 2>/dev/null && \
+    ! grep -q "listen 443" /etc/nginx/sites-available/wealthtrack 2>/dev/null
+}
+
+# ─── Helper: check if SSL cert exists and not expiring in 7d ───
+ssl_cert_valid() {
+    local cert="/etc/letsencrypt/live/wealthtrack.filla.id/fullchain.pem"
+    [ -f "$cert" ] && sudo openssl x509 -checkend $((7*86400)) -in "$cert" &>/dev/null
+}
+
+# ─── Helper: check if a service is running ───
+service_running() {
+    systemctl is-active --quiet "$1" 2>/dev/null
+}
+
+# ════════════════════════════════════════════════════
 # 0. Install certbot if missing
+# ════════════════════════════════════════════════════
 echo ""
 echo "[0/7] Checking + installing certbot..."
 if ! command -v certbot &>/dev/null; then
@@ -21,17 +40,33 @@ else
     echo "  ✓ certbot already installed"
 fi
 
+# ════════════════════════════════════════════════════
 # 1. Systemd Service
+# ════════════════════════════════════════════════════
 echo ""
 echo "[1/7] Installing systemd service..."
-sudo cp deploy/wealthtrack.service /etc/systemd/system/wealthtrack.service
-sudo systemctl daemon-reload
-sudo systemctl enable wealthtrack
+SERVICE_FILE="/etc/systemd/system/wealthtrack.service"
+if [ -f "$SERVICE_FILE" ] && systemctl is-enabled wealthtrack &>/dev/null; then
+    echo "  ✓ systemd service already installed & enabled — skipping"
+else
+    sudo cp deploy/wealthtrack.service "$SERVICE_FILE"
+    sudo systemctl daemon-reload
+    sudo systemctl enable wealthtrack
+    echo "  ✓ systemd service installed"
+fi
 
-# 2. Nginx Config (HTTP-only first — SSL added by certbot)
+# ════════════════════════════════════════════════════
+# 2. Nginx Config (HTTP-only — SSL added by certbot in step 3)
+# ════════════════════════════════════════════════════
 echo ""
 echo "[2/7] Configuring Nginx (HTTP-only)..."
-sudo tee /etc/nginx/sites-available/wealthtrack > /dev/null <<'NGINX'
+CONFIG_FILE="/etc/nginx/sites-available/wealthtrack"
+CONFIG_LINK="/etc/nginx/sites-enabled/wealthtrack"
+
+if [ -f "$CONFIG_FILE" ] && nginx_is_http_only && sudo nginx -t 2>/dev/null; then
+    echo "  ✓ HTTP-only nginx config already active — skipping"
+else
+    sudo tee "$CONFIG_FILE" > /dev/null <<'NGINX'
 server {
     listen 80;
     server_name wealthtrack.filla.id;
@@ -50,32 +85,53 @@ server {
     }
 }
 NGINX
-sudo ln -sf /etc/nginx/sites-available/wealthtrack /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl reload nginx
-echo "  ✓ HTTP-only nginx config active"
+    sudo ln -sf "$CONFIG_FILE" "$CONFIG_LINK"
+    sudo rm -f /etc/nginx/sites-enabled/default
+    sudo nginx -t
+    sudo systemctl reload nginx
+    echo "  ✓ HTTP-only nginx config active"
+fi
 
+# ════════════════════════════════════════════════════
 # 3. SSL Certificate (converts HTTP→HTTPS automatically)
+# ════════════════════════════════════════════════════
 echo ""
-echo "[3/7] Requesting SSL certificate from Let's Encrypt..."
-sudo certbot --nginx -d wealthtrack.filla.id --non-interactive --agree-tos -m khaufillahmohammad@gmail.com
-sudo systemctl reload nginx
-echo "  ✓ SSL certificate installed"
+echo "[3/7] Checking SSL certificate..."
+if ssl_cert_valid; then
+    echo "  ✓ SSL certificate valid → HTTPS already active — skipping"
+else
+    echo "  Requesting SSL certificate from Let's Encrypt..."
+    sudo certbot --nginx -d wealthtrack.filla.id --non-interactive --agree-tos -m khaufillahmohammad@gmail.com
+    sudo systemctl reload nginx
+    echo "  ✓ SSL certificate installed"
+fi
 
+# ════════════════════════════════════════════════════
 # 4. Run Migration
+# ════════════════════════════════════════════════════
 echo ""
 echo "[4/7] Running database migration..."
 source .venv/bin/activate
 uv run python -m backend.app.migrate_db
+echo "  ✓ migration complete"
 
+# ════════════════════════════════════════════════════
 # 5. Start Service
+# ════════════════════════════════════════════════════
 echo ""
 echo "[5/7] Starting WealthTrack service..."
-sudo systemctl start wealthtrack
+if service_running wealthtrack; then
+    echo "  ✓ wealthtrack service already running — restarting..."
+    sudo systemctl restart wealthtrack
+else
+    sudo systemctl start wealthtrack
+fi
+sleep 2
 sudo systemctl status wealthtrack --no-pager
 
+# ════════════════════════════════════════════════════
 # 6. Firewall
+# ════════════════════════════════════════════════════
 echo ""
 echo "[6/7] Configuring UFW firewall..."
 for port in 80 443; do
@@ -88,8 +144,14 @@ for port in 80 443; do
 done
 sudo ufw --force enable 2>/dev/null || true
 
+# ════════════════════════════════════════════════════
 echo ""
 echo "============================================"
 echo "  ✅ Deployment Complete!"
 echo "  https://wealthtrack.filla.id/api/v1/auth/login"
 echo "============================================"
+echo ""
+echo "  Next: visit the URL above to verify."
+echo "  If login page loads → done."
+echo "  If error → Lakoni debug."
+echo ""
