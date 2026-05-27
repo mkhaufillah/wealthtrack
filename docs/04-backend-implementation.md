@@ -57,15 +57,25 @@ class Settings(BaseSettings):
     # === PAKAI DB YANG SUDAH ADA ===
     DB_PATH: str = str(Path.home() / ".keuangan" / "finance.db")
 
-    SECRET_KEY: str = "change-me-in-production-use-env"  # TODO: env var
+    SECRET_KEY: str = "change-me-in-production-use-env"  # override via .env
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_DAYS: int = 30
 
-    CORS_ORIGINS: list[str] = ["*"]
+    # JSON string — parsed via cors_origins_list property
+    CORS_ORIGINS: str = (
+        '["http://localhost:8080", "http://127.0.0.1:8080", "https://wealthtrack.filla.id"]'
+    )
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    @property
+    def cors_origins_list(self) -> list[str]:
+        import json
+        return json.loads(self.CORS_ORIGINS)
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 settings = Settings()
 ```
@@ -448,7 +458,7 @@ from app.schemas.transaction import TransactionCreate, TransactionUpdate, Pagina
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
-def _format_txn(row, cat_name="", cat_icon="", username=""):
+def _format_txn(row, cat_name="", cat_icon="", display_name=""):
     # sqlite3.Row doesn't support .get() — convert to dict for safe access
     r = dict(row)
     return {
@@ -465,7 +475,7 @@ def _format_txn(row, cat_name="", cat_icon="", username=""):
         },
         "user": {
             "id": r.get("user_id", 1) or 1,
-            "display_name": username or ("Nahda" if r.get("user_id") == 2 else "Filla"),
+            "display_name": display_name or r.get("user_display_name", ""),
         },
         "created_at": r["created_at"],
         "updated_at": r.get("updated_at", r["created_at"]),
@@ -513,7 +523,13 @@ async def list_transactions(
 
     offset = (page - 1) * per_page
     cursor = await db.execute(
-        f"""SELECT t.* FROM transactions t
+        f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
+                   t.description, t.note, t.date, t.user_id, t.created_at,
+                   c.name AS cat_name, c.icon AS cat_icon,
+                   u.display_name AS user_display_name
+            FROM transactions t
+            LEFT JOIN categories c ON t.category_id = c.id
+            LEFT JOIN users u ON t.user_id = u.id
             WHERE {' AND '.join(where)}
             ORDER BY {order}
             LIMIT ? OFFSET ?""",
@@ -521,15 +537,7 @@ async def list_transactions(
     )
     rows = await cursor.fetchall()
 
-    data = []
-    for r in rows:
-        c = await (await db.execute(
-            "SELECT id, name, icon FROM categories WHERE id = ?", (r["category_id"],)
-        )).fetchone()
-        if c:
-            data.append(_format_txn(r, c["name"], c["icon"]))
-        else:
-            data.append(_format_txn(r, r.get("category_name", "")))
+    data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "") for r in rows]
 
     return PaginatedTransactions(
         data=data,
@@ -908,6 +916,38 @@ async def global_exception_handler(request: Request, exc: Exception):
 ```
 
 This ensures unexpected crashes return a consistent JSON response instead of raw tracebacks. FastAPI's built-in `HTTPException` handling is not affected — 400/401/404/409 errors still return their specific messages.
+
+### Rate Limiting (Auth)
+
+Login and register endpoints are rate-limited using `slowapi` to prevent brute-force attacks:
+
+- **POST /auth/register** — 5 requests/minute per IP
+- **POST /auth/login** — 10 requests/minute per IP
+
+Configured in `app/core/limiter.py` and wired in `app/main.py` via `SlowAPIMiddleware`. Returns `429 Too Many Requests` when exceeded.
+
+### Health Check
+
+A **GET /api/v1/health** endpoint is available for monitoring / load balancer probes:
+
+```python
+@router.get("/health")
+async def health_check(db):
+    # Returns {"status": "ok", "database": "connected"}
+    # or {"status": "degraded", "database": "unreachable"}
+```
+
+The endpoint pings the SQLite database and reports connectivity status. No authentication required — designed for external monitoring tools.
+
+### CORS
+
+CORS origins are restricted by default to localhost and `https://wealthtrack.filla.id`. Override via `CORS_ORIGINS` env var:
+
+```bash
+CORS_ORIGINS='["https://app.domain.com"]'
+```
+
+Parsed from a JSON string in `config.py` via the `cors_origins_list` property.
 
 ### SQL Best Practices
 

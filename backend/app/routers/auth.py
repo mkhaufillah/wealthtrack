@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 import aiosqlite
 
 from app.database import get_db
@@ -8,6 +8,7 @@ from app.core.security import (
     create_access_token,
     get_current_user,
 )
+from app.core.limiter import limiter
 from app.schemas.user import (
     UserRegister,
     UserLogin,
@@ -22,7 +23,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", status_code=201)
-async def register(data: UserRegister, db: aiosqlite.Connection = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, data: UserRegister, db: aiosqlite.Connection = Depends(get_db)):
     cursor = await db.execute("SELECT id FROM users WHERE username = ?", (data.username,))
     if await cursor.fetchone():
         raise HTTPException(status_code=409, detail="Username already exists")
@@ -44,7 +46,8 @@ async def register(data: UserRegister, db: aiosqlite.Connection = Depends(get_db
 
 
 @router.post("/login")
-async def login(data: UserLogin, db: aiosqlite.Connection = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, data: UserLogin, db: aiosqlite.Connection = Depends(get_db)):
     cursor = await db.execute(
         "SELECT id, username, password_hash FROM users WHERE username = ?", (data.username,)
     )

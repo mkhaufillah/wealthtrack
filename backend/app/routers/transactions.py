@@ -9,7 +9,7 @@ from app.schemas.transaction import TransactionCreate, TransactionUpdate, Pagina
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
-def _format_txn(row, cat_name="", cat_icon="", username=""):
+def _format_txn(row, cat_name="", cat_icon="", display_name=""):
     # sqlite3.Row doesn't support .get() — convert to dict for safe access
     r = dict(row)
     return {
@@ -26,7 +26,7 @@ def _format_txn(row, cat_name="", cat_icon="", username=""):
         },
         "user": {
             "id": r.get("user_id", 1) or 1,
-            "display_name": username or ("Nahda" if r.get("user_id") == 2 else "Filla"),
+            "display_name": display_name or r.get("user_display_name", ""),
         },
         "created_at": r["created_at"],
         "updated_at": r.get("updated_at", r["created_at"]),
@@ -77,9 +77,11 @@ async def list_transactions(
     cursor = await db.execute(
         f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
                    t.description, t.note, t.date, t.user_id, t.created_at,
-                   c.name AS cat_name, c.icon AS cat_icon
+                   c.name AS cat_name, c.icon AS cat_icon,
+                   u.display_name AS user_display_name
             FROM transactions t
             LEFT JOIN categories c ON t.category_id = c.id
+            LEFT JOIN users u ON t.user_id = u.id
             WHERE {' AND '.join(where)}
             ORDER BY {order}
             LIMIT ? OFFSET ?""",
@@ -134,7 +136,9 @@ async def create_transaction(
         "SELECT id, type, amount, category_id, category_name, description, note, date, user_id, created_at FROM transactions WHERE id = ?", (new_id,)
     )
     row = await cursor.fetchone()
-    return _format_txn(row, cat["name"], cat["icon"], current_user["username"])
+    # Fetch display_name from users table
+    u = await (await db.execute("SELECT display_name FROM users WHERE id = ?", (current_user["id"],))).fetchone()
+    return _format_txn(row, cat["name"], cat["icon"], u["display_name"] if u else "")
 
 
 @router.get("/{txn_id}")
@@ -144,7 +148,7 @@ async def get_transaction(
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
-        "SELECT id, type, amount, category_id, category_name, description, note, date, user_id, created_at FROM transactions WHERE id = ? AND user_id = ?",
+        "SELECT t.id, t.type, t.amount, t.category_id, t.category_name, t.description, t.note, t.date, t.user_id, t.created_at, u.display_name AS user_display_name FROM transactions t LEFT JOIN users u ON t.user_id = u.id WHERE t.id = ? AND t.user_id = ?",
         (txn_id, current_user["id"]),
     )
     row = await cursor.fetchone()
@@ -155,7 +159,7 @@ async def get_transaction(
             "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
         )
     ).fetchone()
-    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", current_user["username"])
+    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "")
 
 
 @router.put("/{txn_id}")
@@ -199,7 +203,7 @@ async def update_transaction(
     await db.commit()
 
     cursor = await db.execute(
-        "SELECT id, type, amount, category_id, category_name, description, note, date, user_id, created_at FROM transactions WHERE id = ?", (txn_id,)
+        "SELECT t.id, t.type, t.amount, t.category_id, t.category_name, t.description, t.note, t.date, t.user_id, t.created_at, u.display_name AS user_display_name FROM transactions t LEFT JOIN users u ON t.user_id = u.id WHERE t.id = ?", (txn_id,)
     )
     row = await cursor.fetchone()
     c = await (
@@ -207,7 +211,7 @@ async def update_transaction(
             "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
         )
     ).fetchone()
-    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", current_user["username"])
+    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "")
 
 
 @router.delete("/{txn_id}", status_code=204)

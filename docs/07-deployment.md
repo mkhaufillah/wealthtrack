@@ -175,7 +175,7 @@ sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 ```
 
-|## Step 4.5: Environment Variables
+## Step 4.5: Environment Variables
 
 Before starting the service, **create `backend/.env`** with a random SECRET_KEY:
 
@@ -191,6 +191,7 @@ The CI deploy workflow (`deploy-backend.yml`) auto-generates `backend/.env` if i
 | `SECRET_KEY` | JWT signing key (must be unique per deployment) | `change-me-in-production-use-env` (app warns) |
 | `DEBUG` | FastAPI debug mode | `True` |
 | `ACCESS_TOKEN_EXPIRE_DAYS` | JWT token lifetime in days | `30` |
+| `CORS_ORIGINS` | Allowed origins (JSON array) | `["http://localhost:8080", "http://127.0.0.1:8080", "https://wealthtrack.filla.id"]` |
 
 ## Step 5: Deploy Flow (Initial)
 

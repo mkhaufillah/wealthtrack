@@ -20,7 +20,14 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_DAYS: int = 30
 
-    CORS_ORIGINS: list[str] = ["*"]
+    CORS_ORIGINS: str = (
+        '["http://localhost:8080", "http://127.0.0.1:8080", "https://wealthtrack.filla.id"]'
+    )
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        import json
+        return json.loads(self.CORS_ORIGINS)
 
 
 settings = Settings()
