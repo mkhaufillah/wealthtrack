@@ -1,0 +1,38 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Create platform directories
+        run: flutter create --project-name wealthtrack --org com.filla --platforms android .
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK (debug)
+        run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: wealthtrack-apk
+          path: mobile/build/app/outputs/flutter-apk/*.apk
