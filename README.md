@@ -41,7 +41,8 @@ docs/                  # Planning docs (agent-executable)
   ├── 04-backend-implementation.md
   ├── 05-flutter-mobile.md
   ├── 06-hermes-integration.md
-  └── 07-deployment.md
+  ├── 07-deployment.md
+  └── 08-p4-plan.md
 backend/               # FastAPI application
 mobile/                # Flutter app (Android)
 scripts/               # DB init & seed scripts
@@ -74,4 +75,4 @@ scripts/               # DB init & seed scripts
 - [x] P1 — Core Backend (FastAPI + SQLite + Auth) ✅
 - [x] P2 — Hermes Integration (cron + chat input) ✅
 - [x] P3 — Flutter Mobile MVP ✅
-- [ ] P4 — Charts, Budgets, HTTPS, Polish
+- [ ] P4 — Charts, Budgets, Export, OCR, AI Advisor, Change Owner (see [docs/08-p4-plan.md](docs/08-p4-plan.md))
