@@ -32,4 +32,11 @@ class TransactionRepository {
     try { await _client.delete('/transactions/$id'); }
     catch (e) { throw _client.handleError(e); }
   }
+
+  Future<TransactionModel> transferOwner(int id, int userId) async {
+    try {
+      final res = await _client.put('/transactions/$id/owner', data: {'user_id': userId});
+      return TransactionModel.fromJson(res.data);
+    } catch (e) { throw _client.handleError(e); }
+  }
 }

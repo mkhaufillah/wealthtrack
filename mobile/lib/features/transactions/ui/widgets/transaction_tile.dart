@@ -7,7 +7,8 @@ import '../../models/transaction_model.dart';
 
 class TransactionTile extends StatelessWidget {
   final TransactionModel transaction;
-  const TransactionTile({super.key, required this.transaction});
+  final VoidCallback? onTransferOwner;
+  const TransactionTile({super.key, required this.transaction, this.onTransferOwner});
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +16,7 @@ class TransactionTile extends StatelessWidget {
     final icon = transaction.category.icon.isNotEmpty ? transaction.category.icon : '📦';
     final translatedCategory = translateCategory(transaction.category.name);
     final description = transaction.description;
+    final ownerName = transaction.user?.displayName ?? '';
 
     return ListTile(
       leading: Container(
@@ -34,17 +36,44 @@ class TransactionTile extends StatelessWidget {
             fontSize: 14, fontWeight: FontWeight.w500),
       ),
       subtitle: Text(
-        '${translatedCategory.isEmpty ? "" : "$translatedCategory · "}${formatDateRelative(transaction.date)}',
+        '${translatedCategory.isEmpty ? "" : "$translatedCategory · "}${formatDateRelative(transaction.date)}${ownerName.isNotEmpty ? " · $ownerName" : ""}',
         style: const TextStyle(
             fontSize: 12, color: AppColors.textSecondary),
       ),
-      trailing: Text(
-        '${isExpense ? "-" : "+"}${formatCurrency(transaction.amount)}',
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: isExpense ? AppColors.highlight : AppColors.success,
-        ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${isExpense ? "-" : "+"}${formatCurrency(transaction.amount)}',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isExpense ? AppColors.highlight : AppColors.success,
+            ),
+          ),
+          if (onTransferOwner != null) ...[
+            const SizedBox(width: 4),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
+              padding: EdgeInsets.zero,
+              onSelected: (value) {
+                if (value == 'change_owner') onTransferOwner!();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'change_owner',
+                  child: Row(
+                    children: [
+                      Icon(Icons.swap_horiz, size: 18),
+                      SizedBox(width: 8),
+                      Text('Change Owner'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
