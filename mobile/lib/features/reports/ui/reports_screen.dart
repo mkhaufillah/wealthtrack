@@ -356,7 +356,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-'I: ' + formatCurrency(u.totalIncome) + ' / E: ' + formatCurrency(u.totalExpense)
+                        'I: ' + formatCurrency(u.totalIncome) + ' / E: ' + formatCurrency(u.totalExpense),
                         style: const TextStyle(
                           fontSize: 10,
                           color: AppColors.textSecondary,
@@ -430,7 +430,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   children: [
                     if (day.expense > 0)
                       Text(
-'-${formatCurrency(day.expense)}'
+                        '-${formatCurrency(day.expense)}',
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.highlight,
@@ -438,7 +438,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                     if (day.income > 0)
                       Text(
-'+${formatCurrency(day.income)}'
+                        '+${formatCurrency(day.income)}',
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.success,
@@ -588,7 +588,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                     const Spacer(),
                     Text(
-'E: ' + formatCurrency(totalExpense)
+                      'E: ' + formatCurrency(totalExpense),
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.highlight,
@@ -597,7 +597,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     if (totalIncome > 0) ...[
                       const SizedBox(width: 8),
                       Text(
-'I: ' + formatCurrency(totalIncome)
+                        'I: ' + formatCurrency(totalIncome),
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.success,
@@ -651,7 +651,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-'${isExpense ? '-' : '+'}' + formatCurrency(amount is int ? amount : (amount as num).toInt())
+                        '${isExpense ? '-' : '+'}' + formatCurrency(amount is int ? amount : (amount as num).toInt()),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
