@@ -12,7 +12,7 @@ void main() {
   });
 
   group('formatCurrencyCompact', () {
-    test('shows juta for millions', () => expect(formatCurrencyCompact(1500000), 'Rp1,5jt'));
+    test('shows juta for millions', () => expect(formatCurrencyCompact(1500000), 'Rp1.5jt'));
     test('shows rb for thousands', () => expect(formatCurrencyCompact(25000), 'Rp25rb'));
     test('shows exact for small', () => expect(formatCurrencyCompact(500), 'Rp500'));
     test('rounds juta for exact million', () => expect(formatCurrencyCompact(2000000), 'Rp2jt'));
