@@ -45,6 +45,9 @@ class ApiClient {
   Future<Response> delete(String path) =>
       _dio.delete(path);
 
+  Future<Response> download(String path, String savePath) =>
+      _dio.download(path, savePath);
+
   Exception handleError(dynamic error) {
     if (error is DioException) {
       if (error.response?.statusCode == 401) return UnauthorizedException();

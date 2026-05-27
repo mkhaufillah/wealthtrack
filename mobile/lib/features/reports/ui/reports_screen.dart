@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'widgets/charts_section.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
@@ -170,6 +173,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           const SizedBox(height: 8),
           _buildHouseholdDailyBreakdown(state.householdTransactions),
         ],
+        const SizedBox(height: 24),
+        _buildExportButton(),
       ];
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -687,6 +692,54 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         );
       }).toList(),
     );
+  }
+
+  Widget _buildExportButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _exportYearly,
+        icon: const Icon(Icons.file_download_outlined, size: 18),
+        label: const Text('Export Yearly (Excel)'),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportYearly() async {
+    try {
+      final api = ref.read(apiClientProvider);
+      final scaffold = ScaffoldMessenger.of(context);
+
+      scaffold.showSnackBar(
+        const SnackBar(content: Row(
+          children: [
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            SizedBox(width: 12),
+            Text('Generating export...'),
+          ],
+        )),
+      );
+
+      final year = _currentMonth.year;
+      final dir = await getTemporaryDirectory();
+      final filePath = '${dir.path}/wealthtrack_$year.xlsx';
+
+      await api.download(
+        '/exports/yearly?year=$year',
+        filePath,
+      );
+
+      scaffold.hideCurrentSnackBar();
+      await Share.shareXFiles([XFile(filePath)], text: 'WealthTrack $year Export');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e')),
+      );
+    }
   }
 
 }
