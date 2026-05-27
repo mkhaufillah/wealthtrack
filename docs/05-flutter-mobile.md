@@ -512,4 +512,4 @@ sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 ```
 
-**Domain:** API dipanggil via `https://wealthtrack.filla.id/api/v1/...` — SSL di-handle nginx.
+**Domain:** API call from `https://wealthtrack.filla.id/api/v1/...` — SSL handle by nginx.
