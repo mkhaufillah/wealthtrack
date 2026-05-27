@@ -58,9 +58,15 @@ sudo systemctl reload nginx
 # 6. Firewall
 echo ""
 echo "[6/7] Configuring UFW firewall..."
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw --force enable
+for port in 80 443; do
+    if sudo ufw status | grep -q "$port/tcp"; then
+        echo "  ✓ port $port already allowed — skipping"
+    else
+        sudo ufw allow "$port/tcp"
+        echo "  ✓ port $port allowed"
+    fi
+done
+sudo ufw --force enable 2>/dev/null || true
 
 echo ""
 echo "============================================"
