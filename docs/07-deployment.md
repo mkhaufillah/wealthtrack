@@ -23,9 +23,9 @@
                           |                                                               │
                           |  ┌─────────────────────────────────────┐                      │
                           |  │  Hermes Agent (same VPS)            │                      │
-                          |  │  ├── cron: daily_finance_report.py  │──► SQLite langsung   │
-                          |  │  ├── skill: financial-tracker       │──► SQLite langsung   │
-                          |  │  └── chat: add_transaction.py       │──► SQLite langsung   │
+                          |  │  ├── cron: daily_finance_report.py  │──► SQLite directly   │
+                          |  │  ├── skill: financial-tracker       │──► SQLite directly   │
+                          |  │  └── chat: add_transaction.py       │──► SQLite directly   │
                           |  └─────────────────────────────────────┘                      │
                           |  ┌─────────────────────────────────────┐                      │
                           |  │  Flutter Mobile (via internet)      │                      │
