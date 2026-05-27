@@ -1,5 +1,9 @@
 # Flutter Mobile App — Design & Implementation Plan
 
+**See also:** [Backend API](03-backend-api.md) · [Project Overview](01-project-overview.md) · [Deployment](07-deployment.md)
+
+
+
 ## 1. Design System
 
 ### Color Palette

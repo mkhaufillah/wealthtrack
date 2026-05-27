@@ -75,7 +75,9 @@ async def list_transactions(
 
     offset = (page - 1) * per_page
     cursor = await db.execute(
-        f"""SELECT t.* FROM transactions t
+        f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
+                   t.description, t.note, t.date, t.user_id, t.created_at
+            FROM transactions t
             WHERE {' AND '.join(where)}
             ORDER BY {order}
             LIMIT ? OFFSET ?""",
@@ -136,7 +138,9 @@ async def create_transaction(
     )
     await db.commit()
     new_id = cursor.lastrowid
-    cursor = await db.execute("SELECT * FROM transactions WHERE id = ?", (new_id,))
+    cursor = await db.execute(
+        "SELECT id, type, amount, category_id, category_name, description, note, date, user_id, created_at FROM transactions WHERE id = ?", (new_id,)
+    )
     row = await cursor.fetchone()
     return _format_txn(row, cat["name"], cat["icon"], current_user["username"])
 
@@ -148,7 +152,7 @@ async def get_transaction(
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
-        "SELECT * FROM transactions WHERE id = ? AND user_id = ?",
+        "SELECT id, type, amount, category_id, category_name, description, note, date, user_id, created_at FROM transactions WHERE id = ? AND user_id = ?",
         (txn_id, current_user["id"]),
     )
     row = await cursor.fetchone()
@@ -202,7 +206,9 @@ async def update_transaction(
     )
     await db.commit()
 
-    cursor = await db.execute("SELECT * FROM transactions WHERE id = ?", (txn_id,))
+    cursor = await db.execute(
+        "SELECT id, type, amount, category_id, category_name, description, note, date, user_id, created_at FROM transactions WHERE id = ?", (txn_id,)
+    )
     row = await cursor.fetchone()
     c = await (
         await db.execute(

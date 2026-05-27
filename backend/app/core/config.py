@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = Settings()
+
+# Ensure SECRET_KEY is not the default in production
+if settings.SECRET_KEY == "change-me-in-production-use-env":
+    import warnings
+    warnings.warn(
+        "⚠️  SECRET_KEY is still the default! Set a real key in backend/.env for production."
+    )

@@ -17,9 +17,9 @@ async def list_categories(
 ):
     if type:
         cursor = await db.execute(
-            "SELECT * FROM categories WHERE type = ? ORDER BY sort_order", (type,)
+            "SELECT id, name, type, icon, is_default FROM categories WHERE type = ? ORDER BY sort_order", (type,)
         )
     else:
-        cursor = await db.execute("SELECT * FROM categories ORDER BY type, sort_order")
+        cursor = await db.execute("SELECT id, name, type, icon, is_default FROM categories ORDER BY type, sort_order")
     rows = await cursor.fetchall()
     return [dict(r) for r in rows]

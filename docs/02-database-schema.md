@@ -1,5 +1,9 @@
 # Database Schema — WealthTrack
 
+**See also:** [Project Overview](01-project-overview.md) · [Backend API](03-backend-api.md) · [Backend Implementation](04-backend-implementation.md)
+
+
+
 ## Database File
 
 **Path:** `~/.keuangan/finance.db` (existing database, 24KB, 27 transactions)

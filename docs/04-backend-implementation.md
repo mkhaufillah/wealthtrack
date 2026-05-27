@@ -872,6 +872,50 @@ curl -X POST "http://127.0.0.1:8080/api/v1/transactions" \
 curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/api/v1/summaries/daily"
 ```
 
+## Security & Hardening
+
+### JWT Secret Key
+
+The app reads `SECRET_KEY` from `backend/.env`. If the file doesn't exist, it uses a hardcoded default (`change-me-in-production-use-env`) and logs a warning.
+
+**Generate a key on first deploy:**
+```bash
+cd ~/dev/wealthtrack
+python3 -c "import secrets
+f=open('backend/.env','w')
+f.write(f'SECRET_KEY={secrets.token_hex(32)}\nDEBUG=True\nACCESS_TOKEN_EXPIRE_DAYS=30\n')
+f.close()"
+```
+
+The `.env` file is in `.gitignore`. A `.env.example` is checked into the repo as a template.
+
+### Global Error Handler
+
+`backend/app/main.py` registers a catch-all exception handler for 500 errors:
+
+```python
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": {
+                "code": "INTERNAL_ERROR",
+                "message": "An unexpected error occurred",
+            }
+        },
+    )
+```
+
+This ensures unexpected crashes return a consistent JSON response instead of raw tracebacks. FastAPI's built-in `HTTPException` handling is not affected — 400/401/404/409 errors still return their specific messages.
+
+### SQL Best Practices
+
+All queries use **specific column names** instead of `SELECT *`:
+- Only fetch columns that are actually used in the response
+- Reduces memory overhead and prevents accidental data leakage
+- Makes query intent explicit (e.g., login only fetches `id, username, password_hash`)
+
 ## Next Steps After Backend Works
 
 1. Setup nginx reverse proxy (see `docs/07-deployment.md`)

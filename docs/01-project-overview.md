@@ -4,6 +4,17 @@
 
 WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expenses, income, budgets, and generates periodic summaries.
 
+
+## Related Documents
+
+- [Database Schema](02-database-schema.md) — table definitions & seed data
+- [Backend API](03-backend-api.md) — endpoint reference & auth flow
+- [Backend Implementation](04-backend-implementation.md) — step-by-step build guide
+- [Flutter Mobile](05-flutter-mobile.md) — mobile app design & architecture
+- [Hermes Integration](06-hermes-integration.md) — connecting Hermes cron & skill
+- [Deployment](07-deployment.md) — VPS setup, nginx, CI/CD
+
+
 ## Architecture
 
 ```

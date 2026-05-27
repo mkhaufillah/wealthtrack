@@ -46,7 +46,7 @@ async def register(data: UserRegister, db: aiosqlite.Connection = Depends(get_db
 @router.post("/login")
 async def login(data: UserLogin, db: aiosqlite.Connection = Depends(get_db)):
     cursor = await db.execute(
-        "SELECT * FROM users WHERE username = ?", (data.username,)
+        "SELECT id, username, password_hash FROM users WHERE username = ?", (data.username,)
     )
     user = await cursor.fetchone()
     if not user or not verify_password(data.password, user["password_hash"]):

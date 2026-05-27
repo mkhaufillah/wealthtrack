@@ -1,5 +1,10 @@
 # WealthTrack 💰
 
+[![Build APK](https://github.com/mkhaufillah/wealthtrack/actions/workflows/build-apk.yml/badge.svg)](https://github.com/mkhaufillah/wealthtrack/actions/workflows/build-apk.yml)
+[![Deploy Backend](https://github.com/mkhaufillah/wealthtrack/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/mkhaufillah/wealthtrack/actions/workflows/deploy-backend.yml)
+
+
+
 Personal finance tracker — Filla & Nahda.
 
 **Stack:** FastAPI + SQLite + Flutter + Hermes

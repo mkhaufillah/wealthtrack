@@ -31,6 +31,12 @@ jobs:
             cd /home/filla/dev/wealthtrack
             git pull origin main
 
+            echo "→ Ensuring backend/.env exists..."
+            if [ ! -f backend/.env ]; then
+              python3 -c "import secrets; f=open('backend/.env','w'); f.write(f'SECRET_KEY={secrets.token_hex(32)}\\nDEBUG=True\\nACCESS_TOKEN_EXPIRE_DAYS=30\\n')"
+              echo "  ✅ Generated backend/.env with random SECRET_KEY"
+            fi
+
             echo "→ Activating venv & installing deps..."
             source .venv/bin/activate
             /home/filla/.local/bin/uv pip install -q -r backend/requirements.txt
