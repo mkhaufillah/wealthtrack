@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/storage/secure_storage.dart';
+import 'app_providers.dart';
 
 /// Persisted theme preference: 'system', 'light', or 'dark'.
 final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {

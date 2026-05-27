@@ -856,6 +856,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       },
     );
   }
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.textSecondary),
+        const SizedBox(width: 6),
+        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+
+  Widget _buildThemeSelector() {
+    final themeMode = ref.watch(themeModeProvider);
+    final notifier = ref.read(themeModeProvider.notifier);
+    return Card(
+      child: Column(
+        children: [
+          _buildThemeOption(icon: Icons.brightness_auto, label: 'Follow System', value: ThemeMode.system, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.system)),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          _buildThemeOption(icon: Icons.light_mode_outlined, label: 'Light', value: ThemeMode.light, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.light)),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          _buildThemeOption(icon: Icons.dark_mode_outlined, label: 'Dark', value: ThemeMode.dark, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.dark)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeOption({required IconData icon, required String label, required ThemeMode value, required ThemeMode current, required VoidCallback onTap}) {
+    final isSelected = value == current;
+    return ListTile(
+      leading: Icon(icon, color: isSelected ? AppColors.accent : AppColors.textSecondary),
+      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
+      trailing: isSelected ? const Icon(Icons.check, color: AppColors.accent, size: 20) : null,
+      onTap: onTap,
+    );
+  }
 }
 
 // ── Delete confirmation dialog ──
@@ -921,39 +956,4 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
     );
   }
 
-  Widget _buildSectionHeader(IconData icon, String title) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppColors.textSecondary),
-        const SizedBox(width: 6),
-        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
-  Widget _buildThemeSelector() {
-    final themeMode = ref.watch(themeModeProvider);
-    final notifier = ref.read(themeModeProvider.notifier);
-    return Card(
-      child: Column(
-        children: [
-          _buildThemeOption(icon: Icons.brightness_auto, label: 'Follow System', value: ThemeMode.system, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.system)),
-          const Divider(height: 1, indent: 16, endIndent: 16),
-          _buildThemeOption(icon: Icons.light_mode_outlined, label: 'Light', value: ThemeMode.light, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.light)),
-          const Divider(height: 1, indent: 16, endIndent: 16),
-          _buildThemeOption(icon: Icons.dark_mode_outlined, label: 'Dark', value: ThemeMode.dark, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.dark)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildThemeOption({required IconData icon, required String label, required ThemeMode value, required ThemeMode current, required VoidCallback onTap}) {
-    final isSelected = value == current;
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? AppColors.accent : AppColors.textSecondary),
-      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
-      trailing: isSelected ? const Icon(Icons.check, color: AppColors.accent, size: 20) : null,
-      onTap: onTap,
-    );
-  }
 }
