@@ -8,7 +8,7 @@ class TransactionCreate(BaseModel):
     amount: int = Field(gt=0)
     description: str = Field(default="", max_length=255)
     note: str = Field(default="", max_length=500)
-    date: str  # YYYY-MM-DD
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")  # YYYY-MM-DD
 
 
 class TransactionUpdate(BaseModel):

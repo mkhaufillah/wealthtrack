@@ -25,11 +25,13 @@ async def register(data: UserRegister, db: aiosqlite.Connection = Depends(get_db
         (data.username, data.display_name, pw_hash),
     )
     await db.commit()
-    return {
-        "id": cursor.lastrowid,
-        "username": data.username,
-        "display_name": data.display_name,
-    }
+
+    cursor = await db.execute(
+        "SELECT id, username, display_name, role, created_at FROM users WHERE id = ?",
+        (cursor.lastrowid,),
+    )
+    user = await cursor.fetchone()
+    return dict(user)
 
 
 @router.post("/login")

@@ -22,7 +22,7 @@ cd backend
 uv venv
 source .venv/bin/activate
 uv pip install -r requirements.txt
-uv run python -m app.seed       # Seed users & categories
+uv run python -m backend.app.migrate_db       # Create tables & seed users
 uvicorn app.main:app --reload   # Run dev server
 
 # At http://localhost:8080/docs
@@ -60,7 +60,7 @@ Each `.md` file in `docs/` is designed for an AI agent to execute:
 
 ## Status
 
-- [ ] P1 — Core Backend (FastAPI + SQLite + Auth)
+- [x] P1 — Core Backend (FastAPI + SQLite + Auth) ✅
 - [ ] P2 — Hermes Integration (cron + chat input)
 - [ ] P3 — Flutter Mobile MVP
 - [ ] P4 — Charts, Budgets, HTTPS, Polish

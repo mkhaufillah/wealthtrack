@@ -113,7 +113,7 @@ async def create_transaction(
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
-        "SELECT id, name FROM categories WHERE id = ?", (data.category_id,)
+        "SELECT id, name, icon FROM categories WHERE id = ?", (data.category_id,)
     )
     cat = await cursor.fetchone()
     if not cat:
@@ -138,7 +138,7 @@ async def create_transaction(
     new_id = cursor.lastrowid
     cursor = await db.execute("SELECT * FROM transactions WHERE id = ?", (new_id,))
     row = await cursor.fetchone()
-    return _format_txn(row, cat["name"], "", current_user["username"])
+    return _format_txn(row, cat["name"], cat["icon"], current_user["username"])
 
 
 @router.get("/{txn_id}")
@@ -159,7 +159,7 @@ async def get_transaction(
             "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
         )
     ).fetchone()
-    return _format_txn(row, c["name"] if c else "", "", current_user["username"])
+    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", current_user["username"])
 
 
 @router.put("/{txn_id}")
@@ -209,7 +209,7 @@ async def update_transaction(
             "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
         )
     ).fetchone()
-    return _format_txn(row, c["name"] if c else "", "", current_user["username"])
+    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", current_user["username"])
 
 
 @router.delete("/{txn_id}", status_code=204)
