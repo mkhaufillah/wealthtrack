@@ -121,7 +121,7 @@ def create_test_db(db_path: str):
 
 # ─── Fixtures ──────────────────────────────────────────────────
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def test_db_path() -> str:
     """Create temp database file, seed it, yield path, then clean up."""
     tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
@@ -133,7 +133,7 @@ def test_db_path() -> str:
 
 @pytest_asyncio.fixture
 async def db(test_db_path: str) -> AsyncGenerator[aiosqlite.Connection, None]:
-    """Provide a test database connection (per-test)."""
+    """Provide a test database connection."""
     conn = await aiosqlite.connect(test_db_path)
     conn.row_factory = aiosqlite.Row
     await conn.execute("PRAGMA journal_mode=WAL;")

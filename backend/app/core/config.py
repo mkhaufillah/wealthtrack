@@ -1,8 +1,14 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
     APP_NAME: str = "WealthTrack API"
     VERSION: str = "0.1.0"
     DEBUG: bool = True
@@ -15,11 +21,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_DAYS: int = 30
 
     CORS_ORIGINS: list[str] = ["*"]
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        extra = "ignore"
 
 
 settings = Settings()

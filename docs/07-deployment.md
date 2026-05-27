@@ -175,6 +175,23 @@ sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 ```
 
+|## Step 4.5: Environment Variables
+
+Before starting the service, **create `backend/.env`** with a random SECRET_KEY:
+
+```bash
+cd ~/dev/wealthtrack
+python3 -c "import secrets; f=open('backend/.env','w'); f.write(f'SECRET_KEY={secrets.token_hex(32)}\nDEBUG=True\nACCESS_TOKEN_EXPIRE_DAYS=30\n')"
+```
+
+The CI deploy workflow (`deploy-backend.yml`) auto-generates `backend/.env` if it doesn't exist on the server. For manual/local deployment, run the one-liner above.
+
+| Variable | Description | Default |
+|----------|------------|---------|
+| `SECRET_KEY` | JWT signing key (must be unique per deployment) | `change-me-in-production-use-env` (app warns) |
+| `DEBUG` | FastAPI debug mode | `True` |
+| `ACCESS_TOKEN_EXPIRE_DAYS` | JWT token lifetime in days | `30` |
+
 ## Step 5: Deploy Flow (Initial)
 
 ```bash

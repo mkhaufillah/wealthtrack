@@ -76,8 +76,10 @@ async def list_transactions(
     offset = (page - 1) * per_page
     cursor = await db.execute(
         f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
-                   t.description, t.note, t.date, t.user_id, t.created_at
+                   t.description, t.note, t.date, t.user_id, t.created_at,
+                   c.name AS cat_name, c.icon AS cat_icon
             FROM transactions t
+            LEFT JOIN categories c ON t.category_id = c.id
             WHERE {' AND '.join(where)}
             ORDER BY {order}
             LIMIT ? OFFSET ?""",
@@ -85,17 +87,7 @@ async def list_transactions(
     )
     rows = await cursor.fetchall()
 
-    data = []
-    for r in rows:
-        c = await (
-            await db.execute(
-                "SELECT id, name, icon FROM categories WHERE id = ?", (r["category_id"],)
-            )
-        ).fetchone()
-        if c:
-            data.append(_format_txn(r, c["name"], c["icon"]))
-        else:
-            data.append(_format_txn(r, r.get("category_name", "")))
+    data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "") for r in rows]
 
     return PaginatedTransactions(
         data=data,
