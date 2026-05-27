@@ -8,8 +8,10 @@ class ReportState {
   final String? error;
   final MonthlyReport? monthly;
   final HouseholdReport? household;
-  final String selectedMonth; // "2026-05" format
+  final String selectedMonth;
   final List<Map<String, dynamic>> householdTransactions;
+  final List<MonthlyTrend> trend;
+  final bool isTrendLoading;
 
   const ReportState({
     this.isLoading = false,
@@ -18,6 +20,8 @@ class ReportState {
     this.household,
     this.selectedMonth = '',
     this.householdTransactions = const [],
+    this.trend = const [],
+    this.isTrendLoading = false,
   });
 
   ReportState copyWith({
@@ -27,6 +31,8 @@ class ReportState {
     HouseholdReport? household,
     String? selectedMonth,
     List<Map<String, dynamic>>? householdTransactions,
+    List<MonthlyTrend>? trend,
+    bool? isTrendLoading,
   }) =>
       ReportState(
         isLoading: isLoading ?? this.isLoading,
@@ -35,6 +41,8 @@ class ReportState {
         household: household ?? this.household,
         selectedMonth: selectedMonth ?? this.selectedMonth,
         householdTransactions: householdTransactions ?? this.householdTransactions,
+        trend: trend ?? this.trend,
+        isTrendLoading: isTrendLoading ?? this.isTrendLoading,
       );
 }
 
@@ -76,6 +84,16 @@ class ReportNotifier extends StateNotifier<ReportState> {
       state = state.copyWith(householdTransactions: data);
     } catch (_) {
       // Transactions are optional
+    }
+  }
+
+  Future<void> loadTrend({required String monthFrom, required String monthTo}) async {
+    state = state.copyWith(isTrendLoading: true);
+    try {
+      final trend = await _repo.getMonthlyTrend(monthFrom: monthFrom, monthTo: monthTo);
+      state = state.copyWith(trend: trend, isTrendLoading: false);
+    } catch (_) {
+      state = state.copyWith(isTrendLoading: false);
     }
   }
 }

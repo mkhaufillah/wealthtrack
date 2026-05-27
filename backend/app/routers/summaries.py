@@ -239,12 +239,32 @@ async def household_summary(
 @router.get("/monthly")
 async def monthly_summary(
     month: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
+    month_from: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
+    month_to: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Monthly summary for a given month (YYYY-MM). Default: current month."""
+    """Monthly summary for a given month (YYYY-MM). Default: current month.
+
+    With month_from + month_to, returns an array of monthly summaries
+    (multi-month range) for trend charts."""
     today = date.today()
+
+    # Multi-month range mode
+    m_from = month_from if isinstance(month_from, str) else None
+    m_to = month_to if isinstance(month_to, str) else None
+    if m_from or m_to:
+        m_from = m_from or "2026-01"
+        m_to = m_to or today.strftime("%Y-%m")
+        return await _monthly_range(m_from, m_to, db, current_user)
+
+    # Single month mode (backward compatible)
     m = month or today.strftime("%Y-%m")
+    return await _single_month(m, today, db, current_user)
+
+
+async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_user: dict) -> dict:
+    """Monthly summary for a single month (YYYY-MM)."""
     d_from = f"{m}-01"
     if m == today.strftime("%Y-%m"):
         d_to = today.isoformat()
@@ -311,6 +331,56 @@ async def monthly_summary(
         "categories": categories,
         "daily_snapshot": daily_snapshot,
     }
+
+
+async def _monthly_range(m_from: str, m_to: str, db: aiosqlite.Connection, current_user: dict) -> list:
+    """Multi-month summary range. Returns list of {month, income, expense, balance}."""
+    import calendar
+
+    # Generate all months between m_from and m_to
+    y1, m1 = map(int, m_from.split("-"))
+    y2, m2 = map(int, m_to.split("-"))
+    months = []
+    y, mo = y1, m1
+    while (y < y2) or (y == y2 and mo <= m2):
+        months.append(f"{y}-{mo:02d}")
+        mo += 1
+        if mo > 12:
+            mo = 1
+            y += 1
+
+    results = []
+    for m in months:
+        d_from = f"{m}-01"
+        _, days = calendar.monthrange(*map(int, m.split("-")))
+        d_to = f"{m}-{days}"
+
+        cursor = await db.execute(
+            """SELECT t.type, COALESCE(SUM(t.amount), 0) as total
+               FROM transactions t
+               WHERE t.user_id = ?
+                 AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+                 AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+               GROUP BY t.type""",
+            (current_user["id"], d_from, d_to),
+        )
+        rows = await cursor.fetchall()
+        income = 0
+        expense = 0
+        for r in rows:
+            if r["type"] == "income":
+                income = r["total"]
+            else:
+                expense = r["total"]
+
+        results.append({
+            "month": m,
+            "total_income": int(income),
+            "total_expense": int(expense),
+            "balance": int(income - expense),
+        })
+
+    return results
 
 
 @router.get("/current-month")

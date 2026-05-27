@@ -33,4 +33,15 @@ class ReportRepository {
     });
     return res.data;
   }
+
+  Future<List<MonthlyTrend>> getMonthlyTrend({
+    required String monthFrom,
+    required String monthTo,
+  }) async {
+    final res = await _client.get('/summaries/monthly', queryParams: {
+      'month_from': monthFrom,
+      'month_to': monthTo,
+    });
+    return (res.data as List).map((e) => MonthlyTrend.fromJson(e as Map<String, dynamic>)).toList();
+  }
 }

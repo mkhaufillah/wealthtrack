@@ -137,3 +137,25 @@ class HouseholdReport {
             [],
       );
 }
+
+
+class MonthlyTrend {
+  final String month;
+  final int totalIncome;
+  final int totalExpense;
+  final int balance;
+
+  const MonthlyTrend({
+    required this.month,
+    required this.totalIncome,
+    required this.totalExpense,
+    required this.balance,
+  });
+
+  factory MonthlyTrend.fromJson(Map<String, dynamic> json) => MonthlyTrend(
+        month: json['month'] ?? '',
+        totalIncome: json['total_income'] ?? 0,
+        totalExpense: json['total_expense'] ?? 0,
+        balance: json['balance'] ?? 0,
+      );
+}

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'widgets/charts_section.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
@@ -38,6 +40,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
     ref.read(reportProvider.notifier).load(monthStr);
     ref.read(reportProvider.notifier).loadHousehold(dateFrom: firstDay, dateTo: lastDay);
+
+    // Load 6-month trend for charts
+    final trendFrom = DateFormat('yyyy-MM').format(
+      DateTime(_currentMonth.year, _currentMonth.month - 5, 1),
+    );
+    ref.read(reportProvider.notifier).loadTrend(monthFrom: trendFrom, monthTo: monthStr);
   }
 
   void _prevMonth() {
@@ -125,6 +133,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           _buildSectionHeader('Category Breakdown', Icons.pie_chart_outline),
           const SizedBox(height: 8),
           _buildCategoryBreakdown(report.categories, report.totalExpense),
+          const SizedBox(height: 16),
+          buildPieChartSection(report.categories),
+          const SizedBox(height: 16),
+          _buildSectionHeader('Category Comparison', Icons.bar_chart_outlined),
+          const SizedBox(height: 8),
+          buildBarChartSection(report.categories),
+          const SizedBox(height: 20),
+        ],
+        if (state.trend.length >= 2) ...[
+          _buildSectionHeader('Monthly Trend', Icons.trending_up),
+          const SizedBox(height: 8),
+          buildTrendChartSection(state.trend),
           const SizedBox(height: 20),
         ],
         if (report.dailySnapshot.isNotEmpty) ...[
@@ -670,3 +690,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
 }
+
+// ─── Chart Widgets ──────────────────────────────────────────
+
+final List<Color> chartColors = [
+  Colors.orange, Colors.blue, Colors.purple, Colors.red, Colors.teal,
+  Colors.green, Colors.pink, Colors.indigo, Colors.amber, Colors.cyan,
+];
