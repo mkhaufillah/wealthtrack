@@ -7,14 +7,14 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────────────┐
 │                    VPS (self-hosted)                  │
 │                                                       │
-│  ┌──────────┐    ┌─────────────┐    ┌─────────────┐  │
-│  │  Hermes   │    │   FastAPI    │    │   SQLite     │  │
-│  │ (cron +   │───►│  (port 8080) │───►│ finance.db │  │
-│  │  agent)   │    │             │    │             │  │
-│  └──────────┘    └──────┬──────┘    └─────────────┘  │
+│  ┌──────────┐    ┌─────────────┐    ┌─────────────┐   │
+│  │  Hermes  │    │  FastAPI    │    │   SQLite    │   │
+│  │ (cron +  │───►│ (port 8080) │───►│ finance.db  │   │
+│  │  agent)  │    │             │    │             │   │
+│  └──────────┘    └──────┬──────┘    └─────────────┘   │
 │                         │                             │
 │                    HTTP/JSON                          │
 │                         │                             │
@@ -22,10 +22,10 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
                           │
                           ▼
                   ┌──────────────┐
-                  │    Flutter    │
-                  │    Mobile     │
-                  │  (Android +   │
-                  │   iOS later)  │
+                  │    Flutter   │
+                  │    Mobile    │
+                  │  (Android +  │
+                  │   iOS later) │
                   └──────────────┘
 ```
 
