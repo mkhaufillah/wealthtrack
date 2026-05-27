@@ -47,7 +47,7 @@
 
 ## Step 1: Systemd Service for FastAPI
 
-Create `/etc/systemd/system/wealthtrack.service`:
+Config file is at `deploy/wealthtrack.service`:
 
 ```ini
 [Unit]
@@ -57,7 +57,7 @@ After=network.target
 [Service]
 Type=simple
 User=filla
-WorkingDirectory=/home/filla/dev/wealthtrack
+WorkingDirectory=/home/filla/dev/wealthtrack/backend
 Environment=PATH=/home/filla/.local/bin:/home/filla/dev/wealthtrack/.venv/bin
 ExecStart=/home/filla/dev/wealthtrack/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8080
 Restart=on-failure
@@ -69,9 +69,10 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
-Enable and start:
+Install and start:
 
 ```bash
+sudo cp deploy/wealthtrack.service /etc/systemd/system/wealthtrack.service
 sudo systemctl daemon-reload
 sudo systemctl enable wealthtrack
 sudo systemctl start wealthtrack
@@ -89,7 +90,7 @@ sudo apt install -y nginx certbot python3-certbot-nginx
 
 ### Configure Virtual Host
 
-Create `/etc/nginx/sites-available/wealthtrack`:
+Config file is at `deploy/wealthtrack.nginx`:
 
 ```nginx
 server {
@@ -137,6 +138,7 @@ server {
 Enable site:
 
 ```bash
+sudo cp deploy/wealthtrack.nginx /etc/nginx/sites-available/wealthtrack
 sudo ln -s /etc/nginx/sites-available/wealthtrack /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default  # optional: disable default site
 sudo nginx -t  # test config
@@ -146,6 +148,9 @@ sudo systemctl reload nginx
 ## Step 3: SSL Certificate (Let's Encrypt)
 
 Run **AFTER** DNS `wealthtrack.filla.id` points to the VPS IP.
+
+> 💡 **One-command deploy:** `bash deploy/deploy.sh` — does steps 1-6 automatically.
+> Or follow each step manually below.
 
 ```bash
 sudo certbot --nginx -d wealthtrack.filla.id --non-interactive --agree-tos -m khaufillahmohammad@gmail.com
