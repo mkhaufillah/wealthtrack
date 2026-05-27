@@ -18,7 +18,7 @@ Widget buildAddTxnApp() {
     overrides: [
       transactionListProvider.overrideWithProvider(
         StateNotifierProvider<TransactionListNotifier, TransactionListState>((ref) {
-          return TransactionListNotifier(_MockRepo());
+          return TransactionListNotifier(_MockRepo(), MockApiClient());
         }),
       ),
       apiClientProvider.overrideWithProvider(
@@ -108,7 +108,7 @@ void main() {
           overrides: [
             transactionListProvider.overrideWithProvider(
               StateNotifierProvider<TransactionListNotifier, TransactionListState>((ref) {
-                return TransactionListNotifier(_MockRepo());
+                return TransactionListNotifier(_MockRepo(), MockApiClient());
               }),
             ),
             apiClientProvider.overrideWithProvider(
