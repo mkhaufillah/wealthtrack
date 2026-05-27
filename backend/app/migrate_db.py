@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 import secrets
 import string
 
-from app.core.config import settings
+from backend.app.core.config import settings
 
 DB_PATH = settings.DB_PATH
 PWD_CTX = CryptContext(schemes=["bcrypt"], deprecated="auto")
