@@ -86,7 +86,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         ref.read(homeRefreshProvider.notifier).state++;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('✅ Transaction recorded', style: TextStyle(color: Colors.white)),
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text('Transaction recorded', style: TextStyle(color: Colors.white)),
+              ],
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -100,7 +106,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   void _showError(String msg) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ $msg', style: const TextStyle(color: Colors.white)),
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(msg, style: const TextStyle(color: Colors.white)),
+            ],
+          ),
           backgroundColor: AppColors.highlight,
         ),
       );
