@@ -18,7 +18,7 @@
                           |        ▼                                                      │
                           |  ┌─────────────────┐                                          │
                           |  │  ~/.keuangan/   │                                          │
-                          |  │  finance.db     │◄──── Hermes cron also read this           │
+                          |  │  finance.db     │◄──── Hermes cron also read this          │
                           |  └─────────────────┘                                          │
                           |                                                               │
                           |  ┌─────────────────────────────────────┐                      │
