@@ -22,4 +22,10 @@ class SecureStorage {
   Future<void> clearAll() async {
     await _storage.deleteAll();
   }
+
+  Future<void> saveSecure(String key, String value) =>
+      _storage.write(key: key, value: value);
+
+  Future<String?> getSecure(String key) =>
+      _storage.read(key: key);
 }

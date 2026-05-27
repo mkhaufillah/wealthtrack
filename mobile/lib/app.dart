@@ -10,6 +10,7 @@ import 'features/transactions/ui/transaction_list_screen.dart';
 import 'features/transactions/ui/add_transaction_screen.dart';
 import 'features/profile/ui/profile_screen.dart';
 import 'features/reports/ui/reports_screen.dart';
+import 'shared/providers/theme_provider.dart';
 import 'shared/widgets/app_scaffold.dart';
 
 final _isAuthenticatedProvider = Provider<bool>((ref) {
@@ -82,9 +83,12 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
     }
 
     final router = ref.watch(goRouterProvider);
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp.router(
       title: 'WealthTrack',
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

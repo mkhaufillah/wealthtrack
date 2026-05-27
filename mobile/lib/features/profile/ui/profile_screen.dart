@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../shared/providers/theme_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../data/household_repository.dart';
 
@@ -393,7 +394,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
 
                 const SizedBox(height: 8),
-
                 _buildMenuItem(
                   icon: Icons.delete_forever,
                   title: 'Delete Account',
@@ -401,6 +401,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onTap: _deleteAccount,
                 ),
 
+                const SizedBox(height: 24),
+                _buildSectionHeader(Icons.palette_outlined, 'Appearance'),
+                const SizedBox(height: 8),
+                _buildThemeSelector(),
                 const SizedBox(height: 32),
                 Center(
                   child: Text(
@@ -914,6 +918,42 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
           child: const Text('Delete Permanently'),
         ),
       ],
+    );
+  }
+
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.textSecondary),
+        const SizedBox(width: 6),
+        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+
+  Widget _buildThemeSelector() {
+    final themeMode = ref.watch(themeModeProvider);
+    final notifier = ref.read(themeModeProvider.notifier);
+    return Card(
+      child: Column(
+        children: [
+          _buildThemeOption(icon: Icons.brightness_auto, label: 'Follow System', value: ThemeMode.system, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.system)),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          _buildThemeOption(icon: Icons.light_mode_outlined, label: 'Light', value: ThemeMode.light, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.light)),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          _buildThemeOption(icon: Icons.dark_mode_outlined, label: 'Dark', value: ThemeMode.dark, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.dark)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeOption({required IconData icon, required String label, required ThemeMode value, required ThemeMode current, required VoidCallback onTap}) {
+    final isSelected = value == current;
+    return ListTile(
+      leading: Icon(icon, color: isSelected ? AppColors.accent : AppColors.textSecondary),
+      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
+      trailing: isSelected ? const Icon(Icons.check, color: AppColors.accent, size: 20) : null,
+      onTap: onTap,
     );
   }
 }
