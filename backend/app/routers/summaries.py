@@ -72,3 +72,93 @@ async def daily_summary(
         "balance": int(income - expense),
         "by_category": categories,
     }
+
+
+@router.get("/household")
+async def household_summary(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Household-wide summary across ALL users. Requires authentication."""
+    today = date.today().isoformat()
+    d_from = date_from or today
+    d_to = date_to or today
+
+    # Combined totals (all users)
+    cursor = await db.execute(
+        """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
+           FROM transactions t
+           WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+           GROUP BY t.type""",
+        (d_from, d_to),
+    )
+    rows = await cursor.fetchall()
+    income = 0
+    expense = 0
+    for r in rows:
+        if r["type"] == "income":
+            income = r["total"]
+        else:
+            expense = r["total"]
+
+    # By category (all users)
+    cursor = await db.execute(
+        """SELECT c.id, c.name, c.icon, SUM(t.amount) as total, COUNT(*) as count
+           FROM transactions t
+           JOIN categories c ON t.category_id = c.id
+           WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+             AND t.type = 'expense'
+           GROUP BY c.id ORDER BY total DESC""",
+        (d_from, d_to),
+    )
+    by_cat = await cursor.fetchall()
+    categories = []
+    for r in by_cat:
+        pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
+        categories.append(
+            {
+                "category_id": r["id"],
+                "category_name": r["name"],
+                "icon": r["icon"] or "",
+                "total": int(r["total"]),
+                "count": r["count"],
+                "percentage": pct,
+            }
+        )
+
+    # By user
+    cursor = await db.execute(
+        """SELECT t.user_id, u.display_name,
+                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense,
+                  COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income
+           FROM transactions t
+           JOIN users u ON t.user_id = u.id
+           WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+           GROUP BY t.user_id ORDER BY total_expense DESC""",
+        (d_from, d_to),
+    )
+    by_user = await cursor.fetchall()
+    users = [
+        {
+            "user_id": r["user_id"],
+            "display_name": r["display_name"],
+            "total_expense": int(r["total_expense"]),
+            "total_income": int(r["total_income"]),
+        }
+        for r in by_user
+    ]
+
+    return {
+        "date_from": d_from,
+        "date_to": d_to,
+        "total_income": int(income),
+        "total_expense": int(expense),
+        "balance": int(income - expense),
+        "by_category": categories,
+        "by_user": users,
+    }

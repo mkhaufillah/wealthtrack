@@ -225,6 +225,47 @@ Daily summary for a date range.
 }
 ```
 
+### GET `/api/v1/summaries/household`
+
+Household-wide summary across **all users**. Still requires authentication (logged-in user), but returns combined data.
+
+**Query params:** `date_from`, `date_to` (default: today)
+
+```json
+// Response 200
+{
+  "date_from": "2026-05-01",
+  "date_to": "2026-05-26",
+  "total_income": 15000000,
+  "total_expense": 8500000,
+  "balance": 6500000,
+  "by_category": [
+    {
+      "category_id": 1,
+      "category_name": "Makan & Minum",
+      "icon": "🍽️",
+      "total": 1200000,
+      "count": 24,
+      "percentage": 36.9
+    }
+  ],
+  "by_user": [
+    {
+      "user_id": 1,
+      "display_name": "Filla",
+      "total_expense": 5000000,
+      "total_income": 10000000
+    },
+    {
+      "user_id": 2,
+      "display_name": "Nahda",
+      "total_expense": 3500000,
+      "total_income": 5000000
+    }
+  ]
+}
+```
+
 ### GET `/api/v1/summaries/monthly`
 
 Monthly summary for a given month.
