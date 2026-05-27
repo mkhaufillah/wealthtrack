@@ -1,5 +1,7 @@
 # Backend Implementation — Step by Step
 
+**See also:** [Project Overview](01-project-overview.md) · [Database Schema](02-database-schema.md) · [Backend API](03-backend-api.md) · [P4 Plan](08-p4-plan.md)
+
 This doc is designed for an AI agent (Claude Code, Codex, etc.) to execute sequentially.
 
 ## Prerequisites

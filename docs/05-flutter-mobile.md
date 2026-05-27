@@ -1,6 +1,6 @@
 # Flutter Mobile App — Design & Implementation Plan
 
-**See also:** [Backend API](03-backend-api.md) · [Project Overview](01-project-overview.md) · [Deployment](07-deployment.md)
+**See also:** [Backend API](03-backend-api.md) · [Project Overview](01-project-overview.md) · [Deployment](07-deployment.md) · [P4 Plan](08-p4-plan.md)
 
 
 

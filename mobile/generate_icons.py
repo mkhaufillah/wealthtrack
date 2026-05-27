@@ -56,8 +56,8 @@ IOS_ICONS = [
 ]
 
 
-def load_and_prepare(source_path):
-    """Load source image, crop to content area, pad to square."""
+def load_and_prepare(source_path, padding=0.12):
+    """Load source image, crop to content area, pad to square with breathing room."""
     img = Image.open(source_path).convert("RGBA")
     w, h = img.size
 
@@ -80,14 +80,20 @@ def load_and_prepare(source_path):
 
     # Crop to content
     cropped = img.crop((min_x, min_y, max_x + 1, max_y + 1))
-
-    # Pad to square (center content)
     cw, ch = cropped.size
-    side = max(cw, ch)
+
+    # Scale down to add padding (breathing room) around the content
+    scale_factor = 1 - 2 * padding
+    scaled_cw = max(1, int(cw * scale_factor))
+    scaled_ch = max(1, int(ch * scale_factor))
+    scaled = cropped.resize((scaled_cw, scaled_ch), Image.Resampling.LANCZOS)
+
+    # Pad to square (center scaled content)
+    side = max(cw, ch)  # keep original canvas size (which was tight)
     square = Image.new("RGBA", (side, side), (255, 255, 255, 255))
-    x_offset = (side - cw) // 2
-    y_offset = (side - ch) // 2
-    square.paste(cropped, (x_offset, y_offset), cropped)
+    x_offset = (side - scaled_cw) // 2
+    y_offset = (side - scaled_ch) // 2
+    square.paste(scaled, (x_offset, y_offset), scaled)
 
     return square
 

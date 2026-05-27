@@ -1,5 +1,7 @@
 # Hermes Integration — Verification
 
+**See also:** [Backend API](03-backend-api.md) · [Project Overview](01-project-overview.md) · [Deployment](07-deployment.md) · [P4 Plan](08-p4-plan.md)
+
 Hermes is already integrated with WealthTrack automatically. No changes needed.
 
 ## Running Automatically

@@ -14,6 +14,22 @@ echo "[1/4] Creating Flutter project structure..."
 flutter create --project-name wealthtrack --org com.filla --platforms android,ios .
 echo "  ✓ Project structure created"
 
+# Fix app name casing: flutter create generates "wealthtrack" on launcher,
+# patch it to "WealthTrack" (proper casing)
+echo "  Fixing app display name to 'WealthTrack'..."
+# Android
+ANDROID_MANIFEST="android/app/src/main/AndroidManifest.xml"
+if [ -f "$ANDROID_MANIFEST" ]; then
+    sed -i 's/android:label="wealthtrack"/android:label="WealthTrack"/g' "$ANDROID_MANIFEST"
+    echo "  ✓ Android label → WealthTrack"
+fi
+# iOS
+IOS_PLIST="ios/Runner/Info.plist"
+if [ -f "$IOS_PLIST" ]; then
+    sed -i 's|<string>wealthtrack</string>|<string>WealthTrack</string>|g' "$IOS_PLIST"
+    echo "  ✓ iOS bundle name → WealthTrack"
+fi
+
 # Step 2: Apply app icon
 echo ""
 echo "[2/4] Applying app icon..."

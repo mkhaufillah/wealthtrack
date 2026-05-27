@@ -1,5 +1,7 @@
 # P4 Plan — Revised
 
+**See also:** [Project Overview](01-project-overview.md) · [Backend API](03-backend-api.md) · [Flutter Mobile](05-flutter-mobile.md)
+
 **Based on discussion 2026-05-27.** Updated from original P4 scope.
 
 ## Priority Order
