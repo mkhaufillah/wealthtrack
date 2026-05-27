@@ -31,6 +31,8 @@ async def register(data: UserRegister, db: aiosqlite.Connection = Depends(get_db
         (cursor.lastrowid,),
     )
     user = await cursor.fetchone()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     return dict(user)
 
 
@@ -59,4 +61,6 @@ async def me(
         (current_user["id"],),
     )
     user = await cursor.fetchone()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     return dict(user)
