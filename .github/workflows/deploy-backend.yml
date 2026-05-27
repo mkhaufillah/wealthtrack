@@ -39,6 +39,6 @@ jobs:
             /home/filla/.local/bin/uv run python -m backend.app.migrate_db
 
             echo "→ Restarting service..."
-            sudo systemctl restart wealthtrack
+            sudo /usr/bin/systemctl restart wealthtrack
 
             echo "✅ Deploy complete"
