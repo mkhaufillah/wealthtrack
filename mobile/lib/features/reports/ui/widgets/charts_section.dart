@@ -162,6 +162,7 @@ Widget buildTrendChartSection(List<MonthlyTrend> trend) {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
+              interval: 1,
               getTitlesWidget: (value, meta) {
                 final idx = value.toInt();
                 if (idx < 0 || idx >= labels.length) return const SizedBox.shrink();
