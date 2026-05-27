@@ -72,8 +72,8 @@ void main() {
       await tester.pumpWidget(buildLoginApp());
       await tester.tap(find.text('Login'));
       await tester.pumpAndSettle();
-      expect(find.text('Username is required'), findsOneWidget);
-      expect(find.text('Password is required'), findsOneWidget);
+      expect(find.text('Min 3 characters'), findsOneWidget);
+      expect(find.text('Min 6 characters'), findsOneWidget);
     });
   });
 
