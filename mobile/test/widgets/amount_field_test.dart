@@ -17,13 +17,15 @@ void main() {
   group('AmountField', () {
     testWidgets('shows Rp prefix', (tester) async {
       await tester.pumpWidget(buildAmountField());
-      // Should show 'Rp 0' hint when empty and unfocused
-      expect(find.text('Rp 0'), findsOneWidget);
+      // prefixText='Rp ' renders as a separate Text widget
+      expect(find.text('Rp ', skipOffstage: false), findsOneWidget);
+      // hintText='0' renders separately when empty and unfocused
+      expect(find.text('0'), findsOneWidget);
     });
 
     testWidgets('shows hint text 0 when empty and unfocused', (tester) async {
       await tester.pumpWidget(buildAmountField());
-      expect(find.text('Rp 0'), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
     });
 
     testWidgets('hides hint 0 when field gains focus', (tester) async {
@@ -32,7 +34,8 @@ void main() {
       await tester.tap(find.byType(TextField));
       await tester.pump();
       // '0' hint should disappear, only 'Rp ' prefix remains
-      expect(find.text('Rp 0'), findsNothing);
+      expect(find.text('0'), findsNothing);
+      expect(find.text('Rp ', skipOffstage: false), findsOneWidget);
     });
 
     testWidgets('hides hint 0 when text is entered', (tester) async {
@@ -42,9 +45,9 @@ void main() {
       await tester.enterText(find.byType(TextField), '50000');
       await tester.pump();
       // '0' hint should not appear since there's text
-      expect(find.text('Rp 0'), findsNothing);
-      // The typed value should be shown (with Rp prefix visible)
-      expect(find.textContaining('Rp'), findsOneWidget);
+      expect(find.text('0'), findsNothing);
+      // The typed value should be shown (with prefix still visible)
+      expect(find.text('Rp ', skipOffstage: false), findsOneWidget);
     });
 
     testWidgets('shows hint 0 again when unfocused and empty', (tester) async {
@@ -59,13 +62,13 @@ void main() {
       // Focus the field
       await tester.tap(find.byType(TextField));
       await tester.pump();
-      expect(find.text('Rp 0'), findsNothing);
+      expect(find.text('0'), findsNothing);
 
       // Unfocus by tapping elsewhere
       await tester.tapAt(const Offset(0, 0));
       await tester.pump();
       // Since still empty, hint should reappear
-      expect(find.text('Rp 0'), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
     });
 
     testWidgets('accepts numeric input', (tester) async {
