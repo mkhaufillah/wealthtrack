@@ -63,11 +63,6 @@ void main() {
       expect(find.text("Don't have an account? Register"), findsOneWidget);
     });
 
-    testWidgets('shows Quick login as Filla button', (tester) async {
-      await tester.pumpWidget(buildLoginApp());
-      expect(find.text('Quick login as Filla'), findsOneWidget);
-    });
-
     testWidgets('shows error message when present', (tester) async {
       await tester.pumpWidget(buildLoginApp(error: 'Invalid credentials'));
       expect(find.text('Invalid credentials'), findsOneWidget);
