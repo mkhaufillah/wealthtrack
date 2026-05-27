@@ -117,7 +117,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Widget _buildContent(ReportState state) {
     final report = state.monthly!;
-    ListView children = [
+    final children = [
         _buildSummaryCards(report),
         const SizedBox(height: 20),
         if (report.categories.isNotEmpty) ...[
@@ -527,7 +527,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         );
       }).toList(),
-    );
+      ),
     );
   }
 
