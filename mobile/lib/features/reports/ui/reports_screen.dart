@@ -139,11 +139,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           const SizedBox(height: 8),
           _buildDailySnapshot(report.dailySnapshot),
         ],
-        if (state.householdTransactions.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          _buildSectionHeader('All Household Transactions', Icons.receipt_long),
+        if (state.household != null && state.household!.byCategory.isNotEmpty && state.household!.byUser.length > 1) ...[
+          _buildSectionHeader('Household Category Breakdown', Icons.pie_chart_outline),
           const SizedBox(height: 8),
-          _buildHouseholdTransactions(state.householdTransactions),
+          _buildHouseholdCategoryBreakdown(state.household!.byCategory, state.household!.totalExpense),
+          const SizedBox(height: 20),
+        ],
+        if (state.householdTransactions.isNotEmpty) ...[
+          _buildSectionHeader('Household Daily Breakdown', Icons.calendar_view_day),
+          const SizedBox(height: 8),
+          _buildHouseholdDailyBreakdown(state.householdTransactions),
         ],
       ],
     );
@@ -445,78 +450,207 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildHouseholdTransactions(List<Map<String, dynamic>> txns) {
-    return Column(
-      children: txns.take(20).map((txn) {
-        final amount = txn['amount'] ?? 0;
-        final isExpense = txn['type'] == 'expense';
-        final user = txn['user'] as Map<String, dynamic>? ?? {};
-        final userName = user['display_name'] as String? ?? '';
-        final category = txn['category'] as Map<String, dynamic>? ?? {};
-        final catIcon = category['icon'] as String? ?? '';
-        final catName = category['name'] as String? ?? '';
-        final desc = txn['description'] as String? ?? '';
-        final txnDate = txn['date'] as String? ?? '';
+  Widget _buildHouseholdCategoryBreakdown(List<CategoryBreakdown> categories, int totalExpense) {
+    final sorted = List<CategoryBreakdown>.from(categories)
+      ..sort((a, b) => b.total.compareTo(a.total));
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(8),
-          ),
+    return Column(
+      children: sorted.map((cat) {
+        final fraction = totalExpense > 0 ? cat.total / totalExpense : 0.0;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
               SizedBox(
                 width: 28,
-                child: Text(catIcon, style: const TextStyle(fontSize: 14)),
+                child: Text(cat.icon, style: const TextStyle(fontSize: 16)),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      desc.isNotEmpty ? desc : catName,
-                      style: const TextStyle(fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Row(
-                      children: [
-                        if (userName.isNotEmpty)
-                          Text(
-                            userName,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        if (userName.isNotEmpty && txnDate.isNotEmpty)
-                          const Text(' · ',
-                              style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                        if (txnDate.isNotEmpty)
-                          Text(
-                            txnDate,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
+                flex: 3,
+                child: Text(
+                  cat.categoryName,
+                  style: const TextStyle(fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                '${isExpense ? '-' : '+'}Rp${_formatAmount(amount is int ? amount : (amount as num).toInt())}',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isExpense ? AppColors.highlight : AppColors.success,
+              Expanded(
+                flex: 4,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: fraction,
+                    minHeight: 8,
+                    backgroundColor: AppColors.divider,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      cat.categoryName.contains('Makan')
+                          ? Colors.orange
+                          : cat.categoryName.contains('Transport')
+                              ? Colors.blue
+                              : cat.categoryName.contains('Housing') ||
+                                        cat.categoryName.contains('Rumah')
+                                    ? Colors.purple
+                                    : cat.categoryName.contains('Health') ||
+                                              cat.categoryName.contains('Kesehatan')
+                                          ? Colors.red
+                                          : cat.categoryName.contains('Entertainment') ||
+                                                    cat.categoryName.contains('Hiburan')
+                                                ? Colors.teal
+                                                : AppColors.primary,
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 65,
+                child: Text(
+                  '${cat.percentage.toStringAsFixed(1)}%',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildHouseholdDailyBreakdown(List<Map<String, dynamic>> txns) {
+    // Group by date
+    final Map<String, List<Map<String, dynamic>>> byDate = {};
+    for (final txn in txns) {
+      final txnDate = txn['date'] as String? ?? '';
+      byDate.putIfAbsent(txnDate, () => []).add(txn);
+    }
+
+    // Sort dates descending
+    final sortedDates = byDate.keys.toList()..sort((a, b) => b.compareTo(a));
+
+    return Column(
+      children: sortedDates.map((dateStr) {
+        final dayTxns = byDate[dateStr]!;
+        final totalExpense = dayTxns
+            .where((t) => t['type'] == 'expense')
+            .fold<int>(0, (s, t) => s + ((t['amount'] ?? 0) as int));
+        final totalIncome = dayTxns
+            .where((t) => t['type'] == 'income')
+            .fold<int>(0, (s, t) => s + ((t['amount'] ?? 0) as int));
+
+        final parsed = DateTime.tryParse(dateStr);
+        final dayLabel = parsed != null ? DateFormat('MMM dd').format(parsed) : dateStr;
+        final weekday = parsed != null ? DateFormat('E').format(parsed) : '';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Day header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+                child: Row(
+                  children: [
+                    Text(
+                      dayLabel,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      weekday,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'E: Rp${_formatAmount(totalExpense)}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.highlight,
+                      ),
+                    ),
+                    if (totalIncome > 0) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        'I: Rp${_formatAmount(totalIncome)}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: AppColors.divider),
+              // Transactions for this day
+              ...dayTxns.map((txn) {
+                final amount = txn['amount'] ?? 0;
+                final isExpense = txn['type'] == 'expense';
+                final user = txn['user'] as Map<String, dynamic>? ?? {};
+                final userName = user['display_name'] as String? ?? '';
+                final category = txn['category'] as Map<String, dynamic>? ?? {};
+                final catIcon = category['icon'] as String? ?? '';
+                final catName = category['name'] as String? ?? '';
+                final desc = txn['description'] as String? ?? '';
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        child: Text(catIcon, style: const TextStyle(fontSize: 14)),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              desc.isNotEmpty ? desc : catName,
+                              style: const TextStyle(fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (userName.isNotEmpty)
+                              Text(
+                                userName,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${isExpense ? '-' : '+'}Rp${_formatAmount(amount is int ? amount : (amount as num).toInt())}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isExpense ? AppColors.highlight : AppColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             ],
           ),
         );

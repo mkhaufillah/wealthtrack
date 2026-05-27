@@ -27,15 +27,15 @@ void main() {
       expect(find.text('Rp 0'), findsNothing);
     });
 
-    testWidgets('shows Rp with raw digits when focused', (tester) async {
+    testWidgets('shows raw digits when focused', (tester) async {
       await tester.pumpWidget(buildAmountField());
       await tester.tap(find.byType(TextField));
       await tester.pump();
-      await tester.enterText(find.byType(TextField), 'Rp 50000');
+      await tester.enterText(find.byType(TextField), '50000');
       await tester.pump();
-      // Should show Rp prefix with raw digits when focused
+      // Controller stores raw digits only when focused
       final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.controller?.text, 'Rp 50000');
+      expect(textField.controller?.text, '50000');
     });
 
     testWidgets('formats amount on unfocus', (tester) async {
@@ -84,7 +84,8 @@ void main() {
       await tester.tap(find.byType(TextField).last);
       await tester.pump();
 
-      expect(controller.text, 'Rp 50000');
+      // Raw digits only when focused — no "Rp" prefix
+      expect(controller.text, '50000');
     });
 
     testWidgets('shows hint again when unfocused and empty', (tester) async {
@@ -116,14 +117,16 @@ void main() {
       await tester.pump();
       await tester.enterText(find.byType(TextField), '25000');
       await tester.pump();
+      // Raw digits when focused
       final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.controller?.text, 'Rp 25000');
+      expect(textField.controller?.text, '25000');
     });
 
     testWidgets('formats initial value', (tester) async {
       await tester.pumpWidget(buildAmountField(initialText: '150000'));
       await tester.pump();
       final textField = tester.widget<TextField>(find.byType(TextField));
+      // Initially unfocused → formatted with "Rp" prefix
       expect(textField.controller?.text, 'Rp 150.000');
       expect(find.text('0'), findsNothing);
     });

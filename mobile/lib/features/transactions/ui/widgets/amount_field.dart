@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
-const _rpPrefix = 'Rp ';
+/// Extracts raw digits from text, stripping any non-digit characters.
+String _extractDigits(String text) => text.replaceAll(RegExp(r'[^\d]'), '');
 
-/// Formats raw digits with Indonesian thousand separator (period).
-/// "Rp 50000" -> "Rp 50.000".
+/// Formats raw digits with "Rp" prefix and Indonesian thousand separator (period).
+/// "50000" -> "Rp 50.000"
 String _formatAmount(String text) {
-  final withoutRp = text.startsWith('Rp ') ? text.substring(3) : text;
-  if (withoutRp.isEmpty) return _rpPrefix;
-  final digits = withoutRp.replaceAll('.', '');
-  if (digits.isEmpty) return _rpPrefix;
+  final digits = _extractDigits(text);
+  if (digits.isEmpty) return '';
   final buf = StringBuffer();
   int count = 0;
   for (int i = digits.length - 1; i >= 0; i--) {
@@ -17,20 +16,7 @@ String _formatAmount(String text) {
     buf.write(digits[i]);
     count++;
   }
-  return '$_rpPrefix${buf.toString().split('').reversed.join('')}';
-}
-
-/// Strips thousand separators, keeps "Rp " prefix.
-/// "Rp 50.000" -> "Rp 50000"
-String _unformatAmount(String text) {
-  final withoutRp = text.startsWith('Rp ') ? text.substring(3) : text;
-  return '$_rpPrefix${withoutRp.replaceAll('.', '')}';
-}
-
-/// Extracts raw integer digits from text that may have "Rp" and separators.
-/// "Rp 50.000" -> "50000"
-String _stripFormatting(String text) {
-  return text.replaceAll('Rp', '').replaceAll('.', '').replaceAll(',', '').trim();
+  return 'Rp ${buf.toString().split('').reversed.join('')}';
 }
 
 class AmountField extends StatefulWidget {
@@ -52,6 +38,7 @@ class _AmountFieldState extends State<AmountField> {
     super.initState();
     _hasText = widget.controller.text.isNotEmpty;
     if (_hasText) {
+      // Initial value: format it for display (unfocused state)
       _applyFormatted();
     }
     _focusNode.addListener(_onFocusChange);
@@ -78,7 +65,7 @@ class _AmountFieldState extends State<AmountField> {
 
   void _applyRaw() {
     _updating = true;
-    final raw = _unformatAmount(widget.controller.text);
+    final raw = _extractDigits(widget.controller.text);
     widget.controller.value = TextEditingValue(
       text: raw,
       selection: TextSelection.collapsed(offset: raw.length),
@@ -89,40 +76,30 @@ class _AmountFieldState extends State<AmountField> {
   void _onFocusChange() {
     setState(() => _isFocused = _focusNode.hasFocus);
     if (_focusNode.hasFocus) {
-      // Gained focus → show raw digits for editing (keep "Rp " prefix)
+      // Gained focus → strip formatting, show raw digits only
       if (_hasText) _applyRaw();
     } else {
-      // Lost focus → format with thousand separators
+      // Lost focus → format with "Rp" prefix and thousand separators
       if (_hasText) _applyFormatted();
     }
   }
 
   void _onTextChange() {
     if (_updating) return;
-    var text = widget.controller.text;
-    // Strip out periods while user is typing to keep it clean
-    final noDots = text.replaceAll('.', '');
-    if (noDots != text) {
-      _updating = true;
-      widget.controller.value = TextEditingValue(
-        text: noDots,
-        selection: TextSelection.collapsed(offset: noDots.length),
-      );
-      _updating = false;
-      text = noDots;
+    // When focused, strip any non-digit characters that may have been pasted
+    if (_isFocused) {
+      final raw = _extractDigits(widget.controller.text);
+      if (raw != widget.controller.text) {
+        _updating = true;
+        widget.controller.value = TextEditingValue(
+          text: raw,
+          selection: TextSelection.collapsed(offset: raw.length),
+        );
+        _updating = false;
+      }
     }
-    // Ensure "Rp " prefix is always present when content is non-empty
-    if (text.isNotEmpty && !text.startsWith(_rpPrefix)) {
-      _updating = true;
-      final withRp = '$_rpPrefix$text';
-      widget.controller.value = TextEditingValue(
-        text: withRp,
-        selection: TextSelection.collapsed(offset: withRp.length),
-      );
-      _updating = false;
-      text = withRp;
-    }
-    final hasText = text.isNotEmpty && text != _rpPrefix;
+    final text = widget.controller.text;
+    final hasText = text.isNotEmpty;
     if (hasText != _hasText) {
       setState(() => _hasText = hasText);
     }
