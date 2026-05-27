@@ -14,7 +14,7 @@ import 'shared/widgets/app_scaffold.dart';
 final goRouterProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/login',
     redirect: (context, state) {
       final loggedIn = auth.isAuthenticated;
       final loggingIn = state.matchedLocation == '/login';
