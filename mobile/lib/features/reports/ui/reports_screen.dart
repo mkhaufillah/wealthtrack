@@ -59,21 +59,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(reportProvider);
 
-    return RefreshIndicator(
-      onRefresh: () async => _loadMonth(),
-      child: Column(
-        children: [
-          _buildMonthPicker(),
-          Expanded(
-            child: state.isLoading
-                ? const LoadingIndicator()
-                : state.error != null
-                    ? ErrorDisplay(message: state.error!, onRetry: _loadMonth)
-                    : state.monthly != null
-                        ? _buildContent(state)
-                        : const LoadingIndicator(),
-          ),
-        ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(title: const Text('Reports')),
+      body: RefreshIndicator(
+        onRefresh: () async => _loadMonth(),
+        child: Column(
+          children: [
+            _buildMonthPicker(),
+            Expanded(
+              child: state.isLoading
+                  ? const LoadingIndicator()
+                  : state.error != null
+                      ? ErrorDisplay(message: state.error!, onRetry: _loadMonth)
+                      : state.monthly != null
+                          ? _buildContent(state)
+                          : const LoadingIndicator(),
+            ),
+          ],
+        ),
       ),
     );
   }
