@@ -11,10 +11,8 @@ Does NOT touch the real database (~/.keuangan/finance.db).
 Uses a temporary file-based SQLite, seeded fresh per session.
 """
 
-import asyncio
 import os
 import tempfile
-from pathlib import Path
 from typing import AsyncGenerator
 
 import sqlite3
@@ -22,11 +20,9 @@ import sqlite3
 import aiosqlite
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from passlib.context import CryptContext
 
-from app.core.config import settings
 from app.database import get_db
 from app.main import app
 from app.core.security import create_access_token

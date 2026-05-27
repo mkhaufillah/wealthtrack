@@ -113,7 +113,7 @@ async def join_household(
     )
     await db.commit()
 
-    return {"message": f"Joined household successfully"}
+    return {"message": "Joined household successfully"}
 
 
 @router.get("/me")

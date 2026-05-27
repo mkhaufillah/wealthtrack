@@ -1,7 +1,5 @@
 import aiosqlite
 import sqlite3
-from contextlib import asynccontextmanager
-from pathlib import Path
 
 from app.core.config import settings
 

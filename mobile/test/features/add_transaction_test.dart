@@ -10,7 +10,7 @@ import 'package:wealthtrack/core/network/api_client.dart';
 import '../helpers/mocks.dart';
 
 class _MockRepo extends TransactionRepository {
-  _MockRepo() : super(null!);
+  _MockRepo() : super(MockApiClient());
 }
 
 Widget buildAddTxnApp() {

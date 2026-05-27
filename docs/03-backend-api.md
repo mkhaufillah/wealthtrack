@@ -141,6 +141,92 @@ List all categories. Optional `?type=expense` or `?type=income`.
 ]
 ```
 
+## Households
+
+Household endpoints manage shared household groups. All endpoints require Bearer token.
+
+### POST `/api/v1/households`
+
+Create a new household. The creator becomes the admin.
+
+```json
+// Request
+{
+  "name": "Home"
+}
+
+// Response 201
+{
+  "id": 1,
+  "name": "Home",
+  "invite_code": "L62TI5ZG",
+  "created_by": 1
+}
+```
+
+### POST `/api/v1/households/join`
+
+Join an existing household using its invite code.
+
+```json
+// Request
+{
+  "invite_code": "L62TI5ZG"
+}
+
+// Response 200
+{
+  "message": "Joined household successfully",
+  "household_id": 1
+}
+
+// Error 404
+{
+  "detail": "Invalid invite code"
+}
+```
+
+### GET `/api/v1/households/me`
+
+Get current user's household with all members.
+
+```json
+// Response 200
+{
+  "id": 1,
+  "name": "Home",
+  "invite_code": "L62TI5ZG",
+  "members": [
+    {
+      "user_id": 1,
+      "display_name": "Filla",
+      "role": "admin"
+    },
+    {
+      "user_id": 2,
+      "display_name": "Nahda",
+      "role": "member"
+    }
+  ]
+}
+
+// Error 404
+{
+  "detail": "Not a member of any household"
+}
+```
+
+### GET `/api/v1/households/invite-code`
+
+Get the invite code for the current user's household.
+
+```json
+// Response 200
+{
+  "invite_code": "L62TI5ZG"
+}
+```
+
 ## Transactions
 
 ### GET `/api/v1/transactions`
@@ -229,6 +315,37 @@ Update a transaction. Only owner can update.
 {
   "id": 42,
   ...updated transaction object
+}
+```
+
+### GET `/api/v1/transactions/{id}`
+
+Get a single transaction by ID. Only the owner can view their own transaction.
+
+```json
+// Response 200
+{
+  "id": 42,
+  "amount": 50000,
+  "type": "expense",
+  "description": "Nasi Goreng",
+  "note": "Makan siang",
+  "date": "2026-05-26",
+  "category": {
+    "id": 1,
+    "name": "Makan & Minum",
+    "icon": "🍽️"
+  },
+  "user": {
+    "id": 1,
+    "display_name": "Filla"
+  },
+  "created_at": "2026-05-26T12:00:00.000Z"
+}
+
+// Error 404
+{
+  "detail": "Transaction not found"
 }
 ```
 
@@ -399,6 +516,24 @@ Monthly summary for a given month.
 ### GET `/api/v1/summaries/current-month`
 
 Quick endpoint — shorthand for `/summaries/monthly?month=<current>`.
+
+## Health
+
+### GET `/api/v1/health`
+
+Lightweight health check. Does not require authentication.
+
+```json
+// Response 200 — healthy
+{
+  "status": "healthy"
+}
+
+// Response 200 — DB degraded (service still runs)
+{
+  "status": "degraded"
+}
+```
 
 ## Error Response Format
 

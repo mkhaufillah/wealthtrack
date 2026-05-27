@@ -24,9 +24,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _currentPwCtrl = TextEditingController();
   final _newPwCtrl = TextEditingController();
   final _confirmPwCtrl = TextEditingController();
-  bool _obscureCurrent = true;
-  bool _obscureNew = true;
-  bool _obscureConfirm = true;
 
   // Loading states
   bool _savingProfile = false;
@@ -38,7 +35,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   List<dynamic> _members = [];
   bool _isAdmin = false;
   bool _loadingHousehold = true;
-  bool _joining = false;
 
   @override
   void initState() {
