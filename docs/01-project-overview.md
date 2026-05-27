@@ -118,7 +118,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 | P1 — Core Backend | SQLite schema, FastAPI CRUD, JWT auth, init script | API ready, testable via Swagger |
 | P2 — Hermes Integration | Update existing cron script, input from chat | Daily summary works with new DB |
 | P3 — Flutter MVP | Login, dashboard, add transaction, list transactions | Mobile usable for daily tracking |
-| P4 — Polish | Charts, budgets, categories management, export | Feature-complete for daily use |
+| P4 — Polish (Revised) | Charts, budgets, export, OCR, AI advisor, change owner | Feature-complete for daily use |
 
 ## Key Design Decisions
 

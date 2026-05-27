@@ -1,0 +1,272 @@
+# P4 Plan — Revised
+
+**Based on discussion 2026-05-27.** Updated from original P4 scope.
+
+## Priority Order
+
+| Prio | Feature | Estimasi | Dependencies | Status |
+|------|---------|----------|-------------|--------|
+| P0 | **Change Transaction Owner** | 0.5 hr | None | 🔴 Not started |
+| P1 | **Charts (Reports Page)** | 2-3 hr | Summary endpoints (ready) | 🔴 Not started |
+| P2 | **Export Excel** | 1 hr | Transaction endpoints (ready) | 🔴 Not started |
+| P3 | **Budgets** | 2-3 hr | Categories + transactions (ready) | 🔴 Not started |
+| P4 | **OCR / Smart Input** | 3-4 hr | OpenCode Go API key | 🔴 Not started |
+| P5 | **AI Financial Advisor** | 2-3 hr | OpenCode Go + OpenRouter keys | 🔴 Not started |
+
+**Dropped:** Categories CRUD — static is sufficient.
+
+---
+
+## 1. Change Transaction Owner
+
+**Why:** In a household, sometimes expense is recorded by the wrong person. E.g., Nahda's expense was input by Filla. Allow reassigning.
+
+**Backend only:**
+- `PUT /api/v1/transactions/{id}/owner`
+  - Request: `{ "user_id": 2 }`
+  - Validate: `user_id` must be in the same household as current user
+  - Only the current owner (or household admin) can transfer
+- Model update: Add `owner` field to transaction schemas
+
+**Mobile:** Add a "Change Owner" action in transaction detail/edit with a user picker (household members only).
+
+**Testing:** Add test for ownership transfer validation.
+
+---
+
+## 2. Charts (Reports Page)
+
+**Preview:** `sketches/charts-compact-card/index.html` and `sketches/charts-dark-dashboard/index.html`
+
+**Components:**
+
+| Component | Data Source | Chart Type |
+|-----------|------------|------------|
+| Summary cards | `/summaries/current-month` | Text cards (income, expense, balance) |
+| Category breakdown (pie/donut) | `/summaries/daily?date_from=...` aggregated | `fl_chart` PieChart |
+| Category comparison (horizontal bars) | Same data | `fl_chart` BarChart (horizontal) |
+| Monthly trend (income vs expense) | `/summaries/monthly` × 6+ months | `fl_chart` LineChart |
+| Daily activity snapshot | `/summaries/daily` | Custom bar list |
+
+**Backend changes:**
+- `GET /summaries/monthly` — add support for `?month_from=2026-01&month_to=2026-06` (multi-month)
+  - Needed for trend line. Currently only supports single month.
+
+**Mobile changes:**
+- Add `fl_chart` to pubspec.yaml
+- Rewrite `ReportsScreen` with actual chart widgets
+- Month picker / swiper to navigate between months
+- Dark/light theme support (matching existing AppTheme)
+
+**Mockups location:** `~/dev/wealthtrack/sketches/`
+
+---
+
+## 3. Export Excel
+
+**Backend:**
+- `GET /api/v1/exports/yearly?year=2026`
+  - Returns `.xlsx` file as download
+  - Uses `openpyxl`
+  - One sheet per month: 12 sheets
+  - Columns: Date | Type | Category | Amount | Description | Note | Owner
+  - Summary row per sheet (total income, total expense)
+  - Password-protected? (optional)
+
+**Mobile:**
+- Add "Export" button in Reports/Profile page
+- Triggers download → Android sharesheet (save/share via native)
+- Use `dio` download directly
+
+**Dependencies:** `openpyxl` in backend requirements.txt
+
+---
+
+## 4. Budgets
+
+**Concept:** Monthly spending limits per category. Visual progress bar shows how close you are to the limit.
+
+**Database:** Table `budgets` already exists:
+```sql
+CREATE TABLE budgets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  month TEXT NOT NULL,         -- '2026-05'
+  category_id INTEGER NOT NULL,
+  category_name TEXT NOT NULL,
+  budget_amount REAL NOT NULL
+);
+```
+
+**Backend (new router: `routers/budgets.py`):**
+- `GET /api/v1/budgets?month=2026-05` — list budgets for a month
+- `POST /api/v1/budgets` — create/update budget
+  - Request: `{ "month": "2026-05", "category_id": 6, "amount": 3000000 }`
+- `DELETE /api/v1/budgets/{id}` — remove budget
+- `GET /api/v1/budgets/summary?month=2026-05` — budgets vs actuals
+  - Returns: `[{ category, budget_amount, actual_spent, percentage, remaining }]`
+
+**Mobile:**
+- Budgets page with monthly view
+- List of categories with budget bar + spent amount
+- Color coding: green (< 70%), yellow (70-90%), red (> 90%)
+- Add/edit budget bottom sheet
+- Optional: notification when approaching limit
+
+**Note:** Model file `backend/app/models/budget.py` and schema `backend/app/schemas/budget.py` already exist as placeholders (empty/minimal).
+
+---
+
+## 5. OCR / Smart Input
+
+**Architecture:**
+
+```
+[Mobile Camera/Gallery]
+        │
+        ▼
+[Backend POST /ocr/process]
+  │  Accept: multipart/form-data (image file)
+  │
+  ▼
+[OpenCode Go API — Kimi K2.6 (vision)]
+  │  POST https://api.opencode-go.com/v1/chat/completions
+  │  Model: kimi-k2.6
+  │  Auth: Bearer OPENCODE_GO_KEY (from .env)
+  │  Prompt: structured extraction
+  │
+  ▼
+[Parse response → structured JSON]
+  { amount: int, description: string, date: string,
+    category_id: int, items: [{name, price}] }
+        │
+        ▼
+[Mobile pre-fill Add Transaction form]
+  User confirms/modifies → creates transaction
+```
+
+**Backend:**
+- `POST /api/v1/ocr/process` — accepts image, returns structured data
+- Store API key in `.env`: `OPENCODE_GO_API_KEY`
+- Handle errors: unreadable receipt → 422 with message
+- Rate limit: max 10 OCR/day per user (protect API budget)
+
+**Mobile:**
+- Camera button on Add Transaction screen
+- Opens camera or gallery picker
+- Uploads image, shows loading state
+- Pre-fills form fields on success
+- Manual edit if OCR fails
+
+**Config:**
+- Copy `OPENCODE_GO_API_KEY` from Hermes `.env` to WealthTrack `.env`
+- Kimi K2.6 rate limit: 1,150 req/5h — more than enough for personal OCR
+
+---
+
+## 6. AI Financial Advisor
+
+**Architecture — Approach 1 (Backend Fetches Market Data):**
+
+```
+[Mobile: user asks financial question]
+        │
+        ▼
+[Backend /api/v1/ai/advise]
+  1. Query DB → user's financial summary
+     - Current balance, income/expense trends (6 months)
+     - Top spending categories
+     - Current budgets + usage
+  2. Fetch market data
+     - Yahoo Finance: IHSG, reksadana prices, crypto
+     - Web search: latest economic news (via search API)
+  3. Construct prompt with all context
+  4. Route to model:
+     - Simple Q&A → DeepSeek Flash V4 (OpenCode Go)
+     - Complex analysis → Claude Opus (OpenRouter)
+  5. Return response
+        │
+        ▼
+[Mobile shows response in chat-like UI]
+```
+
+**Backend endpoints:**
+- `POST /api/v1/ai/advise` — ask a question
+  - Request: `{ "question": "...", "model": "auto" | "flash" | "opus" }`
+  - Model routing logic:
+    - "auto" → DeepSeek Flash by default, upgrade if question contains keywords like "analisis", "rekomendasi", "portfolio", "investasi"
+  - Returns markdown-formatted advice
+- `GET /api/v1/ai/context` — returns what data the AI will see (debug/transparency)
+
+**Security restrictions (strict):**
+- AI only sees data injected by the backend — no direct DB access
+- No raw SQL or query strings in prompt
+- No terminal/file/network tools available
+- User financial data filtered to current user + their household only
+- Rate limit: 20 queries/day per user
+- Disclaimer: "This is AI-generated advice, not certified financial planning"
+
+**Context injection (what the AI sees):**
+```
+Kamu adalah asisten finansial untuk {user_display_name}.
+Anggota household: {household_members}
+
+Data Keuangan:
+- Saldo bulan ini: Rp{balance}
+- Total pemasukan {month}: Rp{income}
+- Total pengeluaran {month}: Rp{expense}
+- Pengeluaran per kategori: {category_breakdown}
+- Budget vs realisasi: {budget_summary}
+- Tren 6 bulan: {trend_summary}
+
+Data Pasar (real-time):
+- IHSG: {ihsg}
+- Reksadana pendapatan tetap: {yield}
+- Inflasi: {inflation_rate}
+- {berita_ekonomi_terkini}
+
+Pertanyaan: {question}
+
+Berikan saran yang personal, relevan dengan kondisi keuangan {user_display_name},
+dan berdasarkan data pasar terkini. Sertakan disclaimer jika perlu.
+```
+
+**Dependencies:**
+- `httpx` or `aiohttp` for API calls (already have `httpx`?)
+- Yahoo Finance: `yfinance` package or direct API
+- Web search: use existing search service or OpenRouter with search
+
+**Key files to create:**
+- `backend/app/routers/ai_advisor.py`
+- `backend/app/services/market_data.py` — Yahoo Finance wrapper
+- `backend/app/services/context_builder.py` — build financial context
+- `backend/app/schemas/advice.py` — request/response schemas
+
+---
+
+## Environment Variables (.env additions)
+
+```bash
+# Existing
+SECRET_KEY=...
+DEBUG=True
+ACCESS_TOKEN_EXPIRE_DAYS=30
+CORS_ORIGINS=["*"]
+
+# New — OCR
+OPENCODE_GO_API_KEY=sk-...           # Copy from Hermes .env
+
+# New — AI Advisor
+OPENROUTER_API_KEY=sk-or-...         # Optional, for Claude Opus fallback
+```
+
+---
+
+## Timeline
+
+| Day | Feature | Deliverable |
+|-----|---------|-------------|
+| 1 | Change Owner + Export Excel | Backend endpoints done, mobile integration started |
+| 2-3 | Charts | Working reports page with fl_chart |
+| 4-5 | Budgets | Budget CRUD + mobile tracking page |
+| 6-7 | OCR | End-to-end: camera → OCR → pre-fill → save |
+| 8-9 | AI Advisor | Working financial advisor with market data |
