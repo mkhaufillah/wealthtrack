@@ -33,6 +33,8 @@ Widget buildHomeApp({bool isLoading = false, String? error, int balance = 0}) {
 }
 
 void main() {
+  setUp(() => initTestSecureStorage());
+
   group('HomeScreen', () {
     testWidgets('shows loading indicator when loading', (tester) async {
       await tester.pumpWidget(buildHomeApp(isLoading: true));

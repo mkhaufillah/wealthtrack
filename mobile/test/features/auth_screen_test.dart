@@ -5,19 +5,7 @@ import 'package:wealthtrack/features/auth/providers/auth_provider.dart';
 import 'package:wealthtrack/features/auth/ui/login_screen.dart';
 import 'package:wealthtrack/features/auth/ui/register_screen.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
-import 'package:wealthtrack/features/auth/models/token_model.dart';
-import 'package:wealthtrack/features/auth/models/user_model.dart';
 import '../helpers/mocks.dart';
-
-// Minimal mock repo to satisfy AuthNotifier constructor
-class MockAuthRepository {
-  Future<TokenModel> login(String u, String p) async =>
-      TokenModel(accessToken: 'mock', tokenType: 'bearer', expiresIn: 3600);
-  Future<UserModel> register(String u, String d, String p) async =>
-      UserModel(id: 1, username: u, displayName: d, role: 'user');
-  Future<UserModel> getMe() async =>
-      UserModel(id: 1, username: 'mock', displayName: 'Mock', role: 'user');
-}
 
 Widget buildLoginApp({AuthStatus status = AuthStatus.initial, String? error}) {
   return ProviderScope(
@@ -56,6 +44,8 @@ Widget buildRegisterApp({AuthStatus status = AuthStatus.initial}) {
 }
 
 void main() {
+  setUp(() => initTestSecureStorage());
+
   group('LoginScreen', () {
     testWidgets('shows WealthTrack branding', (tester) async {
       await tester.pumpWidget(buildLoginApp());

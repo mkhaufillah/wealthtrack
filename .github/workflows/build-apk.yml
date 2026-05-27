@@ -32,6 +32,7 @@ jobs:
         run: flutter pub get
 
       - name: Remove default test file
+        # flutter create generates a default test that references non-existent widgets
         run: rm -f test/widget_test.dart
 
       - name: Run tests

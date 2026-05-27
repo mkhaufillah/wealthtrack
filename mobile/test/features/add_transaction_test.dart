@@ -5,6 +5,8 @@ import 'package:wealthtrack/features/transactions/providers/transaction_provider
 import 'package:wealthtrack/features/transactions/data/transaction_repository.dart';
 import 'package:wealthtrack/features/transactions/ui/add_transaction_screen.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
+import 'package:wealthtrack/shared/providers/app_providers.dart';
+import '../helpers/mocks.dart';
 
 class _MockRepo extends TransactionRepository {
   _MockRepo() : super(null!);
@@ -18,6 +20,9 @@ Widget buildAddTxnApp() {
           return TransactionListNotifier(_MockRepo());
         }),
       ),
+      apiClientProvider.overrideWithProvider(
+        Provider<ApiClient>((ref) => MockApiClient()),
+      ),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -27,6 +32,8 @@ Widget buildAddTxnApp() {
 }
 
 void main() {
+  setUp(() => initTestSecureStorage());
+
   group('AddTransactionScreen', () {
     testWidgets('shows Add Transaction title', (tester) async {
       await tester.pumpWidget(buildAddTxnApp());
