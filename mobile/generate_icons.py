@@ -137,21 +137,17 @@ def generate_android_adaptive(img, project_root):
 
     for density, scale in ANDROID_LEGACY_SCALES.items():
         adaptive_size = int(ADAPTIVE_BASE_SIZE * scale)
+        safe_size = int(adaptive_size * ADAPTIVE_SAFE_ZONE)
 
-        # Foreground (logo centered, padded to canvas)
+        # Scale foreground to fit within the safe zone (inner 66%)
         fg_scaled = fg_img.resize((adaptive_size, adaptive_size), Image.Resampling.LANCZOS)
-        # In content within safe zone (72dp at mdpi)
-        safe_pad = int(adaptive_size * 0.15)  # 15% padding from edge
-        inner = fg_scaled.crop((
-            safe_pad, safe_pad,
-            adaptive_size - safe_pad, adaptive_size - safe_pad
-        ))
-        inner_w, inner_h = inner.size
-        content_side = max(inner_w, inner_h)
+        fg_inner = fg_scaled.resize((safe_size, safe_size), Image.Resampling.LANCZOS)
+
+        # Center on canvas
         content = Image.new("RGBA", (adaptive_size, adaptive_size), (0, 0, 0, 0))
-        ox = (adaptive_size - inner_w) // 2
-        oy = (adaptive_size - inner_h) // 2
-        content.paste(inner, (ox, oy), inner)
+        ox = (adaptive_size - safe_size) // 2
+        oy = (adaptive_size - safe_size) // 2
+        content.paste(fg_inner, (ox, oy), fg_inner)
 
         # Save foreground
         fg_dir = os.path.join(base, f"mipmap-{density}")
