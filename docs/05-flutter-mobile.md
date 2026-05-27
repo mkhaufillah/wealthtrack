@@ -390,9 +390,16 @@ mobile/lib/
 │   │           ├── amount_field.dart
 │   │           └── category_picker.dart
 │   │
-│   └── reports/  (P4, placeholder for now)
-│       ├── providers/
-│       └── ui/
+│   ├── reports/
+│   │   ├── data/
+│   │   │   └── report_repository.dart
+│   │   ├── models/
+│   │   │   └── report_model.dart    # MonthlyReport, HouseholdReport, DailySnapshot, etc.
+│   │   ├── providers/
+│   │   │   └── report_provider.dart
+│   │   └── ui/
+│   │       └── reports_screen.dart  # Summary cards, category breakdown, daily snapshot,
+│   │                                 # household split, household daily & category breakdown
 │
 │   └── profile/
 │       ├── data/

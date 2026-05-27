@@ -128,6 +128,68 @@ class TestCreateTransaction:
         assert resp.status_code == 401
 
 
+class TestHouseholdTransactions:
+    async def test_list_household(self, client: AsyncClient, filla_token: str):
+        """GET /transactions/household returns all members' transactions."""
+        resp = await client.get(
+            "/api/v1/transactions/household",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "data" in data
+        assert "meta" in data
+        # Should include filla's seed transactions
+        assert data["meta"]["total"] >= 5
+        # Every item should have user info
+        for txn in data["data"]:
+            assert "user" in txn
+            assert "display_name" in txn["user"]
+
+    async def test_household_includes_nahda(self, client: AsyncClient, filla_token: str):
+        """Transactions from both household members are returned."""
+        resp = await client.get(
+            "/api/v1/transactions/household?per_page=50",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        users = {t["user"]["display_name"] for t in resp.json()["data"]}
+        assert "Filla" in users
+
+    async def test_household_filter_type(self, client: AsyncClient, filla_token: str):
+        """Filter by type works on household endpoint."""
+        resp = await client.get(
+            "/api/v1/transactions/household?type=expense",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        for t in resp.json()["data"]:
+            assert t["type"] == "expense"
+
+    async def test_household_date_filter(self, client: AsyncClient, filla_token: str):
+        """Date range filtering works on household endpoint."""
+        resp = await client.get(
+            "/api/v1/transactions/household?date_from=2099-01-01&date_to=2099-12-31",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["meta"]["total"] == 0
+
+    async def test_household_requires_auth(self, client: AsyncClient):
+        """Without auth, returns 401."""
+        resp = await client.get("/api/v1/transactions/household")
+        assert resp.status_code == 401
+
+    async def test_household_nahda_also_works(self, client: AsyncClient, nahda_token: str):
+        """Nahda (household member) can also list household transactions."""
+        resp = await client.get(
+            "/api/v1/transactions/household",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["meta"]["total"] >= 5
+
+
 class TestUpdateTransaction:
     async def test_update_amount(self, client: AsyncClient, filla_token: str):
         """Update transaction amount."""

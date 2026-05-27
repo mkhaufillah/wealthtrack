@@ -232,6 +232,59 @@ Update a transaction. Only owner can update.
 }
 ```
 
+### GET `/api/v1/transactions/household`
+
+List transactions of **all household members**. Requires the user to be part of a household.
+
+**Query params:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `page` | int | 1 | Page number |
+| `per_page` | int | 100 | Items per page (max 200) |
+| `type` | str | — | Filter: 'expense' or 'income' |
+| `date_from` | str | — | Start date 'YYYY-MM-DD' |
+| `date_to` | str | — | End date 'YYYY-MM-DD' |
+| `sort` | str | '-date' | Sort field: 'date', '-date', 'amount', '-amount' |
+
+```json
+// Response 200
+{
+  "data": [
+    {
+      "id": 42,
+      "amount": 50000,
+      "type": "expense",
+      "description": "Nasi Goreng",
+      "note": "Makan siang",
+      "date": "2026-05-26",
+      "category": {
+        "id": 1,
+        "name": "Makan & Minum",
+        "icon": "🍽️"
+      },
+      "user": {
+        "id": 1,
+        "display_name": "Filla"
+      },
+      "created_at": "2026-05-26T12:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 100,
+    "total": 42,
+    "total_pages": 1
+  }
+}
+```
+
+// Error 404 — user is not a member of any household
+{
+  "detail": "Not a member of any household"
+}
+```
+
 ### DELETE `/api/v1/transactions/{id}`
 
 Delete a transaction. Only owner can delete.

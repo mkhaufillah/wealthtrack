@@ -3,11 +3,9 @@
 [![Build APK](https://github.com/mkhaufillah/wealthtrack/actions/workflows/build-apk.yml/badge.svg)](https://github.com/mkhaufillah/wealthtrack/actions/workflows/build-apk.yml)
 [![Deploy Backend](https://github.com/mkhaufillah/wealthtrack/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/mkhaufillah/wealthtrack/actions/workflows/deploy-backend.yml)
 
+Personal finance tracker for **Filla & Nahda** — manage household expenses, income, and budgets together.
 
-
-Personal finance tracker — Filla & Nahda.
-
-**Stack:** FastAPI + SQLite + Flutter + Hermes
+**Stack:** FastAPI + SQLite + Flutter (Android) + Hermes Agent
 
 ## Architecture
 
@@ -45,27 +43,35 @@ docs/                  # Planning docs (agent-executable)
   ├── 06-hermes-integration.md
   └── 07-deployment.md
 backend/               # FastAPI application
-mobile/                # Flutter app
+mobile/                # Flutter app (Android)
 scripts/               # DB init & seed scripts
 ```
 
-## Docs (Agent-Executable)
+## Features
 
-Each `.md` file in `docs/` is designed for an AI agent to execute:
+### Backend API
+- **Auth** — register, login (JWT 30-day), profile update, password change, account delete
+- **Transactions** — CRUD with pagination, filtering by type/date/category, sorting
+- **Categories** — list with type filter, pre-seeded
+- **Summaries** — daily, monthly, household (combined across members), current-month shorthand
+- **Household** — shared household with invite codes, multi-user transaction listing & summaries
 
-| Doc | What it covers |
-|-----|---------------|
-| 01 | Architecture, tech stack, data flow |
-| 02 | Full SQLite schema with all tables |
-| 03 | Complete API route specification |
-| 04 | Step-by-step backend code (agent-ready) |
-| 05 | Flutter app structure & screens |
-| 06 | Hermes cron & chat integration |
-| 07 | VPS deployment with systemd |
+### Mobile (Flutter)
+- **Auth screens** — Login & Register with validation, password visibility toggle
+- **Dashboard** — balance card (income/expense), recent transactions list
+- **Transactions** — list with pull-to-refresh, add transaction with category picker & amount field
+- **Reports** — monthly summary cards, category breakdown, daily snapshot, household split,
+  household category breakdown, household daily breakdown (grouped by day)
+- **Profile** — user info display (stub ready for extension)
+
+### Hermes Integration
+- Cron-based daily finance summary delivery to Telegram/WhatsApp
+- Expense recording via chat input
+- Invoice processing with EasyOCR
 
 ## Status
 
 - [x] P1 — Core Backend (FastAPI + SQLite + Auth) ✅
-- [ ] P2 — Hermes Integration (cron + chat input)
-- [ ] P3 — Flutter Mobile MVP
+- [x] P2 — Hermes Integration (cron + chat input) ✅
+- [x] P3 — Flutter Mobile MVP ✅
 - [ ] P4 — Charts, Budgets, HTTPS, Polish
