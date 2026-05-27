@@ -8,20 +8,16 @@ Widget wrap(Widget w) => MaterialApp(theme: AppTheme.light, home: Scaffold(body:
 
 void main() {
   final expense = TransactionModel(
-    id: 1,
-    type: 'expense',
-    amount: 50000,
-    description: 'Lunch at Sate Padang',
+    id: 1, type: 'expense', amount: 50000,
+    description: 'Lunch at Sate Padang', note: '',
     date: '2026-05-27',
-    category: const CategoryBrief(id: 3, name: 'Food', icon: '🍔'),
+    category: CategoryBrief(id: 3, name: 'Food', icon: '🍔'),
   );
   final income = TransactionModel(
-    id: 2,
-    type: 'income',
-    amount: 3000000,
-    description: '',
+    id: 2, type: 'income', amount: 3000000,
+    description: '', note: '',
     date: '2026-05-26',
-    category: const CategoryBrief(id: 1, name: 'Salary', icon: '💰'),
+    category: CategoryBrief(id: 1, name: 'Salary', icon: '💰'),
   );
 
   group('TransactionTile', () {
@@ -52,12 +48,10 @@ void main() {
 
     testWidgets('shows fallback icon when category icon is null', (tester) async {
       final noIcon = TransactionModel(
-        id: 3,
-        type: 'expense',
-        amount: 10000,
-        description: 'Test',
+        id: 3, type: 'expense', amount: 10000,
+        description: 'Test', note: '',
         date: '2026-05-27',
-        category: const CategoryBrief(id: 9, name: 'Other', icon: ''),
+        category: CategoryBrief(id: 9, name: 'Other', icon: ''),
       );
       await tester.pumpWidget(wrap(TransactionTile(transaction: noIcon)));
       expect(find.text('📦'), findsOneWidget);
