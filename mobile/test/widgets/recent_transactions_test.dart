@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/features/home/ui/widgets/recent_transactions.dart';
+import 'package:wealthtrack/features/transactions/models/transaction_model.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
 
 Widget wrap(Widget w) => MaterialApp(theme: AppTheme.light, home: w);
@@ -19,19 +20,22 @@ void main() {
 
     testWidgets('displays transaction tiles when data exists', (tester) async {
       final txns = [
-        <String, dynamic>{
-          'type': 'expense', 'amount': 50000, 'description': 'Coffee',
-          'date': '2026-05-27', 'category': {'id': 3, 'name': 'Food', 'icon': '☕'},
-        },
-        <String, dynamic>{
-          'type': 'income', 'amount': 5000000, 'description': 'Gaji',
-          'date': '2026-05-01', 'category': {'id': 1, 'name': 'Salary', 'icon': '💰'},
-        },
+        TransactionModel(
+          id: 1, type: 'expense', amount: 50000,
+          description: 'Coffee', note: '',
+          date: '2026-05-27',
+          category: CategoryBrief(id: 3, name: 'Food', icon: '☕'),
+        ),
+        TransactionModel(
+          id: 2, type: 'income', amount: 5000000,
+          description: 'Gaji', note: '',
+          date: '2026-05-01',
+          category: CategoryBrief(id: 1, name: 'Salary', icon: '💰'),
+        ),
       ];
       await tester.pumpWidget(wrap(RecentTransactions(transactions: txns)));
       expect(find.text('Coffee'), findsOneWidget);
       expect(find.text('Gaji'), findsOneWidget);
-      // View All button should appear
       expect(find.text('View All'), findsOneWidget);
     });
   });

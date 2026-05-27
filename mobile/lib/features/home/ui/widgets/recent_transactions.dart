@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../transactions/models/transaction_model.dart';
 import '../../../transactions/ui/widgets/transaction_tile.dart';
 
 class RecentTransactions extends StatelessWidget {
-  final List<Map<String, dynamic>> transactions;
+  final List<TransactionModel> transactions;
   const RecentTransactions({super.key, required this.transactions});
 
   @override
