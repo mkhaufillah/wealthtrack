@@ -96,7 +96,7 @@ async def process_ocr(
                             ],
                         },
                     ],
-                    "max_tokens": 500,
+                    "max_tokens": 4096,
                 },
             )
 

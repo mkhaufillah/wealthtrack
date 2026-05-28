@@ -38,7 +38,8 @@ Anggota Household: {members}
 
 Berikan saran yang personal, relevan, dan actionable berdasarkan data di atas.
 Gunakan bahasa Indonesia yang natural.
-Sertakan angka spesifik dari data yang tersedia.
+Jika ada data yang relevan, sertakan angka spesifik.
+Jika pengguna hanya menyapa (misal "halo", "hi", "pagi", "selamat siang"), balaslah dengan ramah dan tawarkan bantuan.
 Jika ditanya di luar topik keuangan, arahkan kembali ke pengelolaan keuangan.
 Jangan menyebutkan bahwa Anda adalah AI — cukup beri saran sebagai asisten keuangan."""
 
@@ -182,7 +183,7 @@ async def _call_model(messages: list, api_key: str, model: str = "deepseek-v4-fl
             json={
                 "model": resolved,
                 "messages": messages,
-                "max_tokens": 1024,
+                "max_tokens": 16384,
                 "temperature": 0.7,
             },
         )
