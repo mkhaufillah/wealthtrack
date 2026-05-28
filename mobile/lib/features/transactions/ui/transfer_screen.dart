@@ -245,7 +245,7 @@ class _TransferBalanceScreenState
       body: _loadingMembers
           ? const Center(child: CircularProgressIndicator())
           : _allMembers.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -341,7 +341,7 @@ class _TransferBalanceScreenState
                             Icon(Icons.person_add_alt_1,
                                 size: 48, color: AppColors.textSecondary),
                             const SizedBox(height: 8),
-                            const Text('Tap "Add" to select a recipient',
+                            Text('Tap "Add" to select a recipient',
                                 style: TextStyle(color: AppColors.textSecondary)),
                           ],
                         ),
@@ -385,7 +385,7 @@ class _TransferBalanceScreenState
                                     ),
                                     if (_recipients.length > 1)
                                       IconButton(
-                                        icon: const Icon(Icons.close,
+                                        icon: Icon(Icons.close,
                                             size: 18, color: AppColors.textSecondary),
                                         onPressed: isSubmitting
                                             ? null
