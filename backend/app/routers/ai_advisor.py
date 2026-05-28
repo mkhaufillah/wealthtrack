@@ -14,7 +14,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 class AdviseRequest(BaseModel):
     question: str
-    model: str = "auto"  # "auto" | "flash" | "opus"
+    model: str = "flash"  # "flash" | "opus"
 
 
 class AdviseResponse(BaseModel):
@@ -194,18 +194,6 @@ async def _call_model(messages: list, api_key: str, model: str = "deepseek-v4-fl
     return body["choices"][0]["message"]["content"].strip()
 
 
-def _resolve_model(model: str, question: str) -> str:
-    if model != "auto":
-        return model
-    # Upgrade for complex questions
-    complex_kw = ["analisis", "analisa", "rekomendasi", "portfolio", "portofolio",
-                   "investasi", "strategi", "proyeksi", "forecast", "optimasi"]
-    question_lower = question.lower()
-    if any(kw in question_lower for kw in complex_kw):
-        return "opus"
-    return "flash"
-
-
 @router.post("/advise", response_model=AdviseResponse)
 async def financial_advise(
     req: AdviseRequest,
@@ -216,11 +204,16 @@ async def financial_advise(
     if not api_key:
         raise HTTPException(status_code=500, detail="AI advisor not configured")
 
+    # User-level access control
+    if req.model == "opus" and current_user["id"] != 1:
+        raise HTTPException(
+            status_code=403,
+            detail="Advanced model is only available for the primary account holder",
+        )
+
     ctx = await _build_context(current_user["id"], db)
     prompt = SYSTEM_PROMPT.format(**ctx)
     full_prompt = f"{prompt}\n\nPertanyaan: {req.question}"
-
-    model = _resolve_model(req.model, req.question)
 
     answer = await _call_model(
         messages=[
@@ -228,7 +221,7 @@ async def financial_advise(
             {"role": "user", "content": req.question},
         ],
         api_key=api_key,
-        model=model,
+        model=req.model,
     )
 
-    return AdviseResponse(answer=answer, model_used=model)
+    return AdviseResponse(answer=answer, model_used=req.model)

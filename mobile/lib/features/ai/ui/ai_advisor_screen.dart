@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../features/auth/providers/auth_provider.dart';
 
 class AiAdvisorScreen extends ConsumerStatefulWidget {
   const AiAdvisorScreen({super.key});
@@ -16,6 +17,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   final _scrollCtrl = ScrollController();
   final List<_ChatMessage> _messages = [];
   bool _isLoading = false;
+  bool _useAdvancedModel = false;
 
   @override
   void dispose() {
@@ -39,7 +41,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       final api = ref.read(apiClientProvider);
       final res = await api.post('/ai/advise', data: {
         'question': text,
-        'model': 'auto',
+        'model': _useAdvancedModel ? 'opus' : 'flash',
       });
       final answer = res.data['answer'] as String? ?? 'No response';
       setState(() {
@@ -74,6 +76,41 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       appBar: AppBar(
         title: const Text('AI Financial Advisor'),
         actions: [
+          // Advanced model toggle — only for Filla (user id = 1)
+          if (ref.watch(authProvider).user?.id == 1)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () => setState(() => _useAdvancedModel = !_useAdvancedModel),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _useAdvancedModel ? AppColors.accent : AppColors.textSecondary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _useAdvancedModel ? Icons.auto_awesome : Icons.flash_on,
+                        size: 14,
+                        color: _useAdvancedModel ? Colors.white : AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _useAdvancedModel ? 'Advanced' : 'Flash',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _useAdvancedModel ? Colors.white : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (_messages.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline, size: 20),
