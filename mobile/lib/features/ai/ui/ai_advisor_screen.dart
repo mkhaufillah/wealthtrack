@@ -56,7 +56,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       _messages.add(_ChatMessage(text: text, isUser: true));
       _isLoading = true;
       // Placeholder AI message — will be updated as tokens arrive
-      _messages.add(_ChatMessage(text: '', isUser: false));
+      _messages.add(_ChatMessage(text: 'typing...', isUser: false));
     });
     _scrollToBottom();
 
@@ -187,14 +187,8 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                     : ListView.builder(
                         controller: _scrollCtrl,
                         padding: const EdgeInsets.all(16),
-                        itemCount: _messages.length + (_isLoading ? 1 : 0),
+                        itemCount: _messages.length,
                         itemBuilder: (_, i) {
-                          if (i == _messages.length) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-                            );
-                          }
                           return _buildMessage(_messages[i]);
                         },
                       ),

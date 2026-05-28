@@ -248,9 +248,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         actions: [
           if (!_isEditing)
             IconButton(
-              icon: _isScanning
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.camera_alt_outlined),
+              icon: const Icon(Icons.camera_alt_outlined),
               onPressed: _isScanning ? null : _scanReceipt,
               tooltip: 'Scan receipt',
             ),
