@@ -143,7 +143,7 @@ async def budget_summary(
             category_icon=r["category_icon"] or "📦",
             budget_amount=budget_amount,
             actual_spent=actual_spent,
-            percentage=round(min(percentage, 100), 1),
-            remaining=max(budget_amount - actual_spent, 0),
+            percentage=round(percentage, 1),
+            remaining=budget_amount - actual_spent,
         ))
     return results
