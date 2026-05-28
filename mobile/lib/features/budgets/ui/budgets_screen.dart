@@ -8,6 +8,7 @@ import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/utils/category_translator.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../features/transactions/ui/widgets/amount_field.dart';
+import '../../home/providers/dashboard_provider.dart';
 import '../providers/budget_provider.dart';
 import '../models/budget_model.dart';
 
@@ -119,13 +120,102 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 
   Widget _buildBudgetList(List<BudgetSummaryItem> items) {
+    final totalBudget = items.fold<int>(0, (s, i) => s + i.budgetAmount);
+    final totalSpent = items.fold<int>(0, (s, i) => s + i.actualSpent);
+    final totalRemaining = items.fold<int>(0, (s, i) => s + i.remaining);
+
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: items.length,
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
+      itemCount: items.length + 1,
       itemBuilder: (_, i) {
-        final item = items[i];
-        return _buildBudgetCard(item);
+        if (i == 0) {
+          return _buildSummaryCard(totalBudget, totalSpent, totalRemaining);
+        }
+        return _buildBudgetCard(items[i - 1]);
       },
+    );
+  }
+
+  Widget _buildSummaryCard(int totalBudget, int totalSpent, int totalRemaining) {
+    final dashboard = ref.watch(dashboardProvider);
+    final balance = dashboard.balance;
+    final diff = balance - totalRemaining;
+    final isOverBudgeted = totalRemaining > balance;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Card(
+        elevation: 0,
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.pie_chart_outline, color: AppColors.accent, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('Budget Overview',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _summaryRow('Total Budget', formatCurrency(totalBudget), AppColors.textPrimary),
+              const SizedBox(height: 6),
+              _summaryRow('Total Spent', formatCurrency(totalSpent), AppColors.highlight),
+              const SizedBox(height: 6),
+              _summaryRow('Remaining', formatCurrency(totalRemaining),
+                  totalRemaining >= 0 ? AppColors.success : AppColors.highlight),
+              const Divider(height: 24),
+              _summaryRow('Current Balance', formatCurrency(balance), AppColors.primary),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    isOverBudgeted ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+                    size: 14,
+                    color: isOverBudgeted ? AppColors.warning : AppColors.success,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      isOverBudgeted
+                          ? 'Budget exceeds balance by ${formatCurrency(totalRemaining - balance)}'
+                          : diff >= 0
+                              ? 'Balance covers all budgets (${formatCurrency(diff)} extra)'
+                              : 'Shortfall of ${formatCurrency(-diff)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isOverBudgeted ? AppColors.warning : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value, Color valueColor) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: valueColor)),
+      ],
     );
   }
 

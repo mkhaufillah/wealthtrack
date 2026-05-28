@@ -41,7 +41,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             : state.error != null
                 ? ErrorDisplay(message: state.error!, onRetry: () => ref.read(dashboardProvider.notifier).load())
                 : ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
                     children: [
                       BalanceCard(
                         balance: state.balance,

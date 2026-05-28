@@ -167,7 +167,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         ],
                       )
                     : ListView.separated(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 80),
                         itemCount: state.transactions.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 1),
                         itemBuilder: (context, i) {

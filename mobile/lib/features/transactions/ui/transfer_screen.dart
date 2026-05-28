@@ -405,41 +405,6 @@ class _TransferBalanceScreenState
                       );
                     }),
 
-                    const SizedBox(height: 24),
-
-                    // ── Total & Submit ──
-                    if (_recipients.isNotEmpty)
-                      Card(
-                        elevation: 0,
-                        color: AppColors.surface,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Total',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16)),
-                              Text(
-                                'Rp${_fmtAmount(_recipients.fold<int>(0, (s, r) {
-                                  final a = int.tryParse(
-                                          r.amountCtrl.text.replaceAll('.', '')) ??
-                                      0;
-                                  return s + a;
-                                }))}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: AppColors.highlight),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
                     const SizedBox(height: 16),
 
                     SizedBox(
