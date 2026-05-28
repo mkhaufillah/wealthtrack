@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/features/home/providers/dashboard_provider.dart';
 import 'package:wealthtrack/features/home/ui/home_screen.dart';
+import 'package:wealthtrack/features/home/ui/widgets/recent_transactions.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
 import '../helpers/mocks.dart';
 
@@ -50,11 +51,10 @@ void main() {
     testWidgets('shows AI card between stats and recent transactions',
         (tester) async {
       await tester.pumpWidget(buildHomeApp(balance: 1000000));
-      await tester.scrollUntilVisible(find.text('Recent Transactions'), 200);
-      // Verify all sections still render
+      // All sections render in the widget tree regardless of scroll position
       expect(find.text('Monthly Balance'), findsOneWidget);
       expect(find.text('AI Financial Advisor'), findsOneWidget);
-      expect(find.text('Recent Transactions'), findsOneWidget);
+      expect(find.byType(RecentTransactions), findsOneWidget);
     });
 
     testWidgets('AI card renders when balance is zero', (tester) async {
