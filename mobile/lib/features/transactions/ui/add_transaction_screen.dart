@@ -243,6 +243,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit Transaction' : 'Add Transaction'),
         actions: [
@@ -353,30 +354,28 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   }
 
   Widget _buildScanOverlay() {
-    return Positioned.fill(
-      child: AbsorbPointer(
-        child: Container(
-          color: Colors.black54,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(
-                  width: 48, height: 48,
-                  child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Processing your receipt...',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'This may take a few seconds',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-              ],
-            ),
+    return AbsorbPointer(
+      child: Container(
+        color: Colors.black54,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 48, height: 48,
+                child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Processing your receipt...',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'This may take a few seconds',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
           ),
         ),
       ),

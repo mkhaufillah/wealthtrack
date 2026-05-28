@@ -439,14 +439,23 @@ async def transfer_balance(
     income_cat_name = income_cat["name"]
     income_cat_icon = income_cat["icon"]
 
+    current_user_name = current_user["username"]
+
     # 4. Create transactions
     results = []
     for t in req.transfers:
+        # Get recipient's display name
+        cursor = await db.execute(
+            "SELECT display_name FROM users WHERE id = ?", (t.user_id,)
+        )
+        recipient = await cursor.fetchone()
+        recipient_name = recipient["display_name"] if recipient else f"User {t.user_id}"
+
         # Sender expense
         cursor = await db.execute(
             "INSERT INTO transactions (type, amount, category_id, category_name, description, date, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
             ("expense", t.amount, expense_cat_id, expense_cat_name,
-             f"Transfer to user {t.user_id}", req.date, user_id),
+             f"Transfer ke {recipient_name}", req.date, user_id),
         )
         expense_id = cursor.lastrowid
 
@@ -454,7 +463,7 @@ async def transfer_balance(
         cursor = await db.execute(
             "INSERT INTO transactions (type, amount, category_id, category_name, description, date, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
             ("income", t.amount, income_cat_id, income_cat_name,
-             f"Transfer from user {user_id}", req.date, t.user_id),
+             f"Transfer dari {current_user_name}", req.date, t.user_id),
         )
         income_id = cursor.lastrowid
 
