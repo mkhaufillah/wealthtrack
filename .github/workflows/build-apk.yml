@@ -33,6 +33,13 @@ jobs:
       - name: Create platform directories
         run: flutter create --project-name wealthtrack --org com.filla --platforms android .
 
+      - name: Enable Flutter built-in Kotlin management
+        # Fixes: "plugins that apply KGP" warning
+        # When builtInKotlin=true, Flutter manages Kotlin centrally
+        # so plugins (image_picker_android, share_plus) don't apply KGP themselves
+        run: |
+          sed -i 's/android.builtInKotlin=false/android.builtInKotlin=true/' android/gradle.properties
+
       - name: Fix app display name (wealthtrack → WealthTrack)
         run: |
           sed -i 's/android:label="wealthtrack"/android:label="WealthTrack"/g' android/app/src/main/AndroidManifest.xml
