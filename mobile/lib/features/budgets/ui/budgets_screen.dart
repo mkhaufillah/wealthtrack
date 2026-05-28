@@ -103,10 +103,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         children: [
           Icon(Icons.account_balance_wallet_outlined, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
           const SizedBox(height: 16),
-          const Text('No budgets set for this month',
+          Text('No budgets set for this month',
               style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
           const SizedBox(height: 8),
-          const Text('Tap + to add a spending limit per category',
+          Text('Tap + to add a spending limit per category',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
         ],
       ),

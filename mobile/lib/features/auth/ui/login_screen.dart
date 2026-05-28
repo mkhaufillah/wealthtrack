@@ -55,7 +55,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary)),
                   const SizedBox(height: 4),
-                  const Text('Manage your finances easier',
+                  Text('Manage your finances easier',
                       style: TextStyle(
                           fontSize: 14, color: AppColors.textSecondary)),
                   const SizedBox(height: 48),
