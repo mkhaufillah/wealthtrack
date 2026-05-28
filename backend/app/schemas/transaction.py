@@ -57,3 +57,22 @@ class PaginatedTransactions(BaseModel):
 
 class TransferOwnerIn(BaseModel):
     user_id: int = Field(gt=0, description="New owner user ID, must be in same household")
+
+
+class TransferItem(BaseModel):
+    user_id: int = Field(gt=0, description="Recipient user ID, must be in same household")
+    amount: int = Field(gt=0, description="Amount to transfer")
+
+
+class TransferRequest(BaseModel):
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$", description="YYYY-MM-DD")
+    transfers: list[TransferItem] = Field(min_length=1, max_length=10)
+
+
+class TransferResult(BaseModel):
+    sender_expense: TransactionOut
+    recipient_income: TransactionOut
+
+
+class TransferResponse(BaseModel):
+    transactions: list[TransferResult]
