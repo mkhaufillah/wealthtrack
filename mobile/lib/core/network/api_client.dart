@@ -68,6 +68,7 @@ class ApiClient {
     ).then((response) {
       final body = response.data as ResponseBody;
       body.stream
+          .cast<List<int>>()
           .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen(
