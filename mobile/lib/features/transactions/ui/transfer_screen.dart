@@ -128,7 +128,7 @@ class _TransferBalanceScreenState
     // Validate: at least one recipient with amount > 0
     final transfers = <Map<String, dynamic>>[];
     for (final r in _recipients) {
-      final amount = int.tryParse(r.amountCtrl.text.replaceAll('.', '')) ?? 0;
+      final amount = int.tryParse(r.amountCtrl.text.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
       if (amount <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

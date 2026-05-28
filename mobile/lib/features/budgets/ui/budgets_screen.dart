@@ -55,13 +55,16 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         children: [
           _buildMonthPicker(),
           Expanded(
-            child: state.isLoading
-                ? const LoadingIndicator()
-                : state.error != null
-                    ? ErrorDisplay(message: state.error!, onRetry: _load)
-                    : state.items.isEmpty
-                        ? _buildEmptyState()
-                        : _buildBudgetList(state.items),
+            child: RefreshIndicator(
+              onRefresh: () async => ref.read(budgetProvider.notifier).load(_monthParam),
+              child: state.isLoading && state.items.isEmpty
+                  ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [SizedBox(height: 300, child: Center(child: CircularProgressIndicator()))])
+                  : state.error != null && state.items.isEmpty
+                      ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: [SizedBox(height: 300, child: ErrorDisplay(message: state.error!, onRetry: _load))])
+                      : state.items.isEmpty
+                          ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [SizedBox(height: 400, child: Center(child: Text('No budgets set for this month')))])
+                          : _buildBudgetList(state.items),
+            ),
           ),
         ],
       ),
