@@ -64,9 +64,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                 final role = member['role'] as String? ?? 'member';
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withOpacity(0.15),
+                    backgroundColor: AppColors.accent.withOpacity(0.15),
                     child: Text(name[0].toUpperCase(),
-                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                      style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
                   ),
                   title: Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
                   subtitle: Text(role == 'admin' ? 'Admin' : 'Member',
@@ -148,7 +148,6 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/transactions/add'),
-        backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: RefreshIndicator(
@@ -173,6 +172,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         itemBuilder: (context, i) {
                           final txn = state.transactions[i];
                           return Card(
+                            elevation: 0,
                             child: TransactionTile(
                               transaction: txn,
                               showActions: true,

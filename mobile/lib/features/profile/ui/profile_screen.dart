@@ -344,8 +344,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
       ),
       body: _deleting
           ? const Center(child: CircularProgressIndicator())
@@ -451,10 +449,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               backgroundColor: AppColors.accent.withOpacity(0.15),
               child: Text(
                 (user?.displayName ?? '?')[0].toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.accent,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -489,9 +487,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     child: Text(
                       user?.role ?? '-',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.accent,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -574,7 +572,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.home, size: 18, color: AppColors.primary),
+                Icon(Icons.home, size: 18, color: AppColors.textPrimary),
                 const SizedBox(width: 8),
                 Text(
                   hh['name'] as String? ?? 'Home',
@@ -585,11 +583,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.accent.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text('admin',
-                        style: TextStyle(fontSize: 10, color: AppColors.primary)),
+                        style: TextStyle(fontSize: 10, color: AppColors.textPrimary)),
                   ),
                 ],
               ],
@@ -620,7 +618,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             if (_members.length > 1) ...[
               const SizedBox(height: 10),
-              const Divider(height: 1),
+              Divider(height: 1, color: AppColors.divider),
               const SizedBox(height: 8),
               Text('Members',
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
@@ -631,12 +629,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         CircleAvatar(
                           radius: 10,
-                          backgroundColor: m['display_name'] == 'Nahda'
-                              ? Colors.pink.shade100
-                              : Colors.blue.shade100,
+                          backgroundColor: AppColors.accent.withOpacity(0.15),
                           child: Text(
                             (m['display_name'] as String? ?? '?')[0],
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -897,12 +893,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final themeMode = ref.watch(themeModeProvider);
     final notifier = ref.read(themeModeProvider.notifier);
     return Card(
+      elevation: 0,
       child: Column(
         children: [
           _buildThemeOption(icon: Icons.brightness_auto, label: 'Follow System', value: ThemeMode.system, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.system)),
-          const Divider(height: 1, indent: 16, endIndent: 16),
+          Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.divider),
           _buildThemeOption(icon: Icons.light_mode_outlined, label: 'Light', value: ThemeMode.light, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.light)),
-          const Divider(height: 1, indent: 16, endIndent: 16),
+          Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.divider),
           _buildThemeOption(icon: Icons.dark_mode_outlined, label: 'Dark', value: ThemeMode.dark, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.dark)),
         ],
       ),
@@ -911,10 +908,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildThemeOption({required IconData icon, required String label, required ThemeMode value, required ThemeMode current, required VoidCallback onTap}) {
     final isSelected = value == current;
+    final themeColor = Theme.of(context).colorScheme.primary;
     return ListTile(
-      leading: Icon(icon, color: isSelected ? AppColors.accent : AppColors.textSecondary),
+      leading: Icon(icon, color: isSelected ? themeColor : AppColors.textSecondary),
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
-      trailing: isSelected ? Icon(Icons.check, color: AppColors.accent, size: 20) : null,
+      trailing: isSelected ? Icon(Icons.check, color: themeColor, size: 20) : null,
       onTap: onTap,
     );
   }

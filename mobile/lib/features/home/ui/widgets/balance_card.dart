@@ -9,6 +9,7 @@ class BalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
       color: AppColors.secondary,
       child: Padding(
         padding: const EdgeInsets.all(24),

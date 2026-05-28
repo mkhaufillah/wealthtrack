@@ -295,7 +295,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                           : cat.categoryName.contains('Entertainment') ||
                                                     cat.categoryName.contains('Hiburan')
                                                 ? Colors.teal
-                                                : AppColors.primary,
+                                                : Colors.indigo,
                     ),
                   ),
                 ),
@@ -533,7 +533,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                           : cat.categoryName.contains('Entertainment') ||
                                                     cat.categoryName.contains('Hiburan')
                                                 ? Colors.teal
-                                                : AppColors.primary,
+                                                : Colors.indigo,
                     ),
                   ),
                 ),

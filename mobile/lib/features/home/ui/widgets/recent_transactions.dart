@@ -18,6 +18,7 @@ class RecentTransactions extends StatelessWidget {
         const SizedBox(height: 12),
         if (transactions.isEmpty)
           Card(
+            elevation: 0,
             child: Padding(
               padding: EdgeInsets.all(32),
               child: Center(child: Text('No transactions this month', style: TextStyle(color: AppColors.textSecondary))),
@@ -25,10 +26,11 @@ class RecentTransactions extends StatelessWidget {
           )
         else ...[
           Card(
+            elevation: 0,
             child: Column(
               children: [
                 for (var i = 0; i < transactions.length; i++) ...[
-                  if (i > 0) const Divider(height: 1),
+                  if (i > 0) Divider(height: 1, color: AppColors.divider),
                   TransactionTile(transaction: transactions[i]),
                 ],
               ],

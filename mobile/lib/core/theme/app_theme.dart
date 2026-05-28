@@ -165,7 +165,7 @@ class AppTheme {
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: AppColors.darkSurface,
-          selectedItemColor: AppColors.accent,
+          selectedItemColor: AppColors.darkPrimary,
           unselectedItemColor: AppColors.darkTextSecondary,
         ),
         dialogTheme: DialogThemeData(

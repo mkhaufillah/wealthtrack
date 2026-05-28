@@ -165,7 +165,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                       color: AppColors.accent.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.pie_chart_outline, color: AppColors.accent, size: 20),
+                    child: Icon(Icons.pie_chart_outline, color: AppColors.textPrimary, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const Text('Budget Overview',
@@ -179,8 +179,8 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               const SizedBox(height: 6),
               _summaryRow('Remaining', formatCurrency(totalRemaining),
                   totalRemaining >= 0 ? AppColors.success : AppColors.highlight),
-              const Divider(height: 24),
-              _summaryRow('Current Balance', formatCurrency(balance), AppColors.primary),
+              Divider(height: 24, color: AppColors.divider),
+              _summaryRow('Current Balance', formatCurrency(balance), AppColors.textPrimary),
               const SizedBox(height: 4),
               Row(
                 children: [
@@ -238,6 +238,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
