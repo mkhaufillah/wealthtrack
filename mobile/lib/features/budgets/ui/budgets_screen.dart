@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
+import '../../../shared/utils/category_translator.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../features/transactions/ui/widgets/amount_field.dart';
 import '../providers/budget_provider.dart';
@@ -151,7 +152,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(item.categoryName,
+                  child: Text(translateCategory(item.categoryName),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
                 Column(
@@ -300,7 +301,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
             ),
             items: widget.categories.map((c) => DropdownMenuItem(
               value: c['id'] as int,
-              child: Text('${c['icon'] ?? '📦'}  ${c['name']}'),
+              child: Text('${c['icon'] ?? '📦'}  ${translateCategory(c['name'] as String)}'),
             )).toList(),
             onChanged: (v) => setState(() => _selectedCategoryId = v),
           ),

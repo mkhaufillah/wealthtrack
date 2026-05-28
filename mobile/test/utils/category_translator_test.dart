@@ -68,6 +68,14 @@ void main() {
       expect(translateCategory('Transfer'), 'Transfer');
     });
 
+    test('translates household needs', () {
+      expect(translateCategory('Kebutuhan Rumah Tangga'), 'Household Needs');
+    });
+
+    test('translates household income', () {
+      expect(translateCategory('Penghasilan Rumah Tangga'), 'Household Income');
+    });
+
     test('returns original for unknown category', () {
       expect(translateCategory('Asuransi'), 'Asuransi');
     });

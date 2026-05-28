@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/utils/currency_formatter.dart';
+import '../../../../shared/utils/category_translator.dart';
 import '../../models/report_model.dart';
 
 /// Color palette used across all charts
@@ -62,7 +63,7 @@ Widget buildPieChartSection(List<CategoryBreakdown> categories) {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        '${cat.icon} ${cat.categoryName}',
+                        '${cat.icon} ${translateCategory(cat.categoryName)}',
                         style: const TextStyle(fontSize: 11),
                         overflow: TextOverflow.ellipsis,
                       ),

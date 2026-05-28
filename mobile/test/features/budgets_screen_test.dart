@@ -45,7 +45,7 @@ Widget buildBudgetsApp({
 
 final sampleItem = BudgetSummaryItem(
   categoryId: 1,
-  categoryName: 'Food & Drink',
+  categoryName: 'Makanan & Minuman',
   categoryIcon: '🍔',
   budgetAmount: 3000000,
   actualSpent: 1500000,
@@ -55,7 +55,7 @@ final sampleItem = BudgetSummaryItem(
 
 final overBudgetItem = BudgetSummaryItem(
   categoryId: 2,
-  categoryName: 'Transport',
+  categoryName: 'Transportasi & Bensin',
   categoryIcon: '🚗',
   budgetAmount: 1000000,
   actualSpent: 1200000,
@@ -65,7 +65,7 @@ final overBudgetItem = BudgetSummaryItem(
 
 final warningItem = BudgetSummaryItem(
   categoryId: 3,
-  categoryName: 'Shopping',
+  categoryName: 'Belanja Harian',
   categoryIcon: '🛍️',
   budgetAmount: 2000000,
   actualSpent: 1600000,
@@ -96,7 +96,7 @@ void main() {
 
     testWidgets('shows budget items in list', (tester) async {
       await tester.pumpWidget(buildBudgetsApp(items: [sampleItem]));
-      expect(find.text('Food & Drink'), findsOneWidget);
+      expect(find.text('Food & Drinks'), findsOneWidget);
       expect(find.textContaining('Rp1.500.000'), findsAtLeast(1));
     });
 
@@ -114,7 +114,7 @@ void main() {
     testWidgets('shows over-budget warning for exceeded budgets',
         (tester) async {
       await tester.pumpWidget(buildBudgetsApp(items: [overBudgetItem]));
-      expect(find.text('Transport'), findsOneWidget);
+      expect(find.text('Transport & Fuel'), findsOneWidget);
       expect(find.textContaining('Over by'), findsOneWidget);
       expect(find.textContaining('Rp200.000'), findsOneWidget);
     });
@@ -122,9 +122,9 @@ void main() {
     testWidgets('shows multiple budget items', (tester) async {
       await tester.pumpWidget(
           buildBudgetsApp(items: [sampleItem, overBudgetItem, warningItem]));
-      expect(find.text('Food & Drink'), findsOneWidget);
-      expect(find.text('Transport'), findsOneWidget);
-      expect(find.text('Shopping'), findsOneWidget);
+      expect(find.text('Food & Drinks'), findsOneWidget);
+      expect(find.text('Transport & Fuel'), findsOneWidget);
+      expect(find.text('Daily Shopping'), findsOneWidget);
     });
 
     testWidgets('shows FAB to add budget', (tester) async {

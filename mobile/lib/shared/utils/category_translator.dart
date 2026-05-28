@@ -21,6 +21,10 @@ const Map<String, String> categoryTranslations = {
   'Tabungan & Investasi': 'Savings & Investment',
   'Kebutuhan Bayi/Anak': 'Baby & Child Needs',
   'Transfer': 'Transfer',
+
+  // Household (used by transfer balance feature)
+  'Kebutuhan Rumah Tangga': 'Household Needs',
+  'Penghasilan Rumah Tangga': 'Household Income',
 };
 
 /// Translates a category name from Indonesian to English.
