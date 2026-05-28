@@ -220,7 +220,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               color: AppColors.textSecondary,
             ),
@@ -305,7 +305,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Text(
                   '${cat.percentage.toStringAsFixed(1)}%',
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
                   ),
@@ -382,7 +382,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       const SizedBox(height: 6),
                       Text(
                         'I: ' + formatCurrency(u.totalIncome) + ' / E: ' + formatCurrency(u.totalExpense),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
                           color: AppColors.textSecondary,
                         ),
@@ -402,7 +402,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     // Show only days that have activity
     final filtered = days.where((d) => d.expense > 0 || d.income > 0).toList();
     if (filtered.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.all(16),
         child: Text(
           'No transactions this month',
@@ -440,7 +440,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                     Text(
                       weekday,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
                         color: AppColors.textSecondary,
                       ),
@@ -543,7 +543,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Text(
                   '${cat.percentage.toStringAsFixed(1)}%',
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
                   ),
@@ -606,7 +606,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     const SizedBox(width: 4),
                     Text(
                       weekday,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
                       ),
@@ -666,7 +666,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             if (userName.isNotEmpty)
                               Text(
                                 userName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
                                   color: AppColors.textSecondary,
                                 ),
