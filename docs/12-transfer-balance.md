@@ -174,6 +174,83 @@ Budget tracking works with any category — no code changes needed. Users can cr
 
 ---
 
+## Mobile UI
+
+### Transfer Balance Screen
+
+**File:** `mobile/lib/features/transactions/ui/transfer_screen.dart`
+
+A full-screen form with:
+
+```
+┌─ Transfer Balance ─────────────────────┐
+│                                         │
+│  ┌─ From ──────────────────────────┐   │
+│  │  👤 Filla                       │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  ┌─ Date: 2026-05-28 ── 📅 ───────┐   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  Recipients                    [+ Add] │
+│                                         │
+│  ┌─ Nahda ───────────────────────┐   │
+│  │  Rp [____________________]    │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  ┌─ Total ───────────────── RpXXX ─┐   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  [          ✈ Send Transfer         ]  │
+└─────────────────────────────────────────┘
+```
+
+**Flow:**
+1. User taps transfer button (AppBar icon or Profile button)
+2. Screen loads household members (excluding self)
+3. First recipient auto-added; user can add/remove more (max 10)
+4. Date picker defaults to today
+5. Confirm dialog shows breakdown by recipient + total
+6. On success, transaction list auto-refreshes
+
+### Transfer Provider
+
+**File:** `mobile/lib/features/transactions/providers/transfer_provider.dart`
+
+- `TransferBalanceNotifier` extends `StateNotifier<TransferBalanceState>`
+- `getHouseholdMembers()` — fetches members for the picker (reuses existing `/households/me` endpoint)
+- `submit(date, transfers)` — calls repository, returns success/failure with error state
+- `reset()` — clears state for fresh submissions
+
+### Repository Method
+
+**File:** `mobile/lib/features/transactions/data/transaction_repository.dart`
+
+```dart
+Future<Map<String, dynamic>> transferBalance({
+  required String date,
+  required List<Map<String, dynamic>> transfers,
+}) async {
+  final res = await _client.post('/transactions/transfer', data: {
+    'date': date,
+    'transfers': transfers,
+  });
+  return res.data as Map<String, dynamic>;
+}
+```
+
+### Navigation
+
+| Entry Point | Location | How |
+|-------------|----------|-----|
+| **Transaction List** | AppBar action icon 🔄 | `context.push('/transactions/transfer')` |
+| **Profile** | Button in Household card | `context.push('/transactions/transfer')` |
+| **Route** | GoRouter | `path: '/transactions/transfer'` |
+
+On successful transfer, `context.pop(true)` returns to the calling screen and triggers a list refresh.
+
+---
+
 ## Edge Cases
 
 | Scenario | Behavior |
@@ -205,6 +282,12 @@ Budget tracking works with any category — no code changes needed. Users can cr
 | `docs/03-backend-api.md` | +API documentation for transfer endpoint |
 | `docs/08-p4-plan.md` | Marked transfer feature as ✅ Done |
 | `mobile/lib/shared/utils/category_translator.dart` | +`'Transfer': 'Transfer'` mapping |
+| `mobile/lib/features/transactions/ui/transfer_screen.dart` | **NEW** — full-screen transfer form with member picker, amount input, date picker |
+| `mobile/lib/features/transactions/providers/transfer_provider.dart` | **NEW** — `TransferBalanceNotifier` state management |
+| `mobile/lib/features/transactions/data/transaction_repository.dart` | +`transferBalance()` API method |
+| `mobile/lib/app.dart` | +`/transactions/transfer` route |
+| `mobile/lib/features/transactions/ui/transaction_list_screen.dart` | +transfer button in AppBar, +FAB for add |
+| `mobile/lib/features/profile/ui/profile_screen.dart` | +transfer button in Household card |
 
 ### Outside repo (Hermes skill/script)
 
