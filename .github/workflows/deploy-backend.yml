@@ -16,7 +16,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -q -r requirements.txt
+          pip install -q pytest pytest-asyncio httpx
+
+      - name: Run tests
+        run: pytest tests/ -v
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,7 +61,7 @@ jobs:
 
             echo "→ Ensuring backend/.env exists..."
             if [ ! -f backend/.env ]; then
-              python3 -c "import secrets; f=open('backend/.env','w'); f.write(f'SECRET_KEY={secrets.token_hex(32)}\\nDEBUG=True\\nACCESS_TOKEN_EXPIRE_DAYS=30\\n')"
+              python3 -c "import secrets; f=open('backend/.env','w'); f.write(f'SECRET_KEY={secrets.token_hex(32)}\nDEBUG=True\nACCESS_TOKEN_EXPIRE_DAYS=30\n')"
               echo "  ✅ Generated backend/.env with random SECRET_KEY"
             fi
 
@@ -49,6 +73,6 @@ jobs:
             /home/filla/.local/bin/uv run python -m backend.app.migrate_db
 
             echo "→ Restarting service..."
-            sudo /usr/bin/systemctl restart wealthtrack
+            sudo systemctl restart wealthtrack
 
-            echo "✅ Deploy complete"
+            echo "✅ Deploy complete! Backend running on port 8080"
