@@ -124,7 +124,7 @@ void main() {
 
     testWidgets('shows multiple budget items', (tester) async {
       // Taller viewport to fit summary card + 3 budget items
-      tester.view.setPhysicalSize(const Size(800, 1400));
+      tester.view.physicalSize = const Size(800, 1400);
       addTearDown(() => tester.view.resetPhysicalSize());
 
       await tester.pumpWidget(
