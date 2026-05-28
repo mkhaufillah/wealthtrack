@@ -4,12 +4,23 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/utils/date_formatter.dart';
 import '../../../../shared/utils/category_translator.dart';
+import '../../data/transaction_repository.dart';
 import '../../models/transaction_model.dart';
+import '../../providers/transaction_provider.dart';
 
 class TransactionTile extends StatelessWidget {
   final TransactionModel transaction;
   final VoidCallback? onTransferOwner;
-  const TransactionTile({super.key, required this.transaction, this.onTransferOwner});
+  final VoidCallback? onDelete;
+  final bool showActions;
+
+  const TransactionTile({
+    super.key,
+    required this.transaction,
+    this.onTransferOwner,
+    this.onDelete,
+    this.showActions = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +44,11 @@ class TransactionTile extends StatelessWidget {
       ),
       title: Text(
         description.isEmpty ? translatedCategory : description,
-        style: const TextStyle(
-            fontSize: 14, fontWeight: FontWeight.w500),
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       ),
       subtitle: Text(
         '${translatedCategory.isEmpty ? "" : "$translatedCategory · "}${formatDateRelative(transaction.date)}${ownerName.isNotEmpty ? " · $ownerName" : ""}',
-        style: const TextStyle(
-            fontSize: 12, color: AppColors.textSecondary),
+        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -52,41 +61,56 @@ class TransactionTile extends StatelessWidget {
               color: isExpense ? AppColors.highlight : AppColors.success,
             ),
           ),
-          const SizedBox(width: 4),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
-            padding: EdgeInsets.zero,
-            onSelected: (value) {
-              if (value == 'edit') {
-                context.push('/transactions/add', extra: transaction);
-              } else if (value == 'change_owner') {
-                onTransferOwner!();
-              }
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit, size: 18),
-                    SizedBox(width: 8),
-                    Text('Edit'),
-                  ],
-                ),
-              ),
-              if (onTransferOwner != null)
+          if (showActions) ...[
+            const SizedBox(width: 4),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
+              padding: EdgeInsets.zero,
+              onSelected: (value) {
+                if (value == 'edit') {
+                  context.push('/transactions/add', extra: transaction);
+                } else if (value == 'change_owner') {
+                  onTransferOwner!();
+                } else if (value == 'delete') {
+                  onDelete!();
+                }
+              },
+              itemBuilder: (_) => [
                 const PopupMenuItem(
-                  value: 'change_owner',
+                  value: 'edit',
                   child: Row(
                     children: [
-                      Icon(Icons.swap_horiz, size: 18),
+                      Icon(Icons.edit, size: 18),
                       SizedBox(width: 8),
-                      Text('Change Owner'),
+                      Text('Edit'),
                     ],
                   ),
                 ),
-            ],
-          ),
+                if (onTransferOwner != null)
+                  const PopupMenuItem(
+                    value: 'change_owner',
+                    child: Row(
+                      children: [
+                        Icon(Icons.swap_horiz, size: 18),
+                        SizedBox(width: 8),
+                        Text('Change Owner'),
+                      ],
+                    ),
+                  ),
+                if (onDelete != null)
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, size: 18),
+                        SizedBox(width: 8),
+                        Text('Delete'),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/theme/app_theme.dart';
@@ -94,6 +95,12 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
 
     final router = ref.watch(goRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final brightness = switch (themeMode) {
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.system => ui.PlatformDispatcher.instance.platformBrightness,
+    };
+    AppColors.sync(brightness);
     return MaterialApp.router(
       title: 'WealthTrack',
       theme: AppTheme.light,

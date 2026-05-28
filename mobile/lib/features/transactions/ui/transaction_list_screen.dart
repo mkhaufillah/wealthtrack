@@ -95,6 +95,35 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     );
   }
 
+  Future<void> _confirmDelete(int txnId, String description) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Delete Transaction'),
+        content: Text(
+          'Delete "${description.isEmpty ? 'this transaction' : description}"? This cannot be undone.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: AppColors.highlight)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await ref.read(transactionListProvider.notifier).delete(txnId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(success ? 'Transaction deleted' : 'Failed to delete transaction')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(transactionListProvider);
@@ -126,7 +155,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                           return Card(
                             child: TransactionTile(
                               transaction: txn,
+                              showActions: true,
                               onTransferOwner: () => _showChangeOwnerSheet(txn.id, txn.user?.id ?? 0),
+                              onDelete: () => _confirmDelete(txn.id, txn.description),
                             ),
                           );
                         },

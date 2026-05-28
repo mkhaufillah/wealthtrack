@@ -73,7 +73,7 @@ def run_migration():
         else:
             print("  ✓ no new columns needed (already migrated)")
 
-        # 5. Create budgets table
+        # 5. Create budgets table + ensure columns
         conn.execute("""
             CREATE TABLE IF NOT EXISTS budgets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,7 +85,16 @@ def run_migration():
                 UNIQUE(user_id, month, category_id)
             );
         """)
-        print("  ✓ budgets table ready")
+        cursor = conn.execute("PRAGMA table_info(budgets)")
+        budget_cols = [row[1] for row in cursor.fetchall()]
+        budget_added = []
+        if 'user_id' not in budget_cols:
+            conn.execute("ALTER TABLE budgets ADD COLUMN user_id INTEGER REFERENCES users(id) DEFAULT 1")
+            budget_added.append("user_id")
+        if budget_added:
+            print(f"  ✓ budgets added columns: {', '.join(budget_added)}")
+        else:
+            print("  ✓ budgets table ready")
 
         # 6. Backfill existing data
         conn.execute("UPDATE transactions SET user_id = 1 WHERE user_id IS NULL")
