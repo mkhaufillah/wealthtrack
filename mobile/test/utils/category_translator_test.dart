@@ -64,6 +64,10 @@ void main() {
       expect(translateCategory('Lainnya'), 'Other');
     });
 
+    test('translates transfer category', () {
+      expect(translateCategory('Transfer'), 'Transfer');
+    });
+
     test('returns original for unknown category', () {
       expect(translateCategory('Asuransi'), 'Asuransi');
     });

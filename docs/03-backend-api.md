@@ -430,6 +430,70 @@ Transfer transaction ownership to another household member.
 
 **Validation:** Target user must be in the same household.
 
+### POST `/api/v1/transactions/transfer`
+
+Transfer balance to one or more household members. Creates paired expense (sender) and income (recipient) transactions using the "Transfer" category (both expense and income). If the categories don't exist, they are auto-created.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "date": "2026-05-28",
+  "transfers": [
+    {"user_id": 2, "amount": 3000000},
+    {"user_id": 2, "amount": 500000}
+  ]
+}
+
+// Response 201
+{
+  "transactions": [
+    {
+      "sender_expense": {
+        "id": 42,
+        "type": "expense",
+        "amount": 3000000,
+        "description": "Transfer to user 2",
+        "date": "2026-05-28",
+        "category": {
+          "id": 9,
+          "name": "Transfer",
+          "icon": "🔄"
+        },
+        "user": {
+          "id": 1,
+          "display_name": "Ayah"
+        }
+      },
+      "recipient_income": {
+        "id": 43,
+        "type": "income",
+        "amount": 3000000,
+        "description": "Transfer from user 1",
+        "date": "2026-05-28",
+        "category": {
+          "id": 10,
+          "name": "Transfer",
+          "icon": "🔄"
+        },
+        "user": {
+          "id": 2,
+          "display_name": "Ibu"
+        }
+      }
+    }
+  ]
+}
+```
+
+**Validation:**
+- Sender must be a member of a household
+- All recipients must be in the same household as the sender
+- Amount must be > 0
+- At least 1 recipient, max 10 recipients
+- Categories "Transfer" (expense) and "Transfer" (income) are auto-created if they don't exist
+
 ## Summaries & Dashboard
 
 ### GET `/api/v1/summaries/daily`

@@ -403,3 +403,142 @@ class TestTransferOwner:
             json={"user_id": 2},
         )
         assert resp.status_code == 401
+
+
+class TestTransferBalance:
+    async def test_transfer_to_one_member(self, client: AsyncClient, filla_token: str):
+        """Transfer from filla to nahda creates 2 transactions."""
+        resp = await client.post(
+            "/api/v1/transactions/transfer",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "date": "2026-05-28",
+                "transfers": [{"user_id": 2, "amount": 3000000}],
+            },
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert "transactions" in data
+        assert len(data["transactions"]) == 1
+        t = data["transactions"][0]
+        assert t["sender_expense"]["type"] == "expense"
+        assert t["sender_expense"]["amount"] == 3000000
+        assert t["sender_expense"]["user"]["id"] == 1
+        assert t["recipient_income"]["type"] == "income"
+        assert t["recipient_income"]["amount"] == 3000000
+        assert t["recipient_income"]["user"]["id"] == 2
+
+    async def test_transfer_to_multiple_members(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Transfer to same member twice creates 2 transaction pairs."""
+        resp = await client.post(
+            "/api/v1/transactions/transfer",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "date": "2026-05-28",
+                "transfers": [
+                    {"user_id": 2, "amount": 3000000},
+                    {"user_id": 2, "amount": 500000},
+                ],
+            },
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert len(data["transactions"]) == 2
+        amounts = sorted(
+            t["sender_expense"]["amount"] for t in data["transactions"]
+        )
+        assert amounts == [500000, 3000000]
+
+    async def test_transfer_requires_auth(self, client: AsyncClient):
+        """Without auth token, returns 401."""
+        resp = await client.post(
+            "/api/v1/transactions/transfer",
+            json={
+                "date": "2026-05-28",
+                "transfers": [{"user_id": 2, "amount": 1000}],
+            },
+        )
+        assert resp.status_code == 401
+
+    async def test_transfer_outside_household_fails(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Cannot transfer to user outside household."""
+        resp = await client.post(
+            "/api/v1/transactions/transfer",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "date": "2026-05-28",
+                "transfers": [{"user_id": 999, "amount": 1000}],
+            },
+        )
+        assert resp.status_code == 400
+
+    async def test_transfer_zero_amount(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Amount must be > 0 — returns 422."""
+        resp = await client.post(
+            "/api/v1/transactions/transfer",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "date": "2026-05-28",
+                "transfers": [{"user_id": 2, "amount": 0}],
+            },
+        )
+        assert resp.status_code == 422
+
+    async def test_transfer_empty_list(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Empty transfers list returns 422."""
+        resp = await client.post(
+            "/api/v1/transactions/transfer",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"date": "2026-05-28", "transfers": []},
+        )
+        assert resp.status_code == 422
+
+    async def test_transfer_categories_exist(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Transfer endpoint uses the correct category names."""
+        resp = await client.post(
+            "/api/v1/transactions/transfer",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "date": "2026-05-28",
+                "transfers": [{"user_id": 2, "amount": 100000}],
+            },
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        t = data["transactions"][0]
+        assert t["sender_expense"]["category"]["name"] == "Transfer"
+        assert t["recipient_income"]["category"]["name"] == "Transfer"
+
+    async def test_transfer_updates_summary(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """After transfer, sender's expense appears in their summary."""
+        await client.post(
+            "/api/v1/transactions/transfer",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "date": "2026-05-28",
+                "transfers": [{"user_id": 2, "amount": 2000000}],
+            },
+        )
+        resp = await client.get(
+            "/api/v1/summaries/daily?date_from=2026-05-28&date_to=2026-05-28",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        filla_user = [
+            u for u in data["by_user"] if u["display_name"] == "Filla"
+        ]
+        assert len(filla_user) > 0
+        assert filla_user[0]["total_expense"] >= 2000000
