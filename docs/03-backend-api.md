@@ -755,16 +755,24 @@ Ask financial questions with full user context injected for personalized advice.
 // Request
 {
   "question": "Bagaimana cara menghemat pengeluaran bulan ini?",
-  "model": "auto"
+  "model": "flash"
 }
 ```
+
+**Request fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `question` | string | required | Financial question |
+| `model` | string | `"flash"` | `"flash"` for DeepSeek V4, `"opus"` for Claude Opus (user id=1 only) |
+| `history` | array | `[]` | Last 10 chat exchanges (max) for conversation continuity. Each item: `{"role": "user"|"assistant", "content": "..."}` |
 
 **Model routing:**
 
 | Model | When used |
 |-------|-----------|
-| `flash` | Simple questions (default for "auto") |
-| `opus` | Complex analysis (triggered by keywords: *analisis, rekomendasi, portfolio*) |
+| `flash` | Fast, budget — default for all (OpenCode Go) |
+| `opus` | Deep analysis — Filla only, via OpenRouter |
 
 ```json
 // Response 200
@@ -783,6 +791,26 @@ Ask financial questions with full user context injected for personalized advice.
 - Household members
 
 **Disclaimer:** This is an AI-generated financial suggestion and should not be considered professional financial advice. Always consult a licensed financial advisor for major financial decisions.
+
+### POST `/api/v1/ai/advise/stream`
+
+Same as `/advise` but returns a Server-Sent Events (SSE) stream for real-time token-by-token display.
+
+**Request:** Same as `/advise`.
+
+**Response:** SSE stream:
+
+```
+data: {"token":"Berdasarkan"}
+
+data: {"token":" pengeluaran"}
+
+data: {"token":" Anda"}
+
+data: [DONE]
+```
+
+The client accumulates these tokens and updates the chat bubble progressively for a real-time typing effect.
 
 ## Health
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/local_chat_storage.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 
@@ -16,8 +17,28 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   final List<_ChatMessage> _messages = [];
+  final LocalChatStorage _chatStorage = LocalChatStorage();
   bool _isLoading = false;
   bool _useAdvancedModel = false;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    await _chatStorage.load();
+    if (!mounted) return;
+    setState(() {
+      _messages.addAll(
+        _chatStorage.messages.map((m) => _ChatMessage(text: m.content, isUser: m.role == 'user')),
+      );
+      _loaded = true;
+    });
+    _scrollToBottom();
+  }
 
   @override
   void dispose() {
@@ -34,23 +55,43 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
     setState(() {
       _messages.add(_ChatMessage(text: text, isUser: true));
       _isLoading = true;
+      // Placeholder AI message — will be updated as tokens arrive
+      _messages.add(_ChatMessage(text: '', isUser: false));
     });
     _scrollToBottom();
 
+    // Save user message locally
+    await _chatStorage.addMessage('user', text);
+
     try {
       final api = ref.read(apiClientProvider);
-      final res = await api.post('/ai/advise', data: {
+      final history = _chatStorage.getLastExchanges(10);
+
+      final tokenStream = api.streamPost('/ai/advise/stream', data: {
         'question': text,
         'model': _useAdvancedModel ? 'opus' : 'flash',
+        'history': history,
       });
-      final answer = res.data['answer'] as String? ?? '';
-      final displayText = answer.isNotEmpty ? answer : 'No response';
+
+      final buffer = StringBuffer();
+      await for (final token in tokenStream) {
+        buffer.write(token);
+        setState(() {
+          _messages.last.text = buffer.toString();
+        });
+        _scrollToBottom();
+      }
+
+      final fullAnswer = buffer.toString();
+      final displayText = fullAnswer.isNotEmpty ? fullAnswer : 'No response';
       setState(() {
-        _messages.add(_ChatMessage(text: displayText, isUser: false));
+        _messages.last.text = displayText;
         _isLoading = false;
       });
+      await _chatStorage.addMessage('assistant', displayText);
     } catch (e) {
       setState(() {
+        _messages.removeLast(); // remove placeholder
         _messages.add(_ChatMessage(
           text: '⚠️ Error: ${e.toString().replaceAll('Exception: ', '')}',
           isUser: false,
@@ -68,6 +109,11 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
             duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       }
     });
+  }
+
+  Future<void> _clearChat() async {
+    await _chatStorage.clear();
+    setState(() => _messages.clear());
   }
 
   @override
@@ -115,7 +161,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
           if (_messages.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline, size: 20),
-              onPressed: () => setState(() => _messages.clear()),
+              onPressed: _clearChat,
               tooltip: 'Clear chat',
             ),
         ],
@@ -134,22 +180,24 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
           ),
           // Messages
           Expanded(
-            child: _messages.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    controller: _scrollCtrl,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length + (_isLoading ? 1 : 0),
-                    itemBuilder: (_, i) {
-                      if (i == _messages.length) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-                        );
-                      }
-                      return _buildMessage(_messages[i]);
-                    },
-                  ),
+            child: _messages.isEmpty && !_loaded
+                ? const Center(child: CircularProgressIndicator())
+                : _messages.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        controller: _scrollCtrl,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _messages.length + (_isLoading ? 1 : 0),
+                        itemBuilder: (_, i) {
+                          if (i == _messages.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                            );
+                          }
+                          return _buildMessage(_messages[i]);
+                        },
+                      ),
           ),
           // Input
           Container(
@@ -244,7 +292,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
 }
 
 class _ChatMessage {
-  final String text;
+  String text;
   final bool isUser;
   _ChatMessage({required this.text, required this.isUser});
 }

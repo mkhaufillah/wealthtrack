@@ -68,11 +68,12 @@ scripts/               # DB init & seed scripts
 ### Hermes Integration
 - Cron-based daily finance summary delivery to Telegram/WhatsApp
 - Expense recording via chat input
-- Invoice processing with EasyOCR
+- Invoice processing with OCR (Hermes vision API)
 
 ## Status
 
 - [x] P1 — Core Backend (FastAPI + SQLite + Auth) ✅
 - [x] P2 — Hermes Integration (cron + chat input) ✅
 - [x] P3 — Flutter Mobile MVP ✅
-- [ ] P4 — Charts, Budgets, Export, OCR, AI Advisor, Change Owner (see [docs/08-p4-plan.md](docs/08-p4-plan.md))
+- [x] P4 — Charts, Budgets, Export, OCR, AI Advisor, Change Owner ✅
+- [x] P5 — AI chat history (local persistence, sliding window 10, clear on logout) ✅

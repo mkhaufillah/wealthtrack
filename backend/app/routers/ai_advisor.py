@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, AsyncGenerator
 import httpx
 import json
+import asyncio
 from datetime import datetime
 
 from app.database import get_db
@@ -12,9 +14,15 @@ from app.core.security import get_current_user
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 
+class HistoryItem(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+
 class AdviseRequest(BaseModel):
     question: str
     model: str = "flash"  # "flash" | "opus"
+    history: list[HistoryItem] = []
 
 
 class AdviseResponse(BaseModel):
@@ -22,7 +30,9 @@ class AdviseResponse(BaseModel):
     model_used: str
 
 
-SYSTEM_PROMPT = """Kamu adalah asisten keuangan pribadi yang membantu {user_name} mengelola keuangan rumah tangga.
+SYSTEM_PROMPT = """Kamu adalah asisten keuangan pribadi yang membantu {user_name} mengelola keuangan keluarga.
+Percakapan ini bersifat personal — hanya {user_name} yang sedang berbicara denganmu.
+Jangan panggil atau sebut nama anggota keluarga lain dalam sapaan.
 
 Data Keuangan Bulan {month}:
 - Saldo: Rp{balance:,}
@@ -34,12 +44,12 @@ Tren 6 Bulan Terakhir: {trend}
 
 Anggaran: {budgets}
 
-Anggota Household: {members}
+Anggota Keluarga (konteks data): {members}
 
 Berikan saran yang personal, relevan, dan actionable berdasarkan data di atas.
 Gunakan bahasa Indonesia yang natural.
 Jika ada data yang relevan, sertakan angka spesifik.
-Jika pengguna hanya menyapa (misal "halo", "hi", "pagi", "selamat siang"), balaslah dengan ramah dan tawarkan bantuan.
+Jika pengguna hanya menyapa (misal "halo", "hi", "pagi", "selamat siang"), balaslah dengan ramah dan tawarkan bantuan — jangan sebut nama anggota keluarga lain.
 Jika ditanya di luar topik keuangan, arahkan kembali ke pengelolaan keuangan.
 Jangan menyebutkan bahwa Anda adalah AI — cukup beri saran sebagai asisten keuangan."""
 
@@ -198,6 +208,82 @@ async def _call_model(messages: list, api_key: str, model: str = "deepseek-v4-fl
     return content.strip()
 
 
+async def _resolve_model(model: str) -> tuple[str, str, str]:
+    """Return (resolved_model, api_url, api_key) for the given model."""
+    model_map = {
+        "flash": "deepseek-v4-flash",
+        "opus": "anthropic/claude-opus-4.7",
+    }
+    resolved = model_map.get(model, model)
+    api_url = "https://opencode.ai/zen/go/v1/chat/completions"
+    api_key = settings.OPENCODE_GO_API_KEY
+
+    if model == "opus":
+        if settings.OPENROUTER_API_KEY:
+            api_key = settings.OPENROUTER_API_KEY
+            api_url = "https://openrouter.ai/api/v1/chat/completions"
+        else:
+            resolved = "deepseek-v4-flash"
+    return resolved, api_url, api_key
+
+
+async def _call_model_stream(
+    messages: list, model: str = "deepseek-v4-flash"
+) -> AsyncGenerator[str, None]:
+    """Call the model API with streaming. Yields token strings as they arrive."""
+    resolved, api_url, api_key = await _resolve_model(model)
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        async with client.stream(
+            "POST",
+            api_url,
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": resolved,
+                "messages": messages,
+                "max_tokens": 16384,
+                "temperature": 0.7,
+                "stream": True,
+            },
+        ) as resp:
+            if resp.status_code != 200:
+                error_text = await resp.aread()
+                yield f"[ERROR:{resp.status_code}]"
+                return
+
+            full_content = ""
+            async for line in resp.aiter_lines():
+                if not line.startswith("data: "):
+                    continue
+                payload = line[6:]
+                if payload.strip() == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(payload)
+                except json.JSONDecodeError:
+                    continue
+                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                token = delta.get("content", "")
+                if token:
+                    full_content += token
+                    yield token
+
+            if not full_content or not full_content.strip():
+                yield "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
+
+
+async def _build_messages(req: AdviseRequest, current_user: dict, db) -> list:
+    """Build the full messages array: system → history → current question."""
+    ctx = await _build_context(current_user["id"], db)
+    prompt = SYSTEM_PROMPT.format(**ctx)
+    history_msgs = [{"role": m.role, "content": m.content} for m in req.history[-10:]]
+    return [
+        {"role": "system", "content": prompt},
+        *history_msgs,
+        {"role": "user", "content": req.question},
+    ]
+
+
 @router.post("/advise", response_model=AdviseResponse)
 async def financial_advise(
     req: AdviseRequest,
@@ -215,17 +301,44 @@ async def financial_advise(
             detail="Advanced model is only available for the primary account holder",
         )
 
-    ctx = await _build_context(current_user["id"], db)
-    prompt = SYSTEM_PROMPT.format(**ctx)
-    full_prompt = f"{prompt}\n\nPertanyaan: {req.question}"
-
-    answer = await _call_model(
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": req.question},
-        ],
-        api_key=api_key,
-        model=req.model,
-    )
+    messages = await _build_messages(req, current_user, db)
+    answer = await _call_model(messages=messages, api_key=api_key, model=req.model)
 
     return AdviseResponse(answer=answer, model_used=req.model)
+
+
+@router.post("/advise/stream")
+async def financial_advise_stream(
+    req: AdviseRequest,
+    db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    api_key = settings.OPENCODE_GO_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=500, detail="AI advisor not configured")
+
+    if req.model == "opus" and current_user["id"] != 1:
+        raise HTTPException(
+            status_code=403,
+            detail="Advanced model is only available for the primary account holder",
+        )
+
+    messages = await _build_messages(req, current_user, db)
+
+    async def event_stream():
+        async for token in _call_model_stream(messages=messages, model=req.model):
+            if token.startswith("[ERROR:"):
+                yield f"data: {json.dumps({'error': token[7:-1]})}\n\n"
+                return
+            yield f"data: {json.dumps({'token': token})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

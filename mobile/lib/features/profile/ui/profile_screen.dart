@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/providers/theme_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/services/local_chat_storage.dart';
 import '../data/household_repository.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -119,6 +120,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
     );
     if (confirmed == true) {
+      // Clear local chat history
+      await LocalChatStorage().clear();
       ref.read(authProvider.notifier).logout();
     }
   }

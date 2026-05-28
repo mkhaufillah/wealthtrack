@@ -256,7 +256,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: Stack(
+        children: [
+          SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,6 +346,40 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               ),
             ),
           ],
+        ),
+      ),
+          if (_isScanning) _buildScanOverlay(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScanOverlay() {
+    return Positioned.fill(
+      child: AbsorbPointer(
+        child: Container(
+          color: Colors.black54,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 48, height: 48,
+                  child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Processing your receipt...',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'This may take a few seconds',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

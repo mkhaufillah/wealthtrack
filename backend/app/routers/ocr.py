@@ -80,7 +80,7 @@ async def process_ocr(
         raise HTTPException(status_code=500, detail="OCR not configured (missing API key)")
 
     try:
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post(
                 "https://opencode.ai/zen/go/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},

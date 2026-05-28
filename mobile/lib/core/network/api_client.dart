@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'dart:async';
+import 'dart:convert';
 import '../constants.dart';
 import '../storage/secure_storage.dart';
 import 'api_exceptions.dart';
@@ -53,6 +55,57 @@ class ApiClient {
       'file': await MultipartFile.fromFile(filePath),
     });
     return _dio.post(path, data: formData);
+  }
+
+  /// POST to an SSE streaming endpoint. Returns a stream of token strings.
+  Stream<String> streamPost(String path, {dynamic data}) {
+    final streamController = StreamController<String>();
+
+    _dio.post<ResponseBody>(
+      path,
+      data: data,
+      options: Options(responseType: ResponseType.stream),
+    ).then((response) {
+      final body = response.data as ResponseBody;
+      body.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen(
+        (line) {
+          if (line.startsWith('data: ')) {
+            final payload = line.substring(6).trim();
+            if (payload == '[DONE]') {
+              streamController.close();
+              return;
+            }
+            try {
+              final json = jsonDecode(payload) as Map<String, dynamic>;
+              if (json.containsKey('error')) {
+                streamController.addError(Exception(json['error']));
+                streamController.close();
+                return;
+              }
+              final token = json['token'] as String?;
+              if (token != null && token.isNotEmpty) {
+                streamController.add(token);
+              }
+            } catch (_) {
+              // Ignore malformed SSE events
+            }
+          }
+        },
+        onDone: () => streamController.close(),
+        onError: (e) {
+          streamController.addError(e);
+          streamController.close();
+        },
+      );
+    }).catchError((e) {
+      streamController.addError(e);
+      streamController.close();
+    });
+
+    return streamController.stream;
   }
 
   Exception handleError(dynamic error) {
