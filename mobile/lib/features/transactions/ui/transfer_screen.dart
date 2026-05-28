@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/transfer_provider.dart';
+import 'widgets/amount_field.dart';
 
 class TransferBalanceScreen extends ConsumerStatefulWidget {
   const TransferBalanceScreen({super.key});
@@ -248,10 +249,10 @@ class _TransferBalanceScreenState
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.group_off, size: 64, color: Colors.grey),
+                      Icon(Icons.group_off, size: 64, color: AppColors.textSecondary),
                       SizedBox(height: 16),
                       Text('No household members available',
-                          style: TextStyle(color: Colors.grey)),
+                          style: TextStyle(color: AppColors.textSecondary)),
                     ],
                   ),
                 )
@@ -338,10 +339,10 @@ class _TransferBalanceScreenState
                         child: Column(
                           children: [
                             Icon(Icons.person_add_alt_1,
-                                size: 48, color: Colors.grey[400]),
+                                size: 48, color: AppColors.textSecondary),
                             const SizedBox(height: 8),
                             const Text('Tap "Add" to select a recipient',
-                                style: TextStyle(color: Colors.grey)),
+                                style: TextStyle(color: AppColors.textSecondary)),
                           ],
                         ),
                       ),
@@ -385,7 +386,7 @@ class _TransferBalanceScreenState
                                     if (_recipients.length > 1)
                                       IconButton(
                                         icon: const Icon(Icons.close,
-                                            size: 18, color: Colors.grey),
+                                            size: 18, color: AppColors.textSecondary),
                                         onPressed: isSubmitting
                                             ? null
                                             : () => _removeRecipient(i),
@@ -396,36 +397,7 @@ class _TransferBalanceScreenState
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    const Text('Rp ',
-                                        style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.primary)),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: r.amountCtrl,
-                                        keyboardType: TextInputType.number,
-                                        enabled: !isSubmitting,
-                                        decoration: InputDecoration(
-                                          hintText: 'Amount',
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                  horizontal: 12, vertical: 12),
-                                          isDense: true,
-                                        ),
-                                        style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                AmountField(controller: r.amountCtrl),
                               ],
                             ),
                           ),

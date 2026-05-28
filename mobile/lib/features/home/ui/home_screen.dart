@@ -73,7 +73,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
   Widget _buildAiCard() {
     return Card(
-      color: AppColors.accent.withOpacity(0.08),
+      color: AppColors.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => context.push('/ai/advise'),

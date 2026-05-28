@@ -6,6 +6,7 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../features/transactions/ui/widgets/amount_field.dart';
 import '../providers/budget_provider.dart';
 import '../models/budget_model.dart';
 
@@ -308,15 +309,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
           // Amount
           const Text('Monthly Limit', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
-          TextField(
-            controller: _amountCtrl,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              prefixText: 'Rp ',
-              hintText: '0',
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            ),
-          ),
+          AmountField(controller: _amountCtrl),
           const SizedBox(height: 20),
 
           SizedBox(

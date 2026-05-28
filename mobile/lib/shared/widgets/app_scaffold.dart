@@ -21,6 +21,7 @@ class MainShell extends ConsumerWidget {
     return Scaffold(
       body: child,
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: index,
         onTap: (i) {
           switch (i) {

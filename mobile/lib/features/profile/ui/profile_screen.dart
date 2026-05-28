@@ -351,19 +351,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               children: [
                 // ── User info card ──
                 _buildUserCard(user),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
                 // ── Household section ──
                 _buildHouseholdSection(),
                 const SizedBox(height: 24),
 
-                // ── Account settings ──
-                Text('Account Settings',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
-                    )),
+                // ── Account Settings ──
+                _buildSectionHeader(Icons.settings_outlined, 'Account Settings'),
                 const SizedBox(height: 8),
 
                 if (!_editing)
@@ -384,7 +379,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onTap: () => _showChangePasswordSheet(),
                 ),
 
-                const Divider(height: 32),
+                const SizedBox(height: 24),
+
+                // ── Features ──
+                _buildSectionHeader(Icons.widgets_outlined, 'Features'),
+                const SizedBox(height: 8),
+
+                _buildMenuItem(
+                  icon: Icons.psychology_outlined,
+                  title: 'AI Financial Advisor',
+                  onTap: () => context.push('/ai/advise'),
+                ),
+
+                const SizedBox(height: 24),
+
+                // ── Preferences ──
+                _buildSectionHeader(Icons.palette_outlined, 'Appearance'),
+                const SizedBox(height: 8),
+                _buildThemeSelector(),
+
+                const SizedBox(height: 24),
+
+                // ── Account Actions ──
+                _buildSectionHeader(Icons.shield_outlined, 'Account Actions'),
+                const SizedBox(height: 8),
 
                 _buildMenuItem(
                   icon: Icons.logout,
@@ -395,23 +413,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 const SizedBox(height: 8),
                 _buildMenuItem(
-                  icon: Icons.psychology_outlined,
-                  title: 'AI Financial Advisor',
-                  onTap: () => context.push('/ai/advise'),
-                ),
-
-                const SizedBox(height: 8),
-                _buildMenuItem(
                   icon: Icons.delete_forever,
                   title: 'Delete Account',
                   textColor: Colors.redAccent,
                   onTap: _deleteAccount,
                 ),
 
-                const SizedBox(height: 24),
-                _buildSectionHeader(Icons.palette_outlined, 'Appearance'),
-                const SizedBox(height: 8),
-                _buildThemeSelector(),
                 const SizedBox(height: 32),
                 Center(
                   child: Text(

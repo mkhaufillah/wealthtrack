@@ -71,7 +71,15 @@ class AppTheme {
           fillColor: AppColors._background,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(color: AppColors._divider),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: AppColors._divider),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: AppColors.accent, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
@@ -124,7 +132,15 @@ class AppTheme {
           fillColor: AppColors.darkSurface,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(color: AppColors.darkDivider),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: AppColors.darkDivider),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: AppColors.accent, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
