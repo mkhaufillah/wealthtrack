@@ -57,7 +57,10 @@ async def _build_context(user_id: int, db) -> dict:
            WHERE hm.household_id = (SELECT household_id FROM household_members WHERE user_id = ?)""",
         (user_id,),
     )
-    members = ", ".join(f"{r['display_name']} ({r['role']})" async for r in cursor) or "Sendiri"
+    member_list = []
+    async for r in cursor:
+        member_list.append(f"{r['display_name']} ({r['role']})")
+    members = ", ".join(member_list) or "Sendiri"
 
     # Current month summary
     now = datetime.now()
@@ -89,7 +92,10 @@ async def _build_context(user_id: int, db) -> dict:
            GROUP BY category_name ORDER BY total DESC LIMIT 5""",
         (user_id, d_from, d_to),
     )
-    cat_breakdown = ", ".join(f"{r['category_name']}: Rp{r['total']:,}" async for r in cursor) or "Belum ada"
+    cat_parts = []
+    async for r in cursor:
+        cat_parts.append(f"{r['category_name']}: Rp{r['total']:,}")
+    cat_breakdown = ", ".join(cat_parts) or "Belum ada"
 
     # 6-month trend
     from calendar import monthrange
@@ -149,16 +155,29 @@ async def _build_context(user_id: int, db) -> dict:
     }
 
 
-async def _call_model(messages: list, api_key: str, model: str = "deepseek/deepseek-v4-flash") -> str:
+async def _call_model(messages: list, api_key: str, model: str = "deepseek-v4-flash") -> str:
     model_map = {
-        "flash": "deepseek/deepseek-v4-flash",
+        "flash": "deepseek-v4-flash",
         "opus": "anthropic/claude-opus-4.7",
     }
     resolved = model_map.get(model, model)
 
+    # OpenCode Go for flash/light models
+    api_url = "https://opencode.ai/zen/go/v1/chat/completions"
+
+    # OpenRouter for premium models
+    if model == "opus":
+        from app.core.config import settings as cfg
+        if cfg.OPENROUTER_API_KEY:
+            api_key = cfg.OPENROUTER_API_KEY
+            api_url = "https://openrouter.ai/api/v1/chat/completions"
+        else:
+            # Downgrade to flash if no OpenRouter key
+            resolved = "deepseek-v4-flash"
+
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(
-            "https://opencode.ai/zen/go/v1/chat/completions",
+            api_url,
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={
                 "model": resolved,

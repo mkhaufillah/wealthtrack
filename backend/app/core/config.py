@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     )
 
     OPENCODE_GO_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:
