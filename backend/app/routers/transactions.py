@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.database import get_db
 from app.core.security import get_current_user
-from app.schemas.transaction import TransactionCreate, TransactionUpdate, PaginatedTransactions, PaginationMeta, TransferOwnerIn
+from app.schemas.transaction import TransactionCreate, TransactionUpdate, PaginatedTransactions, PaginationMeta, TransferOwnerIn, TransferRequest, TransferResponse
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -363,6 +363,133 @@ async def transfer_owner(
         )
     ).fetchone()
     return _format_txn(row, c["name"] if c else "", c["icon"] if c else "")
+
+
+@router.post("/transfer", response_model=TransferResponse, status_code=201)
+async def transfer_balance(
+    req: TransferRequest,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Transfer balance to household members. Creates paired expense/income transactions."""
+    user_id = current_user["id"]
+
+    # 1. Verify user is in a household
+    cursor = await db.execute(
+        "SELECT household_id, role FROM household_members WHERE user_id = ?",
+        (user_id,),
+    )
+    member = await cursor.fetchone()
+    if not member:
+        raise HTTPException(status_code=400, detail="Not a member of any household")
+    household_id = member["household_id"]
+
+    # 2. Verify all recipients are in the same household
+    recipient_ids = [t.user_id for t in req.transfers]
+    placeholders = ",".join("?" * len(recipient_ids))
+    cursor = await db.execute(
+        f"SELECT user_id FROM household_members WHERE household_id = ? AND user_id IN ({placeholders})",
+        (household_id, *recipient_ids),
+    )
+    valid_ids = {r["user_id"] for r in await cursor.fetchall()}
+    for rid in recipient_ids:
+        if rid not in valid_ids:
+            raise HTTPException(
+                status_code=400,
+                detail=f"User {rid} is not a member of your household",
+            )
+
+    # 3. Ensure the special transfer categories exist
+    cursor = await db.execute(
+        "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
+        ("Kebutuhan Rumah Tangga", "expense"),
+    )
+    expense_cat = await cursor.fetchone()
+    if not expense_cat:
+        await db.execute(
+            "INSERT INTO categories (name, type, icon, is_default) VALUES (?, ?, ?, ?)",
+            ("Kebutuhan Rumah Tangga", "expense", "🏠", 1),
+        )
+        cursor = await db.execute(
+            "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
+            ("Kebutuhan Rumah Tangga", "expense"),
+        )
+        expense_cat = await cursor.fetchone()
+
+    cursor = await db.execute(
+        "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
+        ("Penghasilan Rumah Tangga", "income"),
+    )
+    income_cat = await cursor.fetchone()
+    if not income_cat:
+        await db.execute(
+            "INSERT INTO categories (name, type, icon, is_default) VALUES (?, ?, ?, ?)",
+            ("Penghasilan Rumah Tangga", "income", "🏠", 1),
+        )
+        cursor = await db.execute(
+            "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
+            ("Penghasilan Rumah Tangga", "income"),
+        )
+        income_cat = await cursor.fetchone()
+
+    expense_cat_id = expense_cat["id"]
+    expense_cat_name = expense_cat["name"]
+    expense_cat_icon = expense_cat["icon"]
+    income_cat_id = income_cat["id"]
+    income_cat_name = income_cat["name"]
+    income_cat_icon = income_cat["icon"]
+
+    # 4. Create transactions
+    results = []
+    for t in req.transfers:
+        # Sender expense
+        cursor = await db.execute(
+            "INSERT INTO transactions (type, amount, category_id, category_name, description, date, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ("expense", t.amount, expense_cat_id, expense_cat_name,
+             f"Transfer to user {t.user_id}", req.date, user_id),
+        )
+        expense_id = cursor.lastrowid
+
+        # Recipient income
+        cursor = await db.execute(
+            "INSERT INTO transactions (type, amount, category_id, category_name, description, date, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ("income", t.amount, income_cat_id, income_cat_name,
+             f"Transfer from user {user_id}", req.date, t.user_id),
+        )
+        income_id = cursor.lastrowid
+
+        # Fetch both with JOINs for _format_txn
+        cursor = await db.execute(
+            """SELECT t.*, c.name AS cat_name, c.icon AS cat_icon,
+                      u.display_name AS user_display_name
+               FROM transactions t
+               LEFT JOIN categories c ON t.category_id = c.id
+               LEFT JOIN users u ON t.user_id = u.id
+               WHERE t.id = ?""",
+            (expense_id,),
+        )
+        exp_row = await cursor.fetchone()
+
+        cursor = await db.execute(
+            """SELECT t.*, c.name AS cat_name, c.icon AS cat_icon,
+                      u.display_name AS user_display_name
+               FROM transactions t
+               LEFT JOIN categories c ON t.category_id = c.id
+               LEFT JOIN users u ON t.user_id = u.id
+               WHERE t.id = ?""",
+            (income_id,),
+        )
+        inc_row = await cursor.fetchone()
+
+        results.append({
+            "sender_expense": _format_txn(exp_row, expense_cat_name, expense_cat_icon,
+                                          exp_row["user_display_name"] or ""),
+            "recipient_income": _format_txn(inc_row, income_cat_name, income_cat_icon,
+                                            inc_row["user_display_name"] or ""),
+        })
+
+    await db.commit()
+    return {"transactions": results}
 
 
 @router.delete("/{txn_id}", status_code=204)
