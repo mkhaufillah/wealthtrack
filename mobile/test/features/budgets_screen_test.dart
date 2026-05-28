@@ -123,12 +123,16 @@ void main() {
     });
 
     testWidgets('shows multiple budget items', (tester) async {
-      // Taller viewport to fit summary card + 3 budget items
-      tester.view.physicalSize = const Size(800, 1400);
-      addTearDown(() => tester.view.resetPhysicalSize());
-
       await tester.pumpWidget(
           buildBudgetsApp(items: [sampleItem, overBudgetItem, warningItem]));
+
+      // Scroll down to see all items (summary card pushes 3rd item off-screen)
+      await tester.dragUntilVisible(
+        find.text('Daily Shopping'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+
       expect(find.text('Food & Drinks'), findsOneWidget);
       expect(find.text('Transport & Fuel'), findsOneWidget);
       expect(find.text('Daily Shopping'), findsOneWidget);
