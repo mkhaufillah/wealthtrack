@@ -106,24 +106,18 @@ async def export_yearly(
             else:
                 total_expense += txn["amount"]
 
-        # Summary row
+        # Summary rows (Total Income / Expense / Balance)
         summary_row = len(rows) + 3  # blank row then summary
-        ws.cell(row=summary_row, column=1, value="Summary").font = summary_font
-        ws.cell(row=summary_row, column=1).fill = summary_fill
-        ws.merge_cells(start_row=summary_row, start_column=1, end_row=summary_row, end_column=3)
 
-        ws.cell(row=summary_row, column=4, value="").fill = summary_fill
-        ws.cell(row=summary_row, column=4).border = thin_border
+        ws.cell(row=summary_row, column=1, value="Total Income").font = summary_font
+        ws.cell(row=summary_row, column=4, value=total_income).font = Font(color="2ECC71", bold=True)
 
-        ws.cell(row=summary_row + 1, column=1, value="Total Income").font = summary_font
-        ws.cell(row=summary_row + 1, column=4, value=total_income).font = Font(color="2ECC71", bold=True)
-
-        ws.cell(row=summary_row + 2, column=1, value="Total Expense").font = summary_font
-        ws.cell(row=summary_row + 2, column=4, value=total_expense).font = Font(color="E94560", bold=True)
+        ws.cell(row=summary_row + 1, column=1, value="Total Expense").font = summary_font
+        ws.cell(row=summary_row + 1, column=4, value=total_expense).font = Font(color="E94560", bold=True)
 
         balance = total_income - total_expense
-        ws.cell(row=summary_row + 3, column=1, value="Balance").font = summary_font
-        bal_cell = ws.cell(row=summary_row + 3, column=4, value=balance)
+        ws.cell(row=summary_row + 2, column=1, value="Balance").font = summary_font
+        bal_cell = ws.cell(row=summary_row + 2, column=4, value=balance)
         bal_cell.font = Font(bold=True, color="0F3460" if balance >= 0 else "E94560")
         bal_cell.number_format = '#,##0'
 

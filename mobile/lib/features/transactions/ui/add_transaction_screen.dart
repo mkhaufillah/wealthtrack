@@ -217,7 +217,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             children: [
               const Icon(Icons.error, color: Colors.white, size: 20),
               const SizedBox(width: 8),
-              Text(msg, style: const TextStyle(color: Colors.white)),
+              Expanded(
+                child: Text(msg, style: const TextStyle(color: Colors.white)),
+              ),
             ],
           ),
           backgroundColor: AppColors.highlight,

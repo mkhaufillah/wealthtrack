@@ -43,9 +43,10 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
         'question': text,
         'model': _useAdvancedModel ? 'opus' : 'flash',
       });
-      final answer = res.data['answer'] as String? ?? 'No response';
+      final answer = res.data['answer'] as String? ?? '';
+      final displayText = answer.isNotEmpty ? answer : 'No response';
       setState(() {
-        _messages.add(_ChatMessage(text: answer, isUser: false));
+        _messages.add(_ChatMessage(text: displayText, isUser: false));
         _isLoading = false;
       });
     } catch (e) {
