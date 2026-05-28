@@ -26,7 +26,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   void initState() {
     super.initState();
     _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _load();
+      ref.read(dashboardProvider.notifier).load();
+    });
   }
 
   String get _monthParam => DateFormat('yyyy-MM').format(_currentMonth);
