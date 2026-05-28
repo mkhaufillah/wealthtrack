@@ -15,6 +15,7 @@ class AppColors {
   static const Color darkTextPrimary = Color(0xFFE6EDF3);
   static const Color darkTextSecondary = Color(0xFF8B949E);
   static const Color darkDivider = Color(0xFF30363D);
+  static const Color darkPrimary = Color(0xFF58A6FF);
 
   // ─── Shared (theme-independent) ──────────────────────
   static const Color primary = Color(0xFF1A1A2E);
@@ -108,7 +109,7 @@ class AppTheme {
         primaryColor: AppColors.primary,
         scaffoldBackgroundColor: AppColors.darkBackground,
         colorScheme: const ColorScheme.dark(
-          primary: AppColors.primary,
+          primary: AppColors.darkPrimary,
           secondary: AppColors.accent,
           surface: AppColors.darkSurface,
           error: AppColors.highlight,
@@ -130,6 +131,9 @@ class AppTheme {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: AppColors.darkSurface,
+          labelStyle: TextStyle(color: AppColors.darkTextSecondary),
+          hintStyle: TextStyle(color: AppColors.darkTextSecondary.withOpacity(0.6)),
+          floatingLabelStyle: TextStyle(color: AppColors.darkPrimary),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: AppColors.darkDivider),
@@ -140,7 +144,7 @@ class AppTheme {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: AppColors.accent, width: 1.5),
+            borderSide: BorderSide(color: AppColors.darkPrimary, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
@@ -152,6 +156,11 @@ class AppTheme {
               borderRadius: BorderRadius.circular(10),
             ),
             padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.darkTextPrimary,
           ),
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(

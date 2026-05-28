@@ -47,13 +47,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('💰', style: TextStyle(fontSize: 48)),
+                  Text('💰', style: const TextStyle(fontSize: 48)),
                   const SizedBox(height: 16),
-                  const Text('WealthTrack',
+                  Text('WealthTrack',
                       style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary)),
+                          color: AppColors.textPrimary)),
                   const SizedBox(height: 4),
                   Text('Manage your finances easier',
                       style: TextStyle(
