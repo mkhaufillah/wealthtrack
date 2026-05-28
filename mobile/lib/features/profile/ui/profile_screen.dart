@@ -520,7 +520,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.home_outlined, size: 18, color: AppColors.textSecondary),
+                  Icon(Icons.home_outlined, size: 18, color: AppColors.textSecondary),
                   const SizedBox(width: 8),
                   const Text('Household',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
@@ -564,7 +564,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.home, size: 18, color: AppColors.primary),
+                Icon(Icons.home, size: 18, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
                   hh['name'] as String? ?? 'Home',
@@ -578,7 +578,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text('admin',
+                    child: Text('admin',
                         style: TextStyle(fontSize: 10, color: AppColors.primary)),
                   ),
                 ],
@@ -588,7 +588,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Invite code
             Row(
               children: [
-                const Icon(Icons.link, size: 14, color: AppColors.textSecondary),
+                Icon(Icons.link, size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 6),
                 Text(
                   'Code: $inviteCode',
@@ -604,7 +604,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     // Copy to clipboard
                     _copyToClipboard(inviteCode);
                   },
-                  child: const Icon(Icons.copy, size: 16, color: AppColors.textSecondary),
+                  child: Icon(Icons.copy, size: 16, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -612,7 +612,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 10),
               const Divider(height: 1),
               const SizedBox(height: 8),
-              const Text('Members',
+              Text('Members',
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               const SizedBox(height: 4),
               ...(_members.map((m) => Padding(
@@ -725,7 +725,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: ListTile(
         leading: Icon(icon, color: textColor),
         title: Text(title, style: TextStyle(color: textColor)),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        trailing: Icon(Icons.chevron_right, color: AppColors.textSecondary),
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -894,7 +894,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return ListTile(
       leading: Icon(icon, color: isSelected ? AppColors.accent : AppColors.textSecondary),
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
-      trailing: isSelected ? const Icon(Icons.check, color: AppColors.accent, size: 20) : null,
+      trailing: isSelected ? Icon(Icons.check, color: AppColors.accent, size: 20) : null,
       onTap: onTap,
     );
   }

@@ -48,7 +48,7 @@ class TransactionTile extends StatelessWidget {
       ),
       subtitle: Text(
         '${translatedCategory.isEmpty ? "" : "$translatedCategory · "}${formatDateRelative(transaction.date)}${ownerName.isNotEmpty ? " · $ownerName" : ""}',
-        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -64,7 +64,7 @@ class TransactionTile extends StatelessWidget {
           if (showActions) ...[
             const SizedBox(width: 4),
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
+              icon: Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
               padding: EdgeInsets.zero,
               onSelected: (value) {
                 if (value == 'edit') {

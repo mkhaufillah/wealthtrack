@@ -116,7 +116,7 @@ class _AmountFieldState extends State<AmountField> {
       textAlign: TextAlign.center,
       decoration: InputDecoration(
         hintText: showHint ? 'Rp 0' : null,
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: AppColors.textSecondary,
@@ -125,10 +125,10 @@ class _AmountFieldState extends State<AmountField> {
         fillColor: AppColors.background,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.divider),
+          borderSide: BorderSide(color: AppColors.divider),
         ),
       ),
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 32,
         fontWeight: FontWeight.bold,
         color: AppColors.textPrimary,

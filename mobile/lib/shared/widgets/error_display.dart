@@ -14,10 +14,10 @@ class ErrorDisplay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.highlight),
+            Icon(Icons.error_outline, size: 48, color: AppColors.highlight),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
               ElevatedButton.icon(

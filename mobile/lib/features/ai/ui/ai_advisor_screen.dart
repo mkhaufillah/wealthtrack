@@ -196,7 +196,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
             : MarkdownBody(
                 data: msg.text,
                 styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                  p: TextStyle(fontSize: 14, color: AppColors.textPrimary),
                   strong: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),

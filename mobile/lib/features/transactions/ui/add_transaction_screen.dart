@@ -98,7 +98,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(height: 4),
-            const Center(
+            Center(
               child: Text('Choose an image source',
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             ),
@@ -313,11 +313,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 18, color: AppColors.textSecondary),
+                    Icon(Icons.calendar_today, size: 18, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
                     Text(formattedDate, style: const TextStyle(fontSize: 14)),
                     const Spacer(),
-                    const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                    Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
                   ],
                 ),
               ),

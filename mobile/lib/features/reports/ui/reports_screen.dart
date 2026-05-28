@@ -632,7 +632,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ],
                 ),
               ),
-              const Divider(height: 1, color: AppColors.divider),
+              Divider(height: 1, color: AppColors.divider),
               // Transactions for this day
               ...dayTxns.map((txn) {
                 final amount = txn['amount'] ?? 0;

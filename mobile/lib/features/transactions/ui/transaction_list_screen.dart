@@ -54,7 +54,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 4),
-              const Center(
+              Center(
                 child: Text('Select the new owner', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ),
               const SizedBox(height: 16),
@@ -65,11 +65,11 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   leading: CircleAvatar(
                     backgroundColor: AppColors.primary.withOpacity(0.15),
                     child: Text(name[0].toUpperCase(),
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
                   ),
                   title: Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
                   subtitle: Text(role == 'admin' ? 'Admin' : 'Member',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   onTap: () async {
                     Navigator.pop(ctx);
                     final success = await notifier.transferOwner(txnId, member['user_id'] as int);
@@ -108,7 +108,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: AppColors.highlight)),
+            child: Text('Delete', style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),

@@ -168,7 +168,7 @@ Widget buildTrendChartSection(List<MonthlyTrend> trend) {
                 if (idx < 0 || idx >= labels.length) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(labels[idx], style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                  child: Text(labels[idx], style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                 );
               },
               reservedSize: 24,

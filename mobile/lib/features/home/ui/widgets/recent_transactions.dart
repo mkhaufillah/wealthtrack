@@ -13,11 +13,11 @@ class RecentTransactions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Recent Transactions',
+        Text('Recent Transactions',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
         const SizedBox(height: 12),
         if (transactions.isEmpty)
-          const Card(
+          Card(
             child: Padding(
               padding: EdgeInsets.all(32),
               child: Center(child: Text('No transactions this month', style: TextStyle(color: AppColors.textSecondary))),

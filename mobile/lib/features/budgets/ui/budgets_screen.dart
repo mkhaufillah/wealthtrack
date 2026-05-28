@@ -163,7 +163,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                           color: isOverBudget ? AppColors.highlight : AppColors.textPrimary,
                         )),
                     Text('/ ${formatCurrency(item.budgetAmount)}',
-                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                   ],
                 ),
               ],
