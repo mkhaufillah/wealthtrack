@@ -18,6 +18,7 @@
 | P3 | **Budgets** | 2-3 hr | Categories + transactions (ready) | ✅ Done |
 | P4 | **OCR / Smart Input** | 3-4 hr | OpenCode Go API key | ✅ Done |
 | P5 | **AI Financial Advisor** | 2-3 hr | OpenCode Go API key | ✅ Done |
+| — | **Transfer Balance** | 1 hr | Household members (ready) | ✅ Done — see [03-backend-api.md](03-backend-api.md) |
 
 **Dropped:** Categories CRUD — static is sufficient.
 
