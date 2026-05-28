@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
@@ -130,7 +131,26 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Transactions')),
+      appBar: AppBar(
+        title: const Text('Transactions'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.swap_horiz_rounded),
+            tooltip: 'Transfer Balance',
+            onPressed: () async {
+              final result = await context.push<bool>('/transactions/transfer');
+              if (result == true && mounted) {
+                ref.read(transactionListProvider.notifier).load(refresh: true);
+              }
+            },
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.push('/transactions/add'),
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(transactionListProvider.notifier).load(refresh: true),
         child: state.isLoading

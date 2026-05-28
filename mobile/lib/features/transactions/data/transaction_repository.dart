@@ -39,4 +39,17 @@ class TransactionRepository {
       return TransactionModel.fromJson(res.data);
     } catch (e) { throw _client.handleError(e); }
   }
+
+  Future<Map<String, dynamic>> transferBalance({
+    required String date,
+    required List<Map<String, dynamic>> transfers,
+  }) async {
+    try {
+      final res = await _client.post('/transactions/transfer', data: {
+        'date': date,
+        'transfers': transfers,
+      });
+      return res.data as Map<String, dynamic>;
+    } catch (e) { throw _client.handleError(e); }
+  }
 }

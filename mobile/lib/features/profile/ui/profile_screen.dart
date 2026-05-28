@@ -644,6 +644,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ))),
             ],
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/transactions/transfer'),
+                icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                label: const Text('Transfer Balance'),
+              ),
+            ),
           ],
         ),
       ),
