@@ -189,12 +189,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const Text('Join Household',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                const Text(
-                  'Enter the invite code from your household admin to join.',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 16),
-                TextField(
+          Text(
+            'Enter the invite code from your household admin to join.',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          TextField(
                   controller: codeCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Invite Code',
@@ -455,7 +455,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 children: [
                   Text(
                     user?.displayName ?? '-',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
@@ -464,7 +464,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 2),
                   Text(
                     '@${user?.username ?? '-'}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       color: AppColors.textSecondary,
                     ),
@@ -715,16 +715,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
-    Color textColor = AppColors.textPrimary,
+    Color? textColor,
   }) {
+    final effectiveColor = textColor ?? AppColors.textPrimary;
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: AppColors.surface,
       margin: const EdgeInsets.only(bottom: 4),
       child: ListTile(
-        leading: Icon(icon, color: textColor),
-        title: Text(title, style: TextStyle(color: textColor)),
+        leading: Icon(icon, color: effectiveColor),
+        title: Text(title, style: TextStyle(color: effectiveColor)),
         trailing: Icon(Icons.chevron_right, color: AppColors.textSecondary),
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -932,7 +933,7 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'This will permanently delete your account and all transactions. '
             'This cannot be undone.',
             style: TextStyle(color: AppColors.textSecondary),
