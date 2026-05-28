@@ -257,10 +257,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         title: const Text('Delete Budget'),
         content: Text('Remove budget for ${translateCategory(item.categoryName)}?'),
         actions: [
-          TextButton(onPressed: () => ctx.pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.highlight),
-            onPressed: () => ctx.pop(true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Delete'),
           ),
         ],

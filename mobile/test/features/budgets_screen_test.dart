@@ -44,6 +44,7 @@ Widget buildBudgetsApp({
 }
 
 final sampleItem = BudgetSummaryItem(
+  id: 1,
   categoryId: 1,
   categoryName: 'Makanan & Minuman',
   categoryIcon: '🍔',
@@ -54,6 +55,7 @@ final sampleItem = BudgetSummaryItem(
 );
 
 final overBudgetItem = BudgetSummaryItem(
+  id: 2,
   categoryId: 2,
   categoryName: 'Transportasi & Bensin',
   categoryIcon: '🚗',
@@ -64,6 +66,7 @@ final overBudgetItem = BudgetSummaryItem(
 );
 
 final warningItem = BudgetSummaryItem(
+  id: 3,
   categoryId: 3,
   categoryName: 'Belanja Harian',
   categoryIcon: '🛍️',
