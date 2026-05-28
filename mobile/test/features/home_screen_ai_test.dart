@@ -50,6 +50,7 @@ void main() {
     testWidgets('shows AI card between stats and recent transactions',
         (tester) async {
       await tester.pumpWidget(buildHomeApp(balance: 1000000));
+      await tester.scrollUntilVisible(find.text('Recent Transactions'), 200);
       // Verify all sections still render
       expect(find.text('Monthly Balance'), findsOneWidget);
       expect(find.text('AI Financial Advisor'), findsOneWidget);

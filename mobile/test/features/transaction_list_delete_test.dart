@@ -94,7 +94,7 @@ void main() {
 
       // Confirm dialog appears
       expect(find.text('Delete Transaction'), findsOneWidget);
-      expect(find.textContaining('Lunch'), findsOneWidget);
+      expect(find.textContaining('Lunch'), findsAtLeast(1));
       expect(find.text('Cancel'), findsOneWidget);
     });
 

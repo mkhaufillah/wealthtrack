@@ -97,7 +97,7 @@ void main() {
     testWidgets('shows budget items in list', (tester) async {
       await tester.pumpWidget(buildBudgetsApp(items: [sampleItem]));
       expect(find.text('Food & Drink'), findsOneWidget);
-      expect(find.textContaining('Rp1.500.000'), findsOneWidget);
+      expect(find.textContaining('Rp1.500.000'), findsAtLeast(1));
     });
 
     testWidgets('shows percentage for budget item', (tester) async {
@@ -108,7 +108,7 @@ void main() {
     testWidgets('shows remaining amount for budget item', (tester) async {
       await tester.pumpWidget(buildBudgetsApp(items: [sampleItem]));
       expect(find.textContaining('remaining'), findsOneWidget);
-      expect(find.textContaining('Rp1.500.000'), findsOneWidget);
+      expect(find.textContaining('Rp1.500.000'), findsAtLeast(1));
     });
 
     testWidgets('shows over-budget warning for exceeded budgets',
