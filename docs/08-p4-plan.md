@@ -4,6 +4,8 @@
 
 **Based on discussion 2026-05-27.** Updated 2026-05-27: Dark mode and edit transaction date completed, moved out of P4.
 
+> **✅ Implementation update:** P2 (Export Excel), P3 (Budgets), P4 (OCR / Smart Input), and P5 (AI Financial Advisor) have all been implemented and are now live. Details below reflect current status.
+
 ## Priority Order
 
 | Prio | Feature | Estimasi | Dependencies | Status |
@@ -12,10 +14,10 @@
 | P1 | **Charts (Reports Page)** | 2-3 hr | Summary endpoints (ready) | ✅ Done |
 | — | **Dark Mode** | — | — | ✅ Done — see [09-dark-mode.md](09-dark-mode.md) |
 | — | **Edit Transaction Date** | — | — | ✅ Done — see [10-edit-transaction.md](10-edit-transaction.md) |
-| P2 | **Export Excel** | 1 hr | Transaction endpoints (ready) | 🔴 Not started |
-| P3 | **Budgets** | 2-3 hr | Categories + transactions (ready) | 🔴 Not started |
-| P4 | **OCR / Smart Input** | 3-4 hr | OpenCode Go API key | 🔴 Not started |
-| P5 | **AI Financial Advisor** | 2-3 hr | OpenCode Go + OpenRouter keys | 🔴 Not started |
+| P2 | **Export Excel** | 1 hr | Transaction endpoints (ready) | ✅ Done |
+| P3 | **Budgets** | 2-3 hr | Categories + transactions (ready) | ✅ Done |
+| P4 | **OCR / Smart Input** | 3-4 hr | OpenCode Go API key | ✅ Done |
+| P5 | **AI Financial Advisor** | 2-3 hr | OpenCode Go API key | ✅ Done |
 
 **Dropped:** Categories CRUD — static is sufficient.
 
@@ -66,7 +68,7 @@
 
 ---
 
-## 3. Export Excel
+## 3. Export Excel ✓ Implemented
 
 **Backend:**
 - `GET /api/v1/exports/yearly?year=2026`
@@ -86,7 +88,7 @@
 
 ---
 
-## 4. Budgets
+## 4. Budgets ✓ Implemented
 
 **Concept:** Monthly spending limits per category. Visual progress bar shows how close you are to the limit.
 
@@ -94,6 +96,7 @@
 ```sql
 CREATE TABLE budgets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
   month TEXT NOT NULL,         -- '2026-05'
   category_id INTEGER NOT NULL,
   category_name TEXT NOT NULL,
@@ -116,11 +119,11 @@ CREATE TABLE budgets (
 - Add/edit budget bottom sheet
 - Optional: notification when approaching limit
 
-**Note:** Model file `backend/app/models/budget.py` and schema `backend/app/schemas/budget.py` already exist as placeholders (empty/minimal).
+**Note:** Schema `backend/app/schemas/budget.py` already exist as placeholders (empty/minimal).
 
 ---
 
-## 5. OCR / Smart Input
+## 5. OCR / Smart Input ✓ Implemented
 
 **Architecture:**
 
@@ -133,7 +136,7 @@ CREATE TABLE budgets (
   │
   ▼
 [OpenCode Go API — Kimi K2.6 (vision)]
-  │  POST https://api.opencode-go.com/v1/chat/completions
+  │  POST https://api.opencode.ai/zen/go/v1/chat/completions
   │  Model: kimi-k2.6
   │  Auth: Bearer OPENCODE_GO_KEY (from .env)
   │  Prompt: structured extraction
@@ -167,9 +170,9 @@ CREATE TABLE budgets (
 
 ---
 
-## 6. AI Financial Advisor
+## 6. AI Financial Advisor ✓ Implemented
 
-**Architecture — Approach 1 (Backend Fetches Market Data):**
+**Architecture:**
 
 ```
 [Mobile: user asks financial question]
@@ -180,14 +183,9 @@ CREATE TABLE budgets (
      - Current balance, income/expense trends (6 months)
      - Top spending categories
      - Current budgets + usage
-  2. Fetch market data
-     - Yahoo Finance: IHSG, reksadana prices, crypto
-     - Web search: latest economic news (via search API)
-  3. Construct prompt with all context
-  4. Route to model:
-     - Simple Q&A → DeepSeek Flash V4 (OpenCode Go)
-     - Complex analysis → Claude Opus (OpenRouter)
-  5. Return response
+  2. Construct prompt with financial context
+  3. Route to model → DeepSeek Flash V4 (via OpenCode Go API)
+  4. Return response
         │
         ▼
 [Mobile shows response in chat-like UI]
@@ -195,9 +193,8 @@ CREATE TABLE budgets (
 
 **Backend endpoints:**
 - `POST /api/v1/ai/advise` — ask a question
-  - Request: `{ "question": "...", "model": "auto" | "flash" | "opus" }`
-  - Model routing logic:
-    - "auto" → DeepSeek Flash by default, upgrade if question contains keywords like "analisis", "rekomendasi", "portfolio", "investasi"
+  - Request: `{ "question": "..." }`
+  - Uses DeepSeek Flash V4 via OpenCode Go (no model switching)
   - Returns markdown-formatted advice
 - `GET /api/v1/ai/context` — returns what data the AI will see (debug/transparency)
 
@@ -222,27 +219,17 @@ Data Keuangan:
 - Budget vs realisasi: {budget_summary}
 - Tren 6 bulan: {trend_summary}
 
-Data Pasar (real-time):
-- IHSG: {ihsg}
-- Reksadana pendapatan tetap: {yield}
-- Inflasi: {inflation_rate}
-- {berita_ekonomi_terkini}
-
 Pertanyaan: {question}
 
-Berikan saran yang personal, relevan dengan kondisi keuangan {user_display_name},
-dan berdasarkan data pasar terkini. Sertakan disclaimer jika perlu.
+Berikan saran yang personal dan relevan dengan kondisi keuangan {user_display_name}.
+Sertakan disclaimer jika perlu.
 ```
 
 **Dependencies:**
-- `httpx` or `aiohttp` for API calls (already have `httpx`?)
-- Yahoo Finance: `yfinance` package or direct API
-- Web search: use existing search service or OpenRouter with search
+- `httpx` for API calls (already in project)
 
-**Key files to create:**
+**Key files (implemented):**
 - `backend/app/routers/ai_advisor.py`
-- `backend/app/services/market_data.py` — Yahoo Finance wrapper
-- `backend/app/services/context_builder.py` — build financial context
 - `backend/app/schemas/advice.py` — request/response schemas
 
 ---
@@ -260,12 +247,12 @@ CORS_ORIGINS=["*"]
 OPENCODE_GO_API_KEY=sk-...           # Copy from Hermes .env
 
 # New — AI Advisor
-OPENROUTER_API_KEY=sk-or-...         # Optional, for Claude Opus fallback
+# (Uses OpenCode Go — no additional key needed)
 ```
 
 ---
 
-## Timeline
+## Timeline *(historical — all items completed)*
 
 | Day | Feature | Deliverable |
 |-----|---------|-------------|

@@ -410,6 +410,26 @@ Delete a transaction. Only owner can delete.
 // Response 204 (No Content)
 ```
 
+### PUT `/api/v1/transactions/{id}/owner`
+
+Transfer transaction ownership to another household member.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "user_id": 2
+}
+
+// Response 200
+{
+  "message": "Transaction ownership transferred successfully"
+}
+```
+
+**Validation:** Target user must be in the same household.
+
 ## Summaries & Dashboard
 
 ### GET `/api/v1/summaries/daily`
@@ -516,6 +536,189 @@ Monthly summary for a given month.
 ### GET `/api/v1/summaries/current-month`
 
 Quick endpoint — shorthand for `/summaries/monthly?month=<current>`.
+
+## Budgets
+
+### GET `/api/v1/budgets?month=YYYY-MM`
+
+List budgets for a specific month.
+
+**Auth:** Bearer token
+
+**Query params:** `month` (required, format: `YYYY-MM`)
+
+```json
+// Response 200
+[
+  {
+    "id": 1,
+    "month": "2026-05",
+    "category_id": 1,
+    "category_name": "Makan & Minum",
+    "category_icon": "🍽️",
+    "amount": 2000000,
+    "user_id": 1
+  }
+]
+```
+
+### POST `/api/v1/budgets`
+
+Create or update a budget (upsert). If a budget already exists for the same month and category, it will be updated.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "month": "2026-05",
+  "category_id": 1,
+  "amount": 2000000
+}
+
+// Response 201
+{
+  "id": 1,
+  "month": "2026-05",
+  "category_id": 1,
+  "category_name": "Makan & Minum",
+  "category_icon": "🍽️",
+  "amount": 2000000,
+  "user_id": 1
+}
+```
+
+### DELETE `/api/v1/budgets/{id}`
+
+Delete a budget. Only the owner can delete.
+
+**Auth:** Bearer token
+
+```json
+// Response 204 (No Content)
+```
+
+### GET `/api/v1/budgets/summary?month=YYYY-MM`
+
+Budget vs actual spending comparison for a month.
+
+**Auth:** Bearer token
+
+**Query params:** `month` (required, format: `YYYY-MM`)
+
+```json
+// Response 200
+[
+  {
+    "category_id": 1,
+    "category_name": "Makan & Minum",
+    "category_icon": "🍽️",
+    "budget_amount": 2000000,
+    "actual_spent": 1800000,
+    "percentage": 90.0,
+    "remaining": 200000
+  }
+]
+```
+
+**Color coding logic (mobile):**
+
+| Condition | Color |
+|-----------|-------|
+| percentage < 75% | 🟢 Green (on track) |
+| percentage >= 75% and < 100% | 🟡 Yellow (warning) |
+| percentage >= 100% | 🔴 Red (overspent) |
+
+## Exports
+
+### GET `/api/v1/exports/yearly?year=2026`
+
+Export yearly transactions as an Excel (.xlsx) file.
+
+**Auth:** Bearer token
+
+**Query params:** `year` (required, format: `YYYY`)
+
+**Response:** File download
+
+- **Content-Type:** `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+- **Filename:** `transactions_2026.xlsx`
+
+**Spreadsheet structure:**
+
+- 12 sheets, one per month (e.g., "Jan 2026", "Feb 2026", ...)
+- Columns: Date, Type, Category, Amount, Description, Note, Owner
+- Summary row per sheet with totals for income, expense, and balance
+
+## OCR / Smart Input
+
+### POST `/api/v1/ocr/process`
+
+Upload a receipt image for OCR extraction. Uses vision AI (Kimi K2.6) to parse receipt data.
+
+**Auth:** Bearer token
+
+**Content-Type:** `multipart/form-data`
+
+**Body:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `file` | image file | Receipt image (JPEG, PNG) |
+
+```json
+// Response 200
+{
+  "amount": 50000,
+  "description": "Nasi Goreng",
+  "date": "2026-05-26",
+  "type": "expense",
+  "confidence": 0.95
+}
+```
+
+**Rate limit:** 10 requests per day per user.
+
+## AI Financial Advisor
+
+### POST `/api/v1/ai/advise`
+
+Ask financial questions with full user context injected for personalized advice.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "question": "Bagaimana cara menghemat pengeluaran bulan ini?",
+  "model": "auto"
+}
+```
+
+**Model routing:**
+
+| Model | When used |
+|-------|-----------|
+| `flash` | Simple questions (default for "auto") |
+| `opus` | Complex analysis (triggered by keywords: *analisis, rekomendasi, portfolio*) |
+
+```json
+// Response 200
+{
+  "answer": "Berdasarkan pengeluaran bulan ini...",
+  "model_used": "flash"
+}
+```
+
+**Context injected into prompt:**
+
+- Current account balance
+- Monthly income/expense summary
+- 6-month spending trends
+- Active budget vs actual spending
+- Household members
+
+**Disclaimer:** This is an AI-generated financial suggestion and should not be considered professional financial advice. Always consult a licensed financial advisor for major financial decisions.
 
 ## Health
 

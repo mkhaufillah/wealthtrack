@@ -107,6 +107,15 @@ def create_test_db(db_path: str):
             joined_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
             PRIMARY KEY (user_id, household_id)
         );
+        CREATE TABLE IF NOT EXISTS budgets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            month TEXT NOT NULL,
+            category_id INTEGER NOT NULL,
+            category_name TEXT NOT NULL,
+            budget_amount INTEGER NOT NULL,
+            UNIQUE(user_id, month, category_id)
+        );
     """)
 
     for u in DEFAULT_USERS:
