@@ -111,7 +111,7 @@ async def budget_summary(
 ):
     """Budgets vs actual spending for a given month."""
     cursor = await db.execute(
-        """SELECT b.category_id, b.category_name, b.budget_amount,
+        """SELECT b.id, b.category_id, b.category_name, b.budget_amount,
                   c.icon AS category_icon,
                   COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual_spent
            FROM budgets b
@@ -137,6 +137,7 @@ async def budget_summary(
         actual_spent = r["actual_spent"]
         percentage = (actual_spent / budget_amount * 100) if budget_amount > 0 else 0
         results.append(BudgetSummaryItem(
+            id=r["id"],
             category_id=r["category_id"],
             category_name=r["category_name"],
             category_icon=r["category_icon"] or "📦",

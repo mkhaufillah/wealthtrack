@@ -18,6 +18,7 @@ class BudgetResponse(BaseModel):
 
 
 class BudgetSummaryItem(BaseModel):
+    id: int
     category_id: int
     category_name: str
     category_icon: str

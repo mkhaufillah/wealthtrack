@@ -26,6 +26,7 @@ class BudgetModel {
 }
 
 class BudgetSummaryItem {
+  final int id;
   final int categoryId;
   final String categoryName;
   final String categoryIcon;
@@ -35,6 +36,7 @@ class BudgetSummaryItem {
   final int remaining;
 
   BudgetSummaryItem({
+    required this.id,
     required this.categoryId,
     required this.categoryName,
     required this.categoryIcon,
@@ -46,6 +48,7 @@ class BudgetSummaryItem {
 
   factory BudgetSummaryItem.fromJson(Map<String, dynamic> json) =>
       BudgetSummaryItem(
+        id: json['id'] as int,
         categoryId: json['category_id'] as int,
         categoryName: json['category_name'] as String? ?? '',
         categoryIcon: json['category_icon'] as String? ?? '📦',

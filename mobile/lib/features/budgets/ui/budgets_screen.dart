@@ -155,6 +155,20 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   child: Text(translateCategory(item.categoryName),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
+                // Delete button
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => _confirmDeleteBudget(item),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.highlight.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.delete_outline, size: 16, color: AppColors.highlight),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -234,6 +248,27 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _confirmDeleteBudget(BudgetSummaryItem item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Budget'),
+        content: Text('Remove budget for ${translateCategory(item.categoryName)}?'),
+        actions: [
+          TextButton(onPressed: () => ctx.pop(false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.highlight),
+            onPressed: () => ctx.pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      ref.read(budgetProvider.notifier).deleteBudget(item.id);
+    }
   }
 }
 
