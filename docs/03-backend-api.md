@@ -432,7 +432,7 @@ Transfer transaction ownership to another household member.
 
 ### POST `/api/v1/transactions/transfer`
 
-Transfer balance to one or more household members. Creates paired expense (sender) and income (recipient) transactions using the "Kebutuhan Rumah Tangga" (expense) and "Penghasilan Rumah Tangga" (income) categories. If these categories don't exist, they are auto-created.
+Transfer balance to one or more household members. Creates paired expense (sender) and income (recipient) transactions using the "Transfer" category (both expense and income). If the categories don't exist, they are auto-created.
 
 **Auth:** Bearer token
 
@@ -458,8 +458,8 @@ Transfer balance to one or more household members. Creates paired expense (sende
         "date": "2026-05-28",
         "category": {
           "id": 9,
-          "name": "Kebutuhan Rumah Tangga",
-          "icon": "🏠"
+          "name": "Transfer",
+          "icon": "🔄"
         },
         "user": {
           "id": 1,
@@ -474,8 +474,8 @@ Transfer balance to one or more household members. Creates paired expense (sende
         "date": "2026-05-28",
         "category": {
           "id": 10,
-          "name": "Penghasilan Rumah Tangga",
-          "icon": "🏠"
+          "name": "Transfer",
+          "icon": "🔄"
         },
         "user": {
           "id": 2,
@@ -492,7 +492,7 @@ Transfer balance to one or more household members. Creates paired expense (sende
 - All recipients must be in the same household as the sender
 - Amount must be > 0
 - At least 1 recipient, max 10 recipients
-- Categories "Kebutuhan Rumah Tangga" (expense) and "Penghasilan Rumah Tangga" (income) are auto-created if they don't exist
+- Categories "Transfer" (expense) and "Transfer" (income) are auto-created if they don't exist
 
 ## Summaries & Dashboard
 

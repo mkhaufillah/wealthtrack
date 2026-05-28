@@ -20,6 +20,7 @@ const Map<String, String> categoryTranslations = {
   'Pendidikan': 'Education',
   'Tabungan & Investasi': 'Savings & Investment',
   'Kebutuhan Bayi/Anak': 'Baby & Child Needs',
+  'Transfer': 'Transfer',
 };
 
 /// Translates a category name from Indonesian to English.

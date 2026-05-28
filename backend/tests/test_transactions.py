@@ -516,8 +516,8 @@ class TestTransferBalance:
         assert resp.status_code == 201
         data = resp.json()
         t = data["transactions"][0]
-        assert t["sender_expense"]["category"]["name"] == "Kebutuhan Rumah Tangga"
-        assert t["recipient_income"]["category"]["name"] == "Penghasilan Rumah Tangga"
+        assert t["sender_expense"]["category"]["name"] == "Transfer"
+        assert t["recipient_income"]["category"]["name"] == "Transfer"
 
     async def test_transfer_updates_summary(
         self, client: AsyncClient, filla_token: str

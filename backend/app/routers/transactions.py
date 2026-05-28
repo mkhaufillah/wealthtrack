@@ -402,33 +402,33 @@ async def transfer_balance(
     # 3. Ensure the special transfer categories exist
     cursor = await db.execute(
         "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
-        ("Kebutuhan Rumah Tangga", "expense"),
+        ("Transfer", "expense"),
     )
     expense_cat = await cursor.fetchone()
     if not expense_cat:
         await db.execute(
             "INSERT INTO categories (name, type, icon, is_default) VALUES (?, ?, ?, ?)",
-            ("Kebutuhan Rumah Tangga", "expense", "🏠", 1),
+            ("Transfer", "expense", "🔄", 1),
         )
         cursor = await db.execute(
             "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
-            ("Kebutuhan Rumah Tangga", "expense"),
+            ("Transfer", "expense"),
         )
         expense_cat = await cursor.fetchone()
 
     cursor = await db.execute(
         "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
-        ("Penghasilan Rumah Tangga", "income"),
+        ("Transfer", "income"),
     )
     income_cat = await cursor.fetchone()
     if not income_cat:
         await db.execute(
             "INSERT INTO categories (name, type, icon, is_default) VALUES (?, ?, ?, ?)",
-            ("Penghasilan Rumah Tangga", "income", "🏠", 1),
+            ("Transfer", "income", "🔄", 1),
         )
         cursor = await db.execute(
             "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
-            ("Penghasilan Rumah Tangga", "income"),
+            ("Transfer", "income"),
         )
         income_cat = await cursor.fetchone()
 
