@@ -122,7 +122,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
     try {
       final picker = ImagePicker();
-      final picked = await picker.pickImage(source: source);
+      final picked = await picker.pickImage(source: source, imageQuality: 70, maxWidth: 1920);
       if (picked == null) return;
 
       setState(() => _isScanning = true);

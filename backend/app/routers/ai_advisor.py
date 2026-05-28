@@ -191,7 +191,10 @@ async def _call_model(messages: list, api_key: str, model: str = "deepseek-v4-fl
         raise HTTPException(status_code=502, detail=f"AI API error: {resp.status_code}")
 
     body = resp.json()
-    return body["choices"][0]["message"]["content"].strip()
+    content = body["choices"][0]["message"]["content"]
+    if not content or not content.strip():
+        return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
+    return content.strip()
 
 
 @router.post("/advise", response_model=AdviseResponse)
