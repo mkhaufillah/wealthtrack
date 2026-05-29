@@ -45,6 +45,15 @@ jobs:
         run: |
           sed -i 's/android:label="wealthtrack"/android:label="WealthTrack"/g' android/app/src/main/AndroidManifest.xml
 
+      - name: Patch AndroidManifest for network permissions
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          # Add INTERNET permission if missing
+          grep -q "INTERNET" "$MANIFEST" || sed -i '/<manifest/a\\t<uses-permission android:name="android.permission.INTERNET"/>' "$MANIFEST"
+          # Add usesCleartextTraffic to application tag if missing
+          grep -q "usesCleartextTraffic" "$MANIFEST" || sed -i 's/<application/<application android:usesCleartextTraffic="true"/' "$MANIFEST"
+          echo "✅ Manifest patched for network"
+
       - name: Ensure ProGuard rules for release build
         run: |
           cat > android/app/proguard-rules.pro << 'EOF'
