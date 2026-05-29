@@ -65,17 +65,6 @@ jobs:
           -keep class com.filla.wealthtrack.** { *; }
           EOF
 
-      - name: Disable minification for release build
-        run: |
-          # Ensure minifyEnabled is false in release buildType
-          # Handles both Groovy and Kotlin DSL variants
-          if grep -q "minifyEnabled" android/app/build.gradle.kts 2>/dev/null; then
-            sed -i 's/minifyEnabled = true/minifyEnabled = false/' android/app/build.gradle.kts
-          elif grep -q "minifyEnabled" android/app/build.gradle 2>/dev/null; then
-            sed -i 's/minifyEnabled true/minifyEnabled false/' android/app/build.gradle
-          fi
-          echo "Minification disabled for release build"
-
       - name: Verify AndroidManifest has INTERNET permission
         run: |
           grep -q "INTERNET" android/app/src/main/AndroidManifest.xml && echo "✅ INTERNET permission found" || echo "❌ INTERNET permission MISSING"
