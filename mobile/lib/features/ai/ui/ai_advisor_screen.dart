@@ -126,7 +126,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
           // Advanced model toggle — only for Filla (user id = 1)
           if (ref.watch(authProvider).user?.id == 1)
             Padding(
-              padding: const EdgeInsets.only(right: 12),
+              padding: EdgeInsets.only(right: _messages.isNotEmpty ? 0 : 12),
               child: InkWell(
                 borderRadius: BorderRadius.circular(20),
                 onTap: () => setState(() => _useAdvancedModel = !_useAdvancedModel),
