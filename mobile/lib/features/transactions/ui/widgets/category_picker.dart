@@ -40,6 +40,7 @@ class CategoryPicker extends StatelessWidget {
                 ? AppColors.textPrimary.withOpacity(0.12)
                 : AppColors.primary.withOpacity(0.3),
             checkmarkColor: AppColors.textPrimary,
+            labelStyle: TextStyle(color: AppColors.textPrimary),
           );
         },
       ),
