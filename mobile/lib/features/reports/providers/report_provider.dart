@@ -84,8 +84,9 @@ class ReportNotifier extends StateNotifier<ReportState> {
               .toList() ??
           [];
       state = state.copyWith(householdTransactions: data);
-    } catch (e) {
-      state = state.copyWith(error: _api.handleError(e).toString());
+    } catch (_) {
+      // Household transactions are supplementary — non-critical.
+      // Don't overwrite the main error state.
     }
   }
 
