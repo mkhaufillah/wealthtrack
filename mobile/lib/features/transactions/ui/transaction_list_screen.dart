@@ -70,9 +70,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
                     child: Text(name[0].toUpperCase(),
                       style: TextStyle(
-                        color: name == 'Nahda'
-                            ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
-                            : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
+                    color: isDark ? Colors.white : (name == 'Nahda'
+                        ? Colors.pink.shade700
+                        : Colors.blue.shade700),
                         fontWeight: FontWeight.w600
                       ),
                     ),

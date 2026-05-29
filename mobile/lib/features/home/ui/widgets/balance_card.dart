@@ -17,18 +17,18 @@ class BalanceCard extends StatelessWidget {
           children: [
             const Text('💰', style: TextStyle(fontSize: 32)),
             const SizedBox(height: 8),
-            const Text('Monthly Balance', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            Text('Monthly Balance', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
             const SizedBox(height: 4),
             Text(formatCurrency(balance),
-              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
             const SizedBox(height: 16),
-            const Divider(color: Colors.white24),
+            Divider(color: AppColors.divider),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _LabeledAmount(label: 'Income', amount: income, color: AppColors.success),
-                Container(width: 1, height: 30, color: Colors.white24),
+                Container(width: 1, height: 30, color: AppColors.divider),
                 _LabeledAmount(label: 'Expense', amount: expense, color: AppColors.highlight),
               ],
             ),
@@ -47,7 +47,7 @@ class _LabeledAmount extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+        Text(label, style: TextStyle(color: AppColors.textSecondary.withOpacity(0.8), fontSize: 12)),
         const SizedBox(height: 4),
         Text(formatCurrency(amount),
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),

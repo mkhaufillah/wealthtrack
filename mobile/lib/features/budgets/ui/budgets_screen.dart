@@ -90,8 +90,9 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   Widget _buildMonthPicker() {
     final now = DateTime.now();
     final canGoNext =
-        !DateTime(_currentMonth.year, _currentMonth.month + 1)
-            .isAfter(DateTime(now.year, now.month + 1));
+        DateTime(_currentMonth.year, _currentMonth.month + 1).isBefore(
+              DateTime(now.year, now.month + 1),
+            );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -461,9 +461,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: user?.displayName == 'Nahda'
-                      ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
-                      : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
+                  color: isDark ? Colors.white : (user?.displayName == 'Nahda'
+                      ? Colors.pink.shade700
+                      : Colors.blue.shade700),
                 ),
               ),
             ),
@@ -502,9 +502,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       user?.role ?? '-',
                       style: TextStyle(
                         fontSize: 11,
-                        color: user?.displayName == 'Nahda'
-                            ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
-                            : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
+                        color: isDark ? Colors.white : (user?.displayName == 'Nahda'
+                            ? Colors.pink.shade700
+                            : Colors.blue.shade700),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -607,11 +607,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text('admin',
-                        style: TextStyle(fontSize: 10, color: Colors.blue.shade700)),
+                        style: TextStyle(fontSize: 10, color: isDark ? Colors.white : Colors.blue.shade700)),
                   ),
                 ],
               ],
@@ -663,9 +663,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: m['display_name'] == 'Nahda'
-                                  ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
-                                  : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
+                              color: isDark ? Colors.white : (m['display_name'] == 'Nahda'
+                                  ? Colors.pink.shade700
+                                  : Colors.blue.shade700),
                             ),
                           ),
                         ),

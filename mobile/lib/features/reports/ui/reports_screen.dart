@@ -348,9 +348,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: u.displayName == 'Nahda'
-                          ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
-                          : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
+                      color: isDark ? Colors.white : (u.displayName == 'Nahda'
+                          ? Colors.pink.shade700
+                          : Colors.blue.shade700),
                     ),
                   ),
                 ),
@@ -718,7 +718,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       scaffold.showSnackBar(
         const SnackBar(content: Row(
           children: [
-            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
             SizedBox(width: 12),
             Text('Generating export...'),
           ],
