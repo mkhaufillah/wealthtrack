@@ -558,6 +558,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onPressed: _showJoinHouseholdSheet,
                   icon: const Icon(Icons.person_add_outlined, size: 18),
                   label: const Text('Join Household'),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppColors.divider),
+                  ),
                 ),
               ),
               const SizedBox(height: 8),

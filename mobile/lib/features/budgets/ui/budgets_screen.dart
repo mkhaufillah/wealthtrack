@@ -128,6 +128,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     final totalRemaining = items.fold<int>(0, (s, i) => s + i.remaining);
 
     return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
       itemCount: items.length + 1,
       itemBuilder: (_, i) {
