@@ -191,6 +191,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
     if (success) {
       ref.read(homeRefreshProvider.notifier).state++;
+      ref.read(dashboardProvider.notifier).load();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(

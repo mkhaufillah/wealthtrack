@@ -218,6 +218,7 @@ class _TransferBalanceScreenState
     if (success) {
       // Refresh dashboard on home screen
       ref.read(homeRefreshProvider.notifier).state++;
+      ref.read(dashboardProvider.notifier).load();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
