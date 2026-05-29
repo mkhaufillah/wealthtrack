@@ -12,7 +12,7 @@ Widget buildLoginApp({AuthStatus status = AuthStatus.initial, String? error}) {
     overrides: [
       authProvider.overrideWithProvider(
         StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-          final notifier = AuthNotifier(MockAuthRepository(), MockSecureStorage());
+          final notifier = AuthNotifier(MockAuthRepository(), MockSecureStorage(), MockApiClient());
           notifier.state = AuthState(status: status, error: error);
           return notifier;
         }),
@@ -30,7 +30,7 @@ Widget buildRegisterApp({AuthStatus status = AuthStatus.initial}) {
     overrides: [
       authProvider.overrideWithProvider(
         StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-          final notifier = AuthNotifier(MockAuthRepository(), MockSecureStorage());
+          final notifier = AuthNotifier(MockAuthRepository(), MockSecureStorage(), MockApiClient());
           notifier.state = AuthState(status: status);
           return notifier;
         }),

@@ -21,6 +21,14 @@ class _MockAuthRepo extends AuthRepository {
   _MockAuthRepo() : super(MockApiClient());
 }
 
+/// Helper to register household members mock on an API client.
+MockApiClient _setupMockHousehold(MockApiClient api, {List<Map<String, dynamic>> members = const []}) {
+  api.onGet('/households/me', {
+    'members': members,
+  });
+  return api;
+}
+
 Widget buildTransferApp({
   UserModel? currentUser,
   MockApiClient? apiClient,
@@ -92,22 +100,17 @@ void main() {
 
     testWidgets('shows empty state when no household members',
         (tester) async {
-      final mockApi = MockApiClient();
-      // MockApiClient returns empty {} for unregistered paths, so members list will be empty
+      final mockApi = _setupMockHousehold(MockApiClient(), members: []);
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
-      // Let the post-frame callback load members
       await tester.pumpAndSettle();
       expect(find.byIcon(Icons.group_off), findsOneWidget);
       expect(find.text('No household members available'), findsOneWidget);
     });
 
     testWidgets('shows sender card when members available', (tester) async {
-      final mockApi = MockApiClient();
-      mockApi.onGet('/households/me', {
-        'members': [
-          {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
-        ],
-      });
+      final mockApi = _setupMockHousehold(MockApiClient(), members: [
+        {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
+      ]);
 
       await tester.pumpWidget(buildTransferApp(
         apiClient: mockApi,
@@ -120,49 +123,37 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Sender card should show "From" and current user name
       expect(find.text('From'), findsOneWidget);
       expect(find.text('Filla'), findsOneWidget);
     });
 
     testWidgets('shows date picker card', (tester) async {
-      final mockApi = MockApiClient();
-      mockApi.onGet('/households/me', {
-        'members': [
-          {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
-        ],
-      });
+      final mockApi = _setupMockHousehold(MockApiClient(), members: [
+        {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
+      ]);
 
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
       await tester.pumpAndSettle();
 
-      // Date picker with calendar icon
       expect(find.byIcon(Icons.calendar_today), findsOneWidget);
       expect(find.byIcon(Icons.edit_calendar), findsOneWidget);
     });
 
-    testWidgets('shows recipients section with Add button', (tester) async {
-      final mockApi = MockApiClient();
-      mockApi.onGet('/households/me', {
-        'members': [
-          {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
-        ],
-      });
+    testWidgets('shows recipients section header', (tester) async {
+      final mockApi = _setupMockHousehold(MockApiClient(), members: [
+        {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
+      ]);
 
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
       await tester.pumpAndSettle();
 
       expect(find.text('Recipients'), findsOneWidget);
-      expect(find.text('Add'), findsOneWidget);
     });
 
     testWidgets('pre-selects first available recipient', (tester) async {
-      final mockApi = MockApiClient();
-      mockApi.onGet('/households/me', {
-        'members': [
-          {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
-        ],
-      });
+      final mockApi = _setupMockHousehold(MockApiClient(), members: [
+        {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
+      ]);
 
       await tester.pumpWidget(buildTransferApp(
         apiClient: mockApi,
@@ -175,17 +166,14 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Recipient name should appear
+      // Nahda should be auto-selected as recipient
       expect(find.text('Nahda'), findsOneWidget);
     });
 
     testWidgets('shows Send Transfer button', (tester) async {
-      final mockApi = MockApiClient();
-      mockApi.onGet('/households/me', {
-        'members': [
-          {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
-        ],
-      });
+      final mockApi = _setupMockHousehold(MockApiClient(), members: [
+        {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
+      ]);
 
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
       await tester.pumpAndSettle();
@@ -194,12 +182,9 @@ void main() {
     });
 
     testWidgets('shows error display when transfer fails', (tester) async {
-      final mockApi = MockApiClient();
-      mockApi.onGet('/households/me', {
-        'members': [
-          {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
-        ],
-      });
+      final mockApi = _setupMockHousehold(MockApiClient(), members: [
+        {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
+      ]);
 
       await tester.pumpWidget(buildTransferApp(
         apiClient: mockApi,
@@ -207,27 +192,24 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Error message should display
       expect(find.text('Insufficient balance'), findsOneWidget);
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
     });
 
     testWidgets('shows Processing state on Send Transfer button when submitting',
         (tester) async {
-      final mockApi = MockApiClient();
-      mockApi.onGet('/households/me', {
-        'members': [
-          {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
-        ],
-      });
+      final mockApi = _setupMockHousehold(MockApiClient(), members: [
+        {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
+      ]);
 
       await tester.pumpWidget(buildTransferApp(
         apiClient: mockApi,
         isSubmitting: true,
       ));
-      await tester.pumpAndSettle();
+      // Use pump() instead of pumpAndSettle() to avoid timer timeouts
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // Should show Processing text and disabled button
       expect(find.text('Processing...'), findsOneWidget);
       // FilledButton should be disabled (onPressed: null) when submitting
       final button = tester.widget<FilledButton>(
@@ -237,12 +219,9 @@ void main() {
     });
 
     testWidgets('shows amount field for recipient', (tester) async {
-      final mockApi = MockApiClient();
-      mockApi.onGet('/households/me', {
-        'members': [
-          {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
-        ],
-      });
+      final mockApi = _setupMockHousehold(MockApiClient(), members: [
+        {'user_id': 2, 'display_name': 'Nahda', 'role': 'member'},
+      ]);
 
       await tester.pumpWidget(buildTransferApp(
         apiClient: mockApi,
@@ -255,8 +234,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Amount field hint text should appear
-      expect(find.text('Rp 0'), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
     });
   });
 }

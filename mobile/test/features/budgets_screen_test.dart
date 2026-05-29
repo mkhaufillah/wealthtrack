@@ -23,7 +23,7 @@ Widget buildBudgetsApp({
     overrides: [
       budgetProvider.overrideWithProvider(
         StateNotifierProvider<BudgetNotifier, BudgetState>((ref) {
-          final notifier = BudgetNotifier(_MockBudgetRepo());
+          final notifier = BudgetNotifier(_MockBudgetRepo(), MockApiClient());
           notifier.state = BudgetState(
             isLoading: isLoading,
             error: error,
