@@ -45,6 +45,23 @@ jobs:
         run: |
           sed -i 's/android:label="wealthtrack"/android:label="WealthTrack"/g' android/app/src/main/AndroidManifest.xml
 
+      - name: Ensure ProGuard rules for release build
+        run: |
+          cat > android/app/proguard-rules.pro << 'EOF'
+          # Flutter/Dart HTTP client connectivity
+          -keep class io.flutter.** { *; }
+          -dontwarn io.flutter.**
+
+          # OkHttp (used by Flutter on Android for network)
+          -keep class okhttp3.** { *; }
+          -keep interface okhttp3.** { *; }
+          -dontwarn okhttp3.**
+          -dontwarn okio.**
+
+          # Keep all model/serialization classes
+          -keep class com.filla.wealthtrack.** { *; }
+          EOF
+
       - name: Cache pip packages
         uses: actions/cache@v5
         with:
