@@ -446,13 +446,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             CircleAvatar(
               radius: 30,
-              backgroundColor: AppColors.accent.withOpacity(0.15),
+              backgroundColor: user?.displayName == 'Nahda'
+                  ? Colors.pink.shade100
+                  : Colors.blue.shade100,
               child: Text(
                 (user?.displayName ?? '?')[0].toUpperCase(),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: user?.displayName == 'Nahda'
+                      ? Colors.pink.shade700
+                      : Colors.blue.shade700,
                 ),
               ),
             ),
@@ -482,14 +486,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withOpacity(0.1),
+                      color: user?.displayName == 'Nahda'
+                          ? Colors.pink.shade50
+                          : Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       user?.role ?? '-',
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textPrimary,
+                        color: user?.displayName == 'Nahda'
+                            ? Colors.pink.shade700
+                            : Colors.blue.shade700,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -520,7 +528,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       // Not in a household — show join/create options
       return Card(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: AppColors.divider, width: 0.5),
+        ),
         color: AppColors.surface,
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -563,7 +574,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final inviteCode = hh['invite_code'] as String? ?? '';
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.divider, width: 0.5),
+      ),
       color: AppColors.surface,
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -629,10 +643,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         CircleAvatar(
                           radius: 10,
-                          backgroundColor: AppColors.accent.withOpacity(0.15),
+                          backgroundColor: m['display_name'] == 'Nahda'
+                              ? Colors.pink.shade100
+                              : Colors.blue.shade100,
                           child: Text(
                             (m['display_name'] as String? ?? '?')[0],
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: m['display_name'] == 'Nahda'
+                                  ? Colors.pink.shade700
+                                  : Colors.blue.shade700,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
