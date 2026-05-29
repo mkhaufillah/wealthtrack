@@ -273,8 +273,6 @@ void main() {
       await tester.pump();
       expect(find.text('Category Breakdown'), findsOneWidget);
       expect(find.text('Category Comparison'), findsOneWidget);
-      // Daily Breakdown header should also render with the same mock data
-      expect(find.text('Daily Breakdown'), findsOneWidget);
     });
 
     testWidgets('shows translated category names in breakdown',
@@ -321,9 +319,8 @@ void main() {
       );
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
-      await tester.pumpAndSettle();
-      // Check that the daily data appears (May 01 formatted as "May 01")
-      expect(find.textContaining('May'), findsAtLeast(1));
+      await tester.pumpAndSettle(); // Load from mock includes dailySnapshot
+      expect(find.text('Daily Breakdown'), findsOneWidget);
     });
 
     testWidgets('shows household split when household data provided',
@@ -354,7 +351,7 @@ void main() {
         monthly: sampleMonthlyReport,
         household: sampleHouseholdReport,
       ));
-      await tester.pump(); // loadHousehold() returns proper data from mock
+      await tester.pumpAndSettle(); // loadHousehold() returns proper data from mock
       expect(find.text('Household Split'), findsOneWidget);
       expect(find.text('Filla'), findsOneWidget);
       expect(find.text('Nahda'), findsOneWidget);
@@ -390,7 +387,7 @@ void main() {
         monthly: sampleMonthlyReport,
         trend: sampleTrend,
       ));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(find.text('Monthly Trend'), findsOneWidget);
     });
 
@@ -413,7 +410,7 @@ void main() {
       );
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(find.text('Export Report'), findsOneWidget);
     });
   });
