@@ -73,6 +73,12 @@ jobs:
           fi
           echo "Minification disabled for release build"
 
+      - name: Verify AndroidManifest has INTERNET permission
+        run: |
+          grep -q "INTERNET" android/app/src/main/AndroidManifest.xml && echo "✅ INTERNET permission found" || echo "❌ INTERNET permission MISSING"
+          echo "--- Manifest content ---"
+          cat android/app/src/main/AndroidManifest.xml
+
       - name: Cache pip packages
         uses: actions/cache@v5
         with:
