@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 from app.database import get_db
 from app.core.config import settings
 from app.core.security import get_current_user
+from app.services.web_search import _should_search, search_web, format_search_results
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -48,15 +49,18 @@ Anggaran: {budgets}
 
 Anggota Keluarga (konteks data): {members}
 
+{search_results}
+
 Berikan saran yang personal, relevan, dan actionable berdasarkan data di atas.
 Gunakan bahasa Indonesia yang natural.
 Jika ada data yang relevan, sertakan angka spesifik.
 Jika pengguna hanya menyapa (misal "halo", "hi", "pagi", "selamat siang"), balaslah dengan ramah dan tawarkan bantuan — jangan sebut nama anggota keluarga lain.
 Jika ditanya di luar topik keuangan, arahkan kembali ke pengelolaan keuangan.
+Jika ada [Hasil Pencarian Web] di atas, gunakan sebagai referensi jawaban dan sebutkan sumbernya secara singkat.
 Jangan menyebutkan bahwa Anda adalah AI — cukup beri saran sebagai asisten keuangan."""
 
 
-async def _build_context(user_id: int, db) -> dict:
+async def _build_context(user_id: int, db, question: str = "") -> dict:
     # User info
     cursor = await db.execute("SELECT display_name FROM users WHERE id = ?", (user_id,))
     user = await cursor.fetchone()
@@ -156,6 +160,13 @@ async def _build_context(user_id: int, db) -> dict:
         budgets_list.append(f"{r['category_name']}: Rp{r['actual']:,} / Rp{r['budget_amount']:,} ({pct:.0f}%)")
     budgets = "\n".join(budgets_list) if budgets_list else "Belum ada anggaran"
 
+    # Web search (if question triggers it)
+    search_text = ""
+    if question and _should_search(question):
+        results = await search_web(question)
+        if results:
+            search_text = format_search_results(results)
+
     return {
         "user_name": user_name,
         "current_datetime_wib": current_datetime,
@@ -167,6 +178,7 @@ async def _build_context(user_id: int, db) -> dict:
         "trend": trend,
         "budgets": budgets,
         "members": members,
+        "search_results": search_text,
     }
 
 
@@ -278,7 +290,7 @@ async def _call_model_stream(
 
 async def _build_messages(req: AdviseRequest, current_user: dict, db) -> list:
     """Build the full messages array: system → history → current question."""
-    ctx = await _build_context(current_user["id"], db)
+    ctx = await _build_context(current_user["id"], db, question=req.question)
     prompt = SYSTEM_PROMPT.format(**ctx)
     history_msgs = [{"role": m.role, "content": m.content} for m in req.history[-10:]]
     return [
