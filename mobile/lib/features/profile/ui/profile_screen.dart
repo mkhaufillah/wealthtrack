@@ -601,11 +601,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withOpacity(0.1),
+                      color: Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text('admin',
-                        style: TextStyle(fontSize: 10, color: AppColors.textPrimary)),
+                        style: TextStyle(fontSize: 10, color: Colors.blue.shade700)),
                   ),
                 ],
               ],
@@ -679,10 +679,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: TextButton.icon(
+              child: OutlinedButton.icon(
                 onPressed: () => context.push('/transactions/transfer'),
                 icon: const Icon(Icons.swap_horiz_rounded, size: 18),
                 label: const Text('Transfer Balance'),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.divider),
+                ),
               ),
             ),
           ],
