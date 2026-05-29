@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
@@ -37,6 +38,7 @@ class MockApiClient extends ApiClient {
   final Map<String, MockResponse> _postResponses = {};
   final Map<String, MockResponse> _putResponses = {};
   final Set<String> _deletePaths = {};
+  final Map<String, StreamController<String>> _streamPostControllers = {};
 
   MockApiClient() : super(storage: MockSecureStorage());
 
@@ -47,6 +49,11 @@ class MockApiClient extends ApiClient {
   void onPut(String path, dynamic data) =>
       _putResponses[path] = MockResponse(data);
   void onDelete(String path) => _deletePaths.add(path);
+
+  /// Register a [StreamController] for a streaming POST endpoint.
+  /// The test can then add tokens to the controller to simulate SSE events.
+  void onStreamPost(String path, StreamController<String> controller) =>
+      _streamPostControllers[path] = controller;
 
   @override
   Future<Response> get(String path,
@@ -68,6 +75,13 @@ class MockApiClient extends ApiClient {
   Future<Response> delete(String path) async {
     // Simulate 204 No Content
     return MockResponse(null);
+  }
+
+  @override
+  Stream<String> streamPost(String path, {dynamic data}) {
+    final controller = _streamPostControllers[path];
+    if (controller != null) return controller.stream;
+    return const Stream.empty();
   }
 
   @override
