@@ -70,8 +70,17 @@ jobs:
       - name: Build APK (release)
         run: flutter build apk --release
 
-      - name: Upload APK
+      - name: Upload release APK
         uses: actions/upload-artifact@v7
         with:
-          name: wealthtrack-apk
-          path: mobile/build/app/outputs/flutter-apk/*.apk
+          name: wealthtrack-release
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Build APK (debug)
+        run: flutter build apk --debug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: wealthtrack-debug
+          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
