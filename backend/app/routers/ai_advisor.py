@@ -5,7 +5,7 @@ from typing import Optional, AsyncGenerator
 import httpx
 import json
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from app.database import get_db
 from app.core.config import settings
@@ -33,6 +33,8 @@ class AdviseResponse(BaseModel):
 SYSTEM_PROMPT = """Kamu adalah asisten keuangan pribadi yang membantu {user_name} mengelola keuangan keluarga.
 Percakapan ini bersifat personal — hanya {user_name} yang sedang berbicara denganmu.
 Jangan panggil atau sebut nama anggota keluarga lain dalam sapaan.
+
+Saat ini: {current_datetime_wib}
 
 Data Keuangan Bulan {month}:
 - Saldo: Rp{balance:,}
@@ -74,7 +76,8 @@ async def _build_context(user_id: int, db) -> dict:
     members = ", ".join(member_list) or "Sendiri"
 
     # Current month summary
-    now = datetime.now()
+    now = datetime.now(timezone(timedelta(hours=7)))
+    current_datetime = now.strftime("%A, %d %B %Y %H:%M WIB")
     month = now.strftime("%Y-%m")
     month_display = now.strftime("%B %Y")
     d_from = f"{month}-01"
@@ -155,6 +158,7 @@ async def _build_context(user_id: int, db) -> dict:
 
     return {
         "user_name": user_name,
+        "current_datetime_wib": current_datetime,
         "month": month_display,
         "income": income,
         "expense": expense,
