@@ -647,7 +647,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text('Members',
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               const SizedBox(height: 4),
-              ...(_members.map((m) {
+              ..._members.map<Widget>((m) {
                     final isDark = Theme.of(context).brightness == Brightness.dark;
                     return Padding(
                     padding: const EdgeInsets.only(bottom: 4),
@@ -684,7 +684,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   );
                   }),
-                ),
             ],
             const SizedBox(height: 12),
             SizedBox(

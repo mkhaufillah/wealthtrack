@@ -542,3 +542,47 @@ class TestTransferBalance:
         ]
         assert len(filla_user) > 0
         assert filla_user[0]["total_expense"] >= 2000000
+
+
+class TestGetTransactionById:
+    async def test_get_success(self, client: AsyncClient, filla_token: str):
+        """GET /transactions/{id} returns the full transaction by its ID."""
+        create = await client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "type": "expense",
+                "category_id": 1,
+                "amount": 50000,
+                "description": "test get by id",
+                "date": "2026-05-28",
+            },
+        )
+        assert create.status_code == 201
+        txn_id = create.json()["id"]
+
+        resp = await client.get(
+            f"/api/v1/transactions/{txn_id}",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id"] == txn_id
+        assert data["amount"] == 50000
+        assert data["type"] == "expense"
+        assert data["description"] == "test get by id"
+        assert "category" in data
+        assert "user" in data
+
+    async def test_get_nonexistent(self, client: AsyncClient, filla_token: str):
+        """GET /transactions/{id} for a non-existent ID returns 404."""
+        resp = await client.get(
+            "/api/v1/transactions/999999",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 404
+
+    async def test_get_requires_auth(self, client: AsyncClient):
+        """GET /transactions/{id} without token returns 401."""
+        resp = await client.get("/api/v1/transactions/1")
+        assert resp.status_code == 401
