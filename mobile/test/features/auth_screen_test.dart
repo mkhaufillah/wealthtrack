@@ -83,9 +83,9 @@ void main() {
       expect(find.text('Register'), findsAtLeast(1));
     });
 
-    testWidgets('shows three input fields', (tester) async {
+    testWidgets('shows four input fields', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      expect(find.byType(TextFormField), findsNWidgets(3));
+      expect(find.byType(TextFormField), findsNWidgets(4));
     });
 
     testWidgets('shows Register button and Login link', (tester) async {
@@ -131,16 +131,16 @@ void main() {
   });
 
   group('RegisterScreen Eye Icon', () {
-    testWidgets('shows visibility icon on password field', (tester) async {
+    testWidgets('shows visibility icon on password fields', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.visibility_off_outlined), findsNWidgets(2));
     });
 
-    testWidgets('toggles password visibility', (tester) async {
+    testWidgets('toggles all password visibility', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      await tester.tap(find.byIcon(Icons.visibility_off_outlined));
+      await tester.tap(find.byIcon(Icons.visibility_off_outlined).first);
       await tester.pump();
-      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.visibility_outlined), findsNWidgets(2));
     });
   });
 }

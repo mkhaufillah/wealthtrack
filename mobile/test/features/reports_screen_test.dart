@@ -11,6 +11,7 @@ import 'package:wealthtrack/core/network/api_client.dart';
 import '../helpers/mocks.dart';
 
 /// Helper to configure a MockApiClient with canned report data.
+/// Registers all endpoints the ReportsScreen calls on init.
 MockApiClient setupReportMockApi({
   required String month,
   int totalIncome = 5000000,
@@ -18,8 +19,13 @@ MockApiClient setupReportMockApi({
   int balance = 2000000,
   List<Map<String, dynamic>> categories = const [],
   List<Map<String, dynamic>> dailySnapshot = const [],
+  List<Map<String, dynamic>> householdUsers = const [],
+  List<Map<String, dynamic>> householdCategories = const [],
+  List<Map<String, dynamic>> trendItems = const [],
 }) {
   final api = MockApiClient();
+
+  // Monthly report (used by both load() and loadTrend())
   api.onGet('/summaries/monthly', {
     'month': month,
     'total_income': totalIncome,
@@ -28,18 +34,23 @@ MockApiClient setupReportMockApi({
     'categories': categories,
     'daily_snapshot': dailySnapshot,
   });
-  // Household report (empty by default so no household sections shown)
+
+  // To make loadTrend() return a List, register a separate path that
+  // getMonthlyTrend() calls. We can't distinguish query params in mock,
+  // so loadTrend() will get the same Map data above and silently fail.
+  // That's fine — trend section is tested via state injection below.
+
+  // Household summary
   api.onGet('/summaries/household', {
     'date_from': '',
     'date_to': '',
-    'total_income': 0,
-    'total_expense': 0,
-    'balance': 0,
-    'by_category': [],
-    'by_user': [],
+    'total_income': totalIncome + 2000000,
+    'total_expense': totalExpense + 1000000,
+    'balance': balance + 1000000,
+    'by_category': householdCategories,
+    'by_user': householdUsers,
   });
-  // Household transactions (empty)
-  api.onGet('/transactions/household', {'data': []});
+
   return api;
 }
 
@@ -211,7 +222,7 @@ void main() {
       );
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
-      await tester.pump(); // Let post-frame callback resolve
+      await tester.pump(); // Let post-frame callback + API complete
       expect(find.byType(RefreshIndicator), findsOneWidget);
     });
 
@@ -228,10 +239,13 @@ void main() {
             'percentage': 50.0
           },
         ],
+        dailySnapshot: [
+          {'date': '2026-05-01', 'expense': 150000, 'income': 0},
+        ],
       );
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
-      await tester.pump(); // Let post-frame callback resolve
+      await tester.pump(); // Resolve mock API → state has loaded data
       expect(find.text('Income'), findsOneWidget);
       expect(find.text('Expense'), findsOneWidget);
       expect(find.text('Balance'), findsOneWidget);
@@ -249,6 +263,9 @@ void main() {
             'count': 10,
             'percentage': 50.0
           },
+        ],
+        dailySnapshot: [
+          {'date': '2026-05-01', 'expense': 150000, 'income': 0},
         ],
       );
       await tester.pumpWidget(
@@ -271,6 +288,9 @@ void main() {
             'count': 10,
             'percentage': 50.0
           },
+        ],
+        dailySnapshot: [
+          {'date': '2026-05-01', 'expense': 150000, 'income': 0},
         ],
       );
       await tester.pumpWidget(
@@ -297,10 +317,9 @@ void main() {
           {'date': '2026-05-02', 'expense': 50000, 'income': 500000},
         ],
       );
-      // Just pumpWidget — don't pump so the post-frame callback hasn't
-      // overwritten the state with a fresh load
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
+      await tester.pump(); // Load from mock includes dailySnapshot
       expect(find.text('Daily Breakdown'), findsOneWidget);
     });
 
@@ -318,13 +337,21 @@ void main() {
             'percentage': 50.0
           },
         ],
+        // Provide 2 users so loadHousehold() has byUser.length > 1
+        householdUsers: [
+          {'user_id': 1, 'display_name': 'Filla', 'total_expense': 2000000, 'total_income': 3000000},
+          {'user_id': 2, 'display_name': 'Nahda', 'total_expense': 3000000, 'total_income': 5000000},
+        ],
+        householdCategories: [
+          {'category_id': 1, 'category_name': 'Makanan & Minuman', 'icon': '🍔', 'total': 2000000, 'count': 8, 'percentage': 40.0},
+        ],
       );
-      // Inject household data directly via state — don't pump to avoid overwrite
       await tester.pumpWidget(buildReportsApp(
         apiClient: mockApi,
         monthly: sampleMonthlyReport,
         household: sampleHouseholdReport,
       ));
+      await tester.pump(); // loadHousehold() returns proper data from mock
       expect(find.text('Household Split'), findsOneWidget);
       expect(find.text('Filla'), findsOneWidget);
       expect(find.text('Nahda'), findsOneWidget);
@@ -344,13 +371,23 @@ void main() {
             'percentage': 50.0
           },
         ],
+        dailySnapshot: [
+          {'date': '2026-05-01', 'expense': 150000, 'income': 0},
+        ],
+        // Provide 2 users so loadHousehold() has data
+        householdUsers: [
+          {'user_id': 1, 'display_name': 'Filla', 'total_expense': 0, 'total_income': 0},
+          {'user_id': 2, 'display_name': 'Nahda', 'total_expense': 0, 'total_income': 0},
+        ],
       );
-      // Inject trend data directly — don't pump to avoid overwrite
+      // Can't mock loadTrend() separately from load() (same path),
+      // so inject trend via state — it stays because loadTrend() fails silently
       await tester.pumpWidget(buildReportsApp(
         apiClient: mockApi,
         monthly: sampleMonthlyReport,
         trend: sampleTrend,
       ));
+      await tester.pump();
       expect(find.text('Monthly Trend'), findsOneWidget);
     });
 
@@ -367,10 +404,13 @@ void main() {
             'percentage': 50.0
           },
         ],
+        dailySnapshot: [
+          {'date': '2026-05-01', 'expense': 150000, 'income': 0},
+        ],
       );
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
-      // Export button is in the ListView; even off-screen it's in the widget tree
+      await tester.pump();
       expect(find.text('Export Report'), findsOneWidget);
     });
   });
