@@ -66,7 +66,15 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   : state.error != null && state.items.isEmpty
                       ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: [SizedBox(height: 300, child: ErrorDisplay(message: state.error!, onRetry: _load))])
                       : state.items.isEmpty
-                          ? SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(), child: _buildEmptyState())
+                          ? LayoutBuilder(
+                              builder: (context, constraints) => SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                  child: _buildEmptyState(),
+                                ),
+                              ),
+                            )
                           : _buildBudgetList(state.items),
             ),
           ),
