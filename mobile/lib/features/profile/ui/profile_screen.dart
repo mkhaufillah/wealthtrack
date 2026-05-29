@@ -214,7 +214,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton(
+                  height: 48,
+                  child: FilledButton.icon(
                     onPressed: joining
                         ? null
                         : () async {
@@ -240,13 +241,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               }
                             }
                           },
-                    child: joining
+                    icon: joining
                         ? const SizedBox(
-                            width: 16,
-                            height: 16,
+                            width: 18,
+                            height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text('Join'),
+                        : const Icon(Icons.person_add_rounded),
+                    label: Text(joining ? 'Joining...' : 'Join'),
                   ),
                 ),
                 const SizedBox(height: 24),
