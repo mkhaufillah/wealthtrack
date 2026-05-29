@@ -108,12 +108,12 @@ class _TransferBalanceScreenState
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: isDark
-              ? const ColorScheme.dark(
+              ? ColorScheme.dark(
                   primary: AppColors.darkPrimary,
                   onPrimary: Colors.white,
                   surface: AppColors.darkSurface,
                 )
-              : const ColorScheme.light(
+              : ColorScheme.light(
                   primary: AppColors.primary,
                   onPrimary: Colors.white,
                   surface: AppColors.surface,
