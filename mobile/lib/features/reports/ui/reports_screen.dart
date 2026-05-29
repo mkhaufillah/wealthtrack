@@ -714,11 +714,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     try {
       final api = ref.read(apiClientProvider);
       final scaffold = ScaffoldMessenger.of(context);
+      final snackbarColor = Theme.of(context).colorScheme.onInverseSurface;
 
       scaffold.showSnackBar(
         SnackBar(content: Row(
           children: [
-            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: snackbarColor)),
             SizedBox(width: 12),
             const Text('Generating export...'),
           ],
