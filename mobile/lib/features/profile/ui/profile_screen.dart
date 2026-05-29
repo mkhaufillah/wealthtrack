@@ -519,6 +519,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildHouseholdSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_loadingHousehold) {
       return const Center(
         child: Padding(
