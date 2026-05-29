@@ -115,7 +115,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(onPressed: () => ctx.pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => ctx.pop(true), child: const Text('Logout')),
+          FilledButton(
+            onPressed: () => ctx.pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.highlight),
+            child: const Text('Logout'),
+          ),
         ],
       ),
     );
@@ -675,7 +679,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
+              child: TextButton.icon(
                 onPressed: () => context.push('/transactions/transfer'),
                 icon: const Icon(Icons.swap_horiz_rounded, size: 18),
                 label: const Text('Transfer Balance'),
