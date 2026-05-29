@@ -158,10 +158,6 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/transactions/add'),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(transactionListProvider.notifier).load(refresh: true),
         child: state.isLoading
