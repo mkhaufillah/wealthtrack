@@ -16,7 +16,7 @@ class TransactionUpdate(BaseModel):
     description: Optional[str] = None
     note: Optional[str] = None
     category_id: Optional[int] = None
-    date: Optional[str] = None
+    date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
 class CategoryBrief(BaseModel):

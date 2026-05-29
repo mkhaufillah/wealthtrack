@@ -42,7 +42,11 @@ docs/                  # Planning docs (agent-executable)
   ├── 05-flutter-mobile.md
   ├── 06-hermes-integration.md
   ├── 07-deployment.md
-  └── 08-p4-plan.md
+  ├── 08-p4-plan.md
+  ├── 09-dark-mode.md
+  ├── 10-edit-transaction.md
+  ├── 11-delete-transaction.md
+  └── 12-transfer-balance.md
 backend/               # FastAPI application
 mobile/                # Flutter app (Android)
 scripts/               # DB init & seed scripts
@@ -52,23 +56,34 @@ scripts/               # DB init & seed scripts
 
 ### Backend API
 - **Auth** — register, login (JWT 30-day), profile update, password change, account delete
-- **Transactions** — CRUD with pagination, filtering by type/date/category, sorting
+- **Transactions** — CRUD with pagination, filtering by type/date/category, sorting, change owner
 - **Categories** — list with type filter, pre-seeded
 - **Summaries** — daily, monthly, household (combined across members), current-month shorthand
 - **Household** — shared household with invite codes, multi-user transaction listing & summaries
+- **Budgets** — CRUD with upsert, monthly budget vs actual spending summary with color coding
+- **Transfer Balance** — create paired send/transfer transactions between household members
+- **Reports** — monthly summary cards, category breakdown, daily snapshot, household split
+- **Export** — yearly Excel (.xlsx) export with 12 monthly sheets
+- **OCR / Smart Input** — receipt image upload processed via Kimi K2.6 vision AI
+- **AI Advisor** — personalized financial advice using DeepSeek Flash V4 with Brave Search
+- **Health** — lightweight health check endpoint
 
 ### Mobile (Flutter)
 - **Auth screens** — Login & Register with validation, password visibility toggle
 - **Dashboard** — balance card (income/expense), recent transactions list
-- **Transactions** — list with pull-to-refresh, add transaction with category picker & amount field
-- **Reports** — monthly summary cards, category breakdown, daily snapshot, household split,
-  household category breakdown, household daily breakdown (grouped by day)
-- **Profile** — user info display (stub ready for extension)
+- **Transactions** — list with pull-to-refresh, add/edit/delete transaction with category picker & amount field
+- **Reports** — interactive charts (pie, bar, line) using fl_chart, monthly summary cards, category breakdown, daily snapshot, household split
+- **Budgets** — monthly budget tracking with progress bars and color coding
+- **AI Advisor** — chat-like interface with streaming responses and web search
+- **Transfer Balance** — send money to household members directly from the app
+- **Dark Mode** — full dark theme support with system preference detection
+- **Profile** — user info display, edit profile, change password, logout
 
 ### Hermes Integration
 - Cron-based daily finance summary delivery to Telegram/WhatsApp
 - Expense recording via chat input
 - Invoice processing with OCR (Hermes vision API)
+- Brave Search powered AI financial advisor
 
 ## Status
 

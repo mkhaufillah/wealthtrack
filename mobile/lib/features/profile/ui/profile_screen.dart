@@ -442,6 +442,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildUserCard(dynamic user) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -453,16 +454,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             CircleAvatar(
               radius: 30,
               backgroundColor: user?.displayName == 'Nahda'
-                  ? Colors.pink.shade100
-                  : Colors.blue.shade100,
+                  ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
+                  : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
               child: Text(
                 (user?.displayName ?? '?')[0].toUpperCase(),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: user?.displayName == 'Nahda'
-                      ? Colors.pink.shade700
-                      : Colors.blue.shade700,
+                      ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
+                      : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
                 ),
               ),
             ),
@@ -493,8 +494,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: user?.displayName == 'Nahda'
-                          ? Colors.pink.shade50
-                          : Colors.blue.shade50,
+                          ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
+                          : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -502,8 +503,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         color: user?.displayName == 'Nahda'
-                            ? Colors.pink.shade700
-                            : Colors.blue.shade700,
+                            ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
+                            : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -646,23 +647,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text('Members',
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               const SizedBox(height: 4),
-              ...(_members.map((m) => Padding(
+              ...(_members.map((m) {
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    return Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 10,
                           backgroundColor: m['display_name'] == 'Nahda'
-                              ? Colors.pink.shade100
-                              : Colors.blue.shade100,
+                              ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
+                              : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
                           child: Text(
                             (m['display_name'] as String? ?? '?')[0],
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                               color: m['display_name'] == 'Nahda'
-                                  ? Colors.pink.shade700
-                                  : Colors.blue.shade700,
+                                  ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
+                                  : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
                             ),
                           ),
                         ),
@@ -679,7 +682,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ],
                       ],
                     ),
-                  ))),
+                  );
+                  }),
+                ),
             ],
             const SizedBox(height: 12),
             SizedBox(

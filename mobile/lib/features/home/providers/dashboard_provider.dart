@@ -36,7 +36,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         balance: summary['balance'] ?? 0, recentTransactions: txns,
         totalTransactions: txnRes.data['meta']['total'] ?? 0,
       );
-    } catch (e) { state = state.copyWith(isLoading: false, error: e.toString()); }
+    } catch (e) { state = state.copyWith(isLoading: false, error: _api.handleError(e).toString()); }
   }
 }
 

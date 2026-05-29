@@ -332,7 +332,9 @@ Divider:     #E8E8E8    — Light border
 Tab 1: 📊 Dashboard  ← default
 Tab 2: 📋 Transactions
 Tab 3: 📈 Reports
-Tab 4: 👤 Profile
+Tab 4: 💰 Budgets
+Tab 5: 🤖 AI Advisor
+Tab 6: 👤 Profile
 ```
 
 ## 4. Code Architecture
@@ -344,7 +346,8 @@ mobile/lib/
 │
 ├── core/
 │   ├── theme/
-│   │   └── app_theme.dart       # Colors, TextStyles, ThemeData
+│   │   ├── app_theme.dart       # Colors, TextStyles, ThemeData
+│   │   └── theme_provider.dart   # Dark mode state (Riverpod)
 │   ├── constants.dart           # API_BASE_URL, date formats, etc.
 │   ├── network/
 │   │   ├── api_client.dart      # Dio with auth interceptor
@@ -397,10 +400,42 @@ mobile/lib/
 │   │   │   └── report_model.dart    # MonthlyReport, HouseholdReport, DailySnapshot, etc.
 │   │   ├── providers/
 │   │   │   └── report_provider.dart
+│       └── ui/
+│           ├── reports_screen.dart  # Summary cards, category breakdown, daily snapshot,
+│           │                         # household split, household daily & category breakdown
+│           └── widgets/
+│               └── chart_widgets.dart  # fl_chart wrappers (pie, bar, line)
+│   │
+│   ├── budgets/
+│   │   ├── data/
+│   │   │   └── budget_repository.dart
+│   │   ├── models/
+│   │   │   └── budget_model.dart
+│   │   ├── providers/
+│   │   │   └── budget_provider.dart
 │   │   └── ui/
-│   │       └── reports_screen.dart  # Summary cards, category breakdown, daily snapshot,
-│   │                                 # household split, household daily & category breakdown
-│
+│   │       └── budgets_screen.dart     # Monthly budgets with progress bars
+│   │
+│   ├── ai/
+│   │   ├── data/
+│   │   │   └── ai_repository.dart
+│   │   ├── models/
+│   │   │   └── advice_model.dart
+│   │   ├── providers/
+│   │   │   └── ai_provider.dart
+│   │   └── ui/
+│   │       ├── ai_advisor_screen.dart   # Chat-like advisor UI
+│   │       └── widgets/
+│   │           └── advice_bubble.dart
+│   │
+│   ├── transfer/
+│   │   ├── data/
+│   │   │   └── transfer_repository.dart
+│   │   ├── providers/
+│   │   │   └── transfer_provider.dart
+│   │   └── ui/
+│   │       └── transfer_screen.dart     # Send money to household members
+│   │
 │   └── profile/
 │       ├── data/
 │       │   └── profile_repository.dart
@@ -491,6 +526,9 @@ dependencies:
   intl: ^0.19.0                  # Date & IDR formatting
   shimmer: ^3.0.0                # Loading skeleton
   cached_network_image: ^3.3.0   # Image caching (future)
+  fl_chart: ^0.70.0              # Charts (pie, bar, line)
+  image_picker: ^1.1.0           # Camera/gallery for OCR
+  flutter_markdown: ^0.7.0       # Markdown rendering (AI advisor)
 
   # Code generation (JSON serialization)
   json_annotation: ^4.9.0
@@ -528,13 +566,16 @@ final goRouter = GoRouter(
         GoRoute(path: '/home', builder: (_, __) => HomeScreen()),
         GoRoute(path: '/transactions', builder: (_, __) => TransactionListScreen()),
         GoRoute(path: '/reports', builder: (_, __) => ReportsScreen()),
+        GoRoute(path: '/budgets', builder: (_, __) => BudgetsScreen()),
         GoRoute(path: '/profile', builder: (_, __) => ProfileScreen()),
       ],
     ),
-    GoRoute(path: '/transactions/add', builder: (_, __) => AddTransactionScreen()),
+    GoRoute(path: '/transactions/add', builder: (_, state) =>
+      AddTransactionScreen(editId: state.uri.queryParameters['edit'])),
+    GoRoute(path: '/transactions/transfer', builder: (_, __) => TransferScreen()),
     GoRoute(path: '/transactions/:id', builder: (_, state) =>
       TransactionDetailScreen(id: state.pathParameters['id']!)),
-  ],
+    GoRoute(path: '/ai', builder: (_, __) => AiAdvisorScreen()),
 );
 ```
 

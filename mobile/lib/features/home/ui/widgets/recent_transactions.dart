@@ -38,7 +38,7 @@ class RecentTransactions extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           TextButton(
-            onPressed: () => context.go('/transactions'),
+            onPressed: () => context.push('/transactions'),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

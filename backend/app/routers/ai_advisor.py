@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, AsyncGenerator
@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 from app.database import get_db
 from app.core.config import settings
 from app.core.security import get_current_user
+from app.core.limiter import limiter
 from app.services.web_search import _should_search, search_web, format_search_results
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -301,7 +302,9 @@ async def _build_messages(req: AdviseRequest, current_user: dict, db) -> list:
 
 
 @router.post("/advise", response_model=AdviseResponse)
+@limiter.limit("10/minute")
 async def financial_advise(
+    request: Request,
     req: AdviseRequest,
     db=Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -311,7 +314,7 @@ async def financial_advise(
         raise HTTPException(status_code=500, detail="AI advisor not configured")
 
     # User-level access control
-    if req.model == "opus" and current_user["id"] != 1:
+    if req.model == "opus" and current_user["role"] != "admin":
         raise HTTPException(
             status_code=403,
             detail="Advanced model is only available for the primary account holder",
@@ -324,7 +327,9 @@ async def financial_advise(
 
 
 @router.post("/advise/stream")
+@limiter.limit("10/minute")
 async def financial_advise_stream(
+    request: Request,
     req: AdviseRequest,
     db=Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -333,7 +338,7 @@ async def financial_advise_stream(
     if not api_key:
         raise HTTPException(status_code=500, detail="AI advisor not configured")
 
-    if req.model == "opus" and current_user["id"] != 1:
+    if req.model == "opus" and current_user["role"] != "admin":
         raise HTTPException(
             status_code=403,
             detail="Advanced model is only available for the primary account holder",

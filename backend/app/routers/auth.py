@@ -99,7 +99,9 @@ async def update_profile(
 
 
 @router.put("/password")
+@limiter.limit("5/minute")
 async def change_password(
+    request: Request,
     data: ChangePasswordIn,
     current_user: dict = Depends(get_current_user),
     db: aiosqlite.Connection = Depends(get_db),

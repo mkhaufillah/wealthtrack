@@ -241,6 +241,7 @@ class _TransferBalanceScreenState
     final state = ref.watch(transferBalanceProvider);
     final currentUser = ref.watch(authProvider).user;
     final isSubmitting = state.isSubmitting;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -277,16 +278,16 @@ class _TransferBalanceScreenState
                         child: Row(children: [
                           CircleAvatar(
                             backgroundColor: (currentUser?.displayName ?? '') == 'Nahda'
-                                ? Colors.pink.shade100
-                                : Colors.blue.shade100,
+                                ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
+                                : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
                             child: Text(
                               (currentUser?.displayName ?? '?')[0]
                                   .toUpperCase(),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: (currentUser?.displayName ?? '') == 'Nahda'
-                                      ? Colors.pink.shade700
-                                      : Colors.blue.shade700),
+                                      ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
+                                      : (isDark ? Colors.blue.shade200 : Colors.blue.shade700)),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -379,16 +380,16 @@ class _TransferBalanceScreenState
                                     CircleAvatar(
                                       radius: 16,
                                       backgroundColor: r.displayName == 'Nahda'
-                                          ? Colors.pink.shade100
-                                          : Colors.blue.shade100,
+                                          ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
+                                          : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
                                       child: Text(
                                         r.displayName[0].toUpperCase(),
                                         style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
                                             color: r.displayName == 'Nahda'
-                                                ? Colors.pink.shade700
-                                                : Colors.blue.shade700),
+                                                ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
+                                                : (isDark ? Colors.blue.shade200 : Colors.blue.shade700)),
                                       ),
                                     ),
                                     const SizedBox(width: 8),

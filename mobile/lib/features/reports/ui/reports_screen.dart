@@ -320,6 +320,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildHouseholdSplit(HouseholdReport hh) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -340,16 +341,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 CircleAvatar(
                   radius: 16,
                   backgroundColor: u.displayName == 'Nahda'
-                      ? Colors.pink.shade100
-                      : Colors.blue.shade100,
+                      ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
+                      : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
                   child: Text(
                     u.displayName.isNotEmpty ? u.displayName[0] : '?',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: u.displayName == 'Nahda'
-                          ? Colors.pink.shade700
-                          : Colors.blue.shade700,
+                          ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
+                          : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
                     ),
                   ),
                 ),
@@ -375,8 +376,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           backgroundColor: AppColors.divider,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             u.displayName == 'Nahda'
-                                ? Colors.pink.shade300
-                                : Colors.blue.shade300,
+                                ? (isDark ? Colors.pink.shade300.withOpacity(0.7) : Colors.pink.shade300)
+                                : (isDark ? Colors.blue.shade300.withOpacity(0.7) : Colors.blue.shade300),
                           ),
                         ),
                       ),

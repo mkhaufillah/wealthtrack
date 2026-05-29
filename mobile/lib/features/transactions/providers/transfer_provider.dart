@@ -68,7 +68,7 @@ class TransferBalanceNotifier extends StateNotifier<TransferBalanceState> {
     } catch (e) {
       state = state.copyWith(
         isSubmitting: false,
-        error: e.toString(),
+        error: _api.handleError(e).toString(),
       );
       return false;
     }

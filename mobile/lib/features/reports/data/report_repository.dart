@@ -6,19 +6,27 @@ class ReportRepository {
   ReportRepository(this._client);
 
   Future<MonthlyReport> getMonthlyReport(String month) async {
-    final res = await _client.get('/summaries/monthly', queryParams: {'month': month});
-    return MonthlyReport.fromJson(res.data);
+    try {
+      final res = await _client.get('/summaries/monthly', queryParams: {'month': month});
+      return MonthlyReport.fromJson(res.data);
+    } catch (e) {
+      throw _client.handleError(e);
+    }
   }
 
   Future<HouseholdReport> getHouseholdReport({
     required String dateFrom,
     required String dateTo,
   }) async {
-    final res = await _client.get('/summaries/household', queryParams: {
-      'date_from': dateFrom,
-      'date_to': dateTo,
-    });
-    return HouseholdReport.fromJson(res.data);
+    try {
+      final res = await _client.get('/summaries/household', queryParams: {
+        'date_from': dateFrom,
+        'date_to': dateTo,
+      });
+      return HouseholdReport.fromJson(res.data);
+    } catch (e) {
+      throw _client.handleError(e);
+    }
   }
 
   Future<Map<String, dynamic>> getHouseholdTransactions({
@@ -26,22 +34,30 @@ class ReportRepository {
     required String dateTo,
     int perPage = 100,
   }) async {
-    final res = await _client.get('/transactions/household', queryParams: {
-      'per_page': perPage,
-      'date_from': dateFrom,
-      'date_to': dateTo,
-    });
-    return res.data;
+    try {
+      final res = await _client.get('/transactions/household', queryParams: {
+        'per_page': perPage,
+        'date_from': dateFrom,
+        'date_to': dateTo,
+      });
+      return res.data;
+    } catch (e) {
+      throw _client.handleError(e);
+    }
   }
 
   Future<List<MonthlyTrend>> getMonthlyTrend({
     required String monthFrom,
     required String monthTo,
   }) async {
-    final res = await _client.get('/summaries/monthly', queryParams: {
-      'month_from': monthFrom,
-      'month_to': monthTo,
-    });
-    return (res.data as List).map((e) => MonthlyTrend.fromJson(e as Map<String, dynamic>)).toList();
+    try {
+      final res = await _client.get('/summaries/monthly', queryParams: {
+        'month_from': monthFrom,
+        'month_to': monthTo,
+      });
+      return (res.data as List).map((e) => MonthlyTrend.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      throw _client.handleError(e);
+    }
   }
 }

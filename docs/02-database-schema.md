@@ -36,19 +36,31 @@ CREATE TABLE IF NOT EXISTS categories (
 
 15 categories seeded: 5 income + 10 expense (from `finance_db.py`).
 
-### `budgets` — unchanged
+### `budgets` — updated (user_id, category_id, UNIQUE constraint)
 
 ```sql
 CREATE TABLE IF NOT EXISTS budgets (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL REFERENCES users(id),
     month         TEXT NOT NULL,
     category_id   INTEGER,
     category_name TEXT,
     budget_amount REAL NOT NULL,
-    UNIQUE(month, category_name),
+    UNIQUE(user_id, month, category_id),
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 ```
+
+### Transfer Categories
+
+Two special categories are auto-created for the transfer balance feature:
+
+| id | name | type | icon | is_default | sort_order |
+|----|------|------|------|-----------|------------|
+| 16 | Transfer | expense | 🔄 | 0 | 100 |
+| 17 | Transfer | income | 🔄 | 0 | 100 |
+
+These are used by `POST /api/v1/transactions/transfer` to create paired expense (sender) and income (recipient) transactions. They are auto-created by the backend if they don't already exist.
 
 ## New Table (added by WealthTrack)
 
@@ -187,7 +199,7 @@ if __name__ == "__main__":
                        │ user_id      (NEW)                │       ┌──────────────┐
                        │ date         (NEW: YYYY-MM-DD)    │       │   budgets    │
                        │ note         (NEW: optional)      │       ├──────────────┤
-                       │ created_at   (timestamp)          │       │ id (PK)      │
+                       │ created_at   (timestamp)          │       │ user_id (FK)  │──► users
                        └───────────────────────────────────┘       │ month        │
                                                                    │ category_id  │
                                                                    │ category_name│

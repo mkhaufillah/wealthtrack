@@ -14,6 +14,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _usernameCtrl = TextEditingController();
   final _displayNameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _confirmPwCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
 
@@ -22,6 +23,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _usernameCtrl.dispose();
     _displayNameCtrl.dispose();
     _passwordCtrl.dispose();
+    _confirmPwCtrl.dispose();
     super.dispose();
   }
 
@@ -88,6 +90,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   validator: (v) =>
                       v != null && v.length >= 6 ? null : 'Min 6 characters',
+                  enabled: !isLoading,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmPwCtrl,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                  ),
+                  validator: (v) =>
+                      v != null && v == _passwordCtrl.text ? null : 'Passwords do not match',
                   enabled: !isLoading,
                 ),
                 if (authState.error != null) ...[

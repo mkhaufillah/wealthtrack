@@ -524,12 +524,14 @@ Daily summary for a date range.
     {
       "user_id": 1,
       "display_name": "Filla",
-      "total_expense": 2000000
+      "total_expense": 2000000,
+      "total_income": 0
     },
     {
       "user_id": 2,
       "display_name": "Nahda",
-      "total_expense": 1250000
+      "total_expense": 1250000,
+      "total_income": 0
     }
   ]
 }
@@ -832,17 +834,36 @@ Lightweight health check. Does not require authentication.
 
 ## Error Response Format
 
+All errors follow FastAPI's standard HTTPException format:
+
 ```json
 {
-  "detail": {
-    "code": "VALIDATION_ERROR",
-    "message": "amount must be greater than 0",
-    "errors": [
-      {"field": "amount", "message": "must be > 0"}
-    ]
-  }
+  "detail": "Transaction not found"
 }
 ```
+
+Validation errors use FastAPI's default `RequestValidationError` format:
+
+```json
+{
+  "detail": [
+    {
+      "type": "value_error",
+      "loc": ["body", "amount"],
+      "msg": "amount must be greater than 0",
+      "input": -5000
+    }
+  ]
+}
+```
+
+- **400** — Bad request (validation, wrong current password, etc.)
+- **401** — Missing or invalid token
+- **404** — Resource not found
+- **409** — Conflict (duplicate username, etc.)
+- **422** — Request validation error (Pydantic)
+- **429** — Rate limit exceeded
+- **500** — Internal server error
 
 ## Auth Headers
 

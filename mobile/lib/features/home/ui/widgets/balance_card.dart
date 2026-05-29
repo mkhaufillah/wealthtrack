@@ -10,7 +10,7 @@ class BalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
-      color: AppColors.secondary,
+      color: AppColors.surface,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(

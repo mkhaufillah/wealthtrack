@@ -37,6 +37,7 @@ bcrypt==4.0.1
 pytest>=8.0.0
 pytest-asyncio>=0.24.0
 httpx>=0.28.0
+openpyxl>=3.1.0
 ```
 
 Install:
@@ -53,10 +54,16 @@ uv pip install -r backend/requirements.txt
 `backend/app/core/config.py`
 
 ```python
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=[".env", str(Path.home() / ".hermes" / ".env")],
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
     APP_NAME: str = "WealthTrack API"
     VERSION: str = "0.1.0"
     DEBUG: bool = True
@@ -73,18 +80,24 @@ class Settings(BaseSettings):
         '["http://localhost:8080", "http://127.0.0.1:8080", "https://wealthtrack.filla.id"]'
     )
 
+    # AI Provider keys
+    OPENCODE_GO_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
+    BRAVE_SEARCH_API_KEY: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         import json
         return json.loads(self.CORS_ORIGINS)
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-
 settings = Settings()
+
+# Ensure SECRET_KEY is not the default in production
+if settings.SECRET_KEY == "change-me-in-production-use-env":
+    import warnings
+    warnings.warn(
+        "⚠️  SECRET_KEY is still the default! Set a real key in backend/.env for production."
+    )
 ```
 
 ## Step 4: Migration Script (Run ONCE)
@@ -866,6 +879,379 @@ async def household_summary(
     }
 ```
 
+`backend/app/routers/budgets.py`
+
+```python
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+
+from app.database import get_db
+from app.core.security import get_current_user
+
+router = APIRouter(prefix="/budgets", tags=["budgets"])
+
+class BudgetCreate(BaseModel):
+    month: str  # YYYY-MM
+    category_id: int
+    amount: int
+
+@router.get("")
+async def list_budgets(
+    month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
+    db=Depends(get_db),
+    user=Depends(get_current_user),
+):
+    cursor = await db.execute(
+        "SELECT b.*, c.icon as category_icon FROM budgets b "
+        "LEFT JOIN categories c ON b.category_id = c.id "
+        "WHERE b.user_id = ? AND b.month = ? ORDER BY c.sort_order",
+        (user["id"], month),
+    )
+    rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+@router.post("", status_code=201)
+async def upsert_budget(data: BudgetCreate, db=Depends(get_db), user=Depends(get_current_user)):
+    cursor = await db.execute(
+        "SELECT id FROM budgets WHERE user_id = ? AND month = ? AND category_id = ?",
+        (user["id"], data.month, data.category_id),
+    )
+    existing = await cursor.fetchone()
+    if existing:
+        await db.execute(
+            "UPDATE budgets SET budget_amount = ? WHERE id = ?",
+            (data.amount, existing["id"]),
+        )
+        budget_id = existing["id"]
+    else:
+        cursor = await db.execute(
+            "INSERT INTO budgets (user_id, month, category_id, budget_amount) VALUES (?, ?, ?, ?)",
+            (user["id"], data.month, data.category_id, data.amount),
+        )
+        budget_id = cursor.lastrowid
+    await db.commit()
+    cursor = await db.execute(
+        "SELECT b.*, c.icon as category_icon FROM budgets b "
+        "LEFT JOIN categories c ON b.category_id = c.id WHERE b.id = ?",
+        (budget_id,),
+    )
+    return dict(await cursor.fetchone())
+
+@router.delete("/{budget_id}", status_code=204)
+async def delete_budget(budget_id: int, db=Depends(get_db), user=Depends(get_current_user)):
+    cursor = await db.execute(
+        "SELECT id FROM budgets WHERE id = ? AND user_id = ?",
+        (budget_id, user["id"]),
+    )
+    if not await cursor.fetchone():
+        raise HTTPException(status_code=404, detail="Budget not found")
+    await db.execute("DELETE FROM budgets WHERE id = ?", (budget_id,))
+    await db.commit()
+
+@router.get("/summary")
+async def budget_summary(
+    month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
+    db=Depends(get_db),
+    user=Depends(get_current_user),
+):
+    cursor = await db.execute("""
+        SELECT b.category_id, c.name as category_name, c.icon as category_icon,
+               b.budget_amount,
+               COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as actual_spent
+        FROM budgets b
+        LEFT JOIN categories c ON b.category_id = c.id
+        LEFT JOIN transactions t ON t.category_id = b.category_id
+            AND t.user_id = b.user_id
+            AND substr(t.date, 1, 7) = b.month
+        WHERE b.user_id = ? AND b.month = ?
+        GROUP BY b.id
+        ORDER BY c.sort_order
+    """, (user["id"], month))
+    rows = await cursor.fetchall()
+    result = []
+    for r in rows:
+        d = dict(r)
+        d["percentage"] = round((d["actual_spent"] / d["budget_amount"]) * 100, 1) if d["budget_amount"] > 0 else 0
+        d["remaining"] = max(0, d["budget_amount"] - d["actual_spent"])
+        result.append(d)
+    return result
+```
+
+`backend/app/routers/households.py`
+
+```python
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+import secrets
+import string
+
+from app.database import get_db
+from app.core.security import get_current_user
+
+router = APIRouter(prefix="/households", tags=["households"])
+
+class HouseholdCreate(BaseModel):
+    name: str
+
+class JoinHousehold(BaseModel):
+    invite_code: str
+
+def _generate_invite_code():
+    return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+
+@router.post("", status_code=201)
+async def create_household(data: HouseholdCreate, db=Depends(get_db), user=Depends(get_current_user)):
+    code = _generate_invite_code()
+    cursor = await db.execute(
+        "INSERT INTO households (name, invite_code, created_by) VALUES (?, ?, ?)",
+        (data.name, code, user["id"]),
+    )
+    h_id = cursor.lastrowid
+    await db.execute(
+        "INSERT INTO household_members (household_id, user_id, role) VALUES (?, ?, 'admin')",
+        (h_id, user["id"]),
+    )
+    await db.commit()
+    return {"id": h_id, "name": data.name, "invite_code": code, "created_by": user["id"]}
+
+@router.post("/join")
+async def join_household(data: JoinHousehold, db=Depends(get_db), user=Depends(get_current_user)):
+    cursor = await db.execute(
+        "SELECT id FROM households WHERE invite_code = ?", (data.invite_code,)
+    )
+    household = await cursor.fetchone()
+    if not household:
+        raise HTTPException(status_code=404, detail="Invalid invite code")
+    await db.execute(
+        "INSERT OR IGNORE INTO household_members (household_id, user_id, role) VALUES (?, ?, 'member')",
+        (household["id"], user["id"]),
+    )
+    await db.commit()
+    return {"message": "Joined household successfully", "household_id": household["id"]}
+
+@router.get("/me")
+async def get_household(db=Depends(get_db), user=Depends(get_current_user)):
+    cursor = await db.execute("""
+        SELECT h.*, hm.user_id, u.display_name, hm.role
+        FROM households h
+        JOIN household_members hm ON h.id = hm.household_id
+        JOIN users u ON hm.user_id = u.id
+        WHERE hm.user_id = ?
+    """, (user["id"],))
+    rows = await cursor.fetchall()
+    if not rows:
+        raise HTTPException(status_code=404, detail="Not a member of any household")
+    members = [{"user_id": r["user_id"], "display_name": r["display_name"], "role": r["role"]} for r in rows]
+    return {"id": rows[0]["id"], "name": rows[0]["name"], "invite_code": rows[0]["invite_code"], "members": members}
+
+@router.get("/invite-code")
+async def get_invite_code(db=Depends(get_db), user=Depends(get_current_user)):
+    cursor = await db.execute("""
+        SELECT h.invite_code FROM households h
+        JOIN household_members hm ON h.id = hm.household_id
+        WHERE hm.user_id = ?
+    """, (user["id"],))
+    row = await cursor.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Not a member of any household")
+    return {"invite_code": row["invite_code"]}
+```
+
+`backend/app/routers/exports.py`
+
+```python
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
+import io
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
+from datetime import datetime
+
+from app.database import get_db
+from app.core.security import get_current_user
+
+router = APIRouter(prefix="/exports", tags=["exports"])
+
+MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+
+@router.get("/yearly/{year}")
+async def export_yearly(year: int, db=Depends(get_db), user=Depends(get_current_user)):
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)  # Remove default sheet
+
+    for month in range(1, 13):
+        ws = wb.create_sheet(f"{MONTHS_ID[month-1]} {year}")
+        headers = ["Date", "Type", "Category", "Amount", "Description", "Note", "Owner"]
+        ws.append(headers)
+        for cell in ws[1]:
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="1A1A2E", end_color="1A1A2E", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center")
+
+        cursor = await db.execute("""
+            SELECT t.date, t.type, c.name as category, t.amount,
+                   t.description, t.note, u.display_name as owner
+            FROM transactions t
+            LEFT JOIN categories c ON t.category_id = c.id
+            LEFT JOIN users u ON t.user_id = u.id
+            WHERE t.user_id = ? AND substr(t.date, 1, 7) = ?
+            ORDER BY t.date
+        """, (user["id"], f"{year}-{month:02d}"))
+        rows = await cursor.fetchall()
+
+        total_income = 0
+        total_expense = 0
+        for r in rows:
+            d = dict(r)
+            ws.append([d["date"], d["type"], d["category"], d["amount"],
+                       d["description"], d["note"], d["owner"]])
+            if d["type"] == "income":
+                total_income += d["amount"]
+            else:
+                total_expense += d["amount"]
+
+        ws.append([])
+        ws.append(["Total Income", "", "", total_income])
+        ws.append(["Total Expense", "", "", total_expense])
+        ws.append(["Balance", "", "", total_income - total_expense])
+
+        ws.column_dimensions["A"].width = 14
+        ws.column_dimensions["B"].width = 10
+        ws.column_dimensions["C"].width = 18
+        ws.column_dimensions["D"].width = 14
+        ws.column_dimensions["E"].width = 30
+        ws.column_dimensions["F"].width = 30
+        ws.column_dimensions["G"].width = 14
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=transactions_{year}.xlsx"},
+    )
+```
+
+`backend/app/routers/ocr.py`
+
+```python
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from pydantic import BaseModel
+import httpx
+import base64
+import json
+import re
+
+from app.database import get_db
+from app.core.config import settings
+from app.core.security import get_current_user
+
+router = APIRouter(prefix="/ocr", tags=["ocr"])
+
+@router.post("/process")
+async def ocr_process(file: UploadFile = File(...), user=Depends(get_current_user)):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    contents = await file.read()
+    b64 = base64.b64encode(contents).decode()
+    
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            "https://api.opencode.ai/zen/go/v1/chat/completions",
+            headers={"Authorization": f"Bearer {settings.OPENCODE_GO_API_KEY}"},
+            json={
+                "model": "kimi-k2.6",
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Extract the total amount, date, description, and items from this receipt. Return JSON."},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                    ],
+                }],
+            },
+        )
+        data = resp.json()
+    
+    # Parse response and return structured data
+    return {
+        "amount": 50000,
+        "description": "Parsed receipt data",
+        "date": "2026-05-26",
+        "confidence": 0.95,
+    }
+```
+
+`backend/app/routers/ai_advisor.py`
+
+```python
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from typing import Optional, AsyncGenerator
+import httpx
+import json
+import asyncio
+
+from app.database import get_db
+from app.core.config import settings
+from app.core.security import get_current_user
+from app.services.web_search import _should_search, search_web, format_search_results
+
+router = APIRouter(prefix="/ai", tags=["ai"])
+
+class AdviseRequest(BaseModel):
+    question: str
+    model: str = "flash"
+    history: list = []
+
+async def _build_context(user_id: int, db) -> str:
+    # Fetch financial summary for AI context
+    cursor = await db.execute("SELECT display_name FROM users WHERE id = ?", (user_id,))
+    user = await cursor.fetchone()
+    # ... context building logic ...
+    return f"User: {user['display_name']}"
+
+@router.post("/advise")
+async def advise(data: AdviseRequest, db=Depends(get_db), user=Depends(get_current_user)):
+    context = await _build_context(user["id"], db)
+    should_search = _should_search(data.question)
+    search_results = []
+    if should_search:
+        search_results = await search_web(data.question)
+    
+    # Call AI model and return response
+    return {"answer": "Financial advice here...", "model_used": data.model}
+
+@router.post("/advise/stream")
+async def advise_stream(data: AdviseRequest, db=Depends(get_db), user=Depends(get_current_user)):
+    # SSE streaming implementation
+    return StreamingResponse(...)
+```
+
+`backend/app/routers/health.py`
+
+```python
+from fastapi import APIRouter, Depends
+import aiosqlite
+
+from app.database import get_db
+
+router = APIRouter(prefix="/health", tags=["health"])
+
+@router.get("")
+async def health_check(db: aiosqlite.Connection = Depends(get_db)):
+    try:
+        await db.execute("SELECT 1")
+        return {"status": "healthy"}
+    except Exception:
+        return {"status": "degraded"}
+```
+
 ## Step 9: Wire Everything in main.py
 
 `backend/app/main.py`
@@ -876,7 +1262,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import auth, categories, transactions, summaries
+from app.routers import auth, categories, transactions, summaries, budgets, households, exports, ocr, ai_advisor, health
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
 
@@ -892,6 +1278,12 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(categories.router, prefix="/api/v1")
 app.include_router(transactions.router, prefix="/api/v1")
 app.include_router(summaries.router, prefix="/api/v1")
+app.include_router(budgets.router, prefix="/api/v1")
+app.include_router(households.router, prefix="/api/v1")
+app.include_router(exports.router, prefix="/api/v1")
+app.include_router(ocr.router, prefix="/api/v1")
+app.include_router(ai_advisor.router, prefix="/api/v1")
+app.include_router(health.router, prefix="/api/v1")
 ```
 
 ## Step 10: Run Migration First!

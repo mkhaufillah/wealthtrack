@@ -62,16 +62,17 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               ...available.map((member) {
                 final name = member['display_name'] as String? ?? 'User #${member['user_id']}';
                 final role = member['role'] as String? ?? 'member';
+                final isDark = Theme.of(ctx).brightness == Brightness.dark;
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: name == 'Nahda'
-                        ? Colors.pink.shade100
-                        : Colors.blue.shade100,
+                        ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
+                        : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
                     child: Text(name[0].toUpperCase(),
                       style: TextStyle(
                         color: name == 'Nahda'
-                            ? Colors.pink.shade700
-                            : Colors.blue.shade700,
+                            ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
+                            : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
                         fontWeight: FontWeight.w600
                       ),
                     ),

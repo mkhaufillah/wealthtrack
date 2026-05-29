@@ -33,8 +33,9 @@ class BudgetState {
 
 class BudgetNotifier extends StateNotifier<BudgetState> {
   final BudgetRepository _repo;
+  final ApiClient _api;
 
-  BudgetNotifier(this._repo) : super(const BudgetState());
+  BudgetNotifier(this._repo, this._api) : super(const BudgetState());
 
   Future<void> load(String month) async {
     state = state.copyWith(isLoading: true, error: null, month: month);
@@ -42,7 +43,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       final items = await _repo.getSummary(month);
       state = BudgetState(items: items, month: month);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: _api.handleError(e).toString());
     }
   }
 
@@ -56,7 +57,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       await load(month);
       return true;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: _api.handleError(e).toString());
       return false;
     }
   }
@@ -67,7 +68,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       await load(state.month);
       return true;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: _api.handleError(e).toString());
       return false;
     }
   }
@@ -75,5 +76,5 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
 final budgetProvider = StateNotifierProvider<BudgetNotifier, BudgetState>((ref) {
   final api = ref.watch(apiClientProvider);
-  return BudgetNotifier(BudgetRepository(api));
+  return BudgetNotifier(BudgetRepository(api), api);
 });

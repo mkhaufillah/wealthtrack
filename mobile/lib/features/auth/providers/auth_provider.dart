@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../data/auth_repository.dart';
@@ -36,7 +37,8 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repo;
   final SecureStorage _storage;
-  AuthNotifier(this._repo, this._storage) : super(const AuthState());
+  final ApiClient _api;
+  AuthNotifier(this._repo, this._storage, this._api) : super(const AuthState());
 
   Future<void> checkAuth() async {
     final token = await _storage.getToken();
@@ -72,7 +74,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = AuthState(
         status: AuthStatus.error,
-        error: e.toString(),
+        error: _api.handleError(e).toString(),
       );
     }
   }
@@ -84,7 +86,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _repo.register(username, displayName, password);
       await login(username, password);
     } catch (e) {
-      state = AuthState(status: AuthStatus.error, error: e.toString());
+      state = AuthState(status: AuthStatus.error, error: _api.handleError(e).toString());
     }
   }
 
@@ -99,7 +101,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(user: user);
       return user;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: _api.handleError(e).toString());
       rethrow;
     }
   }
@@ -120,5 +122,5 @@ final authProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final api = ref.watch(apiClientProvider);
   final storage = ref.watch(secureStorageProvider);
-  return AuthNotifier(AuthRepository(api), storage);
+  return AuthNotifier(AuthRepository(api), storage, api);
 });

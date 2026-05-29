@@ -28,22 +28,22 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
     try {
       final result = await _repo.list();
       state = TransactionListState(transactions: result['transactions'] as List<TransactionModel>, total: result['total'] as int);
-    } catch (e) { state = state.copyWith(isLoading: false, error: e.toString()); }
+    } catch (e) { state = state.copyWith(isLoading: false, error: _api.handleError(e).toString()); }
   }
 
   Future<bool> create(Map<String, dynamic> data) async {
     try { await _repo.create(data); await load(refresh: true); return true; }
-    catch (e) { state = state.copyWith(error: e.toString()); return false; }
+    catch (e) { state = state.copyWith(error: _api.handleError(e).toString()); return false; }
   }
 
   Future<bool> update(int id, Map<String, dynamic> data) async {
     try { await _repo.update(id, data); await load(refresh: true); return true; }
-    catch (e) { state = state.copyWith(error: e.toString()); return false; }
+    catch (e) { state = state.copyWith(error: _api.handleError(e).toString()); return false; }
   }
 
   Future<bool> delete(int id) async {
     try { await _repo.delete(id); await load(refresh: true); return true; }
-    catch (e) { state = state.copyWith(error: e.toString()); return false; }
+    catch (e) { state = state.copyWith(error: _api.handleError(e).toString()); return false; }
   }
 
   Future<bool> transferOwner(int txnId, int userId) async {
@@ -53,7 +53,7 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
       await load(refresh: true);
       return true;
     } catch (e) {
-      state = state.copyWith(isTransferring: false, transferError: e.toString());
+      state = state.copyWith(isTransferring: false, transferError: _api.handleError(e).toString());
       return false;
     }
   }

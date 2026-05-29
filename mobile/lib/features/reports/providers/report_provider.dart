@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../data/report_repository.dart';
 import '../models/report_model.dart';
@@ -48,7 +49,8 @@ class ReportState {
 
 class ReportNotifier extends StateNotifier<ReportState> {
   final ReportRepository _repo;
-  ReportNotifier(this._repo) : super(const ReportState());
+  final ApiClient _api;
+  ReportNotifier(this._repo, this._api) : super(const ReportState());
 
   void selectMonth(String month) {
     state = state.copyWith(selectedMonth: month);
@@ -61,7 +63,7 @@ class ReportNotifier extends StateNotifier<ReportState> {
       final monthly = await _repo.getMonthlyReport(month);
       state = state.copyWith(isLoading: false, monthly: monthly);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: _api.handleError(e).toString());
     }
   }
 
@@ -69,8 +71,8 @@ class ReportNotifier extends StateNotifier<ReportState> {
     try {
       final hh = await _repo.getHouseholdReport(dateFrom: dateFrom, dateTo: dateTo);
       state = state.copyWith(household: hh);
-    } catch (_) {
-      // Household is optional — don't block the UI
+    } catch (e) {
+      state = state.copyWith(error: _api.handleError(e).toString());
     }
     try {
       final txns = await _repo.getHouseholdTransactions(
@@ -82,8 +84,8 @@ class ReportNotifier extends StateNotifier<ReportState> {
               .toList() ??
           [];
       state = state.copyWith(householdTransactions: data);
-    } catch (_) {
-      // Transactions are optional
+    } catch (e) {
+      state = state.copyWith(error: _api.handleError(e).toString());
     }
   }
 
@@ -100,5 +102,5 @@ class ReportNotifier extends StateNotifier<ReportState> {
 
 final reportProvider = StateNotifierProvider<ReportNotifier, ReportState>((ref) {
   final api = ref.watch(apiClientProvider);
-  return ReportNotifier(ReportRepository(api));
+  return ReportNotifier(ReportRepository(api), api);
 });

@@ -47,7 +47,8 @@
 | FastAPI bind | `0.0.0.0:8080` | `127.0.0.1:8080` (localhost only) |
 | Public exposure | Port 8080 directly | Nginx reverse proxy via 443 |
 | Domain | — | `wealthtrack.filla.id` |
-| Firewall | Only 80 + 443 (8080 doesn't need to be configured — default deny) |
+| SSH port | 22 | **2222** |
+| Firewall | Only 80 + 443 | 80 + 443 (SSH 2222 via internal VPN) |
 
 ## Step 1: Systemd Service for FastAPI
 
@@ -125,6 +126,14 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
+        # Increase timeouts for AI Advisor SSE streaming
+        proxy_read_timeout 120s;
+        proxy_connect_timeout 10s;
+
+        # Disable buffering for SSE (Server-Sent Events)
+        proxy_buffering off;
+        proxy_cache off;
+
         # WebSocket support (future use)
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -168,6 +177,25 @@ dig +short A wealthtrack.filla.id
 # Should return VPS IP: 2.27.165.124
 ```
 
+### Auto-Renewal (Certbot)
+
+SSL certificates from Let's Encrypt expire after 90 days. Certbot auto-renews via a systemd timer:
+
+```bash
+# Check the timer is active
+sudo systemctl status certbot.timer
+
+# Test renewal (dry-run)
+sudo certbot renew --dry-run
+
+# The default certbot installation creates:
+#   /etc/systemd/system/certbot.timer  — runs twice daily
+#   /etc/systemd/system/certbot.service — the renewal command
+# No manual cron needed.
+```
+
+Certbot auto-updates the nginx config on renewal — `sudo systemctl reload nginx` is handled automatically.
+
 ## Step 4: Firewall
 
 ```bash
@@ -192,6 +220,10 @@ The CI deploy workflow (`deploy-backend.yml`) auto-generates `backend/.env` if i
 | `DEBUG` | FastAPI debug mode | `True` |
 | `ACCESS_TOKEN_EXPIRE_DAYS` | JWT token lifetime in days | `30` |
 | `CORS_ORIGINS` | Allowed origins (JSON array) | `["http://localhost:8080", "http://127.0.0.1:8080", "https://wealthtrack.filla.id"]` |
+| `OPENCODE_GO_API_KEY` | API key for OpenCode Go (AI Advisor, OCR) | `""` (read from ~/.hermes/.env fallback) |
+| `OPENROUTER_API_KEY` | API key for OpenRouter (premium Claude model) | `""` (optional) |
+| `BRAVE_SEARCH_API_KEY` | API key for Brave Search (real-time web data for AI Advisor) | `""` (read from ~/.hermes/.env fallback) |
+| `DB_PATH` | Override default database path | `~/.keuangan/finance.db` |
 
 ## Step 5: Deploy Flow (Initial)
 
@@ -233,7 +265,18 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 cd ~/dev/wealthtrack && git pull
 source .venv/bin/activate
 uv pip install -r backend/requirements.txt
+
+# Run migration if schema changed (safe to run every time)
+uv run python -m backend.app.migrate_db
+
+# Restart service
 sudo systemctl restart wealthtrack
+
+# Reload nginx if config changed
+sudo systemctl reload nginx
+
+# Verify
+curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/health
 ```
 
 ## Step 7: Backup SQLite

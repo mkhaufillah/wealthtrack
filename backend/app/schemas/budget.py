@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
 class BudgetCreate(BaseModel):
-    month: str  # "2026-05"
+    month: str = Field(pattern=r"^\d{4}-\d{2}$")  # "2026-05"
     category_id: int
     amount: int
 

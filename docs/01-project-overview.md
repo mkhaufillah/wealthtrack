@@ -14,6 +14,10 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 - [Hermes Integration](06-hermes-integration.md) — connecting Hermes cron & skill
 - [Deployment](07-deployment.md) — VPS setup, nginx, CI/CD
 - [P4 Plan](08-p4-plan.md) — updated feature roadmap: charts, budgets, export, OCR, AI advisor, change owner
+- [Dark Mode](09-dark-mode.md) — dark theme implementation for Flutter
+- [Edit Transaction](10-edit-transaction.md) — edit flow & UI states
+- [Delete Transaction](11-delete-transaction.md) — delete flow & confirmation dialog
+- [Transfer Balance](12-transfer-balance.md) — send money between household members
 
 
 ## Architecture
@@ -87,8 +91,15 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 │   │       ├── categories.py
 │   │       ├── budgets.py
 │   │       └── summaries.py   # Dashboard & report endpoints
-│   ├── requirements.txt
-│   └── run.sh                  # Start script
+│   │       ├── households.py  # Household management & invite codes
+│   │       ├── exports.py     # Yearly Excel export
+│   │       ├── ocr.py         # Receipt OCR processing
+│   │       ├── ai_advisor.py  # AI financial advisor
+│   │       └── health.py      # Health check endpoint
+│   │   ├── services/
+│   │   │   └── web_search.py  # Brave Search for AI Advisor
+│   │   ├── requirements.txt
+│   │   └── run.sh             # Start script
 ├── mobile/                     # Flutter project (initialized separately)
 ├── docs/                       # Planning docs (this directory)
 └── README.md

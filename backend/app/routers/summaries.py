@@ -137,6 +137,11 @@ async def household_summary(
                 income = r["total"]
             else:
                 expense = r["total"]
+        user_row = await (await db.execute(
+            "SELECT display_name FROM users WHERE id = ?",
+            (current_user["id"],),
+        )).fetchone()
+        display_name = user_row["display_name"] if user_row else ""
         return {
             "date_from": d_from,
             "date_to": d_to,
@@ -147,7 +152,7 @@ async def household_summary(
             "by_user": [
                 {
                     "user_id": current_user["id"],
-                    "display_name": current_user.get("display_name", ""),
+                    "display_name": display_name,
                     "total_expense": int(expense),
                     "total_income": int(income),
                 }

@@ -5,21 +5,37 @@ class HouseholdRepository {
   HouseholdRepository(this._client);
 
   Future<Map<String, dynamic>> getMyHousehold() async {
-    final res = await _client.get('/households/me');
-    return res.data;
+    try {
+      final res = await _client.get('/households/me');
+      return res.data;
+    } catch (e) {
+      throw _client.handleError(e);
+    }
   }
 
   Future<void> createHousehold(String name) async {
-    await _client.post('/households', data: {'name': name});
+    try {
+      await _client.post('/households', data: {'name': name});
+    } catch (e) {
+      throw _client.handleError(e);
+    }
   }
 
   Future<Map<String, dynamic>> joinHousehold(String inviteCode) async {
-    final res = await _client.post('/households/join', data: {'invite_code': inviteCode});
-    return res.data;
+    try {
+      final res = await _client.post('/households/join', data: {'invite_code': inviteCode});
+      return res.data;
+    } catch (e) {
+      throw _client.handleError(e);
+    }
   }
 
   Future<String> getInviteCode() async {
-    final res = await _client.get('/households/invite-code');
-    return res.data['invite_code'] as String;
+    try {
+      final res = await _client.get('/households/invite-code');
+      return res.data['invite_code'] as String;
+    } catch (e) {
+      throw _client.handleError(e);
+    }
   }
 }

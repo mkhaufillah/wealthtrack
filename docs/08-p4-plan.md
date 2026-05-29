@@ -197,7 +197,6 @@ CREATE TABLE budgets (
   - Request: `{ "question": "..." }`
   - Uses DeepSeek Flash V4 via OpenCode Go (no model switching)
   - Returns markdown-formatted advice
-- `GET /api/v1/ai/context` — returns what data the AI will see (debug/transparency)
 
 **Security restrictions (strict):**
 - AI only sees data injected by the backend — no direct DB access
@@ -244,11 +243,14 @@ DEBUG=True
 ACCESS_TOKEN_EXPIRE_DAYS=30
 CORS_ORIGINS=["*"]
 
-# New — OCR
+# New — OCR & AI Advisor (REQUIRED)
 OPENCODE_GO_API_KEY=sk-...           # Copy from Hermes .env
 
-# New — AI Advisor
-# (Uses OpenCode Go — no additional key needed)
+# New — AI Advisor (optional — premium model via OpenRouter)
+OPENROUTER_API_KEY=sk-or-...         # For Claude Opus (user id=1 only)
+
+# New — AI Advisor (optional — web search)
+BRAVE_SEARCH_API_KEY=...              # Brave Search for real-time data
 ```
 
 ---
