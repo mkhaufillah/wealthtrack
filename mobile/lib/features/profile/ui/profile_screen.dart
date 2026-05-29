@@ -454,8 +454,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             CircleAvatar(
               radius: 30,
               backgroundColor: user?.displayName == 'Nahda'
-                  ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
-                  : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
+                  ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
+                  : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
               child: Text(
                 (user?.displayName ?? '?')[0].toUpperCase(),
                 style: TextStyle(
@@ -657,8 +657,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         CircleAvatar(
                           radius: 10,
                           backgroundColor: m['display_name'] == 'Nahda'
-                              ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
-                              : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
+                              ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
+                              : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
                           child: Text(
                             (m['display_name'] as String? ?? '?')[0],
                             style: TextStyle(

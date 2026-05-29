@@ -278,8 +278,8 @@ class _TransferBalanceScreenState
                         child: Row(children: [
                           CircleAvatar(
                             backgroundColor: (currentUser?.displayName ?? '') == 'Nahda'
-                                ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
-                                : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
+                                ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
+                                : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
                             child: Text(
                               (currentUser?.displayName ?? '?')[0]
                                   .toUpperCase(),
@@ -380,8 +380,8 @@ class _TransferBalanceScreenState
                                     CircleAvatar(
                                       radius: 16,
                                       backgroundColor: r.displayName == 'Nahda'
-                                          ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
-                                          : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
+                                          ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
+                                          : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
                                       child: Text(
                                         r.displayName[0].toUpperCase(),
                                         style: TextStyle(

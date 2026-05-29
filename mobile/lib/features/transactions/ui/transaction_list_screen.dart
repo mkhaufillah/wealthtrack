@@ -66,8 +66,8 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: name == 'Nahda'
-                        ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
-                        : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
+                        ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
+                        : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
                     child: Text(name[0].toUpperCase(),
                       style: TextStyle(
                     color: isDark ? Colors.white : (name == 'Nahda'

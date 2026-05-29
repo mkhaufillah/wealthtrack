@@ -341,8 +341,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 CircleAvatar(
                   radius: 16,
                   backgroundColor: u.displayName == 'Nahda'
-                      ? (isDark ? Colors.pink.shade200 : Colors.pink.shade100)
-                      : (isDark ? Colors.blue.shade200 : Colors.blue.shade100),
+                      ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
+                      : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
                   child: Text(
                     u.displayName.isNotEmpty ? u.displayName[0] : '?',
                     style: TextStyle(
@@ -714,13 +714,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     try {
       final api = ref.read(apiClientProvider);
       final scaffold = ScaffoldMessenger.of(context);
+      final snackbarColor = Theme.of(context).snackBarTheme.contentColor ?? Colors.white;
 
       scaffold.showSnackBar(
-        const SnackBar(content: Row(
+        SnackBar(content: Row(
           children: [
-            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: snackbarColor)),
             SizedBox(width: 12),
-            Text('Generating export...'),
+            const Text('Generating export...'),
           ],
         )),
       );
