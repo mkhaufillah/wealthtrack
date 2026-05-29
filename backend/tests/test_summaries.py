@@ -1,5 +1,7 @@
 """Tests for /api/v1/summaries endpoints."""
 
+from datetime import date
+
 from httpx import AsyncClient
 
 
@@ -33,6 +35,52 @@ class TestDailySummary:
         resp = await client.get("/api/v1/summaries/daily")
         assert resp.status_code == 401
 
+    async def test_daily_specific_date_filtered(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Daily summary for a specific date returns data for that date only."""
+        # Create a transaction for a known date
+        await client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "type": "expense",
+                "category_id": 1,
+                "amount": 15000,
+                "description": "Test daily filter",
+                "date": "2026-05-15",
+            },
+        )
+
+        # Query for that specific date
+        resp = await client.get(
+            "/api/v1/summaries/daily?date_from=2026-05-15&date_to=2026-05-15",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["date_from"] == "2026-05-15"
+        assert data["date_to"] == "2026-05-15"
+        # Should have some expense for that date
+        assert data["total_expense"] >= 15000
+
+    async def test_daily_empty_range(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Query for a date range with no transactions returns zeroes."""
+        resp = await client.get(
+            "/api/v1/summaries/daily?date_from=2099-01-01&date_to=2099-12-31",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_income"] == 0
+        assert data["total_expense"] == 0
+        assert data["balance"] == 0
+        assert data["by_category"] == []
+        # by_user may be empty when no transactions exist
+        assert isinstance(data["by_user"], list)
+
 
 class TestMonthlySummary:
     async def test_monthly_specific(self, client: AsyncClient, filla_token: str):
@@ -61,7 +109,6 @@ class TestMonthlySummary:
         assert "month" in data
         assert "total_income" in data
         assert "daily_snapshot" in data
-        # daily_snapshot should have at least some entries
         assert isinstance(data["daily_snapshot"], list)
 
     async def test_monthly_invalid_format(self, client: AsyncClient, filla_token: str):
@@ -71,6 +118,92 @@ class TestMonthlySummary:
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         assert resp.status_code == 422
+
+    async def test_monthly_range_multi_month(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """GET /summaries/monthly with month_from + month_to → returns list."""
+        resp = await client.get(
+            "/api/v1/summaries/monthly?month_from=2026-01&month_to=2026-03",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        assert len(data) == 3  # Jan, Feb, Mar
+        for item in data:
+            assert "month" in item
+            assert "total_income" in item
+            assert "total_expense" in item
+            assert "balance" in item
+        assert data[0]["month"] == "2026-01"
+        assert data[2]["month"] == "2026-03"
+
+    async def test_monthly_range_with_only_from(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Only month_from provided → range goes from that month to current."""
+        today = date.today()
+        current_month = today.strftime("%Y-%m")
+
+        resp = await client.get(
+            "/api/v1/summaries/monthly?month_from=2026-01",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        assert len(data) >= 1
+        assert data[0]["month"] == "2026-01"
+        # Last item should be current month
+        assert data[-1]["month"] == current_month
+
+    async def test_monthly_range_with_only_to(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Only month_to provided → defaults from to '2026-01'."""
+        resp = await client.get(
+            "/api/v1/summaries/monthly?month_to=2026-02",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        assert data[0]["month"] == "2026-01"
+        assert data[-1]["month"] == "2026-02"
+
+    async def test_monthly_range_single_month(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """month_from == month_to returns a list with one item."""
+        resp = await client.get(
+            "/api/v1/summaries/monthly?month_from=2026-05&month_to=2026-05",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["month"] == "2026-05"
+
+    async def test_current_month_returns_data_for_this_month(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """GET /summaries/current-month returns data for current month."""
+        resp = await client.get(
+            "/api/v1/summaries/current-month",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        today = date.today()
+        expected_month = today.strftime("%Y-%m")
+        assert data["month"] == expected_month
+        # Should have seed data
+        assert data["total_income"] >= 0
+        assert data["total_expense"] >= 0
+        # daily_snapshot should be a list
+        assert isinstance(data["daily_snapshot"], list)
 
 
 class TestHouseholdSummary:
@@ -87,7 +220,6 @@ class TestHouseholdSummary:
         assert "balance" in data
         assert "by_user" in data
         assert "by_category" in data
-        # Should include transactions from all users
         assert data["total_income"] > 0
 
     async def test_household_shows_all_users(self, client: AsyncClient, nahda_token: str):
@@ -99,10 +231,24 @@ class TestHouseholdSummary:
         assert resp.status_code == 200
         users = resp.json()["by_user"]
         usernames = [u["display_name"] for u in users]
-        assert "Filla" in usernames  # Filla has transactions
+        assert "Filla" in usernames
         assert len(users) >= 1
 
     async def test_household_requires_auth(self, client: AsyncClient):
         """Without auth, returns 403."""
         resp = await client.get("/api/v1/summaries/household")
         assert resp.status_code == 401
+
+    async def test_household_empty_range(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Household summary for a date range with no transactions returns zeroes."""
+        resp = await client.get(
+            "/api/v1/summaries/household?date_from=2099-01-01&date_to=2099-12-31",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_income"] == 0
+        assert data["total_expense"] == 0
+        assert data["balance"] == 0
