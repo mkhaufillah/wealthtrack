@@ -49,20 +49,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         expense: state.totalExpense,
                       ),
                       const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(child: _StatCard(
-                            icon: Icons.arrow_upward, label: 'Income',
-                            amount: state.totalIncome, color: AppColors.success,
-                          )),
-                          const SizedBox(width: 12),
-                          Expanded(child: _StatCard(
-                            icon: Icons.arrow_downward, label: 'Expense',
-                            amount: state.totalExpense, color: AppColors.highlight,
-                          )),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
                       _buildAiCard(),
                       const SizedBox(height: 24),
                       RecentTransactions(transactions: state.recentTransactions),
@@ -108,32 +94,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final IconData icon; final String label; final int amount; final Color color;
-  const _StatCard({required this.icon, required this.label, required this.amount, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 8),
-            Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            const SizedBox(height: 4),
-            Text(formatCurrency(amount),
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),
-          ],
         ),
       ),
     );
