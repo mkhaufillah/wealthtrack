@@ -78,6 +78,12 @@ def _install_ocr_mock(monkeypatch, response=None, raise_exc=None):
     """Install MockOcrClient as httpx.AsyncClient in app.routers.ocr."""
     import app.routers.ocr as ocr_module
 
+    # Ensure API key is set for tests that need the endpoint to run
+    from app.core.config import settings
+    saved_key = settings.OPENCODE_GO_API_KEY
+    if not saved_key:
+        settings.OPENCODE_GO_API_KEY = "test-api-key"
+
     class InstallableMockClient(MockOcrClient):
         async def post(self, *args, **kwargs):
             if raise_exc is not None:
@@ -87,6 +93,9 @@ def _install_ocr_mock(monkeypatch, response=None, raise_exc=None):
             return await super().post(*args, **kwargs)
 
     monkeypatch.setattr(ocr_module.httpx, "AsyncClient", InstallableMockClient)
+
+    # Return save so caller can restore in finally
+    return saved_key
 
 
 class TestProcessOcr:
@@ -128,72 +137,84 @@ class TestProcessOcr:
         self, client: AsyncClient, filla_token: str, monkeypatch
     ):
         """POST /ocr/process with a valid image returns parsed transaction data."""
-        _install_ocr_mock(monkeypatch)
-
-        png_data = _make_tiny_png()
-        resp = await client.post(
-            "/api/v1/ocr/process",
-            headers={"Authorization": f"Bearer {filla_token}"},
-            files={"file": ("receipt.png", png_data, "image/png")},
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["amount"] == 50000
-        assert data["description"] == "Nasi Goreng"
-        assert data["date"] == "2026-05-27"
-        assert data["type"] == "expense"
-        assert data["category_name"] == "Makanan & Minuman"
-        assert "raw_text" in data
+        saved = _install_ocr_mock(monkeypatch)
+        try:
+            png_data = _make_tiny_png()
+            resp = await client.post(
+                "/api/v1/ocr/process",
+                headers={"Authorization": f"Bearer {filla_token}"},
+                files={"file": ("receipt.png", png_data, "image/png")},
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["amount"] == 50000
+            assert data["description"] == "Nasi Goreng"
+            assert data["date"] == "2026-05-27"
+            assert data["type"] == "expense"
+            assert data["category_name"] == "Makanan & Minuman"
+            assert "raw_text" in data
+        finally:
+            from app.core.config import settings
+            settings.OPENCODE_GO_API_KEY = saved
 
     async def test_ocr_api_error(
         self, client: AsyncClient, filla_token: str, monkeypatch
     ):
         """Vision API returns non-200 status → 502."""
-        _install_ocr_mock(
+        saved = _install_ocr_mock(
             monkeypatch,
             response=MockOcrResponse(status_code=500, json_data={}),
         )
-
-        png_data = _make_tiny_png()
-        resp = await client.post(
-            "/api/v1/ocr/process",
-            headers={"Authorization": f"Bearer {filla_token}"},
-            files={"file": ("receipt.png", png_data, "image/png")},
-        )
-        assert resp.status_code == 502
-        assert "Vision API error" in resp.json()["detail"]
+        try:
+            png_data = _make_tiny_png()
+            resp = await client.post(
+                "/api/v1/ocr/process",
+                headers={"Authorization": f"Bearer {filla_token}"},
+                files={"file": ("receipt.png", png_data, "image/png")},
+            )
+            assert resp.status_code == 502
+            assert "Vision API error" in resp.json()["detail"]
+        finally:
+            from app.core.config import settings
+            settings.OPENCODE_GO_API_KEY = saved
 
     async def test_ocr_timeout(
         self, client: AsyncClient, filla_token: str, monkeypatch
     ):
         """Vision API timeout → 504."""
-        _install_ocr_mock(monkeypatch, raise_exc=httpx.TimeoutException("timed out"))
-
-        png_data = _make_tiny_png()
-        resp = await client.post(
-            "/api/v1/ocr/process",
-            headers={"Authorization": f"Bearer {filla_token}"},
-            files={"file": ("receipt.png", png_data, "image/png")},
-        )
-        assert resp.status_code == 504
-        assert "timed out" in resp.json()["detail"].lower()
+        saved = _install_ocr_mock(monkeypatch, raise_exc=httpx.TimeoutException("timed out"))
+        try:
+            png_data = _make_tiny_png()
+            resp = await client.post(
+                "/api/v1/ocr/process",
+                headers={"Authorization": f"Bearer {filla_token}"},
+                files={"file": ("receipt.png", png_data, "image/png")},
+            )
+            assert resp.status_code == 504
+            assert "timed out" in resp.json()["detail"].lower()
+        finally:
+            from app.core.config import settings
+            settings.OPENCODE_GO_API_KEY = saved
 
     async def test_ocr_request_error(
         self, client: AsyncClient, filla_token: str, monkeypatch
     ):
         """Vision API request failure → 502."""
-        _install_ocr_mock(
+        saved = _install_ocr_mock(
             monkeypatch, raise_exc=httpx.RequestError("connection failed")
         )
-
-        png_data = _make_tiny_png()
-        resp = await client.post(
-            "/api/v1/ocr/process",
-            headers={"Authorization": f"Bearer {filla_token}"},
-            files={"file": ("receipt.png", png_data, "image/png")},
-        )
-        assert resp.status_code == 502
-        assert "connection failed" in resp.json()["detail"].lower()
+        try:
+            png_data = _make_tiny_png()
+            resp = await client.post(
+                "/api/v1/ocr/process",
+                headers={"Authorization": f"Bearer {filla_token}"},
+                files={"file": ("receipt.png", png_data, "image/png")},
+            )
+            assert resp.status_code == 502
+            assert "connection failed" in resp.json()["detail"].lower()
+        finally:
+            from app.core.config import settings
+            settings.OPENCODE_GO_API_KEY = saved
 
     async def test_rate_limiting(
         self, client: AsyncClient, filla_token: str, monkeypatch
@@ -204,26 +225,29 @@ class TestProcessOcr:
         # Reset rate limiter for this user
         ocr_module._user_ocr_counts.clear()
 
-        _install_ocr_mock(monkeypatch)
+        saved = _install_ocr_mock(monkeypatch)
+        try:
+            png_data = _make_tiny_png()
+            # Make 10 successful calls
+            for i in range(10):
+                resp = await client.post(
+                    "/api/v1/ocr/process",
+                    headers={"Authorization": f"Bearer {filla_token}"},
+                    files={"file": ("r.png", png_data, "image/png")},
+                )
+                assert resp.status_code == 200
 
-        png_data = _make_tiny_png()
-        # Make 10 successful calls
-        for i in range(10):
+            # 11th call should be rate-limited
             resp = await client.post(
                 "/api/v1/ocr/process",
                 headers={"Authorization": f"Bearer {filla_token}"},
                 files={"file": ("r.png", png_data, "image/png")},
             )
-            assert resp.status_code == 200
-
-        # 11th call should be rate-limited
-        resp = await client.post(
-            "/api/v1/ocr/process",
-            headers={"Authorization": f"Bearer {filla_token}"},
-            files={"file": ("r.png", png_data, "image/png")},
-        )
-        assert resp.status_code == 429
-        assert "rate limit" in resp.json()["detail"].lower()
+            assert resp.status_code == 429
+            assert "rate limit" in resp.json()["detail"].lower()
+        finally:
+            from app.core.config import settings
+            settings.OPENCODE_GO_API_KEY = saved
 
         # Clean up
         ocr_module._user_ocr_counts.clear()
@@ -252,7 +276,7 @@ class TestProcessOcr:
         self, client: AsyncClient, filla_token: str, monkeypatch
     ):
         """When the API returns non-JSON content, raw_text is populated."""
-        _install_ocr_mock(
+        saved = _install_ocr_mock(
             monkeypatch,
             response=MockOcrResponse(
                 status_code=200,
@@ -267,14 +291,17 @@ class TestProcessOcr:
                 },
             ),
         )
-
-        png_data = _make_tiny_png()
-        resp = await client.post(
-            "/api/v1/ocr/process",
-            headers={"Authorization": f"Bearer {filla_token}"},
-            files={"file": ("receipt.png", png_data, "image/png")},
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["raw_text"] == "This is not a receipt, it's a picture of a cat."
-        assert data["amount"] is None
+        try:
+            png_data = _make_tiny_png()
+            resp = await client.post(
+                "/api/v1/ocr/process",
+                headers={"Authorization": f"Bearer {filla_token}"},
+                files={"file": ("receipt.png", png_data, "image/png")},
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["raw_text"] == "This is not a receipt, it's a picture of a cat."
+            assert data["amount"] is None
+        finally:
+            from app.core.config import settings
+            settings.OPENCODE_GO_API_KEY = saved
