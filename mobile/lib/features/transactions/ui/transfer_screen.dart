@@ -37,7 +37,7 @@ class _TransferBalanceScreenState
   @override
   void initState() {
     super.initState();
-    _selectedDate = _utcToday();
+    _selectedDate = DateTime.now();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadMembers());
   }
 
@@ -238,12 +238,6 @@ class _TransferBalanceScreenState
   String _fmtAmount(int n) {
     return n.toString().replaceAllMapped(
         RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
-  }
-
-  /// UTC-aligned today date — prevents timezone mismatch with server (UTC).
-  static DateTime _utcToday() {
-    final utc = DateTime.now().toUtc();
-    return DateTime(utc.year, utc.month, utc.day);
   }
 
   @override

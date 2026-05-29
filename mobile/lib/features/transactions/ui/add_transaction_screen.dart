@@ -36,7 +36,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDate = _utcToday();
+    _selectedDate = DateTime.now();
     _loadAllCategories();
     if (_isEditing) _prefillFields();
   }
@@ -385,12 +385,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   }
 
   String _monthName(int m) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1];
-
-  /// UTC-aligned today date — prevents timezone mismatch with server (UTC).
-  static DateTime _utcToday() {
-    final utc = DateTime.now().toUtc();
-    return DateTime(utc.year, utc.month, utc.day);
-  }
 }
 
 class _TypeButton extends StatelessWidget {
