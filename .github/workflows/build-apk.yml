@@ -33,6 +33,14 @@ jobs:
       - name: Create platform directories
         run: flutter create --project-name wealthtrack --org com.filla --platforms android .
 
+      - name: Setup release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: python3 ../scripts/ci_release_setup.py
+
       - name: Fix app display name (wealthtrack → WealthTrack)
         run: |
           sed -i 's/android:label="wealthtrack"/android:label="WealthTrack"/g' android/app/src/main/AndroidManifest.xml
@@ -54,14 +62,13 @@ jobs:
         run: flutter pub get
 
       - name: Remove default test file
-        # flutter create generates a default test that references non-existent widgets
         run: rm -f test/widget_test.dart
 
       - name: Run tests
         run: flutter test
 
-      - name: Build APK (debug)
-        run: flutter build apk --debug
+      - name: Build APK (release)
+        run: flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
