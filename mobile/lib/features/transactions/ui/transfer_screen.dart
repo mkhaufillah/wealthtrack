@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../features/home/providers/dashboard_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/transfer_provider.dart';
 import 'widgets/amount_field.dart';
@@ -215,6 +216,8 @@ class _TransferBalanceScreenState
     if (!mounted) return;
 
     if (success) {
+      // Refresh dashboard on home screen
+      ref.read(homeRefreshProvider.notifier).state++;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

@@ -12,6 +12,7 @@ class TransactionCreate(BaseModel):
 
 
 class TransactionUpdate(BaseModel):
+    type: Optional[str] = Field(default=None, pattern=r"^(expense|income)$")
     amount: Optional[int] = Field(default=None, gt=0)
     description: Optional[str] = None
     note: Optional[str] = None

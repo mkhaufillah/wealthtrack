@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'widgets/charts_section.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../features/home/providers/dashboard_provider.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
@@ -71,6 +72,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(reportProvider);
+
+    // Reload when transactions change (add/edit/transfer from other screens)
+    ref.listen<int>(homeRefreshProvider, (prev, next) {
+      if (prev != next && _currentMonth != null) _loadMonth();
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,

@@ -253,7 +253,7 @@ async def update_transaction(
         raise HTTPException(status_code=404, detail="Transaction not found")
 
     updates = {}
-    for field in ["amount", "description", "note", "category_id", "date"]:
+    for field in ["type", "amount", "description", "note", "category_id", "date"]:
         val = getattr(data, field, None)
         if val is not None:
             if field == "category_id":
