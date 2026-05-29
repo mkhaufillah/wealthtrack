@@ -77,14 +77,25 @@ jobs:
 
             echo "✅ Deploy complete! Backend running on port 8080"
 
-      - name: Health check
-        uses: nick-invision/retry@v3
+      - name: Health check (via SSH)
+        uses: appleboy/ssh-action@v1.2.2
         with:
-          timeout_minutes: 2
-          max_attempts: 12
-          retry_wait_seconds: 10
-          retry_on: timeout
-          command: curl -sf http://localhost:8080/health
+          host: ${{ secrets.VPS_HOST }}
+          port: 2222
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "→ Waiting for service to be ready..."
+            for i in $(seq 1 12); do
+              if curl -sf http://127.0.0.1:8080/health > /dev/null 2>&1; then
+                echo "✅ Service is healthy"
+                exit 0
+              fi
+              echo "  Attempt $i/12 — not ready yet, waiting 10s..."
+              sleep 10
+            done
+            echo "❌ Service failed to respond after 12 attempts"
+            exit 1
 
       - name: Telegram notification — success
         if: success()
