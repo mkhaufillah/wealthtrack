@@ -110,6 +110,7 @@ class ApiClient {
   }
 
   Exception handleError(dynamic error) {
+    if (error is ApiException) return error;
     if (error is DioException) {
       if (error.response?.statusCode == 401) return UnauthorizedException();
       if (error.type == DioExceptionType.connectionTimeout ||

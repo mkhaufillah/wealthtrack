@@ -74,7 +74,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = AuthState(
         status: AuthStatus.error,
-        error: _api.handleError(e).toString(),
+        error: e.toString(),
       );
     }
   }
@@ -86,7 +86,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _repo.register(username, displayName, password);
       await login(username, password);
     } catch (e) {
-      state = AuthState(status: AuthStatus.error, error: _api.handleError(e).toString());
+      state = AuthState(status: AuthStatus.error, error: e.toString());
     }
   }
 
