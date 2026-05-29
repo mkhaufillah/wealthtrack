@@ -99,6 +99,7 @@ class _TransferBalanceScreenState
   }
 
   Future<void> _pickDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -106,11 +107,17 @@ class _TransferBalanceScreenState
       lastDate: DateTime(2030),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: AppColors.primary,
-            onPrimary: Colors.white,
-            surface: AppColors.surface,
-          ),
+          colorScheme: isDark
+              ? const ColorScheme.dark(
+                  primary: AppColors.darkPrimary,
+                  onPrimary: Colors.white,
+                  surface: AppColors.darkSurface,
+                )
+              : const ColorScheme.light(
+                  primary: AppColors.primary,
+                  onPrimary: Colors.white,
+                  surface: AppColors.surface,
+                ),
         ),
         child: child!,
       ),
@@ -269,13 +276,17 @@ class _TransferBalanceScreenState
                         padding: const EdgeInsets.all(16),
                         child: Row(children: [
                           CircleAvatar(
-                            backgroundColor: AppColors.primary.withOpacity(0.15),
+                            backgroundColor: (currentUser?.displayName ?? '') == 'Nahda'
+                                ? Colors.pink.shade100
+                                : Colors.blue.shade100,
                             child: Text(
                               (currentUser?.displayName ?? '?')[0]
                                   .toUpperCase(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary),
+                                  color: (currentUser?.displayName ?? '') == 'Nahda'
+                                      ? Colors.pink.shade700
+                                      : Colors.blue.shade700),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -304,8 +315,8 @@ class _TransferBalanceScreenState
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       child: ListTile(
-                        leading: const Icon(Icons.calendar_today,
-                            color: AppColors.accent),
+                        leading: Icon(Icons.calendar_today,
+                            color: AppColors.textPrimary),
                         title: Text(_formatDate(_selectedDate)),
                         trailing: const Icon(Icons.edit_calendar, size: 18),
                         onTap: isSubmitting ? null : _pickDate,
@@ -367,14 +378,17 @@ class _TransferBalanceScreenState
                                   children: [
                                     CircleAvatar(
                                       radius: 16,
-                                      backgroundColor:
-                                          AppColors.accent.withOpacity(0.15),
+                                      backgroundColor: r.displayName == 'Nahda'
+                                          ? Colors.pink.shade100
+                                          : Colors.blue.shade100,
                                       child: Text(
                                         r.displayName[0].toUpperCase(),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
-                                            color: AppColors.accent),
+                                            color: r.displayName == 'Nahda'
+                                                ? Colors.pink.shade700
+                                                : Colors.blue.shade700),
                                       ),
                                     ),
                                     const SizedBox(width: 8),

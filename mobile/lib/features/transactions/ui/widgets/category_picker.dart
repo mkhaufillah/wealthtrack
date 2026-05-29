@@ -22,6 +22,7 @@ class CategoryPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: 50,
       child: ListView.separated(
@@ -35,8 +36,10 @@ class CategoryPicker extends StatelessWidget {
             label: Text('${cat.icon} ${translateCategory(cat.name)}'),
             selected: isSelected,
             onSelected: (_) => onSelected(cat.id),
-            selectedColor: AppColors.accent.withOpacity(0.2),
-            checkmarkColor: AppColors.accent,
+            selectedColor: isDark
+                ? AppColors.textPrimary.withOpacity(0.12)
+                : AppColors.primary.withOpacity(0.15),
+            checkmarkColor: AppColors.textPrimary,
           );
         },
       ),

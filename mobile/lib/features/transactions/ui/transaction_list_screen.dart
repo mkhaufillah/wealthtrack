@@ -64,9 +64,17 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                 final role = member['role'] as String? ?? 'member';
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.accent.withOpacity(0.15),
+                    backgroundColor: name == 'Nahda'
+                        ? Colors.pink.shade100
+                        : Colors.blue.shade100,
                     child: Text(name[0].toUpperCase(),
-                      style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                      style: TextStyle(
+                        color: name == 'Nahda'
+                            ? Colors.pink.shade700
+                            : Colors.blue.shade700,
+                        fontWeight: FontWeight.w600
+                      ),
+                    ),
                   ),
                   title: Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
                   subtitle: Text(role == 'admin' ? 'Admin' : 'Member',
@@ -134,15 +142,18 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       appBar: AppBar(
         title: const Text('Transactions'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.swap_horiz_rounded),
-            tooltip: 'Transfer Balance',
-            onPressed: () async {
-              final result = await context.push<bool>('/transactions/transfer');
-              if (result == true && mounted) {
-                ref.read(transactionListProvider.notifier).load(refresh: true);
-              }
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: IconButton(
+              icon: const Icon(Icons.swap_horiz_rounded),
+              tooltip: 'Transfer Balance',
+              onPressed: () async {
+                final result = await context.push<bool>('/transactions/transfer');
+                if (result == true && mounted) {
+                  ref.read(transactionListProvider.notifier).load(refresh: true);
+                }
+              },
+            ),
           ),
         ],
       ),
