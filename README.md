@@ -21,10 +21,9 @@ Single SQLite database. No Firebase, no Postgres, no sync complexity.
 
 ```bash
 # Backend
-cd backend
 uv venv
 source .venv/bin/activate
-uv pip install -r requirements.txt
+uv pip install -r backend/requirements.txt
 uv run python -m backend.app.migrate_db       # Create tables & seed users
 uvicorn app.main:app --reload   # Run dev server
 
@@ -46,7 +45,7 @@ docs/                  # Planning docs (agent-executable)
   ├── 09-dark-mode.md
   ├── 10-edit-transaction.md
   ├── 11-delete-transaction.md
-  └── 12-transfer-balance.md
+  └── 13-ai-chat-history.md
 backend/               # FastAPI application
 mobile/                # Flutter app (Android)
 scripts/               # DB init & seed scripts

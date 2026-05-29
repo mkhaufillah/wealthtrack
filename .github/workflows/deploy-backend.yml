@@ -76,3 +76,34 @@ jobs:
             sudo systemctl restart wealthtrack
 
             echo "✅ Deploy complete! Backend running on port 8080"
+
+      - name: Health check
+        uses: nick-invision/retry@v3
+        with:
+          timeout_minutes: 2
+          max_attempts: 12
+          retry_wait_seconds: 10
+          retry_on: timeout
+          command: curl -sf http://localhost:8080/health
+
+      - name: Telegram notification — success
+        if: success()
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d chat_id="${CHAT_ID}" \
+            -d parse_mode="HTML" \
+            -d text="<b>✅ WealthTrack Deploy</b>%0ABackend deployed successfully to <code>${GITHUB_SHA::7}</code>"
+
+      - name: Telegram notification — failure
+        if: failure()
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d chat_id="${CHAT_ID}" \
+            -d parse_mode="HTML" \
+            -d text="<b>❌ WealthTrack Deploy</b>%0ADeploy failed! <a href=\"https://github.com/mkhaufillah/wealthtrack/actions/runs/${GITHUB_RUN_ID}\">See logs</a>"

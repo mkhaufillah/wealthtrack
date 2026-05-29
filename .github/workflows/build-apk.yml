@@ -96,6 +96,23 @@ jobs:
       - name: Build APK (release)
         run: flutter build apk --release
 
+      - name: Verify release APK
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          if [ -f "$APK_PATH" ]; then
+            SIZE=$(stat -c%s "$APK_PATH")
+            echo "✅ APK found: $APK_PATH (${SIZE} bytes)"
+            if [ "$SIZE" -gt 1048576 ]; then
+              echo "✅ APK size > 1MB (${SIZE} bytes)"
+            else
+              echo "❌ APK size is only ${SIZE} bytes (expected > 1MB)"
+              exit 1
+            fi
+          else
+            echo "❌ APK not found at $APK_PATH"
+            exit 1
+          fi
+
       - name: Upload release APK
         uses: actions/upload-artifact@v7
         with:
@@ -104,6 +121,23 @@ jobs:
 
       - name: Build APK (debug)
         run: flutter build apk --debug
+
+      - name: Verify debug APK
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-debug.apk"
+          if [ -f "$APK_PATH" ]; then
+            SIZE=$(stat -c%s "$APK_PATH")
+            echo "✅ Debug APK found: $APK_PATH (${SIZE} bytes)"
+            if [ "$SIZE" -gt 1048576 ]; then
+              echo "✅ Debug APK size > 1MB (${SIZE} bytes)"
+            else
+              echo "❌ Debug APK size is only ${SIZE} bytes (expected > 1MB)"
+              exit 1
+            fi
+          else
+            echo "❌ Debug APK not found at $APK_PATH"
+            exit 1
+          fi
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v7
