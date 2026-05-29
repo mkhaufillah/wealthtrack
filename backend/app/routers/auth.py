@@ -150,6 +150,11 @@ async def delete_account(
         "DELETE FROM transactions WHERE user_id = ?",
         (current_user["id"],),
     )
+    # Delete all budgets owned by this user
+    await db.execute(
+        "DELETE FROM budgets WHERE user_id = ?",
+        (current_user["id"],),
+    )
     # Delete the user
     await db.execute(
         "DELETE FROM users WHERE id = ?",
