@@ -38,7 +38,7 @@ class CategoryPicker extends StatelessWidget {
             onSelected: (_) => onSelected(cat.id),
             selectedColor: isDark
                 ? AppColors.textPrimary.withOpacity(0.12)
-                : AppColors.primary.withOpacity(0.15),
+                : AppColors.primary.withOpacity(0.3),
             checkmarkColor: AppColors.textPrimary,
           );
         },
