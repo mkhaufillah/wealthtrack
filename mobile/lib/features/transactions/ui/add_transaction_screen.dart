@@ -354,9 +354,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   }
 
   Widget _buildScanOverlay() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AbsorbPointer(
       child: Container(
-        color: Colors.black54,
+        color: isDark ? Colors.black87 : Colors.black54,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

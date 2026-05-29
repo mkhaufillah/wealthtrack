@@ -33,7 +33,7 @@ Widget buildPieChartSection(List<CategoryBreakdown> categories) {
                   color: chartColors[i % chartColors.length],
                   radius: 50,
                   title: pct >= 0.05 ? '${(pct * 100).toStringAsFixed(0)}%' : '',
-                  titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                  titleStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                 );
               }),
               centerSpaceRadius: 30,

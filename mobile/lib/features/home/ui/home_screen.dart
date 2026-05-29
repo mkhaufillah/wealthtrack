@@ -90,7 +90,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: AppColors.accent,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.psychology_outlined, color: Colors.white, size: 24),
+                child: Icon(Icons.psychology_outlined, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(

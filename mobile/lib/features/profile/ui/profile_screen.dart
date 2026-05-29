@@ -422,7 +422,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _buildMenuItem(
                   icon: Icons.delete_forever,
                   title: 'Delete Account',
-                  textColor: Colors.redAccent,
+                  textColor: AppColors.highlight,
                   onTap: _deleteAccount,
                 ),
 

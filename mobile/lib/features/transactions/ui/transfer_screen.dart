@@ -285,9 +285,9 @@ class _TransferBalanceScreenState
                                   .toUpperCase(),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: (currentUser?.displayName ?? '') == 'Nahda'
-                                      ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
-                                      : (isDark ? Colors.blue.shade200 : Colors.blue.shade700)),
+                                  color: isDark ? Colors.white : ((currentUser?.displayName ?? '') == 'Nahda'
+                                      ? Colors.pink.shade700
+                                      : Colors.blue.shade700)),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -387,9 +387,9 @@ class _TransferBalanceScreenState
                                         style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
-                                            color: r.displayName == 'Nahda'
-                                                ? (isDark ? Colors.pink.shade200 : Colors.pink.shade700)
-                                                : (isDark ? Colors.blue.shade200 : Colors.blue.shade700)),
+                                            color: isDark ? Colors.white : (r.displayName == 'Nahda'
+                                                ? Colors.pink.shade700
+                                                : Colors.blue.shade700)),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -447,18 +447,18 @@ class _TransferBalanceScreenState
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.red[50],
+                          color: isDark ? Colors.red.shade900.withOpacity(0.4) : Colors.red.shade50,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.error_outline,
-                                color: Colors.red, size: 20),
+                            Icon(Icons.error_outline,
+                                color: isDark ? Colors.red.shade200 : Colors.red, size: 20),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(state.error!,
-                                  style: const TextStyle(
-                                      color: Colors.red, fontSize: 13)),
+                                  style: TextStyle(
+                                      color: isDark ? Colors.red.shade200 : Colors.red, fontSize: 13)),
                             ),
                           ],
                         ),
