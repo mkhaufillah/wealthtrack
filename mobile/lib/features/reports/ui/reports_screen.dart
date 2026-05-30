@@ -25,6 +25,7 @@ class ReportsScreen extends ConsumerStatefulWidget {
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   late DateTime _currentMonth;
   String _cycleLabel = '';
+  int _userCycleDay = 1;
 
   @override
   void initState() {
@@ -34,6 +35,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadMonth();
     });
+  }
+
+  DateTime _maxMonth() {
+    if (_userCycleDay <= 1) return DateTime.now();
+    final today = DateTime.now();
+    if (today.day >= _userCycleDay) {
+      return DateTime(today.year, today.month + 1);
+    }
+    return DateTime(today.year, today.month);
   }
 
   String get _monthParam => DateFormat('yyyy-MM').format(_currentMonth);
@@ -52,6 +62,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final cycleData = cycleResp.data;
       firstDay = cycleData['date_from'] as String;
       lastDay = cycleData['date_to'] as String;
+      // capture cycle day for month navigation
+      _userCycleDay = cycleData['cycle_start_day'] as int? ?? 1;
       // Build cycle label from dates (e.g. "25 Apr – 24 Mei 2026")
       final dFrom = DateTime.tryParse(firstDay);
       final dTo = DateTime.tryParse(lastDay);
@@ -62,6 +74,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       }
     } catch (_) {
       _cycleLabel = '';
+      _userCycleDay = 1;
       firstDay = DateFormat('yyyy-MM-01').format(_currentMonth);
       lastDay = DateFormat('yyyy-MM-dd').format(
         DateTime(_currentMonth.year, _currentMonth.month + 1, 0),
@@ -87,7 +100,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   void _nextMonth() {
     final next = DateTime(_currentMonth.year, _currentMonth.month + 1);
-    if (next.isAfter(DateTime.now())) return;
+    final maxMonth = _maxMonth();
+    if (next.isAfter(maxMonth)) return;
     setState(() {
       _currentMonth = next;
     });
@@ -127,10 +141,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildMonthPicker() {
-    final now = DateTime.now();
+    final maxMonth = _maxMonth();
     final canGoNext =
         DateTime(_currentMonth.year, _currentMonth.month + 1).isBefore(
-              DateTime(now.year, now.month + 1),
+              DateTime(maxMonth.year, maxMonth.month + 1),
             );
 
     return Container(

@@ -151,7 +151,7 @@ async def budget_summary(
         d_to_str = f"{month}-31"
 
     cursor = await db.execute(
-        """SELECT b.id, b.category_id, b.category_name, b.budget_amount,
+        """SELECT b.id, b.category_id, b.category_name, b.budget_amount, b.cycle_on,
                   c.icon AS category_icon,
                   COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual_spent
            FROM budgets b
@@ -185,5 +185,6 @@ async def budget_summary(
             actual_spent=actual_spent,
             percentage=round(percentage, 1),
             remaining=budget_amount - actual_spent,
+            cycle_on=r["cycle_on"],
         ))
     return results

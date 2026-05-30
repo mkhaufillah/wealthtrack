@@ -52,6 +52,7 @@ final sampleItem = BudgetSummaryItem(
   actualSpent: 1500000,
   percentage: 50.0,
   remaining: 1500000,
+  cycleOn: 1,
 );
 
 final overBudgetItem = BudgetSummaryItem(
@@ -63,6 +64,7 @@ final overBudgetItem = BudgetSummaryItem(
   actualSpent: 1200000,
   percentage: 120.0,
   remaining: 0,
+  cycleOn: 1,
 );
 
 final warningItem = BudgetSummaryItem(
@@ -74,6 +76,7 @@ final warningItem = BudgetSummaryItem(
   actualSpent: 1600000,
   percentage: 80.0,
   remaining: 400000,
+  cycleOn: 1,
 );
 
 void main() {

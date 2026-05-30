@@ -27,3 +27,4 @@ class BudgetSummaryItem(BaseModel):
     actual_spent: int
     percentage: float
     remaining: int
+    cycle_on: int

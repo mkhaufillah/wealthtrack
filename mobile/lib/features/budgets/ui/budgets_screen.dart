@@ -35,6 +35,17 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     });
   }
 
+  DateTime _maxMonth() {
+    if (_userCycleDay <= 1) return DateTime.now();
+    // With billing cycle, allow viewing the cycle whose end month is now or future
+    final today = DateTime.now();
+    if (today.day >= _userCycleDay) {
+      // Current cycle started this month, ends next month
+      return DateTime(today.year, today.month + 1);
+    }
+    return DateTime(today.year, today.month);
+  }
+
   Future<void> _loadCycleInfo() async {
     try {
       final api = ref.read(apiClientProvider);
@@ -68,7 +79,8 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
   void _nextMonth() {
     final next = DateTime(_currentMonth.year, _currentMonth.month + 1);
-    if (next.isAfter(DateTime.now())) return;
+    final maxMonth = _maxMonth();
+    if (next.isAfter(maxMonth)) return;
     setState(() => _currentMonth = next);
     _load();
     _loadCycleInfo();
@@ -114,10 +126,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 
   Widget _buildMonthPicker() {
-    final now = DateTime.now();
+    final maxMonth = _maxMonth();
     final canGoNext =
         DateTime(_currentMonth.year, _currentMonth.month + 1).isBefore(
-              DateTime(now.year, now.month + 1),
+              DateTime(maxMonth.year, maxMonth.month + 1),
             );
 
     return Container(
@@ -288,6 +300,22 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   child: Text(translateCategory(item.categoryName),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
+                // Cycle badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Cycle day ${item.cycleOn}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
                 // Edit button
                 InkWell(
                   borderRadius: BorderRadius.circular(20),
@@ -298,7 +326,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                       color: AppColors.accent.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Icon(Icons.edit_outlined, size: 16, color: AppColors.accent),
+                    child: Icon(Icons.edit_outlined, size: 16, color: AppColors.textPrimary),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -457,7 +485,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
       // Editing mode: pre-fill values
       _selectedCategoryId = existing.categoryId;
       _amountCtrl.text = existing.budgetAmount.toString();
-      _cycleOn = widget.defaultCycleDay;
+      _cycleOn = existing.cycleOn;  // use budget's stored cycle, not user's current
     } else {
       // New budget: default to user's current cycle
       _cycleOn = widget.defaultCycleDay;
@@ -500,18 +528,41 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
           // Category picker
           const Text('Category', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
-          DropdownButtonFormField<int>(
-            value: _selectedCategoryId,
-            decoration: const InputDecoration(
-              hintText: 'Select category',
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          if (widget.existingItem != null) ...[
+            // Edit mode: readonly category display
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.divider.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Text(widget.existingItem!.categoryIcon, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 10),
+                  Text(
+                    translateCategory(widget.existingItem!.categoryName),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
             ),
-            items: widget.categories.map((c) => DropdownMenuItem(
-              value: c['id'] as int,
-              child: Text('${c['icon'] ?? '📦'}  ${translateCategory(c['name'] as String)}'),
-            )).toList(),
-            onChanged: (v) => setState(() => _selectedCategoryId = v),
-          ),
+          ] else ...[
+            // New budget: category dropdown
+            DropdownButtonFormField<int>(
+              value: _selectedCategoryId,
+              decoration: const InputDecoration(
+                hintText: 'Select category',
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              items: widget.categories.map((c) => DropdownMenuItem(
+                value: c['id'] as int,
+                child: Text('${c['icon'] ?? '📦'}  ${translateCategory(c['name'] as String)}'),
+              )).toList(),
+              onChanged: (v) => setState(() => _selectedCategoryId = v),
+            ),
+          ],
           const SizedBox(height: 16),
 
           // Amount
@@ -525,11 +576,13 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
           const SizedBox(height: 6),
           DropdownButtonFormField<int>(
             value: _cycleOn,
+            dropdownColor: AppColors.surface,
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(
               hintText: 'Select cycle day',
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),
-            items: List.generate(28, (i) => DropdownMenuItem(
+            items: List.generate(28, (i) => DropdownMenuItem<int>(
               value: i + 1,
               child: Text('Day ${i + 1}'),
             )),

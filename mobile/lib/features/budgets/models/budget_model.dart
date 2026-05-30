@@ -34,6 +34,7 @@ class BudgetSummaryItem {
   final int actualSpent;
   final double percentage;
   final int remaining;
+  final int cycleOn;
 
   BudgetSummaryItem({
     required this.id,
@@ -44,6 +45,7 @@ class BudgetSummaryItem {
     required this.actualSpent,
     required this.percentage,
     required this.remaining,
+    required this.cycleOn,
   });
 
   factory BudgetSummaryItem.fromJson(Map<String, dynamic> json) =>
@@ -56,5 +58,6 @@ class BudgetSummaryItem {
         actualSpent: json['actual_spent'] as int,
         percentage: (json['percentage'] as num).toDouble(),
         remaining: json['remaining'] as int,
+        cycleOn: json['cycle_on'] as int? ?? 1,
       );
 }
