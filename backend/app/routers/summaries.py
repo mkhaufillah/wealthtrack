@@ -356,6 +356,28 @@ async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_u
             "count": r["count"], "percentage": pct,
         })
 
+    # Income category breakdown
+    cursor = await db.execute(
+        """SELECT c.id, c.name, c.icon, c.name_en AS category_name_en, SUM(t.amount) as total, COUNT(*) as count
+           FROM transactions t JOIN categories c ON t.category_id = c.id
+           WHERE t.user_id = ?
+             AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+             AND t.type = 'income'
+           GROUP BY c.id ORDER BY total DESC""",
+        (current_user["id"], d_from, d_to),
+    )
+    income_categories = []
+    for r in await cursor.fetchall():
+        income_total_data = int(r["total"])
+        pct = round((income_total_data / income * 100), 1) if income > 0 else 0
+        income_categories.append({
+            "category_id": r["id"], "category_name": r["name"],
+            "category_name_en": r["category_name_en"] or "",
+            "icon": r["icon"] or "", "total": income_total_data,
+            "count": r["count"], "percentage": pct,
+        })
+
     cursor = await db.execute(
         """SELECT COALESCE(t.date, substr(t.created_at,1,10)) as date,
                   CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS INTEGER) as expense,
@@ -375,6 +397,7 @@ async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_u
         "total_expense": int(expense),
         "balance": int(income - expense),
         "categories": categories,
+        "income_categories": income_categories,
         "daily_snapshot": daily_snapshot,
     }
 

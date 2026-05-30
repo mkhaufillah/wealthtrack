@@ -348,6 +348,12 @@ def run_household_migration():
         count = cursor.fetchone()[0]
         print(f"  ✓ verified: {count} member(s) in household")
 
+        # 15. Lock Savings & Investment categories from edit/delete
+        conn.execute(
+            "UPDATE categories SET is_default = 1 WHERE id IN (4, 13)"
+        )
+        print("  ✓ Savings & Investment categories locked (ids 4, 13)")
+
         conn.commit()
         print("\n✅ Household migration complete!")
         return True

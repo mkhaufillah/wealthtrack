@@ -311,7 +311,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget _buildExtraStats(MonthlyReport report) {
     final income = report.totalIncome;
     final expense = report.totalExpense;
-    final savingsRate = income > 0 ? ((income - expense) / income * 100) : 0.0;
+
+    // Find savings & investment amounts
+    final savingsExpense = report.categories
+        .where((c) => c.categoryNameEn == 'Savings & Investment')
+        .fold<int>(0, (sum, c) => sum + c.total);
+    final savingsIncome = report.incomeCategories
+        .where((c) => c.categoryNameEn == 'Saving & Investment')
+        .fold<int>(0, (sum, c) => sum + c.total);
+
+    // Adjusted savings rate: (income - expense + savingsExpense - savingsIncome) / income * 100
+    final adjustedNumerator = (income - expense) + (savingsExpense - savingsIncome);
+    final savingsRate = income > 0 ? (adjustedNumerator / income * 100) : 0.0;
 
     // Compute cycle days from the cycle label
     final cycleDays = _cycleLabel.isNotEmpty ? 30 : 30; // fallback

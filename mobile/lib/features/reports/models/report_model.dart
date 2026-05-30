@@ -76,6 +76,7 @@ class MonthlyReport {
   final int totalExpense;
   final int balance;
   final List<CategoryBreakdown> categories;
+  final List<CategoryBreakdown> incomeCategories;
   final List<DailySnapshot> dailySnapshot;
 
   const MonthlyReport({
@@ -84,6 +85,7 @@ class MonthlyReport {
     required this.totalExpense,
     required this.balance,
     this.categories = const [],
+    this.incomeCategories = const [],
     this.dailySnapshot = const [],
   });
 
@@ -94,6 +96,10 @@ class MonthlyReport {
         totalExpense: json['total_expense'] ?? 0,
         balance: json['balance'] ?? 0,
         categories: (json['categories'] as List<dynamic>?)
+                ?.map((e) => CategoryBreakdown.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        incomeCategories: (json['income_categories'] as List<dynamic>?)
                 ?.map((e) => CategoryBreakdown.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [],
