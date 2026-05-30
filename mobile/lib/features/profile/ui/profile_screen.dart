@@ -526,6 +526,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onTap: () => context.push('/ai/advise'),
                 ),
 
+                if (user?.role == 'admin')
+                  _buildMenuItem(
+                    icon: Icons.category_outlined,
+                    title: 'Manage Categories',
+                    onTap: () => context.push('/categories/manage'),
+                  ),
+
                 const SizedBox(height: 24),
 
                 // ── Billing Cycle ──

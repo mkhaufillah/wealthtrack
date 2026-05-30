@@ -5,9 +5,14 @@ import '../../../../shared/utils/category_translator.dart';
 class CategoryChip {
   final int id;
   final String name;
+  final String nameEn;
   final String icon;
-  const CategoryChip(
-      {required this.id, required this.name, required this.icon});
+  const CategoryChip({
+    required this.id,
+    required this.name,
+    this.nameEn = '',
+    required this.icon,
+  });
 }
 
 class CategoryPicker extends StatelessWidget {
@@ -33,7 +38,7 @@ class CategoryPicker extends StatelessWidget {
           final cat = categories[i];
           final isSelected = cat.id == selectedId;
           return FilterChip(
-            label: Text('${cat.icon} ${translateCategory(cat.name)}'),
+            label: Text('${cat.icon} ${cat.nameEn.isNotEmpty ? cat.nameEn : translateCategory(cat.name)}'),
             selected: isSelected,
             onSelected: (_) => onSelected(cat.id),
             selectedColor: isDark

@@ -15,6 +15,7 @@ import 'features/profile/ui/profile_screen.dart';
 import 'features/reports/ui/reports_screen.dart';
 import 'features/budgets/ui/budgets_screen.dart';
 import 'features/ai/ui/ai_advisor_screen.dart';
+import 'features/categories/ui/category_management_screen.dart';
 import 'shared/providers/theme_provider.dart';
 import 'shared/widgets/app_scaffold.dart';
 
@@ -63,6 +64,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/ai/advise',
         builder: (_, __) => const AiAdvisorScreen(),
+      ),
+      GoRoute(
+        path: '/categories/manage',
+        builder: (_, __) => const CategoryManagementScreen(),
       ),
     ],
   );

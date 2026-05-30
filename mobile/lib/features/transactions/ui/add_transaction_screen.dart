@@ -58,10 +58,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       final incomeRes = await api.get('/categories', queryParams: {'type': 'income'});
       setState(() {
         _expenseCategories = (List<Map<String, dynamic>>.from(expenseRes.data)).map((e) => CategoryChip(
-          id: e['id'] as int, name: e['name'] as String, icon: e['icon'] as String? ?? '📦',
+          id: e['id'] as int, name: e['name'] as String, nameEn: e['name_en'] as String? ?? '', icon: e['icon'] as String? ?? '📦',
         )).toList();
         _incomeCategories = (List<Map<String, dynamic>>.from(incomeRes.data)).map((e) => CategoryChip(
-          id: e['id'] as int, name: e['name'] as String, icon: e['icon'] as String? ?? '📦',
+          id: e['id'] as int, name: e['name'] as String, nameEn: e['name_en'] as String? ?? '', icon: e['icon'] as String? ?? '📦',
         )).toList();
         _categories = _isExpense ? _expenseCategories : _incomeCategories;
       });
