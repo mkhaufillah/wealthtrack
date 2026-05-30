@@ -6,6 +6,7 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/utils/category_translator.dart';
+import '../../../shared/utils/date_formatter.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../features/transactions/ui/widgets/amount_field.dart';
 import '../providers/budget_provider.dart';
@@ -79,19 +80,19 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         dateFrom: _cycleDateFrom, dateTo: _cycleDateTo);
   }
 
-  void _prevMonth() {
+  Future<void> _prevMonth() async {
     setState(() => _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1));
+    await _loadCycleInfo();
     _load();
-    _loadCycleInfo();
   }
 
-  void _nextMonth() {
+  Future<void> _nextMonth() async {
     final next = DateTime(_currentMonth.year, _currentMonth.month + 1);
     final maxMonth = _maxMonth();
     if (next.isAfter(maxMonth)) return;
     setState(() => _currentMonth = next);
+    await _loadCycleInfo();
     _load();
-    _loadCycleInfo();
   }
 
   @override
@@ -146,14 +147,14 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(icon: const Icon(Icons.chevron_left), onPressed: _prevMonth),
+          IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => _prevMonth()),
           Text(
             _cycleLabel.isNotEmpty ? _cycleLabel : DateFormat('MMMM yyyy').format(_currentMonth),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right),
-            onPressed: canGoNext ? _nextMonth : null,
+            onPressed: canGoNext ? () => _nextMonth() : null,
           ),
         ],
       ),
@@ -308,7 +309,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   child: Text(translateCategory(item.categoryName),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
-                // Cycle badge
+                // Cycle date range badge
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
@@ -316,7 +317,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'Cycle day ${item.cycleOn}',
+                    () {
+                      final (from, to) = getCycleRangeForMonth(_monthParam, item.cycleOn);
+                      return '$from – $to';
+                    }(),
                     style: TextStyle(
                       fontSize: 10,
                       color: AppColors.textSecondary,

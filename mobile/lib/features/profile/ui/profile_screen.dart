@@ -254,10 +254,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isSelected ? AppColors.primary : null,
+                            color: isSelected
+                                ? (Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkPrimary
+                                    : AppColors.primary)
+                                : null,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: isSelected ? AppColors.primary : AppColors.divider,
+                              color: isSelected
+                                  ? (Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkPrimary
+                                      : AppColors.primary)
+                                  : AppColors.divider,
                             ),
                           ),
                           child: Center(

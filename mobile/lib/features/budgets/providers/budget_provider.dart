@@ -38,21 +38,29 @@ class BudgetState {
 class BudgetNotifier extends StateNotifier<BudgetState> {
   final BudgetRepository _repo;
   final ApiClient _api;
+  String? _lastDateFrom;
+  String? _lastDateTo;
 
   BudgetNotifier(this._repo, this._api) : super(const BudgetState());
 
   Future<void> load(String month, {String? dateFrom, String? dateTo}) async {
+    // Preserve date range across internal reloads
+    if (dateFrom != null) _lastDateFrom = dateFrom;
+    if (dateTo != null) _lastDateTo = dateTo;
+    final effectiveDateFrom = dateFrom ?? _lastDateFrom;
+    final effectiveDateTo = dateTo ?? _lastDateTo;
+
     state = state.copyWith(isLoading: true, error: null, month: month);
     try {
       final items = await _repo.getSummary(month);
 
       // Fetch balance for the viewed month's date range
       int balance = 0;
-      if (dateFrom != null && dateTo != null) {
+      if (effectiveDateFrom != null && effectiveDateTo != null) {
         try {
           final monthlyRes = await _api.get('/summaries/monthly', queryParams: {
-            'd_from_override': dateFrom,
-            'd_to_override': dateTo,
+            'd_from_override': effectiveDateFrom,
+            'd_to_override': effectiveDateTo,
           });
           balance = monthlyRes.data['balance'] as int? ?? 0;
         } catch (_) {
