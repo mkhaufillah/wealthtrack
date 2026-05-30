@@ -167,7 +167,7 @@ async def process_ocr(
                 "https://opencode.ai/zen/go/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "minimax-m2.5",
+                    "model": "minimax-m2.7",
                     "messages": [
                         {"role": "system", "content": prompt},
                         {
