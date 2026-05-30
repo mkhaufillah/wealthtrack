@@ -208,3 +208,18 @@ async def nahda_token(db: aiosqlite.Connection) -> str:
 async def fake_token() -> str:
     """JWT with non-existent user ID."""
     return create_access_token(user_id=999, username="ghost")
+
+
+@pytest_asyncio.fixture
+async def empty_token(client: AsyncClient) -> str:
+    """JWT token for a user with no transaction data."""
+    await client.post(
+        "/api/v1/auth/register",
+        json={"username": "emptyuser", "display_name": "Empty", "password": "Test1234!"},
+    )
+    resp = await client.post(
+        "/api/v1/auth/login",
+        json={"username": "emptyuser", "password": "Test1234!"},
+    )
+    data = resp.json()
+    return data["access_token"]

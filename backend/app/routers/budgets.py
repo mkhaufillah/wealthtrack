@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.database import get_db
 from app.core.security import get_current_user
-from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetSummaryItem, BudgetSummaryResponse, UnbudgetedExpense
+from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetSummaryItem, BudgetSummaryResponse, UnbudgetedExpense, BudgetSuggestion, BudgetSuggestionResponse
 from app.utils.cycle import get_cycle_range_for_month
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
@@ -275,3 +275,92 @@ async def budget_summary(
             ))
 
     return BudgetSummaryResponse(items=results, uncategorized_expenses=uncategorized)
+
+
+@router.get("/suggestions", response_model=BudgetSuggestionResponse)
+async def budget_suggestions(
+    month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
+    num_cycles: int = Query(3, ge=1, le=12),
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Analyze historical spending and suggest budget amounts per category."""
+    # Get user's cycle setting
+    cursor = await db.execute(
+        "SELECT cycle_start_day FROM users WHERE id = ?",
+        (current_user["id"],),
+    )
+    user_row = await cursor.fetchone()
+    cycle_start_day = user_row["cycle_start_day"] if user_row else 1
+
+    # Get historical data
+    from app.utils.budget_ai import get_historical_spending
+
+    history = await get_historical_spending(
+        db,
+        current_user["id"],
+        cycle_start_day=cycle_start_day,
+        num_cycles=num_cycles,
+    )
+
+    if not history:
+        return BudgetSuggestionResponse(items=[])
+
+    # Get existing budgets for this month
+    cursor = await db.execute(
+        "SELECT category_id, budget_amount FROM budgets WHERE month = ? AND user_id = ?",
+        (month, current_user["id"]),
+    )
+    existing = {}
+    async for r in cursor:
+        existing[r["category_id"]] = r["budget_amount"]
+
+    # Build suggestions
+    items = []
+    for h in history:
+        cat_id = h["category_id"]
+        raw = h["avg_amount"]
+        # Round up to nearest 10k, min Rp10k
+        suggested = ((raw + 9999) // 10000) * 10000
+        if suggested < 10000:
+            suggested = 10000
+
+        items.append(BudgetSuggestion(
+            category_id=cat_id,
+            category_name=h["category_name"],
+            category_name_en=h["category_name_en"],
+            category_icon=h["category_icon"],
+            suggested_amount=suggested,
+            historical_avg=h["avg_amount"],
+            historical_max=h["max_amount"],
+            months_analyzed=h["months_analyzed"],
+            has_budget=cat_id in existing,
+            existing_amount=existing.get(cat_id, 0),
+        ))
+
+    total_suggested = sum(i.suggested_amount for i in items if not i.has_budget)
+
+    # Fetch total income for the period
+    d_from, d_to = get_cycle_range_for_month(month, cycle_start_day)
+    cursor = await db.execute(
+        """SELECT COALESCE(SUM(amount), 0) FROM transactions
+           WHERE user_id = ? AND type = 'income'
+             AND COALESCE(date, substr(created_at,1,10)) BETWEEN ? AND ?""",
+        (current_user["id"], d_from.isoformat(), d_to.isoformat()),
+    )
+    row = await cursor.fetchone()
+    total_income = row[0] if row else 0
+
+    warning = ""
+    if total_income > 0 and total_suggested > total_income:
+        warning = (
+            f"Suggested budgets (Rp{total_suggested:,}) exceed income "
+            f"(Rp{total_income:,}). Consider reducing."
+        )
+
+    return BudgetSuggestionResponse(
+        items=items,
+        total_suggested=total_suggested,
+        total_income=total_income,
+        warning=warning,
+    )
