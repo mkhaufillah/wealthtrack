@@ -37,14 +37,14 @@ DEFAULT_USERS = [
     (2, "nahda", "Nahda", PWD_CTX.hash("password123"), "user"),
 ]
 DEFAULT_CATEGORIES = [
-    (1, "Makanan & Minuman", "expense", "🍽️", 1),
-    (2, "Transportasi & Bensin", "expense", "🚗", 2),
-    (3, "Belanja Harian", "expense", "🛒", 3),
-    (4, "Hiburan", "expense", "🎬", 4),
-    (5, "Tagihan & Cicilan", "expense", "📄", 5),
-    (6, "Kesehatan", "expense", "🏥", 6),
-    (7, "Gaji", "income", "💰", 1),
-    (8, "Freelance", "income", "💻", 2),
+    (1, "Makanan & Minuman", "expense", "🍽️", 1, 1, "Food & Drinks", "[]"),
+    (2, "Transportasi & Bensin", "expense", "🚗", 0, 2, "Transport & Fuel", "[]"),
+    (3, "Belanja Harian", "expense", "🛒", 0, 3, "Daily Shopping", "[]"),
+    (4, "Hiburan", "expense", "🎬", 0, 4, "Entertainment", "[]"),
+    (5, "Tagihan & Cicilan", "expense", "📄", 0, 5, "Bills & Installments", "[]"),
+    (6, "Kesehatan", "expense", "🏥", 0, 6, "Health", "[]"),
+    (7, "Gaji", "income", "💰", 1, 1, "Salary", "[]"),
+    (8, "Freelance", "income", "💻", 0, 2, "Freelance", "[]"),
 ]
 DEFAULT_TRANSACTIONS = [
     (1, "income", 15000000, 7, "Gaji", "Gaji Bulanan", "Gaji Mei"),
@@ -78,6 +78,8 @@ def create_test_db(db_path: str):
             type TEXT NOT NULL,
             icon TEXT DEFAULT '',
             is_default INTEGER DEFAULT 0,
+            name_en TEXT DEFAULT '',
+            keywords TEXT DEFAULT '[]',
             sort_order INTEGER DEFAULT 0
         );
         CREATE TABLE IF NOT EXISTS transactions (
@@ -127,8 +129,8 @@ def create_test_db(db_path: str):
         )
     for cat in DEFAULT_CATEGORIES:
         conn.execute(
-            "INSERT OR IGNORE INTO categories (id, name, type, icon, is_default, sort_order) VALUES (?, ?, ?, ?, 1, ?)",
-            (cat[0], cat[1], cat[2], cat[3], cat[4]),
+            "INSERT OR IGNORE INTO categories (id, name, type, icon, is_default, sort_order, name_en, keywords) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            cat,
         )
     for i, t in enumerate(DEFAULT_TRANSACTIONS):
         day_offset = len(DEFAULT_TRANSACTIONS) - i

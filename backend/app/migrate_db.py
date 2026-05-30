@@ -9,6 +9,7 @@ from pathlib import Path
 from passlib.context import CryptContext
 import secrets
 import string
+import json
 
 from backend.app.core.config import settings
 
@@ -113,6 +114,150 @@ def run_migration():
             "UPDATE transactions SET date = substr(created_at, 1, 10) WHERE date IS NULL AND created_at IS NOT NULL"
         )
         print("  ✓ backfilled existing transactions (user_id=1, date from created_at)")
+
+        # 7. Add name_en + keywords to categories
+        cat_cols = [row[1] for row in conn.execute("PRAGMA table_info(categories)").fetchall()]
+        cat_added = []
+        if 'name_en' not in cat_cols:
+            conn.execute("ALTER TABLE categories ADD COLUMN name_en TEXT DEFAULT ''")
+            cat_added.append("name_en")
+        if 'keywords' not in cat_cols:
+            conn.execute("ALTER TABLE categories ADD COLUMN keywords TEXT DEFAULT '[]'")
+            cat_added.append("keywords")
+        if cat_added:
+            print(f"  ✓ added category columns: {', '.join(cat_added)}")
+        else:
+            print("  ✓ categories already have name_en + keywords")
+
+        # Backfill English names and keywords from hardcoded maps
+        CATEGORY_BACKFILL: dict[str, dict[str, object]] = {
+            # Income
+            "Gaji": {
+                "name_en": "Salary",
+                "keywords": ["gaji", "salary", "payroll", "thr", "gaji bulan"],
+            },
+            "Freelance": {
+                "name_en": "Freelance",
+                "keywords": ["freelance", "project", "proyek", "honor", "jasa", "konsultan"],
+            },
+            "Bonus & THR": {
+                "name_en": "Bonus & THR",
+                "keywords": ["bonus", "insentif", "reward", "thr", "tunjangan", "bonus tahunan"],
+            },
+            "Investasi": {
+                "name_en": "Investment",
+                "keywords": ["dividen", "capital gain", "profit", "bunga", "interest", "return investasi"],
+            },
+            # Expense
+            "Makanan & Minuman": {
+                "name_en": "Food & Drinks",
+                "keywords": [
+                    "makan", "minum", "kopi", "teh", "nasi", "mie", "ayam", "bakso", "soto",
+                    "gofood", "grab", "restoran", "warung", "kantin", "cafe",
+                    "lontong", "gudeg", "sate", "rendang", "rawon", "pecel", "sop",
+                    "tahu", "tempe", "gorengan", "pangsit", "dimsum", "cilok", "cireng",
+                    "sempol", "kebab", "jus", "es", "minuman", "seblak", "martabak", "roti",
+                    "kue", "camilan", "snack", "cemilan", "buah", "sayur", "lauk", "indomie",
+                    "sarden", "telur", "nasi goreng", "mie ayam", "bubur",
+                    "gado", "ketoprak", "siomay", "batagor", "pempek", "tekwan",
+                    "susu", "jajan", "sarapan", "makan siang",
+                    "daging", "ikan", "tongseng", "opor", "sambal",
+                    "alpukat", "frozen",
+                ],
+            },
+            "Transportasi & Bensin": {
+                "name_en": "Transport & Fuel",
+                "keywords": [
+                    "bensin", "bbm", "pertalite", "pertamax", "solar",
+                    "gocar", "grabcar", "gojek", "taxi", "ojek",
+                    "angkot", "bus", "transjakarta", "krl", "kereta", "mrt", "lrt",
+                    "toll", "tol", "parkir",
+                    "service motor", "servis motor", "service mobil", "servis mobil",
+                    "ganti oli", "ban", "tambal ban", "bengkel", "spooring", "balancing",
+                ],
+            },
+            "Belanja Harian": {
+                "name_en": "Daily Shopping",
+                "keywords": [
+                    "belanja", "alfamart", "indomaret", "supermarket", "hypermart", "transmart",
+                    "giant", "pasar",
+                    "sabun", "shampoo", "pasta gigi", "sikat gigi", "detergen",
+                    "pewangi", "perlengkapan mandi", "sapu", "pel", "tisu",
+                    "minyak goreng", "beras", "gula", "tepung",
+                    "bumbu dapur", "bawang", "cabai", "kecap", "saos", "minyak",
+                    "bekal", "lunch box", "kotak makan", "lock n lock",
+                    "box penyimpanan", "penyimpanan", "plastik transparan", "container", "rak",
+                ],
+            },
+            "Hiburan": {
+                "name_en": "Entertainment",
+                "keywords": [
+                    "nonton", "bioskop", "netflix", "spotify", "disney", "vip",
+                    "game", "steam", "playstation", "konser", "film",
+                    "streaming", "youtube premium", "langganan", "music", "stadion",
+                ],
+            },
+            "Tagihan & Cicilan": {
+                "name_en": "Bills & Installments",
+                "keywords": [
+                    "listrik", "pln", "pdam", "air", "wifi", "internet",
+                    "indihome", "firstmedia", "myrep", "telkom",
+                    "bpjs", "pajak", "pbb", "pph",
+                    "cicilan", "kpr", "kredit", "kartu kredit", "cc",
+                    "token listrik", "pulsa", "paket data", "telpon",
+                ],
+            },
+            "Kesehatan": {
+                "name_en": "Health",
+                "keywords": [
+                    "obat", "apotek", "klinik", "rumah sakit", "rs", "dokter",
+                    "bidan", "puskesmas", "vitamin", "suplemen",
+                    "masker", "tes lab", "konsultasi",
+                    "imunisasi", "vaksin", "periksa", "lab",
+                ],
+            },
+            "Pendidikan": {
+                "name_en": "Education",
+                "keywords": [
+                    "kursus", "les", "bimbel", "kuliah", "sekolah",
+                    "paud", "tk", "buku", "modul",
+                    "pelatihan", "training", "seminar", "workshop", "sertifikasi",
+                ],
+            },
+            "Tabungan & Investasi": {
+                "name_en": "Savings & Investment",
+                "keywords": [
+                    "tabungan", "deposito", "rekening", "nabung",
+                    "saham", "crypto", "reksadana", "emas",
+                    "logam mulia", "rdpu", "rdpt", "sbn", "obligasi",
+                ],
+            },
+            "Kebutuhan Bayi/Anak": {
+                "name_en": "Baby & Child Needs",
+                "keywords": [
+                    "bayi", "anak", "mahira", "khalisa", "popok", "diaper", "pampers",
+                    "susu bayi", "bubur bayi", "mpasi", "mainan", "baju bayi",
+                    "stroller", "baby", "balita",
+                    "dancow", "groplus", "mamypoko",
+                ],
+            },
+        }
+
+        for cat_name, cat_data in CATEGORY_BACKFILL.items():
+            keywords_json = json.dumps(cat_data["keywords"])
+            conn.execute(
+                "UPDATE categories SET name_en = ?, keywords = ? WHERE name = ? AND (name_en IS NULL OR name_en = '')",
+                (cat_data["name_en"], keywords_json, cat_name),
+            )
+        # Also backfill "Lainnya" (both expense & income) and "Transfer"
+        conn.execute(
+            "UPDATE categories SET name_en = 'Other', keywords = '[]' WHERE name = 'Lainnya' AND (name_en IS NULL OR name_en = '')"
+        )
+        conn.execute(
+            "UPDATE categories SET name_en = 'Transfer', keywords = ? WHERE name = 'Transfer' AND (name_en IS NULL OR name_en = '')",
+            (json.dumps(["transfer ke", "transfer untuk"]),),
+        )
+        print("  ✓ backfilled category name_en + keywords")
 
         conn.commit()
         print(f"\n✅ Migration complete! DB: {DB_PATH}")
