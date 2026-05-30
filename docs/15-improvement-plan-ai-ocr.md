@@ -203,7 +203,7 @@ final localChatStorageProvider = Provider<LocalChatStorage>((ref) => LocalChatSt
 | 2.1 | Backend | **In-memory rate limiting** — `_user_ocr_counts` dict resets on server restart, doesn't work with multiple workers/processes. | **P2** | ~30 min | Backend |
 | 2.2 | Backend | **No image validation** — Corrupted/invalid image bytes pass through to the vision API. Wasteful API calls that always fail. | **P1** | ~15 min | Backend |
 | 2.3 | Backend | **No file type validation beyond MIME** — Only checks `content_type.startswith("image/")`. SVG would pass but isn't a raster image that vision models can process. | **P1** | ~10 min | Backend |
-| 2.4 | Backend | **Model hardcoded to kimi-k2.6** — Line 88: `"model": "kimi-k2.6"`. Should use settings/config. | **P2** | ~5 min | Backend |
+| 2.4 | Backend | **Model hardcoded to kimi-k2.6** — Line 88: `"model": "kimi-k2.6"`. Should use settings/config. | **P2** | ~5 min | **RESOLVED in v0.3.3** — Switched to `minimax-m2.5` (lighter, 5.5× higher rate limit). Still hardcoded; config-based selection deferred. |
 | 2.5 | Backend | **No confidence score returned** — OCR returns parsed fields without any confidence indicator. User can't tell if the scan was reliable. | **P3** | ~20 min | Backend |
 | 2.6 | Backend | **No multi-language support** — System prompt only asks for English output. Indonesian receipts (common in Indonesia) may parse poorly. | **P2** | ~10 min | Backend |
 | 2.7 | Mobile | **No OCR-specific provider/service** — `_scanReceipt()` is inline in `AddTransactionScreen` with direct `api.uploadFile()` call. Not testable in isolation. | **P1** | ~30 min | Mobile |

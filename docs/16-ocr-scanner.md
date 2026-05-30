@@ -13,9 +13,9 @@ OCR (Optical Character Recognition) extracts structured transaction data from re
 |--------|--------|
 | **Trigger** | "Scan Receipt" button in Add Transaction form |
 | **Image source** | Camera (take photo) or Gallery (pick existing) |
-| **Vision model** | `kimi-k2.6` via OpenCode Go API |
+| **Vision model** | `minimax-m2.5` via OpenCode Go API |
 | **Rate limit** | 10 scans per day per user (in-memory) |
-| **Image max size** | 10 MB |
+| **Image max size** | 10 MB input (auto-compressed to ~300 KB JPEG) |
 
 ---
 
@@ -24,14 +24,16 @@ OCR (Optical Character Recognition) extracts structured transaction data from re
 ```
 ┌──────────────────────┐     image (multipart)      ┌──────────────────┐
 │  AddTransaction      │ ───────────────────────►   │  Backend         │
-│  Screen (Flutter)    │                             │  /api/v1/ocr     │
-│                      │ ◄──── OcrResult (JSON) ──  │  /process        │
-│  Camera/Gallery      │                             │                  │
-│  pickImage()         │                             │  validate        │
-│                      │                             │  → MIME check    │
+│  AddTransaction      │                             │  /api/v1/ocr     │
+│  Screen (Flutter)    │                             │  /process        │
+│                      │ ◄──── OcrResult (JSON) ──  │                  │
+│  Camera/Gallery      │                             │  validate        │
+│  pickImage()         │                             │  → MIME check    │
 │  _scanReceipt()      │                             │  → magic bytes   │
 │  _buildScanOverlay() │                             │  → size check    │
-└──────────────────────┘                             │  → category DB   │
+└──────────────────────┘                             │  → compress      │
+                                                     │    (1200px/JPG)  │
+                                                     │  → category DB   │
                                                      │  → vision API    │
                                                      └──────────────────┘
 ```
@@ -46,10 +48,14 @@ OCR (Optical Character Recognition) extracts structured transaction data from re
    - MIME type is one of: `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif`
    - Magic bytes match JPEG/PNG/WebP header
    - File size ≤ 10 MB
-6. Backend loads categories from SQLite → injects them into the vision AI prompt
-7. Vision AI (`kimi-k2.6`) processes the image → returns structured JSON
-8. Response fields populate the form: amount, description, date, type, category, note
-9. User reviews and edits before saving
+6. Image auto-compressed:
+   - Resized to max **1200px** on the longest side (LANCZOS)
+   - Converted to **JPEG quality 85** (RGB, discards alpha)
+   - Output size: ~200–500 KB (down from up to 10 MB)
+7. Backend loads categories from SQLite → injects them into the vision AI prompt
+8. Vision AI (`minimax-m2.5`) processes the image → returns structured JSON
+9. Response fields populate the form: amount, description, date, type, category, note
+10. User reviews and edits before saving
 
 ---
 

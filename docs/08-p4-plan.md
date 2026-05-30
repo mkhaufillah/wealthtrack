@@ -136,9 +136,9 @@ CREATE TABLE budgets (
   │  Accept: multipart/form-data (image file)
   │
   ▼
-[OpenCode Go API — Kimi K2.6 (vision)]
+[OpenCode Go API — MiniMax M2.5 (vision)]
   │  POST https://api.opencode.ai/zen/go/v1/chat/completions
-  │  Model: kimi-k2.6
+  │  Model: minimax-m2.5
   │  Auth: Bearer OPENCODE_GO_KEY (from .env)
   │  Prompt: structured extraction
   │

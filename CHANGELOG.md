@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.3.3 — OCR Performance Optimization (2026-05-31)
+
+### Performance
+- **Model swap** — OCR vision model changed from `kimi-k2.6` to `minimax-m2.5`. Rate limit increased from 1,150 → 6,300 per 5 hours (5.5×). Model is lighter and faster for receipt parsing.
+- **Image compression** — Images are auto-resized to max 1200px on longest side (LANCZOS), converted to JPEG quality 85. Input up to 10 MB → ~200–500 KB output. Reduces upload time and API processing latency.
+
+### Dependencies
+- Added `Pillow>=10.0.0` to `requirements.txt`.
+
+### Docs
+- OCR scanner documentation updated to reflect new model, compression step, and architecture diagram.
+
 ## v0.3.2 — S&I Category Split & Reports Enhancements (2026-05-31)
 
 ### Features
