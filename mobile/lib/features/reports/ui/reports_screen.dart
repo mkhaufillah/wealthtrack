@@ -37,12 +37,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   String get _monthParam => DateFormat('yyyy-MM').format(_currentMonth);
 
-  void _loadMonth() {
+  void _loadMonth() async {
     final monthStr = _monthParam;
-    final firstDay = DateFormat('yyyy-MM-01').format(_currentMonth);
-    final lastDay = DateFormat('yyyy-MM-dd').format(
-      DateTime(_currentMonth.year, _currentMonth.month + 1, 0),
-    );
+
+    // Try to get cycle range for household & reports
+    String firstDay;
+    String lastDay;
+    try {
+      final api = ref.read(apiClientProvider);
+      final cycleResp = await api.get('/summaries/cycle-info');
+      final cycleData = cycleResp.data;
+      firstDay = cycleData['date_from'] as String;
+      lastDay = cycleData['date_to'] as String;
+    } catch (_) {
+      firstDay = DateFormat('yyyy-MM-01').format(_currentMonth);
+      lastDay = DateFormat('yyyy-MM-dd').format(
+        DateTime(_currentMonth.year, _currentMonth.month + 1, 0),
+      );
+    }
+
     ref.read(reportProvider.notifier).load(monthStr);
     ref.read(reportProvider.notifier).loadHousehold(dateFrom: firstDay, dateTo: lastDay);
 
