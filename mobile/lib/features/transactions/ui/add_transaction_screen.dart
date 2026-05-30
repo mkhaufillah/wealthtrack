@@ -143,6 +143,25 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       if (data.containsKey('type') && data['type'] == 'income') {
         _toggleType(false);
       }
+      // Auto-select category from OCR
+      if (data.containsKey('category_name') && data['category_name'] != null && (data['category_name'] as String).isNotEmpty) {
+        final catName = data['category_name'] as String;
+        final cats = _isExpense ? _expenseCategories : _incomeCategories;
+        final match = cats.where((c) => c.name == catName);
+        if (match.isNotEmpty) {
+          _selectedCategoryId = match.first.id;
+        } else {
+          // Fallback: find "Lainnya" category matching current type
+          final fallback = cats.where((c) => c.name == 'Lainnya');
+          if (fallback.isNotEmpty) {
+            _selectedCategoryId = fallback.first.id;
+          }
+        }
+      }
+      // Auto-fill note from OCR
+      if (data.containsKey('note') && data['note'] != null && (data['note'] as String).isNotEmpty) {
+        _noteCtrl.text = data['note'] as String;
+      }
       setState(() => _isScanning = false);
       if (!mounted) return;
 

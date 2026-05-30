@@ -148,9 +148,8 @@ On successful scan, form fields are auto-filled:
 - **Description** → `_descCtrl.text`
 - **Date** → `_selectedDate` (if valid date returned)
 - **Type** → toggles expense/income if `type = "income"`
-- **Note** → visible in note field
-
-Categories are NOT auto-selected — the user picks from the validated list based on `category_name` hint from OCR.
+- **Category** → auto-selected if `category_name` matches a known category; falls back to "Lainnya" with matching type if no match
+- **Note** → auto-filled into note text field
 
 ---
 
