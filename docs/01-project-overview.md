@@ -22,6 +22,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 - [Custom Billing Cycle](14-custom-billing-cycle.md) — cycle-based summaries & budgets
 - [Improvement Plan AI & OCR](15-improvement-plan-ai-ocr.md) — AI Advisor & OCR improvements roadmap
 - [OCR Scanner](16-ocr-scanner.md) — receipt scanning with vision AI
+- [Admin Category CRUD](17-admin-category-crud.md) — category management for admin
 
 
 ## Architecture

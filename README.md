@@ -49,7 +49,8 @@ docs/                  # Planning docs (agent-executable)
   ├── 13-ai-chat-history.md
   ├── 14-custom-billing-cycle.md
   ├── 15-improvement-plan-ai-ocr.md
-  └── 16-ocr-scanner.md
+  ├── 16-ocr-scanner.md
+  └── 17-admin-category-crud.md
 backend/               # FastAPI application
 mobile/                # Flutter app (Android)
 scripts/               # DB init & seed scripts

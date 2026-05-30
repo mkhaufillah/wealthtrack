@@ -1,6 +1,6 @@
 # Backend API Specification — FastAPI
 
-**See also:** [Database Schema](02-database-schema.md) · [Backend Implementation](04-backend-implementation.md) · [Flutter Mobile](05-flutter-mobile.md) · [Transfer Balance](12-transfer-balance.md) · [P4 Plan](08-p4-plan.md)
+**See also:** [Database Schema](02-database-schema.md) · [Backend Implementation](04-backend-implementation.md) · [Flutter Mobile](05-flutter-mobile.md) · [Transfer Balance](12-transfer-balance.md) · [Admin Category CRUD](17-admin-category-crud.md) · [P4 Plan](08-p4-plan.md)
 
 
 
