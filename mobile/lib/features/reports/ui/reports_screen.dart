@@ -12,6 +12,7 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/utils/category_translator.dart';
+import '../../../shared/utils/date_formatter.dart';
 import '../providers/report_provider.dart';
 import '../models/report_model.dart';
 
@@ -54,35 +55,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Future<void> _loadMonth() async {
     final monthStr = _monthParam;
 
-    // Try to get cycle range for household & reports
-    String firstDay;
-    String lastDay;
+    // Get user's cycle start day
+    int cycleDay = 1;
     try {
       final api = ref.read(apiClientProvider);
       // Use mid-month as reference so cycle changes when navigated
       final refDate = DateFormat('yyyy-MM-15').format(_currentMonth);
       final cycleResp = await api.get('/summaries/cycle-info', queryParams: {'date': refDate});
       final cycleData = cycleResp.data;
-      firstDay = cycleData['date_from'] as String;
-      lastDay = cycleData['date_to'] as String;
-      // capture cycle day for month navigation
-      _userCycleDay = cycleData['cycle_start_day'] as int? ?? 1;
-      // Build cycle label from dates (e.g. "25 Apr – 24 Mei 2026")
-      final dFrom = DateTime.tryParse(firstDay);
-      final dTo = DateTime.tryParse(lastDay);
-      if (dFrom != null && dTo != null) {
-        _cycleLabel = '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
-      } else {
-        _cycleLabel = '';
-      }
+      cycleDay = cycleData['cycle_start_day'] as int? ?? 1;
+      _userCycleDay = cycleDay;
     } catch (_) {
-      _cycleLabel = '';
       _userCycleDay = 1;
-      firstDay = DateFormat('yyyy-MM-01').format(_currentMonth);
-      lastDay = DateFormat('yyyy-MM-dd').format(
-        DateTime(_currentMonth.year, _currentMonth.month + 1, 0),
-      );
     }
+
+    // Compute range locally using getCycleRangeForMonth — NOT from API.
+    // API's date_from/date_to uses get_cycle_range (cycle containing ref date),
+    // but reports need get_cycle_range_for_month (period for the month label).
+    // These differ for D1-D15 (get_cycle_range shifts forward one month).
+    final (dFrom, dTo) = getCycleRangeForMonth(monthStr, cycleDay);
+    final firstDay = dFrom.toIso8601String();
+    final lastDay = dTo.toIso8601String();
+
+    // Build cycle label from dates (e.g. "25 Apr – 24 Mei 2026")
+    _cycleLabel = '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
 
     ref.read(reportProvider.notifier).load(monthStr, dateFrom: firstDay, dateTo: lastDay);
     ref.read(reportProvider.notifier).loadHousehold(dateFrom: firstDay, dateTo: lastDay);

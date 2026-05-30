@@ -57,19 +57,27 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       final refDate = DateFormat('yyyy-MM-15').format(_currentMonth);
       final resp = await api.get('/summaries/cycle-info', queryParams: {'date': refDate});
       final data = resp.data;
-      final dFrom = DateTime.tryParse(data['date_from'] as String);
-      final dTo = DateTime.tryParse(data['date_to'] as String);
-      if (dFrom != null && dTo != null && mounted) {
-        setState(() {
-          _cycleLabel =
-              '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
-          _userCycleDay = data['cycle_start_day'] as int? ?? 1;
-          _cycleDateFrom = dFrom.toIso8601String();
-          _cycleDateTo = dTo.toIso8601String();
-        });
-      }
+      final cycleStartDay = data['cycle_start_day'] as int? ?? 1;
+      if (!mounted) return;
+      setState(() {
+        _userCycleDay = cycleStartDay;
+        // Compute range locally using getCycleRangeForMonth — NOT from API.
+        // API's date_from/date_to uses get_cycle_range (cycle containing ref date),
+        // but budgets need get_cycle_range_for_month (budget period for month label).
+        // These differ for D1-D15 (get_cycle_range shifts forward one month).
+        final (dFrom, dTo) = getCycleRangeForMonth(_monthParam, cycleStartDay);
+        _cycleDateFrom = dFrom.toIso8601String();
+        _cycleDateTo = dTo.toIso8601String();
+        _cycleLabel = '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
+      });
     } catch (_) {
-      // fallback: keep defaults
+      if (!mounted) return;
+      setState(() {
+        _cycleLabel = '';
+        _userCycleDay = 1;
+        _cycleDateFrom = null;
+        _cycleDateTo = null;
+      });
     }
   }
 
@@ -319,7 +327,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   child: Text(
                     () {
                       final (from, to) = getCycleRangeForMonth(_monthParam, item.cycleOn);
-                      return '$from – $to';
+                      return '${DateFormat('dd MMM').format(from)} – ${DateFormat('dd MMM').format(to)}';
                     }(),
                     style: TextStyle(
                       fontSize: 10,

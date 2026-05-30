@@ -23,7 +23,7 @@ String formatDateRelative(String isoDate) {
 
 /// Mirror of backend's get_cycle_range_for_month.
 /// Returns (startDate, endDate) for a budget month label + cycle day.
-(String, String) getCycleRangeForMonth(String month, int cycleOn) {
+(DateTime, DateTime) getCycleRangeForMonth(String month, int cycleOn) {
   final parts = month.split('-');
   final year = int.parse(parts[0]);
   final mon = int.parse(parts[1]);
@@ -31,7 +31,7 @@ String formatDateRelative(String isoDate) {
   if (cycleOn == 1) {
     final start = DateTime(year, mon, 1);
     final end = DateTime(year, mon + 1, 0);
-    return (DateFormat('dd MMM').format(start), DateFormat('dd MMM').format(end));
+    return (start, end);
   }
 
   // Cycle starts at cycleOn of previous month
@@ -44,5 +44,5 @@ String formatDateRelative(String isoDate) {
   final endDay = cycleOn > endDayCap ? endDayCap : cycleOn;
   final end = DateTime(year, mon, endDay).subtract(const Duration(days: 1));
 
-  return (DateFormat('dd MMM').format(start), DateFormat('dd MMM').format(end));
+  return (start, end);
 }
