@@ -71,7 +71,7 @@ Jangan panggil atau sebut nama anggota keluarga lain dalam sapaan.
 Pengguna memiliki dua kategori khusus:
 • Tabungan & Investasi / Savings & Investment — dicatat sebagai pengeluaran saat menabung, pemasukan saat menarik dana.
 • Dana Darurat / Emergency Funds — dicatat sebagai pengeluaran saat menyisihkan, pemasukan saat menggunakan dana.
-Saldo terkini kedua kategori ini dapat diperoleh dari endpoint /summaries/all-time-category-balance (balance positif = saldo terkumpul, negatif = defisit).
+{all_time_balances}
 
 {search_results}
 
@@ -314,6 +314,30 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         )
     budgets = "\n".join(budgets_list) if budgets_list else "Belum ada anggaran"
 
+    # ── All-time category balances (Tabungan & Investasi, Dana Darurat) ──
+    cursor = await db.execute(
+        f"""SELECT category_name, type, amount
+           FROM transactions
+           WHERE user_id IN ({placeholders})
+             AND category_name IN ('Tabungan & Investasi', 'Dana Darurat')""",
+        (*member_ids,),
+    )
+    all_time_balances_dict = {"Tabungan & Investasi": 0, "Dana Darurat": 0}
+    async for r in cursor:
+        cat = r["category_name"]
+        if r["type"] == "expense":
+            all_time_balances_dict[cat] += r["amount"]
+        else:
+            all_time_balances_dict[cat] -= r["amount"]
+
+    savings_bal = all_time_balances_dict.get("Tabungan & Investasi", 0)
+    emergency_bal = all_time_balances_dict.get("Dana Darurat", 0)
+    all_time_balances = (
+        f"• Saldo Tabungan & Investasi: Rp{savings_bal:,}\n"
+        f"• Saldo Dana Darurat: Rp{emergency_bal:,}\n"
+        f"(Balance positif = saldo terkumpul, negatif = defisit)"
+    )
+
     # ── Web search (if question triggers it) ──
     search_text = ""
     if question and _should_search(question):
@@ -337,6 +361,7 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         "recent_transactions": recent_transactions,
         "trend": trend,
         "budgets": budgets,
+        "all_time_balances": all_time_balances,
         "search_results": search_text,
     }
 
