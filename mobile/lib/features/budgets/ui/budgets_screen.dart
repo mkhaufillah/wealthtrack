@@ -363,6 +363,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               Expanded(
                 child: Text(item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              ),
               Text(formatCurrency(item.total),
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.warning)),
             ],

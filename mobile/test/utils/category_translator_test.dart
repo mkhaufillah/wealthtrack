@@ -3,77 +3,76 @@ import 'package:wealthtrack/shared/utils/category_translator.dart';
 
 void main() {
   group('translateCategory', () {
-    test('translates expense category', () {
-      expect(translateCategory('Makanan & Minuman'), 'Food & Drinks');
+    test('returns input for expense category', () {
+      expect(translateCategory('Makanan & Minuman'), 'Makanan & Minuman');
     });
 
-    test('translates transport category', () {
-      expect(translateCategory('Transportasi & Bensin'), 'Transport & Fuel');
+    test('returns input for transport category', () {
+      expect(translateCategory('Transportasi & Bensin'), 'Transportasi & Bensin');
     });
 
-    test('translates baby category', () {
-      expect(translateCategory('Kebutuhan Bayi/Anak'), 'Baby & Child Needs');
+    test('returns input for baby category', () {
+      expect(translateCategory('Kebutuhan Bayi/Anak'), 'Kebutuhan Bayi/Anak');
     });
 
-    test('translates income category', () {
-      expect(translateCategory('Gaji'), 'Salary');
+    test('returns input for income category', () {
+      expect(translateCategory('Gaji'), 'Gaji');
     });
 
-    test('translates freelance', () {
+    test('returns input for freelance', () {
       expect(translateCategory('Freelance'), 'Freelance');
     });
 
-    test('translates daily shopping', () {
-      expect(translateCategory('Belanja Harian'), 'Daily Shopping');
+    test('returns input for daily shopping', () {
+      expect(translateCategory('Belanja Harian'), 'Belanja Harian');
     });
 
-    test('translates entertainment', () {
-      expect(translateCategory('Hiburan'), 'Entertainment');
+    test('returns input for entertainment', () {
+      expect(translateCategory('Hiburan'), 'Hiburan');
     });
 
-    test('translates bills category', () {
-      expect(translateCategory('Tagihan & Cicilan'), 'Bills & Installments');
+    test('returns input for bills category', () {
+      expect(translateCategory('Tagihan & Cicilan'), 'Tagihan & Cicilan');
     });
 
-    test('translates health category', () {
-      expect(translateCategory('Kesehatan'), 'Health');
+    test('returns input for health category', () {
+      expect(translateCategory('Kesehatan'), 'Kesehatan');
     });
 
-    test('translates education category', () {
-      expect(translateCategory('Pendidikan'), 'Education');
+    test('returns input for education category', () {
+      expect(translateCategory('Pendidikan'), 'Pendidikan');
     });
 
-    test('translates savings category', () {
-      expect(translateCategory('Tabungan & Investasi'), 'Savings & Investment');
+    test('returns input for savings category', () {
+      expect(translateCategory('Tabungan & Investasi'), 'Tabungan & Investasi');
     });
 
-    test('translates investment', () {
-      expect(translateCategory('Investasi'), 'Investment');
+    test('returns input for investment', () {
+      expect(translateCategory('Investasi'), 'Investasi');
     });
 
-    test('translates bonus', () {
+    test('returns input for bonus', () {
       expect(translateCategory('Bonus & THR'), 'Bonus & THR');
     });
 
-    test('translates lainnya expense', () {
-      expect(translateCategory('Lainnya'), 'Other');
+    test('returns input for lainnya expense', () {
+      expect(translateCategory('Lainnya'), 'Lainnya');
     });
 
-    test('translates lainnya income', () {
-      // Same Indonesian word for both expense and income
-      expect(translateCategory('Lainnya'), 'Other');
+    test('returns input for lainnya income', () {
+      expect(translateCategory('Lainnya'), 'Lainnya');
     });
 
-    test('translates transfer category', () {
+    test('returns input for transfer category', () {
       expect(translateCategory('Transfer'), 'Transfer');
     });
 
-    test('translates household needs', () {
-      expect(translateCategory('Kebutuhan Rumah Tangga'), 'Household Needs');
+    test('returns input for household needs', () {
+      expect(translateCategory('Kebutuhan Rumah Tangga'), 'Kebutuhan Rumah Tangga');
     });
 
-    test('translates household income', () {
-      expect(translateCategory('Penghasilan Rumah Tangga'), 'Household Income');
+    test('returns input for household income', () {
+      expect(translateCategory('Penghasilan Rumah Tangga'), 'Penghasilan Rumah Tangga');
     });
 
     test('returns original for unknown category', () {
@@ -84,8 +83,7 @@ void main() {
       expect(translateCategory(''), '');
     });
 
-    test('is case sensitive - exact match required', () {
-      // Map keys are exact case, so wrong case falls through
+    test('is identity function', () {
       expect(translateCategory('makanan & minuman'), 'makanan & minuman');
     });
   });

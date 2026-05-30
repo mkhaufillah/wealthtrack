@@ -213,6 +213,7 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
+            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -236,6 +237,7 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
+            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -261,6 +263,7 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
+            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -286,6 +289,7 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
+            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -309,6 +313,7 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
+            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -337,6 +342,7 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
+            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -362,6 +368,7 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
+            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -385,6 +392,7 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
+            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
