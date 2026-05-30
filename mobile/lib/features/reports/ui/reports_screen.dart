@@ -156,22 +156,40 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Reports')),
-      body: RefreshIndicator(
-        onRefresh: () async => _loadMonth(),
-        child: Column(
-          children: [
-            _buildMonthPicker(),
-            Expanded(
-              child: state.isLoading
-                  ? const LoadingIndicator()
-                  : state.error != null
-                      ? ErrorDisplay(message: state.error!, onRetry: _loadMonth)
-                      : state.monthly != null
-                          ? _buildContent(state)
-                          : const LoadingIndicator(),
-            ),
-          ],
-        ),
+      body: Column(
+        children: [
+          _buildMonthPicker(),
+          Expanded(
+            child: state.isLoading
+                ? RefreshIndicator(
+                    onRefresh: () async => _loadMonth(),
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [SizedBox(height: 300, child: Center(child: CircularProgressIndicator()))],
+                    ),
+                  )
+                : state.error != null
+                    ? RefreshIndicator(
+                        onRefresh: () async => _loadMonth(),
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [SizedBox(height: 300, child: ErrorDisplay(message: state.error!, onRetry: _loadMonth))],
+                        ),
+                      )
+                    : state.monthly != null
+                        ? RefreshIndicator(
+                            onRefresh: () async => _loadMonth(),
+                            child: _buildContent(state),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: () async => _loadMonth(),
+                            child: ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: const [SizedBox(height: 300, child: Center(child: CircularProgressIndicator()))],
+                            ),
+                          ),
+          ),
+        ],
       ),
     );
   }
