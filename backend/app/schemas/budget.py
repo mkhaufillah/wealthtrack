@@ -28,3 +28,15 @@ class BudgetSummaryItem(BaseModel):
     percentage: float
     remaining: int
     cycle_on: int
+
+
+class UnbudgetedExpense(BaseModel):
+    category_id: int
+    category_name: str
+    category_icon: str
+    total: int
+
+
+class BudgetSummaryResponse(BaseModel):
+    items: list[BudgetSummaryItem]
+    uncategorized_expenses: list[UnbudgetedExpense] = []

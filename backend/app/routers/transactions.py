@@ -460,7 +460,7 @@ async def transfer_balance(
         cursor = await db.execute(
             "INSERT INTO transactions (type, amount, category_id, category_name, description, date, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
             ("expense", t.amount, expense_cat_id, expense_cat_name,
-             f"Transfer ke {recipient_name}", req.date, user_id),
+             f"Transfer to {recipient_name}", req.date, user_id),
         )
         expense_id = cursor.lastrowid
 
@@ -468,7 +468,7 @@ async def transfer_balance(
         cursor = await db.execute(
             "INSERT INTO transactions (type, amount, category_id, category_name, description, date, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
             ("income", t.amount, income_cat_id, income_cat_name,
-             f"Transfer dari {sender_name}", req.date, t.user_id),
+             f"Transfer from {sender_name}", req.date, t.user_id),
         )
         income_id = cursor.lastrowid
 

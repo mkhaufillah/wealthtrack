@@ -4,7 +4,8 @@ import '../../../../shared/utils/currency_formatter.dart';
 
 class BalanceCard extends StatelessWidget {
   final int balance; final int income; final int expense;
-  const BalanceCard({super.key, required this.balance, required this.income, required this.expense});
+  final String? cycleLabel;
+  const BalanceCard({super.key, required this.balance, required this.income, required this.expense, this.cycleLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +18,7 @@ class BalanceCard extends StatelessWidget {
           children: [
             const Text('💰', style: TextStyle(fontSize: 32)),
             const SizedBox(height: 8),
-            Text('Monthly Balance', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            Text(cycleLabel ?? 'Monthly Balance', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
             const SizedBox(height: 4),
             Text(formatCurrency(balance),
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),

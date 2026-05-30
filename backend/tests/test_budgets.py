@@ -231,7 +231,7 @@ class TestBudgetSummary:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert isinstance(data, list)
+        assert isinstance(data["items"], list)
 
     async def test_summary_requires_auth(self, client: AsyncClient):
         """GET /budgets/summary without token returns 401."""
@@ -256,8 +256,8 @@ class TestBudgetSummary:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert len(data) >= 1
-        item = [s for s in data if s["category_id"] == 1][0]
+        assert len(data["items"]) >= 1
+        item = [s for s in data["items"] if s["category_id"] == 1][0]
         assert item["budget_amount"] == 100000
         assert "actual_spent" in item
         assert "percentage" in item
@@ -295,7 +295,7 @@ class TestBudgetSummary:
         )
         assert resp.status_code == 200
         data = resp.json()
-        item = [s for s in data if s["category_id"] == 1][0]
+        item = [s for s in data["items"] if s["category_id"] == 1][0]
         assert item["budget_amount"] == 500000
         # actual_spent should include seed transaction (50000) + new one (30000)
         assert item["actual_spent"] >= 80000
@@ -411,7 +411,7 @@ class TestBudgetSummary:
             )
             assert resp.status_code == 200
             data = resp.json()
-            item = [s for s in data if s["category_id"] == 1][0]
+            item = [s for s in data["items"] if s["category_id"] == 1][0]
             # Only the Apr 26 transaction (50000) is inside cycle range
             # Seed cat-1 (May 25) is outside cycle range
             assert item["actual_spent"] == 50000, (

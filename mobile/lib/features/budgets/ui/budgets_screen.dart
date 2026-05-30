@@ -134,7 +134,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                                 ),
                               ),
                             )
-                          : _buildBudgetList(state.items),
+                          : _buildBudgetList(state.items, state.uncategorizedExpenses),
             ),
           ),
         ],
@@ -190,29 +190,42 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     );
   }
 
-  Widget _buildBudgetList(List<BudgetSummaryItem> items) {
+  Widget _buildBudgetList(List<BudgetSummaryItem> items, List<UnbudgetedExpense> uncategorized) {
     final totalBudget = items.fold<int>(0, (s, i) => s + i.budgetAmount);
     final totalSpent = items.fold<int>(0, (s, i) => s + i.actualSpent);
     final totalRemaining = items.fold<int>(0, (s, i) => s + i.remaining);
+    final totalUncategorized = uncategorized.fold<int>(0, (s, i) => s + i.total);
+
+    // Extra items: summary card + budget cards + (if any) section header + each uncategorized category
+    final extraCount = uncategorized.isNotEmpty ? 1 + uncategorized.length : 0;
 
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
-      itemCount: items.length + 1,
+      itemCount: items.length + 1 + extraCount,
       itemBuilder: (_, i) {
         if (i == 0) {
           return _buildSummaryCard(totalBudget, totalSpent, totalRemaining);
         }
-        return _buildBudgetCard(items[i - 1]);
+        final budgetIndex = i - 1;
+        if (budgetIndex < items.length) {
+          return _buildBudgetCard(items[budgetIndex]);
+        }
+        // Uncategorized section
+        final uncatIndex = budgetIndex - items.length;
+        if (uncatIndex == 0) {
+          return _buildUncategorizedHeader(totalUncategorized);
+        }
+        return _buildUncategorizedItem(uncategorized[uncatIndex - 1]);
       },
     );
   }
 
   Widget _buildSummaryCard(int totalBudget, int totalSpent, int totalRemaining) {
     final state = ref.watch(budgetProvider);
-    final balance = state.viewBalance;
-    final diff = balance - totalRemaining;
-    final isOverBudgeted = totalRemaining > balance;
+    final income = state.totalIncome;
+    final diff = income - totalBudget;
+    final isOverBudgeted = totalBudget > income;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -249,7 +262,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               _summaryRow('Remaining', formatCurrency(totalRemaining),
                   totalRemaining >= 0 ? AppColors.success : AppColors.highlight),
               Divider(height: 24, color: AppColors.divider),
-              _summaryRow('Current Balance', formatCurrency(balance), AppColors.textPrimary),
+              _summaryRow('Total Income', formatCurrency(income), AppColors.textPrimary),
               const SizedBox(height: 4),
               Row(
                 children: [
@@ -262,9 +275,9 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   Expanded(
                     child: Text(
                       isOverBudgeted
-                          ? 'Budget exceeds balance by ${formatCurrency(totalRemaining - balance)}'
+                          ? 'Budget exceeds income by ${formatCurrency(totalBudget - income)}'
                           : diff >= 0
-                              ? 'Balance covers all budgets (${formatCurrency(diff)} extra)'
+                              ? 'Income covers all budgets (${formatCurrency(diff)} extra)'
                               : 'Shortfall of ${formatCurrency(-diff)}',
                       style: TextStyle(
                         fontSize: 12,
@@ -288,6 +301,76 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         Text(label, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
         Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: valueColor)),
       ],
+    );
+  }
+
+  Widget _buildUncategorizedHeader(int total) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        elevation: 0,
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('Outside Budget',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'You have spending in categories without a budget. Consider adding budgets for these categories.',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary.withOpacity(0.8)),
+              ),
+              const SizedBox(height: 12),
+              ...List.generate(1, (_) => _summaryRow(
+                'Total', formatCurrency(total), AppColors.warning,
+              )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUncategorizedItem(UnbudgetedExpense item) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Card(
+        elevation: 0,
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(item.categoryName,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              ),
+              Text(formatCurrency(item.total),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.warning)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

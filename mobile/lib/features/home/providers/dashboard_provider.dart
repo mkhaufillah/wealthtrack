@@ -7,15 +7,19 @@ class DashboardState {
   final bool isLoading; final String? error;
   final int totalIncome; final int totalExpense; final int balance;
   final List<TransactionModel> recentTransactions; final int totalTransactions;
+  final String? dateFrom; final String? dateTo;
   const DashboardState({this.isLoading = false, this.error, this.totalIncome = 0, this.totalExpense = 0,
-    this.balance = 0, this.recentTransactions = const [], this.totalTransactions = 0});
+    this.balance = 0, this.recentTransactions = const [], this.totalTransactions = 0,
+    this.dateFrom, this.dateTo});
 
   DashboardState copyWith({bool? isLoading, String? error, int? totalIncome, int? totalExpense,
-    int? balance, List<TransactionModel>? recentTransactions, int? totalTransactions}) =>
+    int? balance, List<TransactionModel>? recentTransactions, int? totalTransactions,
+    String? dateFrom, String? dateTo}) =>
     DashboardState(isLoading: isLoading ?? this.isLoading, error: error ?? this.error,
       totalIncome: totalIncome ?? this.totalIncome, totalExpense: totalExpense ?? this.totalExpense,
       balance: balance ?? this.balance, recentTransactions: recentTransactions ?? this.recentTransactions,
-      totalTransactions: totalTransactions ?? this.totalTransactions);
+      totalTransactions: totalTransactions ?? this.totalTransactions,
+      dateFrom: dateFrom ?? this.dateFrom, dateTo: dateTo ?? this.dateTo);
 }
 
 class DashboardNotifier extends StateNotifier<DashboardState> {
@@ -35,6 +39,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         totalIncome: summary['total_income'] ?? 0, totalExpense: summary['total_expense'] ?? 0,
         balance: summary['balance'] ?? 0, recentTransactions: txns,
         totalTransactions: txnRes.data['meta']['total'] ?? 0,
+        dateFrom: summary['date_from'] as String?,
+        dateTo: summary['date_to'] as String?,
       );
     } catch (e) { state = state.copyWith(isLoading: false, error: _api.handleError(e).toString()); }
   }

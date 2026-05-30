@@ -61,3 +61,25 @@ class BudgetSummaryItem {
         cycleOn: json['cycle_on'] as int? ?? 1,
       );
 }
+
+class UnbudgetedExpense {
+  final int categoryId;
+  final String categoryName;
+  final String categoryIcon;
+  final int total;
+
+  UnbudgetedExpense({
+    required this.categoryId,
+    required this.categoryName,
+    required this.categoryIcon,
+    required this.total,
+  });
+
+  factory UnbudgetedExpense.fromJson(Map<String, dynamic> json) =>
+      UnbudgetedExpense(
+        categoryId: json['category_id'] as int,
+        categoryName: json['category_name'] as String? ?? '',
+        categoryIcon: json['category_icon'] as String? ?? '📦',
+        total: json['total'] as int,
+      );
+}

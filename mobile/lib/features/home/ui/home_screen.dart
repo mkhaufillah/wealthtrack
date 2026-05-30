@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../providers/dashboard_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
@@ -16,6 +17,15 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  String _formatDate(String iso) {
+    try {
+      final dt = DateTime.parse(iso);
+      return DateFormat('dd MMM').format(dt);
+    } catch (_) {
+      return iso;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +57,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         balance: state.balance,
                         income: state.totalIncome,
                         expense: state.totalExpense,
+                        cycleLabel: state.dateFrom != null && state.dateTo != null
+                            ? '${_formatDate(state.dateFrom!)} – ${_formatDate(state.dateTo!)}'
+                            : null,
                       ),
                       const SizedBox(height: 24),
                       _buildAiCard(),

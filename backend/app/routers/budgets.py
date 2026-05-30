@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.database import get_db
 from app.core.security import get_current_user
-from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetSummaryItem
+from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetSummaryItem, BudgetSummaryResponse, UnbudgetedExpense
 from app.utils.cycle import get_cycle_range_for_month
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
@@ -117,10 +117,12 @@ async def delete_budget(
     await db.commit()
 
 
-@router.get("/summary", response_model=list[BudgetSummaryItem])
+@router.get("/summary", response_model=BudgetSummaryResponse)
 async def budget_summary(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
     use_cycle: bool = Query(False, description="Use user's billing cycle for actuals date range"),
+    d_from_override: Optional[str] = Query(None, description="Override date_from for non-budget expense query"),
+    d_to_override: Optional[str] = Query(None, description="Override date_to for non-budget expense query"),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -130,6 +132,11 @@ async def budget_summary(
     Previously all budgets shared the first budget's cycle_on, causing
     confusing behavior where only the highest-budget category's cycle
     affected the summary (typically Food & Drinks).
+
+    Also returns uncategorized_expenses — expenses in categories that
+    don't have a budget, so users are aware of spending outside their
+    budget plan. Uses the overall cycle range (d_from_override/d_to_override
+    or user's cycle_start_day) for this query.
     """
     # Get all budgets for this month
     cursor = await db.execute(
@@ -182,4 +189,80 @@ async def budget_summary(
             cycle_on=cycle_on,
         ))
 
-    return results
+    # ── Unbudgeted expenses ──
+    # Determine overall date range for non-budget expense query
+    if use_cycle:
+        if d_from_override and d_to_override:
+            uncat_d_from = d_from_override
+            uncat_d_to = d_to_override
+        else:
+            # Fall back to user's cycle_start_day
+            uc = await db.execute(
+                "SELECT cycle_start_day FROM users WHERE id = ?",
+                (current_user["id"],),
+            )
+            urow = await uc.fetchone()
+            cycle_day = urow["cycle_start_day"] if urow else 1
+            from datetime import date as dt_date
+            uf, ut = get_cycle_range_for_month(month, cycle_day)
+            uncat_d_from = uf.isoformat()
+            uncat_d_to = ut.isoformat()
+    else:
+        uncat_d_from = f"{month}-01"
+        # Last day of month
+        import calendar
+        y, mo = map(int, month.split("-"))
+        last_day = calendar.monthrange(y, mo)[1]
+        uncat_d_to = f"{month}-{last_day:02d}"
+
+    # Get budgeted category IDs
+    budgeted_cat_ids = tuple(r["category_id"] for r in rows)
+
+    uncategorized = []
+    if budgeted_cat_ids:
+        placeholders = ",".join("?" * len(budgeted_cat_ids))
+        ucur = await db.execute(
+            f"""SELECT t.category_id, c.name AS category_name, c.icon AS category_icon,
+                       CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) AS total
+                FROM transactions t
+                LEFT JOIN categories c ON t.category_id = c.id
+                WHERE t.user_id = ?
+                  AND t.type = 'expense'
+                  AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+                  AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+                  AND t.category_id NOT IN ({placeholders})
+                GROUP BY t.category_id
+                ORDER BY total DESC""",
+            (current_user["id"], uncat_d_from, uncat_d_to, *budgeted_cat_ids),
+        )
+        for urow in await ucur.fetchall():
+            uncategorized.append(UnbudgetedExpense(
+                category_id=urow["category_id"],
+                category_name=urow["category_name"] or "Unknown",
+                category_icon=urow["category_icon"] or "📦",
+                total=urow["total"],
+            ))
+    else:
+        # No budgets at all — all expense categories are uncategorized
+        ucur = await db.execute(
+            """SELECT t.category_id, c.name AS category_name, c.icon AS category_icon,
+                      CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) AS total
+               FROM transactions t
+               LEFT JOIN categories c ON t.category_id = c.id
+               WHERE t.user_id = ?
+                 AND t.type = 'expense'
+                 AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+                 AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+               GROUP BY t.category_id
+               ORDER BY total DESC""",
+            (current_user["id"], uncat_d_from, uncat_d_to),
+        )
+        for urow in await ucur.fetchall():
+            uncategorized.append(UnbudgetedExpense(
+                category_id=urow["category_id"],
+                category_name=urow["category_name"] or "Unknown",
+                category_icon=urow["category_icon"] or "📦",
+                total=urow["total"],
+            ))
+
+    return BudgetSummaryResponse(items=results, uncategorized_expenses=uncategorized)

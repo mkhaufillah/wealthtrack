@@ -8,30 +8,38 @@ class BudgetState {
   final bool isLoading;
   final String? error;
   final List<BudgetSummaryItem> items;
+  final List<UnbudgetedExpense> uncategorizedExpenses;
   final String month;
   final int viewBalance;
+  final int totalIncome;
 
   const BudgetState({
     this.isLoading = false,
     this.error,
     this.items = const [],
+    this.uncategorizedExpenses = const [],
     this.month = '',
     this.viewBalance = 0,
+    this.totalIncome = 0,
   });
 
   BudgetState copyWith({
     bool? isLoading,
     String? error,
     List<BudgetSummaryItem>? items,
+    List<UnbudgetedExpense>? uncategorizedExpenses,
     String? month,
     int? viewBalance,
+    int? totalIncome,
   }) =>
       BudgetState(
         isLoading: isLoading ?? this.isLoading,
         error: error ?? this.error,
         items: items ?? this.items,
+        uncategorizedExpenses: uncategorizedExpenses ?? this.uncategorizedExpenses,
         month: month ?? this.month,
         viewBalance: viewBalance ?? this.viewBalance,
+        totalIncome: totalIncome ?? this.totalIncome,
       );
 }
 
@@ -52,10 +60,12 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
     state = state.copyWith(isLoading: true, error: null, month: month);
     try {
-      final items = await _repo.getSummary(month);
+      final result = await _repo.getSummary(month,
+          dateFrom: effectiveDateFrom, dateTo: effectiveDateTo);
 
       // Fetch balance for the viewed month's date range
       int balance = 0;
+      int income = 0;
       if (effectiveDateFrom != null && effectiveDateTo != null) {
         try {
           final monthlyRes = await _api.get('/summaries/monthly', queryParams: {
@@ -63,12 +73,19 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
             'd_to_override': effectiveDateTo,
           });
           balance = monthlyRes.data['balance'] as int? ?? 0;
+          income = monthlyRes.data['total_income'] as int? ?? 0;
         } catch (_) {
           balance = 0;
         }
       }
 
-      state = BudgetState(items: items, month: month, viewBalance: balance);
+      state = BudgetState(
+        items: result.items,
+        uncategorizedExpenses: result.uncategorizedExpenses,
+        month: month,
+        viewBalance: balance,
+        totalIncome: income,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _api.handleError(e).toString());
     }

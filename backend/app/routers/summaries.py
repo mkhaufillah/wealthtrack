@@ -437,10 +437,13 @@ async def current_month_summary(
     if use_cycle:
         cycle_start = await _get_cycle_start_day(db, current_user["id"])
         d_from, d_to = get_cycle_range(today, cycle_start)
-        return await _single_month(
+        result = await _single_month(
             f"{d_from.year}-{d_from.month:02d}", today, db, current_user,
             d_from_override=d_from, d_to_override=d_to,
         )
+        result["date_from"] = d_from.isoformat()
+        result["date_to"] = d_to.isoformat()
+        return result
     return await monthly_summary(month=None, db=db, current_user=current_user, d_from_override=None, d_to_override=None)
 
 
