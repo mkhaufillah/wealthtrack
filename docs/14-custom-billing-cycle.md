@@ -79,7 +79,7 @@ All summary endpoints now accept `?use_cycle=true`:
 | `GET /summaries/monthly` | Calendar month | Cycle range |
 | `GET /summaries/household` | Explicit dates | Cycle range if no dates |
 | `GET /summaries/cycle-info` | — | Returns `{cycle_start_day, date_from, date_to}` |
-| `GET /budgets/summary` | Calendar month dates | Cycle-aware actuals with `?use_cycle=true` |
+| `GET /budgets/summary` | Calendar month dates | Cycle-aware actuals with `?use_cycle=true`. Returns `{"items","uncategorized_expenses"}` — each budget uses own `cycle_on`. `uncategorized_expenses` shows spending outside budget. |
 
 ### Profile Update
 
@@ -103,13 +103,14 @@ The `_build_context()` function now:
 ### Backend
 | File | Change |
 |------|--------|
-| `backend/app/migrate_db.py` | Auto-migration for `cycle_start_day` column + budget month migration |
+| `backend/app/migrate_db.py` | Auto-migration for `cycle_start_day` column + budget month migration (section #7 decrement removed 2026-05-30 — was non-idempotent, ran every deploy) |
 | `backend/app/utils/cycle.py` | **New** — `get_cycle_range()` + `get_cycle_range_for_month()` utilities |
 | `backend/app/routers/auth.py` | Accept `cycle_start_day` in PUT /me + GET /me |
 | `backend/app/schemas/auth.py` | `UpdateProfileIn.cycle_start_day` (Optional[int], ge=1, le=28) |
 | `backend/app/routers/summaries.py` | All endpoints: `use_cycle` param, `get_cycle_range()`, `cycle-info` endpoint |
 | `backend/app/routers/ai_advisor.py` | `_build_context()` uses cycle range, injects cycle label in prompt |
-| `backend/app/routers/budgets.py` | `/summary` — `?use_cycle=true` for cycle-aware actuals date range |
+| `backend/app/routers/budgets.py` | `/summary` — cycle-aware with `?use_cycle=true`. Each budget uses its own `cycle_on`. Response: `{"items","uncategorized_expenses"}` showing spending outside budget. |
+| `backend/app/routers/transactions.py` | Transfer description: "Transfer to/from" instead of "Transfer ke/dari" for English consistency. |
 | `backend/app/core/config.py` | Env file resolved by absolute path, not relative CWD |
 
 ### Mobile (Flutter)
@@ -119,12 +120,14 @@ The `_build_context()` function now:
 | `lib/features/auth/data/auth_repository.dart` | `updateProfile()` accepts optional `cycleStartDay` |
 | `lib/features/auth/providers/auth_provider.dart` | Same — propagate `cycleStartDay` |
 | `lib/features/profile/ui/profile_screen.dart` | +Billing Cycle section, grid picker (1–28), `_saveCycleDay()`, dark mode fix |
-| `lib/features/home/providers/dashboard_provider.dart` | Pass `use_cycle=true` to `/current-month` |
+| `lib/features/home/providers/dashboard_provider.dart` | Pass `use_cycle=true` to `/current-month`. Store `dateFrom`/`dateTo` from response. |
+| `lib/features/home/ui/widgets/balance_card.dart` | Accept `cycleLabel`, show cycle range (e.g. "25 May – 24 Jun") instead of "Monthly Balance". |
+| `lib/features/home/ui/home_screen.dart` | Format `dateFrom`/`dateTo` into cycle label + pass to BalanceCard. |
 | `lib/features/reports/data/report_repository.dart` | Pass `use_cycle=true` to `/monthly` + trend |
 | `lib/features/reports/ui/reports_screen.dart` | Compute cycle range locally, cycle label, `_maxMonth()` for start-month logic |
-| `lib/features/budgets/data/budget_repository.dart` | Pass `use_cycle=true` to `/summary` |
-| `lib/features/budgets/ui/budgets_screen.dart` | Compute cycle range locally, date range badge, `_maxMonth()` start-month logic |
-| `lib/features/budgets/providers/budget_provider.dart` | Preserve date range for balance fetch across create/delete |
+| `lib/features/budgets/data/budget_repository.dart` | Pass `use_cycle=true` to `/summary`. Return `BudgetSummaryResult` with `items` + `uncategorizedExpenses`. Accept `d_from_override`/`d_to_override` for non-budget expense scope. |
+| `lib/features/budgets/ui/budgets_screen.dart` | Compute cycle range locally, date range badge, `_maxMonth()` start-month logic. +"Outside Budget" section for non-budget expenses. Budget overview compares `totalBudget > totalIncome`. |
+| `lib/features/budgets/providers/budget_provider.dart` | Preserve date range for balance fetch across create/delete. Store `uncategorizedExpenses` + `totalIncome` from monthly summary. |
 | `lib/shared/utils/date_formatter.dart` | +`getCycleRangeForMonth()` — mirror backend |
 
 ### Cron
@@ -144,7 +147,7 @@ The `_build_context()` function now:
 
 | Suite | Count | Status |
 |-------|-------|--------|
-| Backend (pytest) | **162** | ✅ All pass (7 new cycle tests) |
+| Backend (pytest) | **162** | ✅ All pass |
 | Flutter (flutter test) | **237** | ✅ All pass |
 
 ---
