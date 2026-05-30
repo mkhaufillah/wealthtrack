@@ -702,3 +702,70 @@ Create `docs/10-custom-billing-cycle.md` with architecture diagram, file changes
 git add docs/10-custom-billing-cycle.md
 git commit -m "docs: add custom billing cycle documentation"
 ```
+
+---
+
+## Task 11: AI Advisor — inject cycle context for accurate recommendations
+
+**Objective:** AI Financial Advisor (`/api/v1/ai/advise`) must use the user's billing cycle when querying financial data, so recommendations reflect the correct period — not calendar month.
+
+**Why:** Without this, user sets cycle_start_day=25 but AI still reads Jan 1–31 instead of Jan 25–Feb 24. All balance, income, expense, category breakdown, and trend data are wrong.
+
+**Files:**
+- Modify: `backend/app/routers/ai_advisor.py`
+
+**Changes needed in `_build_context()`:**
+
+```python
+# Step 1: Read user's cycle_start_day from DB
+cursor = await db.execute(
+    "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
+    (user_id,),
+)
+row = await cursor.fetchone()
+cycle_start_day = row["cycle_start_day"] if row else 1
+
+# Step 2: Use get_cycle_range instead of calendar month
+from app.utils.cycle import get_cycle_range
+now = datetime.now(timezone(timedelta(hours=7)))
+d_from_date, d_to_date = get_cycle_range(now.date(), cycle_start_day)
+d_from = d_from_date.isoformat()
+d_to = d_to_date.isoformat()
+
+# Step 3: Update month_display to reflect cycle range
+month_display = f"{d_from_date.strftime('%d %b')} – {d_to_date.strftime('%d %b %Y')}"
+```
+
+**Detail file:**
+| Location | Before | After |
+|----------|--------|-------|
+| `d_from` (line 88) | `f"{month}-01"` | `d_from_date.isoformat()` from `get_cycle_range()` |
+| `d_to` (line 89) | `f"{month}-31"` | `d_to_date.isoformat()` from `get_cycle_range()` |
+| `month` variable | `now.strftime("%Y-%m")` | Still used for budgets, but budgets query uses `d_from`/`d_to` |
+| `month_display` (line 87) | `now.strftime("%B %Y")` | `f"{d_from_date.strftime('%d %b')} – {d_to_date.strftime('%d %b %Y')}"` |
+| Trend (lines 122-144) | Calendar months | Keep as-is — trend can stay monthly for long-range view |
+
+**System prompt update:** `{month}` now resolves to cycle label (e.g., `"25 Apr – 24 Mei 2026"`) — no separate cycle line needed.
+
+**Step 4: Run tests**
+
+```bash
+pytest backend/tests/ -v
+# 157 tests pass (7 new cycle tests)
+```
+
+**Step 5: Commit**
+
+Combined with Flutter + cron changes:
+
+```bash
+git commit -m "feat(cycle): flutter profile picker, use_cycle providers, cron cycle, ai advisor cycle"
+```
+
+**Actual diff summary:**
+- `d_from`/`d_to` → `get_cycle_range()` with cycle_start_day from DB
+- `month` variable removed → budgets use `d_from_date.strftime("%Y-%m")`
+- `month_display` → cycle label string
+- Context dict → added `cycle_label` key
+- SYSTEM_PROMPT unchanged — `{month}` already renders cycle label
+- Trend 6 bulan tetap pakai calendar month (long-range trending)

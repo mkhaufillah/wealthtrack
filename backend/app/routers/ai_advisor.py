@@ -38,7 +38,7 @@ Jangan panggil atau sebut nama anggota keluarga lain dalam sapaan.
 
 Saat ini: {current_datetime_wib}
 
-Data Keuangan Bulan {month}:
+Data Keuangan Periode {month}:
 - Saldo: Rp{balance:,}
 - Total Pemasukan: Rp{income:,}
 - Total Pengeluaran: Rp{expense:,}
@@ -80,13 +80,24 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         member_list.append(f"{r['display_name']} ({r['role']})")
     members = ", ".join(member_list) or "Sendiri"
 
-    # Current month summary
+    # Current month summary — cycle-aware
     now = datetime.now(timezone(timedelta(hours=7)))
     current_datetime = now.strftime("%A, %d %B %Y %H:%M WIB")
-    month = now.strftime("%Y-%m")
-    month_display = now.strftime("%B %Y")
-    d_from = f"{month}-01"
-    d_to = f"{month}-31"
+
+    # Read user's cycle_start_day
+    cursor = await db.execute(
+        "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    cycle_start_day = row["cycle_start_day"] if row else 1
+
+    from app.utils.cycle import get_cycle_range
+    d_from_date, d_to_date = get_cycle_range(now.date(), cycle_start_day)
+    d_from = d_from_date.isoformat()
+    d_to = d_to_date.isoformat()
+    cycle_label = f"{d_from_date.strftime('%d %b')} – {d_to_date.strftime('%d %b %Y')}"
+    month_display = cycle_label
 
     cursor = await db.execute(
         """SELECT type, COALESCE(SUM(amount), 0) as total
@@ -153,7 +164,7 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
                AND COALESCE(t.date, substr(t.created_at,1,10)) BETWEEN ? AND ?
            WHERE b.month = ? AND b.user_id = ?
            GROUP BY b.category_name, b.budget_amount""",
-        (d_from, d_to, month, user_id),
+        (d_from, d_to, d_from_date.strftime("%Y-%m"), user_id),
     )
     budgets_list = []
     async for r in cursor:
@@ -172,6 +183,7 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         "user_name": user_name,
         "current_datetime_wib": current_datetime,
         "month": month_display,
+        "cycle_label": cycle_label,
         "income": income,
         "expense": expense,
         "balance": balance,
