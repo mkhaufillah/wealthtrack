@@ -5,12 +5,27 @@ class TransactionRepository {
   final ApiClient _client;
   TransactionRepository(this._client);
 
-  Future<Map<String, dynamic>> list({int page = 1, int perPage = 50, String? type, int? categoryId, String? dateFrom, String? dateTo}) async {
-    final params = <String, dynamic>{'page': page, 'per_page': perPage, 'sort': '-date'};
+  Future<Map<String, dynamic>> list({
+    int page = 1,
+    int perPage = 50,
+    String? type,
+    int? categoryId,
+    String? dateFrom,
+    String? dateTo,
+    String? sort,
+    String? q,
+    List<int>? categoryIds,
+  }) async {
+    final params = <String, dynamic>{'page': page, 'per_page': perPage};
+    if (sort != null) params['sort'] = sort;
     if (type != null) params['type'] = type;
     if (categoryId != null) params['category_id'] = categoryId;
     if (dateFrom != null) params['date_from'] = dateFrom;
     if (dateTo != null) params['date_to'] = dateTo;
+    if (q != null && q.isNotEmpty) params['q'] = q;
+    if (categoryIds != null && categoryIds.isNotEmpty) {
+      params['category_ids'] = categoryIds.join(',');
+    }
     try {
       final res = await _client.get('/transactions', queryParams: params);
       final txns = (res.data['data'] as List).map((e) => TransactionModel.fromJson(e)).toList();

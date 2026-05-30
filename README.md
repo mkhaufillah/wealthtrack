@@ -75,7 +75,7 @@ scripts/               # DB init & seed scripts
 ### Mobile (Flutter)
 - **Auth screens** — Login & Register with validation, password visibility toggle
 - **Dashboard** — balance card (income/expense) with cycle range label, AI Financial Advisor card, savings & emergency fund widget, recent transactions list
-- **Transactions** — list with pull-to-refresh, add/edit/delete transaction with category picker & amount field
+- **Transactions** — list with pull-to-refresh, add/edit/delete transaction with category picker & amount field, search by description, filter by type & category, sort by date/amount/name, paginated browsing
 - **Reports** — interactive charts (pie, bar, line) using fl_chart, monthly summary cards, category breakdown, daily snapshot, household split
 - **Budgets** — monthly budget tracking with progress bars and color coding, exhausted message on overspent categories, non-budget expense awareness ("Outside Budget" section)
 - **AI Advisor** — chat-like interface with streaming responses and web search

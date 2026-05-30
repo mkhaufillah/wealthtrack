@@ -119,7 +119,9 @@ async def list_transactions(
     category_id: Optional[int] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
-    sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
+    sort: str = Query("-date", pattern="^(date|-date|amount|-amount|name|-name)$"),
+    q: Optional[str] = Query(None, description="Search by description"),
+    category_ids: Optional[str] = Query(None, description="Comma-separated category IDs"),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -138,11 +140,24 @@ async def list_transactions(
         where.append("COALESCE(t.date, substr(t.created_at,1,10)) <= ?")
         params.append(date_to)
 
+    if q:
+        where.append("t.description LIKE ?")
+        params.append(f"%{q}%")
+
+    if category_ids:
+        ids = [int(x.strip()) for x in category_ids.split(",") if x.strip().isdigit()]
+        if ids:
+            placeholders = ",".join("?" for _ in ids)
+            where.append(f"t.category_id IN ({placeholders})")
+            params.extend(ids)
+
     order_map = {
         "date": "COALESCE(t.date, substr(t.created_at,1,10)) ASC",
         "-date": "COALESCE(t.date, substr(t.created_at,1,10)) DESC",
         "amount": "t.amount ASC",
         "-amount": "t.amount DESC",
+        "name": "t.description ASC",
+        "-name": "t.description DESC",
     }
     order = order_map.get(sort, "COALESCE(t.date, substr(t.created_at,1,10)) DESC")
 

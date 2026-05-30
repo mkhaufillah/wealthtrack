@@ -7,6 +7,7 @@
 - **Home Savings & Emergency Widget** — Dashboard now shows Savings & Investment and Emergency Funds balances from `/summaries/all-time-category-balance` endpoint.
 - **Budget Exhausted Message** — Overspent budget categories show an "exhausted" label when percentage ≥ 100%.
 - **Lainnya Locked** — "Lainnya" category cannot be edited or deleted via admin CRUD.
+- **Transaction Search & Filters** — Search by description, filter by type (All/Expense/Income) and multi-select categories, sort by newest/oldest/highest/lowest/name A–Z/Z–A, paginated browsing with page controls.
 
 ### Fixes
 - **category_translator.dart** — `translateCategory()` removed; category translation is now server-side via `name_en`. Flutter simply displays the field from the API response.

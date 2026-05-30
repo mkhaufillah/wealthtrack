@@ -240,10 +240,12 @@ List transactions with pagination and filters.
 | `page` | int | 1 | Page number |
 | `per_page` | int | 50 | Items per page (max 100) |
 | `type` | str | — | Filter: 'expense' or 'income' |
-| `category_id` | int | — | Filter by category |
+| `category_id` | int | — | Filter by single category |
+| `category_ids` | str | — | Filter by multiple categories (comma-separated IDs) |
+| `q` | str | — | Search by description (LIKE) |
 | `date_from` | str | — | Start date 'YYYY-MM-DD' |
 | `date_to` | str | — | End date 'YYYY-MM-DD' |
-| `sort` | str | '-date' | Sort field: 'date', '-date', 'amount', '-amount' |
+| `sort` | str | '-date' | Sort field: 'date', '-date', 'amount', '-amount', 'name', '-name' |
 
 ```json
 // Response 200

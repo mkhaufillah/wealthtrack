@@ -15,17 +15,179 @@ class TransactionListScreen extends ConsumerStatefulWidget {
 }
 
 class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
+  final _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(transactionListProvider.notifier).load());
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearch(String q) {
+    ref.read(transactionListProvider.notifier).setSearchQuery(q);
+  }
+
+  void _showSortSheet() {
+    final currentSort = ref.read(transactionListProvider).sortBy;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final options = [
+          {'value': '-date', 'label': 'Newest first'},
+          {'value': 'date', 'label': 'Oldest first'},
+          {'value': '-amount', 'label': 'Highest amount'},
+          {'value': 'amount', 'label': 'Lowest amount'},
+          {'value': 'name', 'label': 'Name A–Z'},
+          {'value': '-name', 'label': 'Name Z–A'},
+        ];
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(
+                child: Text('Sort by', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(height: 12),
+              ...options.map((opt) {
+                final selected = opt['value'] == currentSort;
+                return ListTile(
+                  leading: Icon(selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                    color: selected ? AppColors.accent : AppColors.textSecondary),
+                  title: Text(opt['label'] as String),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ref.read(transactionListProvider.notifier).setSortBy(opt['value'] as String);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCategoryFilterSheet() {
+    final notifier = ref.read(transactionListProvider.notifier);
+    final cats = notifier.categories;
+    final state = ref.read(transactionListProvider);
+    final selected = List<int>.from(state.selectedCategoryIds);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final allSelected = selected.isEmpty || selected.length == cats.length;
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Filter by Category',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      TextButton(
+                        onPressed: () {
+                          setSheetState(() {
+                            selected.clear();
+                          });
+                        },
+                        child: const Text('Clear'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Select All toggle
+                  CheckboxListTile(
+                    value: allSelected,
+                    title: const Text('All Categories', style: TextStyle(fontWeight: FontWeight.w500)),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    onChanged: (_) {
+                      setSheetState(() {
+                        if (allSelected) {
+                          selected.clear();
+                        } else {
+                          selected.clear();
+                          selected.addAll(cats.map((c) => c['id'] as int));
+                        }
+                      });
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.4),
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: cats.map((cat) {
+                        final catId = cat['id'] as int;
+                        final nameEn = cat['name_en'] as String? ?? '';
+                        final name = cat['name'] as String? ?? '';
+                        final label = nameEn.isNotEmpty ? nameEn : name;
+                        final isSelected = selected.contains(catId);
+                        return CheckboxListTile(
+                          dense: true,
+                          value: isSelected || allSelected,
+                          title: Text(label),
+                          secondary: Text(cat['icon'] as String? ?? '📦'),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          onChanged: (_) {
+                            setSheetState(() {
+                              if (isSelected) {
+                                selected.remove(catId);
+                              } else {
+                                selected.add(catId);
+                              }
+                            });
+                          },
+                        );
+                      }).cast<Widget>().toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        notifier.setCategoryFilter(selected);
+                      },
+                      child: const Text('Apply', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _showChangeOwnerSheet(int txnId, int currentOwnerId) async {
     final notifier = ref.read(transactionListProvider.notifier);
     final members = await notifier.getHouseholdMembers();
-
-    // Filter out current owner from the picker
     final available = members.where((m) => m['user_id'] != currentOwnerId).toList();
 
     if (!mounted || available.isEmpty) {
@@ -70,11 +232,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
                     child: Text(name[0].toUpperCase(),
                       style: TextStyle(
-                    color: isDark ? Colors.white : (name == 'Nahda'
-                        ? Colors.pink.shade700
-                        : Colors.blue.shade700),
-                        fontWeight: FontWeight.w600
-                      ),
+                        color: isDark ? Colors.white : (name == 'Nahda'
+                            ? Colors.pink.shade700 : Colors.blue.shade700),
+                        fontWeight: FontWeight.w600),
                     ),
                   ),
                   title: Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
@@ -89,9 +249,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         SnackBar(content: Text('Ownership transferred to $name')),
                       );
                     } else {
-                      final state = ref.read(transactionListProvider);
+                      final s = ref.read(transactionListProvider);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(state.transferError ?? 'Failed to transfer ownership')),
+                        SnackBar(content: Text(s.transferError ?? 'Failed to transfer ownership')),
                       );
                     }
                   },
@@ -137,6 +297,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(transactionListProvider);
+    final notifier = ref.read(transactionListProvider.notifier);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -151,45 +312,208 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               onPressed: () async {
                 final result = await context.push<bool>('/transactions/transfer');
                 if (result == true && mounted) {
-                  ref.read(transactionListProvider.notifier).load(refresh: true);
+                  ref.read(transactionListProvider.notifier).load();
                 }
               },
             ),
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () => ref.read(transactionListProvider.notifier).load(refresh: true),
-        child: state.isLoading
-            ? const LoadingIndicator()
-            : state.error != null
-                ? ErrorDisplay(message: state.error!, onRetry: () => ref.read(transactionListProvider.notifier).load())
-                : state.transactions.isEmpty
-                    ? CustomScrollView(
-                        physics: AlwaysScrollableScrollPhysics(),
-                        slivers: [
-                          SliverFillRemaining(
-                            child: EmptyState(message: 'No transactions yet. Add one now!'),
-                          ),
-                        ],
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
-                        itemCount: state.transactions.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 1),
-                        itemBuilder: (context, i) {
-                          final txn = state.transactions[i];
-                          return Card(
-                            elevation: 0,
-                            child: TransactionTile(
-                              transaction: txn,
-                              showActions: true,
-                              onTransferOwner: () => _showChangeOwnerSheet(txn.id, txn.user?.id ?? 0),
-                              onDelete: () => _confirmDelete(txn.id, txn.description),
-                            ),
-                          );
+      body: Column(
+        children: [
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search transactions...',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearch('');
                         },
-                      ),
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppColors.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              ),
+              onChanged: _onSearch,
+            ),
+          ),
+
+          // Filter row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  // Type filter chips
+                  _FilterChip(
+                    label: 'All',
+                    selected: state.typeFilter == 'all',
+                    onTap: () => notifier.setTypeFilter('all'),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Expense',
+                    selected: state.typeFilter == 'expense',
+                    onTap: () => notifier.setTypeFilter('expense'),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Income',
+                    selected: state.typeFilter == 'income',
+                    onTap: () => notifier.setTypeFilter('income'),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Category filter button
+                  ActionChip(
+                    avatar: Icon(Icons.category_outlined, size: 16,
+                        color: state.selectedCategoryIds.isNotEmpty ? AppColors.accent : AppColors.textSecondary),
+                    label: Text(
+                      state.selectedCategoryIds.isNotEmpty
+                          ? '${state.selectedCategoryIds.length} categories'
+                          : 'Categories',
+                      style: TextStyle(fontSize: 12,
+                          color: state.selectedCategoryIds.isNotEmpty ? AppColors.accent : AppColors.textSecondary),
+                    ),
+                    backgroundColor: AppColors.surface,
+                    onPressed: _showCategoryFilterSheet,
+                    side: BorderSide(color: AppColors.divider),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Sort button
+                  ActionChip(
+                    avatar: Icon(Icons.sort, size: 16, color: AppColors.textSecondary),
+                    label: Text(_sortLabel(state.sortBy),
+                        style: const TextStyle(fontSize: 12)),
+                    backgroundColor: AppColors.surface,
+                    onPressed: _showSortSheet,
+                    side: BorderSide(color: AppColors.divider),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Content
+          Expanded(
+            child: state.isLoading
+                ? const LoadingIndicator()
+                : state.error != null
+                    ? ErrorDisplay(
+                        message: state.error!,
+                        onRetry: () => notifier.load(),
+                      )
+                    : state.transactions.isEmpty
+                        ? CustomScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            slivers: [
+                              SliverFillRemaining(
+                                child: EmptyState(message: 'No transactions found.'),
+                              ),
+                            ],
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                            itemCount: state.transactions.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 1),
+                            itemBuilder: (context, i) {
+                              final txn = state.transactions[i];
+                              return Card(
+                                elevation: 0,
+                                child: TransactionTile(
+                                  transaction: txn,
+                                  showActions: true,
+                                  onTransferOwner: () => _showChangeOwnerSheet(txn.id, txn.user?.id ?? 0),
+                                  onDelete: () => _confirmDelete(txn.id, txn.description),
+                                ),
+                              );
+                            },
+                          ),
+          ),
+
+          // Pagination footer
+          if (state.totalPages > 1)
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                border: Border(top: BorderSide(color: AppColors.divider)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left, size: 20),
+                    onPressed: state.page > 1 ? () => notifier.prevPage() : null,
+                  ),
+                  Text(
+                    'Page ${state.page} of ${state.totalPages}',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right, size: 20),
+                    onPressed: state.page < state.totalPages ? () => notifier.nextPage() : null,
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _sortLabel(String sort) {
+    switch (sort) {
+      case '-date': return 'Newest';
+      case 'date': return 'Oldest';
+      case '-amount': return 'Highest';
+      case 'amount': return 'Lowest';
+      case 'name': return 'A–Z';
+      case '-name': return 'Z–A';
+      default: return 'Sort';
+    }
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FilterChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.accent : AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? AppColors.accent : AppColors.divider),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            color: selected ? Colors.white : AppColors.textSecondary,
+          ),
+        ),
       ),
     );
   }
