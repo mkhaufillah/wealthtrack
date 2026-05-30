@@ -362,7 +362,9 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(item.categoryName,
+                child: Text(item.categoryNameEn.isNotEmpty
+                    ? item.categoryNameEn
+                    : item.categoryName,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ),
               Text(formatCurrency(item.total),
@@ -401,7 +403,9 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(translateCategory(item.categoryName),
+                  child: Text(item.categoryNameEn.isNotEmpty
+                      ? item.categoryNameEn
+                      : translateCategory(item.categoryName),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
                 // Cycle date range badge
@@ -539,7 +543,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Budget'),
-        content: Text('Remove budget for ${translateCategory(item.categoryName)}?'),
+        content: Text('Remove budget for ${item.categoryNameEn.isNotEmpty ? item.categoryNameEn : translateCategory(item.categoryName)}?'),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
           FilledButton(
@@ -649,7 +653,9 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
                   Text(widget.existingItem!.categoryIcon, style: const TextStyle(fontSize: 18)),
                   const SizedBox(width: 10),
                   Text(
-                    translateCategory(widget.existingItem!.categoryName),
+                    widget.existingItem!.categoryNameEn.isNotEmpty
+                        ? widget.existingItem!.categoryNameEn
+                        : translateCategory(widget.existingItem!.categoryName),
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ],
@@ -665,7 +671,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
               ),
               items: widget.categories.map((c) => DropdownMenuItem(
                 value: c['id'] as int,
-                child: Text('${c['icon'] ?? '📦'}  ${translateCategory(c['name'] as String)}'),
+                child: Text('${c['icon'] ?? '📦'}  ${(c['name_en'] as String? ?? '').isNotEmpty ? (c['name_en'] as String) : translateCategory(c['name'] as String)}'),
               )).toList(),
               onChanged: (v) => setState(() => _selectedCategoryId = v),
             ),

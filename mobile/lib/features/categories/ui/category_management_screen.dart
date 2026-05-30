@@ -196,11 +196,12 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
               : RefreshIndicator(
                   onRefresh: () => ref.read(categoryManagementProvider.notifier).load(),
                   child: ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
                     children: [
                       _buildSection('Expense', expense, isDark),
                       const SizedBox(height: 24),
                       _buildSection('Income', income, isDark),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),

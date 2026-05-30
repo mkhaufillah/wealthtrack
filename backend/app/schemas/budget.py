@@ -14,6 +14,7 @@ class BudgetResponse(BaseModel):
     month: str
     category_id: int
     category_name: str
+    category_name_en: str = ''
     category_icon: str
     amount: int
 
@@ -22,6 +23,7 @@ class BudgetSummaryItem(BaseModel):
     id: int
     category_id: int
     category_name: str
+    category_name_en: str = ''
     category_icon: str
     budget_amount: int
     actual_spent: int
@@ -33,6 +35,7 @@ class BudgetSummaryItem(BaseModel):
 class UnbudgetedExpense(BaseModel):
     category_id: int
     category_name: str
+    category_name_en: str = ''
     category_icon: str
     total: int
 

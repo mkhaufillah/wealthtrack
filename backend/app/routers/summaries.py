@@ -58,7 +58,7 @@ async def daily_summary(
             expense = r["total"]
 
     cursor = await db.execute(
-        """SELECT c.id, c.name, c.icon, SUM(t.amount) as total, COUNT(*) as count
+        """SELECT c.id, c.name, c.icon, c.name_en AS category_name_en, SUM(t.amount) as total, COUNT(*) as count
            FROM transactions t
            JOIN categories c ON t.category_id = c.id
            WHERE t.user_id = ?
@@ -76,6 +76,7 @@ async def daily_summary(
             {
                 "category_id": r["id"],
                 "category_name": r["name"],
+                "category_name_en": r["category_name_en"] or "",
                 "icon": r["icon"] or "",
                 "total": int(r["total"]),
                 "count": r["count"],
@@ -199,7 +200,7 @@ async def household_summary(
             expense = r["total"]
 
     cursor = await db.execute(
-        """SELECT c.id, c.name, c.icon, SUM(t.amount) as total, COUNT(*) as count
+        """SELECT c.id, c.name, c.icon, c.name_en AS category_name_en, SUM(t.amount) as total, COUNT(*) as count
            FROM transactions t
            JOIN categories c ON t.category_id = c.id
            JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
@@ -217,6 +218,7 @@ async def household_summary(
             {
                 "category_id": r["id"],
                 "category_name": r["name"],
+                "category_name_en": r["category_name_en"] or "",
                 "icon": r["icon"] or "",
                 "total": int(r["total"]),
                 "count": r["count"],
@@ -335,7 +337,7 @@ async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_u
             expense = r["total"]
 
     cursor = await db.execute(
-        """SELECT c.id, c.name, c.icon, SUM(t.amount) as total, COUNT(*) as count
+        """SELECT c.id, c.name, c.icon, c.name_en AS category_name_en, SUM(t.amount) as total, COUNT(*) as count
            FROM transactions t JOIN categories c ON t.category_id = c.id
            WHERE t.user_id = ?
              AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
@@ -349,6 +351,7 @@ async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_u
         pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
         categories.append({
             "category_id": r["id"], "category_name": r["name"],
+            "category_name_en": r["category_name_en"] or "",
             "icon": r["icon"] or "", "total": int(r["total"]),
             "count": r["count"], "percentage": pct,
         })

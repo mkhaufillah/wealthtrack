@@ -17,8 +17,9 @@ async def list_budgets(
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
-        """SELECT b.id, b.month, b.category_id, b.category_name, b.budget_amount,
-                  c.icon AS category_icon
+            """SELECT b.id, b.month, b.category_id, b.category_name, b.budget_amount,
+                  c.icon AS category_icon,
+                  c.name_en AS category_name_en
            FROM budgets b
            LEFT JOIN categories c ON b.category_id = c.id
            WHERE b.month = ? AND b.user_id = ?
@@ -32,6 +33,7 @@ async def list_budgets(
             month=r["month"],
             category_id=r["category_id"],
             category_name=r["category_name"],
+            category_name_en=r["category_name_en"] or "",
             category_icon=r["category_icon"] or "📦",
             amount=r["budget_amount"],
         )
@@ -47,7 +49,7 @@ async def create_or_update_budget(
 ):
     # Validate category exists
     cursor = await db.execute(
-        "SELECT id, name, icon FROM categories WHERE id = ?", (data.category_id,)
+        "SELECT id, name, name_en, icon FROM categories WHERE id = ?", (data.category_id,)
     )
     cat = await cursor.fetchone()
     if not cat:
@@ -96,6 +98,7 @@ async def create_or_update_budget(
         month=data.month,
         category_id=data.category_id,
         category_name=cat["name"],
+        category_name_en=cat["name_en"] or "",
         category_icon=cat["icon"] or "📦",
         amount=data.amount,
     )
@@ -141,7 +144,8 @@ async def budget_summary(
     # Get all budgets for this month
     cursor = await db.execute(
         """SELECT b.id, b.category_id, b.category_name, b.budget_amount, b.cycle_on,
-                  c.icon AS category_icon
+                  c.icon AS category_icon,
+                  c.name_en AS category_name_en
            FROM budgets b
            LEFT JOIN categories c ON b.category_id = c.id
            WHERE b.month = ? AND b.user_id = ?
@@ -181,6 +185,7 @@ async def budget_summary(
             id=r["id"],
             category_id=r["category_id"],
             category_name=r["category_name"],
+            category_name_en=r["category_name_en"] or "",
             category_icon=r["category_icon"] or "📦",
             budget_amount=budget_amount,
             actual_spent=actual_spent,
@@ -223,6 +228,7 @@ async def budget_summary(
         placeholders = ",".join("?" * len(budgeted_cat_ids))
         ucur = await db.execute(
             f"""SELECT t.category_id, c.name AS category_name, c.icon AS category_icon,
+                       c.name_en AS category_name_en,
                        CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) AS total
                 FROM transactions t
                 LEFT JOIN categories c ON t.category_id = c.id
@@ -239,6 +245,7 @@ async def budget_summary(
             uncategorized.append(UnbudgetedExpense(
                 category_id=urow["category_id"],
                 category_name=urow["category_name"] or "Unknown",
+                category_name_en=urow["category_name_en"] or "",
                 category_icon=urow["category_icon"] or "📦",
                 total=urow["total"],
             ))
@@ -246,6 +253,7 @@ async def budget_summary(
         # No budgets at all — all expense categories are uncategorized
         ucur = await db.execute(
             """SELECT t.category_id, c.name AS category_name, c.icon AS category_icon,
+                      c.name_en AS category_name_en,
                       CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) AS total
                FROM transactions t
                LEFT JOIN categories c ON t.category_id = c.id
@@ -261,6 +269,7 @@ async def budget_summary(
             uncategorized.append(UnbudgetedExpense(
                 category_id=urow["category_id"],
                 category_name=urow["category_name"] or "Unknown",
+                category_name_en=urow["category_name_en"] or "",
                 category_icon=urow["category_icon"] or "📦",
                 total=urow["total"],
             ))

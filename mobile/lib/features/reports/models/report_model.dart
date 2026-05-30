@@ -1,6 +1,7 @@
 class CategoryBreakdown {
   final int categoryId;
   final String categoryName;
+  final String categoryNameEn;
   final String icon;
   final int total;
   final int count;
@@ -9,6 +10,7 @@ class CategoryBreakdown {
   const CategoryBreakdown({
     required this.categoryId,
     required this.categoryName,
+    required this.categoryNameEn,
     required this.icon,
     required this.total,
     required this.count,
@@ -19,6 +21,7 @@ class CategoryBreakdown {
       CategoryBreakdown(
         categoryId: json['category_id'] ?? 0,
         categoryName: json['category_name'] ?? '',
+        categoryNameEn: json['category_name_en'] as String? ?? '',
         icon: json['icon'] ?? '',
         total: json['total'] ?? 0,
         count: json['count'] ?? 0,

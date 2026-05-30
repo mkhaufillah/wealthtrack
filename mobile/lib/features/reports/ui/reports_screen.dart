@@ -314,7 +314,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  translateCategory(cat.categoryName),
+                  translateCategory(cat.categoryNameEn.isNotEmpty ? cat.categoryNameEn : cat.categoryName),
                   style: const TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -553,7 +553,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  translateCategory(cat.categoryName),
+                  translateCategory(cat.categoryNameEn.isNotEmpty ? cat.categoryNameEn : cat.categoryName),
                   style: const TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),

@@ -23,6 +23,7 @@ class TransactionUpdate(BaseModel):
 class CategoryBrief(BaseModel):
     id: int
     name: str
+    name_en: str = ''
     icon: str
 
 

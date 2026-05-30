@@ -21,7 +21,7 @@ class _MockTxNotifier extends TransactionListNotifier {
 final sampleTxn = TransactionModel(
   id: 1, amount: 50000, type: 'expense',
   description: 'Lunch', note: '', date: '2026-05-27',
-  category: CategoryBrief(id: 3, name: 'Food', icon: '🍔'),
+  category: CategoryBrief(id: 3, name: 'Food', nameEn: '', icon: '🍔'),
 );
 
 Widget buildTxListApp({

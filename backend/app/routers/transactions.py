@@ -9,7 +9,7 @@ from app.schemas.transaction import TransactionCreate, TransactionUpdate, Pagina
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
-def _format_txn(row, cat_name="", cat_icon="", display_name=""):
+def _format_txn(row, cat_name="", cat_icon="", cat_name_en="", display_name=""):
     # sqlite3.Row doesn't support .get() — convert to dict for safe access
     r = dict(row)
     return {
@@ -23,6 +23,7 @@ def _format_txn(row, cat_name="", cat_icon="", display_name=""):
             "id": r["category_id"],
             "name": cat_name or r.get("category_name", "") or "",
             "icon": cat_icon or "",
+            "name_en": cat_name_en or "",
         },
         "user": {
             "id": r.get("user_id", 1) or 1,
@@ -86,6 +87,7 @@ async def list_household_transactions(
         f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
                    t.description, t.note, t.date, t.user_id, t.created_at,
                    c.name AS cat_name, c.icon AS cat_icon,
+                   c.name_en AS cat_name_en,
                    u.display_name AS user_display_name
             {join_clause}
             LEFT JOIN categories c ON t.category_id = c.id
@@ -96,7 +98,7 @@ async def list_household_transactions(
         params + [per_page, offset],
     )
     rows = await cursor.fetchall()
-    data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "") for r in rows]
+    data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "") for r in rows]
 
     return PaginatedTransactions(
         data=data,
@@ -154,6 +156,7 @@ async def list_transactions(
         f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
                    t.description, t.note, t.date, t.user_id, t.created_at,
                    c.name AS cat_name, c.icon AS cat_icon,
+                   c.name_en AS cat_name_en,
                    u.display_name AS user_display_name
             FROM transactions t
             LEFT JOIN categories c ON t.category_id = c.id
@@ -165,7 +168,7 @@ async def list_transactions(
     )
     rows = await cursor.fetchall()
 
-    data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "") for r in rows]
+    data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "") for r in rows]
 
     return PaginatedTransactions(
         data=data,
@@ -185,7 +188,7 @@ async def create_transaction(
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
-        "SELECT id, name, icon FROM categories WHERE id = ?", (data.category_id,)
+        "SELECT id, name, name_en, icon FROM categories WHERE id = ?", (data.category_id,)
     )
     cat = await cursor.fetchone()
     if not cat:
@@ -214,7 +217,7 @@ async def create_transaction(
     row = await cursor.fetchone()
     # Fetch display_name from users table
     u = await (await db.execute("SELECT display_name FROM users WHERE id = ?", (current_user["id"],))).fetchone()
-    return _format_txn(row, cat["name"], cat["icon"], u["display_name"] if u else "")
+    return _format_txn(row, cat["name"], cat["icon"], cat["name_en"] or "", u["display_name"] if u else "")
 
 
 @router.get("/{txn_id}")
@@ -232,10 +235,10 @@ async def get_transaction(
         raise HTTPException(status_code=404, detail="Transaction not found")
     c = await (
         await db.execute(
-            "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
+            "SELECT id, name, name_en, icon FROM categories WHERE id = ?", (row["category_id"],)
         )
     ).fetchone()
-    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "")
+    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", c["name_en"] if c else "")
 
 
 @router.put("/{txn_id}")
@@ -284,10 +287,10 @@ async def update_transaction(
     row = await cursor.fetchone()
     c = await (
         await db.execute(
-            "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
+            "SELECT id, name, name_en, icon FROM categories WHERE id = ?", (row["category_id"],)
         )
     ).fetchone()
-    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "")
+    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", c["name_en"] if c else "")
 
 
 @router.put("/{txn_id}/owner")
@@ -358,11 +361,11 @@ async def transfer_owner(
     row = await cursor.fetchone()
     c = await (
         await db.execute(
-            "SELECT id, name, icon FROM categories WHERE id = ?",
+            "SELECT id, name, name_en, icon FROM categories WHERE id = ?",
             (row["category_id"],),
         )
     ).fetchone()
-    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "")
+    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", c["name_en"] if c else "")
 
 
 @router.post("/transfer", response_model=TransferResponse, status_code=201)
@@ -401,7 +404,7 @@ async def transfer_balance(
 
     # 3. Ensure the special transfer categories exist
     cursor = await db.execute(
-        "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
+        "SELECT id, name, name_en, icon FROM categories WHERE name = ? AND type = ?",
         ("Transfer", "expense"),
     )
     expense_cat = await cursor.fetchone()
@@ -411,13 +414,13 @@ async def transfer_balance(
             ("Transfer", "expense", "🔄", 1),
         )
         cursor = await db.execute(
-            "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
+            "SELECT id, name, name_en, icon FROM categories WHERE name = ? AND type = ?",
             ("Transfer", "expense"),
         )
         expense_cat = await cursor.fetchone()
 
     cursor = await db.execute(
-        "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
+        "SELECT id, name, name_en, icon FROM categories WHERE name = ? AND type = ?",
         ("Transfer", "income"),
     )
     income_cat = await cursor.fetchone()
@@ -427,16 +430,18 @@ async def transfer_balance(
             ("Transfer", "income", "🔄", 1),
         )
         cursor = await db.execute(
-            "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
+            "SELECT id, name, name_en, icon FROM categories WHERE name = ? AND type = ?",
             ("Transfer", "income"),
         )
         income_cat = await cursor.fetchone()
 
     expense_cat_id = expense_cat["id"]
     expense_cat_name = expense_cat["name"]
+    expense_cat_name_en = expense_cat["name_en"] or ""
     expense_cat_icon = expense_cat["icon"]
     income_cat_id = income_cat["id"]
     income_cat_name = income_cat["name"]
+    income_cat_name_en = income_cat["name_en"] or ""
     income_cat_icon = income_cat["icon"]
 
     # Get sender's display name
@@ -475,6 +480,7 @@ async def transfer_balance(
         # Fetch both with JOINs for _format_txn
         cursor = await db.execute(
             """SELECT t.*, c.name AS cat_name, c.icon AS cat_icon,
+                      c.name_en AS cat_name_en,
                       u.display_name AS user_display_name
                FROM transactions t
                LEFT JOIN categories c ON t.category_id = c.id
@@ -486,6 +492,7 @@ async def transfer_balance(
 
         cursor = await db.execute(
             """SELECT t.*, c.name AS cat_name, c.icon AS cat_icon,
+                      c.name_en AS cat_name_en,
                       u.display_name AS user_display_name
                FROM transactions t
                LEFT JOIN categories c ON t.category_id = c.id
@@ -497,8 +504,10 @@ async def transfer_balance(
 
         results.append({
             "sender_expense": _format_txn(exp_row, expense_cat_name, expense_cat_icon,
+                                          expense_cat_name_en,
                                           exp_row["user_display_name"] or ""),
             "recipient_income": _format_txn(inc_row, income_cat_name, income_cat_icon,
+                                            income_cat_name_en,
                                             inc_row["user_display_name"] or ""),
         })
 
