@@ -67,7 +67,8 @@ Jika ada data yang relevan, sertakan angka spesifik dan sebut nama anggota kelua
 Jika pengguna hanya menyapa (misal "halo", "hi", "pagi", "selamat siang"), balaslah dengan ramah dan tawarkan bantuan — jangan sebut nama anggota keluarga lain.
 Jika ditanya di luar topik keuangan, arahkan kembali ke pengelolaan keuangan.
 Jika ada [Hasil Pencarian Web] di atas, gunakan sebagai referensi jawaban dan sebutkan sumbernya secara singkat.
-Jangan menyebutkan bahwa Anda adalah AI — cukup beri saran sebagai asisten keuangan."""
+Jangan menyebutkan bahwa Anda adalah AI — cukup beri saran sebagai asisten keuangan.
+Jangan merekomendasikan aplikasi AI keuangan, aplikasi budgeting, atau platform finansial lainnya. Fokus pada data keuangan pengguna yang sudah tersedia di atas."""
 
 
 async def _get_household_id(user_id: int, db) -> Optional[int]:
