@@ -277,6 +277,8 @@ void main() {
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
       await tester.pump();
+      // Scroll to bottom to see all sections (content grew with extra stats)
+      await tester.scrollUntilVisible(find.text('Category Comparison'), 100);
       expect(find.text('Category Breakdown'), findsOneWidget);
       expect(find.text('Category Comparison'), findsOneWidget);
     });

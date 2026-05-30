@@ -14,6 +14,7 @@ import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/utils/date_formatter.dart';
 import '../providers/report_provider.dart';
 import '../models/report_model.dart';
+import '../../budgets/models/budget_model.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -26,6 +27,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   late DateTime _currentMonth;
   String _cycleLabel = '';
   int _userCycleDay = 1;
+  List<BudgetSummaryItem> _budgetItems = [];
+  List<UnbudgetedExpense> _uncategorizedExpenses = [];
 
   @override
   void initState() {
@@ -90,6 +93,38 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       DateTime(_currentMonth.year, _currentMonth.month - 5, 1),
     );
     ref.read(reportProvider.notifier).loadTrend(monthFrom: trendFrom, monthTo: monthStr);
+
+    // Also load budget vs actual for this cycle
+    _loadBudgets(monthStr, firstDay, lastDay);
+  }
+
+  Future<void> _loadBudgets(String month, String dateFrom, String dateTo) async {
+    try {
+      final api = ref.read(apiClientProvider);
+      final res = await api.get('/budgets/summary', queryParams: {
+        'month': month,
+        'use_cycle': 'true',
+        'd_from_override': dateFrom,
+        'd_to_override': dateTo,
+      });
+      if (!mounted) return;
+      final data = res.data as Map<String, dynamic>;
+      setState(() {
+        _budgetItems = (data['items'] as List)
+            .map((e) => BudgetSummaryItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _uncategorizedExpenses = (data['uncategorized_expenses'] as List?)
+                ?.map((e) => UnbudgetedExpense.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [];
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _budgetItems = [];
+        _uncategorizedExpenses = [];
+      });
+    }
   }
 
   void _prevMonth() {
@@ -178,7 +213,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final report = state.monthly!;
     final children = [
         _buildSummaryCards(report),
+        const SizedBox(height: 16),
+        _buildExtraStats(report),
         const SizedBox(height: 20),
+        if (_budgetItems.isNotEmpty) ...[
+          _buildSectionHeader('Budget vs Actual', Icons.account_balance_wallet_outlined),
+          const SizedBox(height: 8),
+          _buildBudgetVsActual(),
+          const SizedBox(height: 20),
+        ],
         if (report.categories.isNotEmpty) ...[
           _buildSectionHeader('Category Breakdown', Icons.pie_chart_outline),
           const SizedBox(height: 8),
@@ -247,7 +290,55 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, int amount, Color color) {
+  Widget _buildExtraStats(MonthlyReport report) {
+    final income = report.totalIncome;
+    final expense = report.totalExpense;
+    final savingsRate = income > 0 ? ((income - expense) / income * 100) : 0.0;
+
+    // Compute cycle days from the cycle label
+    final cycleDays = _cycleLabel.isNotEmpty ? 30 : 30; // fallback
+    // Parse actual days from cycle dates
+    int actualDays = 30;
+    if (_cycleLabel.isNotEmpty) {
+      // The label format is "25 May – 24 Jun 2026" — extract day diff
+      final parts = _cycleLabel.split(' – ');
+      if (parts.length == 2) {
+        try {
+          final from = DateFormat('dd MMM').parse(parts[0]);
+          final to = DateFormat('dd MMM yyyy').parse(parts[1]);
+          actualDays = to.difference(from).inDays;
+          if (actualDays <= 0) actualDays = 30;
+        } catch (_) {
+          actualDays = 30;
+        }
+      }
+    }
+    final dailyAvg = actualDays > 0 ? expense ~/ actualDays : 0;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            'Savings Rate',
+            savingsRate.round(),
+            savingsRate >= 0 ? AppColors.success : AppColors.highlight,
+            suffix: '%',
+            isRate: true,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatCard(
+            'Daily Avg',
+            dailyAvg,
+            AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(String label, int amount, Color color, {String suffix = '', bool isRate = false}) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -257,7 +348,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: Column(
         children: [
           Text(
-            formatCurrency(amount),
+            isRate ? '${amount}$suffix' : formatCurrency(amount),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -274,6 +365,143 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBudgetVsActual() {
+    final sorted = List<BudgetSummaryItem>.from(_budgetItems)
+      ..sort((a, b) => (b.percentage - a.percentage).round());
+    final totalBudget = _budgetItems.fold<int>(0, (s, i) => s + i.budgetAmount);
+    final totalSpent = _budgetItems.fold<int>(0, (s, i) => s + i.actualSpent);
+
+    return Column(
+      children: [
+        // Mini summary row
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text('Total Budget', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              ),
+              Text(formatCurrency(totalBudget),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Total Spent', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              ),
+              Text(formatCurrency(totalSpent),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                      color: totalSpent > totalBudget ? AppColors.highlight : AppColors.textPrimary)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Per-category budget vs actual
+        ...sorted.map((item) {
+          final isOver = item.remaining < 0;
+          final pct = item.percentage;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                SizedBox(width: 24, child: Text(item.categoryIcon, style: const TextStyle(fontSize: 16))),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName,
+                    style: const TextStyle(fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    formatCurrency(item.actualSpent),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isOver ? AppColors.highlight : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: 40,
+                  child: Text(
+                    '/ ${formatCurrency(item.budgetAmount)}',
+                    style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: (pct / 100).clamp(0.0, 1.0),
+                          minHeight: 8,
+                          backgroundColor: AppColors.divider,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isOver ? AppColors.highlight
+                                : pct >= 70 ? AppColors.warning
+                                : AppColors.success,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    isOver ? '🔴' : pct >= 70 ? '⚠️' : '✅',
+                    style: const TextStyle(fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        if (_uncategorizedExpenses.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, size: 16, color: AppColors.warning),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${_uncategorizedExpenses.length} categor${_uncategorizedExpenses.length > 1 ? 'ies' : 'y'} without budget',
+                    style: TextStyle(fontSize: 12, color: AppColors.warning),
+                  ),
+                ),
+                Text(
+                  formatCurrency(_uncategorizedExpenses.fold<int>(0, (s, e) => s + e.total)),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.warning),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 
