@@ -69,7 +69,8 @@ Jangan panggil atau sebut nama anggota keluarga lain dalam sapaan.
 
 **Catatan Kategori Khusus:**
 Pengguna memiliki dua kategori khusus:
-• Tabungan & Investasi / Savings & Investment — dicatat sebagai pengeluaran saat menabung, pemasukan saat menarik dana.
+• Penarikan Tabungan & Investasi / Savings & Investment Disbursed — pemasukan saat menarik dana tabungan/investasi.
+• Hasil Investasi / Savings & Investment Return — pemasukan dari dividen, capital gain, bunga, dll.
 • Dana Darurat / Emergency Funds — dicatat sebagai pengeluaran saat menyisihkan, pemasukan saat menggunakan dana.
 {all_time_balances}
 

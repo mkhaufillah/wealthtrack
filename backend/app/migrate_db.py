@@ -360,6 +360,41 @@ def run_household_migration():
         )
         print("  ✓ Emergency Funds categories locked (ids 18, 19)")
 
+        # 17. Split income S&I into Disbursed + Return (idempotent: skip if already renamed)
+        cursor = conn.execute("SELECT id, name FROM categories WHERE id = 4")
+        row = cursor.fetchone()
+        if row and row["name"] == "Tabungan & Investasi":
+            # Rename existing to "Penarikan Tabungan & Investasi"
+            conn.execute('''
+                UPDATE categories
+                SET name = 'Penarikan Tabungan & Investasi',
+                    name_en = 'Savings & Investment Disbursed',
+                    keywords = '["penarikan", "withdraw", "ambil tabungan", "jual saham", "jual instrumen", "disbursement", "sell instrument"]',
+                    sort_order = 5,
+                    is_default = 1
+                WHERE id = 4
+            ''')
+            print("  ✓ Renamed income Tabungan & Investasi → Penarikan Tabungan & Investasi (Disbursed)")
+
+            # Create "Hasil Investasi" (returns) if not exists
+            cur2 = conn.execute("SELECT id FROM categories WHERE name = 'Hasil Investasi' AND type = 'income'")
+            if not cur2.fetchone():
+                conn.execute('''
+                    INSERT INTO categories (name, name_en, type, icon, keywords, sort_order, is_default)
+                    VALUES ('Hasil Investasi', 'Savings & Investment Return', 'income', '📈',
+                            '["dividen", "capital gain", "profit", "bunga", "interest", "return investasi"]',
+                            4, 1)
+                ''')
+                print("  ✓ Created Hasil Investasi (Savings & Investment Return) category")
+            else:
+                print("  ✓ Hasil Investasi already exists, skipping")
+
+            # Re-sort Lainnya income
+            conn.execute("UPDATE categories SET sort_order = 6 WHERE id = 5 AND type = 'income'")
+            print("  ✓ Updated Lainnya income sort_order")
+        else:
+            print("  ✓ Income S&I already split, skipping")
+
         conn.commit()
         print("\n✅ Household migration complete!")
         return True
