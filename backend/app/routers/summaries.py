@@ -429,11 +429,12 @@ async def _monthly_range(m_from: str, m_to: str, db: aiosqlite.Connection, curre
 @router.get("/current-month")
 async def current_month_summary(
     use_cycle: bool = Query(False, description="Use user's billing cycle instead of calendar month"),
+    ref_date: Optional[str] = Query(None, description="Reference date (YYYY-MM-DD). Defaults to server today."),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Shorthand — monthly summary for the current cycle or month."""
-    today = date.today()
+    today = _parse_date_iso(ref_date) if ref_date else date.today()
     if use_cycle:
         cycle_start = await _get_cycle_start_day(db, current_user["id"])
         d_from, d_to = get_cycle_range(today, cycle_start)

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../transactions/models/transaction_model.dart';
@@ -29,7 +30,11 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   Future<void> load() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final summaryRes = await _api.get('/summaries/current-month', queryParams: {'use_cycle': 'true'});
+      final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final summaryRes = await _api.get('/summaries/current-month', queryParams: {
+        'use_cycle': 'true',
+        'ref_date': todayStr,
+      });
       final summary = summaryRes.data;
       final txnRes = await _api.get('/transactions', queryParams: {'per_page': 5, 'sort': '-date'});
       final txns = (txnRes.data['data'] as List)
