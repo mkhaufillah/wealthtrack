@@ -60,10 +60,38 @@ HIGH_CONFIDENCE = [
     "mutual fund", "bond yield", "exchange rate", "forex",
     "gold price", "crypto price", "bitcoin price",
     "mortgage rate", "tax rate", "central bank",
+    # English
     "technical analysis", "fundamental analysis",
     "market sentiment", "stock recommendation",
     "ipo", "etf", "dividend yield", "pe ratio",
     "market cap", "trading volume",
+    # Credit cards
+    "kartu kredit", "limit kartu kredit",
+    "tagihan kartu kredit", "kartu kredit terbaik",
+    # Loans & financing
+    "pinjaman online", "pinjol", "kta",
+    "kredit tanpa agunan", "kredit mobil",
+    "kredit motor", "kredit rumah", "kredit kendaraan",
+    "leasing", "kredit barang", "cicilan barang",
+    # Credit score
+    "skor kredit", "credit score", "bi checking",
+    "slik", "blacklist bank",
+    # Fintech & digital
+    "fintech", "bank digital",
+    "dompet digital", "e-wallet", "gopay", "ovo",
+    "dana aplikasi", "sea bank", "jenius",
+    # Emergency fund
+    "dana darurat", "emergency fund",
+    # Education fund
+    "tabungan pendidikan", "dana pendidikan",
+    "biaya sekolah", "uang kuliah", "biaya kuliah",
+    # Side business
+    "bisnis sampingan", "usaha sampingan",
+    "side hustle", "investasi bisnis",
+    "usaha kecil", "modal usaha",
+    # Restructuring
+    "restrukturisasi", "keringanan pembayaran",
+    "penundaan pembayaran", "rescheduling",
 ]
 
 MEDIUM_KEYWORDS = [
