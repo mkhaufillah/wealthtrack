@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional
 import httpx
@@ -17,6 +17,17 @@ router = APIRouter(prefix="/ocr", tags=["ocr"])
 import time
 _user_ocr_counts: dict[int, list[float]] = {}
 
+# ── Allowed image MIME types (raster only — SVG/vector not supported)
+ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
+
+# ── Magic bytes for image format validation
+IMAGE_MAGIC: dict[bytes, str] = {
+    b'\xff\xd8\xff': "JPEG",
+    b'\x89PNG\r\n\x1a\n': "PNG",
+    b'RIFF': "WEBP",  # WebP starts with RIFF
+}
+
+
 def _check_rate_limit(user_id: int):
     now = time.time()
     day_ago = now - 86400
@@ -29,27 +40,74 @@ def _check_rate_limit(user_id: int):
     _user_ocr_counts[user_id].append(now)
 
 
+def _validate_image(mime: str, raw_bytes: bytes) -> None:
+    """Validate MIME type and image magic bytes."""
+    if mime not in ALLOWED_MIME:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported image format: {mime}. Allowed: {', '.join(sorted(ALLOWED_MIME))}",
+        )
+
+    if len(raw_bytes) < 12:
+        raise HTTPException(status_code=400, detail="Invalid or corrupted image file")
+
+    # Check magic bytes
+    for magic, fmt in IMAGE_MAGIC.items():
+        if raw_bytes[:len(magic)] == magic:
+            return
+
+    raise HTTPException(status_code=400, detail="Invalid image — unrecognised file signature")
+
+
+async def _load_categories(db) -> str:
+    """Load all categories from DB and format them for the prompt."""
+    cursor = await db.execute(
+        "SELECT name, type FROM categories ORDER BY type, sort_order"
+    )
+    rows = await cursor.fetchall()
+    expense = []
+    income = []
+    for r in rows:
+        if r["type"] == "expense":
+            expense.append(r["name"])
+        else:
+            income.append(r["name"])
+    return (
+        "Kategori Expense: " + ", ".join(expense) + "\n"
+        "Kategori Income: " + ", ".join(income)
+    )
+
+
 class OcrResult(BaseModel):
     amount: Optional[int] = None
     description: Optional[str] = None
     date: Optional[str] = None  # YYYY-MM-DD
     category_name: Optional[str] = None
     type: Optional[str] = None  # "expense" or "income"
+    note: Optional[str] = None
     raw_text: str = ""
 
 
 SYSTEM_PROMPT = """You are a receipt/transaction OCR assistant. Given an image of a receipt, bill, or transaction note, extract structured financial data.
 
 Return ONLY valid JSON with these fields:
-{
+{{
   "amount": integer (total amount in Rupiah, no decimals),
   "description": "short description of what was purchased",
   "date": "YYYY-MM-DD" (transaction date, use today if not visible),
   "type": "expense" or "income",
-  "category_name": "best matching category name (e.g. Food, Transport, Shopping, Bills, Health, Entertainment, Education, Salary, Investment)"
-}
+  "category_name": "choose EXACTLY from the valid category list below — do NOT invent new categories",
+  "note": "any extra details that don't fit in description (e.g. payment method, store name, quantity, notes on the receipt)"
+}}
 
-If the image is not a receipt/financial document, return {"raw_text": "description of what the image contains"}.
+Valid categories (pick ONLY from this list — match by type):
+{categories}
+
+Rules:
+1. type must match — expense categories CANNOT be used for income and vice versa
+2. category_name must be EXACTLY one of the listed names (case-sensitive)
+3. If you can't determine the type or category, set type to "expense" and category_name to the closest match
+4. If the image is not a receipt/financial document, return {{"raw_text": "description of what the image contains"}}
 Do NOT include markdown formatting. Return ONLY the JSON object."""
 
 
@@ -62,13 +120,16 @@ async def process_ocr(
     """Process an image through vision AI to extract transaction data."""
     _check_rate_limit(current_user["id"])
 
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Only image files are accepted")
+    if not file.content_type:
+        raise HTTPException(status_code=400, detail="Could not detect file type")
 
     # Read image
     image_bytes = await file.read()
     if len(image_bytes) > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Image too large (max 10 MB)")
+
+    # Validate image
+    _validate_image(file.content_type, image_bytes)
 
     # Encode as base64 data URL
     b64 = base64.b64encode(image_bytes).decode()
@@ -79,6 +140,10 @@ async def process_ocr(
     if not api_key:
         raise HTTPException(status_code=500, detail="OCR not configured (missing API key)")
 
+    # Load valid categories for prompt
+    categories_str = await _load_categories(db)
+    prompt = SYSTEM_PROMPT.format(categories=categories_str)
+
     try:
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post(
@@ -87,7 +152,7 @@ async def process_ocr(
                 json={
                     "model": "kimi-k2.6",
                     "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "system", "content": prompt},
                         {
                             "role": "user",
                             "content": [
@@ -121,6 +186,7 @@ async def process_ocr(
             date=str(parsed.get("date", "")),
             category_name=str(parsed.get("category_name", "")),
             type=str(parsed.get("type", "")),
+            note=str(parsed.get("note", "")),
             raw_text=content,
         )
 

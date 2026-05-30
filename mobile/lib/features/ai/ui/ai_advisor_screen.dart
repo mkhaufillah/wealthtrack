@@ -123,8 +123,8 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       appBar: AppBar(
         title: const Text('AI Financial Advisor'),
         actions: [
-          // Advanced model toggle — only for Filla (user id = 1)
-          if (ref.watch(authProvider).user?.id == 1)
+          // Advanced model toggle — only for admin users
+          if (ref.watch(authProvider).user?.role == 'admin')
             Padding(
               padding: EdgeInsets.only(right: _messages.isNotEmpty ? 0 : 12),
               child: InkWell(

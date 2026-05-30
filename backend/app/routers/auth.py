@@ -49,12 +49,12 @@ async def register(request: Request, data: UserRegister, db: aiosqlite.Connectio
 @limiter.limit("10/minute")
 async def login(request: Request, data: UserLogin, db: aiosqlite.Connection = Depends(get_db)):
     cursor = await db.execute(
-        "SELECT id, username, password_hash FROM users WHERE username = ?", (data.username,)
+        "SELECT id, username, password_hash, role FROM users WHERE username = ?", (data.username,)
     )
     user = await cursor.fetchone()
     if not user or not verify_password(data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    token = create_access_token(user["id"], user["username"])
+    token = create_access_token(user["id"], user["username"], user["role"])
     return TokenOut(
         access_token=token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_DAYS * 86400,

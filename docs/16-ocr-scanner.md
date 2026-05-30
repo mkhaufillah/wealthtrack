@@ -1,0 +1,180 @@
+# OCR Receipt Scanner
+
+**Feature added:** 2026-05-28
+**See also:** [P4 Plan](08-p4-plan.md) · [Flutter Mobile](05-flutter-mobile.md) · [Improvement Plan](15-improvement-plan-ai-ocr.md)
+
+---
+
+## Overview
+
+OCR (Optical Character Recognition) extracts structured transaction data from receipt/bill images using a vision AI model. The feature is embedded in the Add Transaction screen — no separate route.
+
+| Aspect | Detail |
+|--------|--------|
+| **Trigger** | "Scan Receipt" button in Add Transaction form |
+| **Image source** | Camera (take photo) or Gallery (pick existing) |
+| **Vision model** | `kimi-k2.6` via OpenCode Go API |
+| **Rate limit** | 10 scans per day per user (in-memory) |
+| **Image max size** | 10 MB |
+
+---
+
+## Architecture
+
+```
+┌──────────────────────┐     image (multipart)      ┌──────────────────┐
+│  AddTransaction      │ ───────────────────────►   │  Backend         │
+│  Screen (Flutter)    │                             │  /api/v1/ocr     │
+│                      │ ◄──── OcrResult (JSON) ──  │  /process        │
+│  Camera/Gallery      │                             │                  │
+│  pickImage()         │                             │  validate        │
+│                      │                             │  → MIME check    │
+│  _scanReceipt()      │                             │  → magic bytes   │
+│  _buildScanOverlay() │                             │  → size check    │
+└──────────────────────┘                             │  → category DB   │
+                                                     │  → vision API    │
+                                                     └──────────────────┘
+```
+
+### Flow
+
+1. User taps "Scan Receipt" button → bottom sheet with "Take Photo" / "Choose from Gallery"
+2. User picks image source → `ImagePicker.pickImage()` (quality 70, maxWidth 1920)
+3. Screen shows loading overlay (**spinner + "Processing your receipt..."**)
+4. Image uploaded as multipart to `POST /api/v1/ocr/process`
+5. Backend validates:
+   - MIME type is one of: `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif`
+   - Magic bytes match JPEG/PNG/WebP header
+   - File size ≤ 10 MB
+6. Backend loads categories from SQLite → injects them into the vision AI prompt
+7. Vision AI (`kimi-k2.6`) processes the image → returns structured JSON
+8. Response fields populate the form: amount, description, date, type, category, note
+9. User reviews and edits before saving
+
+---
+
+## Implementation
+
+### File: `backend/app/routers/ocr.py`
+
+Single endpoint `POST /ocr/process`:
+
+```python
+@router.post("/process", response_model=OcrResult)
+async def process_ocr(file: UploadFile = File(...), ...):
+```
+
+#### Image Validation
+
+Two layers:
+
+**MIME whitelist:**
+```python
+ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
+```
+
+**Magic byte check** (prevents MIME spoofing):
+```python
+IMAGE_MAGIC = {
+    b'\xff\xd8\xff': "JPEG",
+    b'\x89PNG\r\n\x1a\n': "PNG",
+    b'RIFF': "WEBP",
+}
+```
+
+#### Category Validation from Database
+
+Categories are loaded from SQLite and injected into the vision AI prompt as valid options:
+```python
+Kategori Expense: Makanan & Minuman, Transportasi & Bensin, ...
+Kategori Income: Gaji, Freelance, ...
+```
+
+The AI is instructed to pick EXACTLY from this list and match by type (expense categories cannot be used for income and vice versa).
+
+#### Response Model
+
+```python
+class OcrResult(BaseModel):
+    amount: Optional[int] = None
+    description: Optional[str] = None
+    date: Optional[str] = None        # YYYY-MM-DD
+    category_name: Optional[str] = None
+    type: Optional[str] = None        # "expense" or "income"
+    note: Optional[str] = None        # Extra details (store, payment method, etc.)
+    raw_text: str = ""                # Fallback when JSON parsing fails
+```
+
+---
+
+### File: `mobile/lib/features/transactions/ui/add_transaction_screen.dart`
+
+OCR logic is in the `_scanReceipt()` method (lines 83-166).
+
+#### Scan Loading Overlay
+
+```dart
+Widget _buildScanOverlay() {
+    return AbsorbPointer(
+      child: Container(
+        color: isDark ? Colors.black87 : Colors.black54,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+              SizedBox(height: 20),
+              Text('Processing your receipt...',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 8),
+              Text('This may take a few seconds',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+}
+```
+
+State: `_isScanning` boolean — true during upload + backend processing.
+
+#### Form Population
+
+On successful scan, form fields are auto-filled:
+- **Amount** → `_amountCtrl.text`
+- **Description** → `_descCtrl.text`
+- **Date** → `_selectedDate` (if valid date returned)
+- **Type** → toggles expense/income if `type = "income"`
+- **Note** → visible in note field
+
+Categories are NOT auto-selected — the user picks from the validated list based on `category_name` hint from OCR.
+
+---
+
+## Edge Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| Non-image file | 400: "Unsupported image format" |
+| Corrupted image | 400: "Invalid image" (magic byte check fails) |
+| File > 10 MB | 400: "Image too large" |
+| API key missing | 500: "OCR not configured" |
+| Vision API timeout | 504: "Vision API timed out" |
+| Vision API error | 502: "Vision API error: {status}" |
+| Rate limit exceeded | 429: "OCR rate limit: max 10/day" |
+| Non-receipt image | `raw_text` populated with AI description, structured fields remain null |
+| Malformed JSON from API | `raw_text` populated with raw response text |
+
+---
+
+## Files
+
+| File | Role |
+|------|------|
+| `backend/app/routers/ocr.py` | OCR endpoint, image validation, category DB integration |
+| `mobile/lib/features/transactions/ui/add_transaction_screen.dart` | Camera/gallery integration, loading overlay, form population |
+| `backend/tests/test_ocr.py` | 11 test cases covering auth, validation, parsing, errors, rate limiting |
+| `mobile/test/features/add_transaction_ocr_test.dart` | Flutter widget tests for scan bottom sheet UI |

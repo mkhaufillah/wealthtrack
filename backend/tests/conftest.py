@@ -193,13 +193,13 @@ async def client(db: aiosqlite.Connection) -> AsyncGenerator[AsyncClient, None]:
 @pytest_asyncio.fixture
 async def filla_token(db: aiosqlite.Connection) -> str:
     """JWT token for user filla (admin)."""
-    return create_access_token(user_id=1, username="filla")
+    return create_access_token(user_id=1, username="filla", role="admin")
 
 
 @pytest_asyncio.fixture
 async def nahda_token(db: aiosqlite.Connection) -> str:
-    """JWT token for user nahda."""
-    return create_access_token(user_id=2, username="nahda")
+    """JWT token for user nahda (non-admin)."""
+    return create_access_token(user_id=2, username="nahda", role="user")
 
 
 @pytest_asyncio.fixture
