@@ -1165,7 +1165,7 @@ async def ocr_process(file: UploadFile = File(...), user=Depends(get_current_use
             "https://api.opencode.ai/zen/go/v1/chat/completions",
             headers={"Authorization": f"Bearer {settings.OPENCODE_GO_API_KEY}"},
             json={
-                "model": "minimax-m2.7",
+                "model": "kimi-k2.5",
                 "messages": [{
                     "role": "user",
                     "content": [

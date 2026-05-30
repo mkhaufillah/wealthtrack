@@ -3,7 +3,7 @@
 ## v0.3.3 — OCR Performance Optimization (2026-05-31)
 
 ### Performance
-- **Model swap** — OCR vision model changed from `kimi-k2.6` to `minimax-m2.7`. Rate limit increased from 1,150 → 3,400 per 5 hours (3×). Model is lighter and faster for receipt parsing.
+- **Model swap** — OCR vision model changed from `kimi-k2.6` to `kimi-k2.5`. Rate limit increased from 1,150 → 1,850 per 5 hours (60% higher). Original m2.5 was text-only, m2.7 didn't process receipt text properly. |
 - **Image compression** — Images are auto-resized to max 1200px on longest side (LANCZOS), converted to JPEG quality 85. Input up to 10 MB → ~200–500 KB output. Reduces upload time and API processing latency.
 
 ### Dependencies

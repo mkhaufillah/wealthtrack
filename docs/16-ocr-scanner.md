@@ -13,7 +13,7 @@ OCR (Optical Character Recognition) extracts structured transaction data from re
 |--------|--------|
 | **Trigger** | "Scan Receipt" button in Add Transaction form |
 | **Image source** | Camera (take photo) or Gallery (pick existing) |
-| **Vision model** | `minimax-m2.7` via OpenCode Go API |
+| **Vision model** | `kimi-k2.5` via OpenCode Go API |
 | **Rate limit** | 10 scans per day per user (in-memory) |
 | **Image max size** | 10 MB input (auto-compressed to ~300 KB JPEG) |
 
@@ -53,7 +53,7 @@ OCR (Optical Character Recognition) extracts structured transaction data from re
    - Converted to **JPEG quality 85** (RGB, discards alpha)
    - Output size: ~200–500 KB (down from up to 10 MB)
 7. Backend loads categories from SQLite → injects them into the vision AI prompt
-8. Vision AI (`minimax-m2.7`) processes the image → returns structured JSON
+8. Vision AI (`kimi-k2.5`) processes the image → returns structured JSON
 9. Response fields populate the form: amount, description, date, type, category, note
 10. User reviews and edits before saving
 
