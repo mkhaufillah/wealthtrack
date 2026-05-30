@@ -19,6 +19,9 @@ HIGH_CONFIDENCE = [
     "deposito", "dividen", "valas", "crypto", "bitcoin",
     "harga emas", "emas hari ini", "harga saham",
     "kpr", "bi rate", "kurs", "nilai tukar",
+    "kpr syariah", "kpr rumah pertama", "kpr rumah kedua",
+    "dp rumah", "down payment rumah", "angsuran kpr",
+    "tenor kpr", "simulasi kpr", "btn kpr",
     "pajak", "tarif pajak",
     # Stock market & analysis
     "saham", "analisa teknikal", "analisis teknikal",
