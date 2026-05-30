@@ -11,7 +11,6 @@ import '../../../features/home/providers/dashboard_provider.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
-import '../../../shared/utils/category_translator.dart';
 import '../../../shared/utils/date_formatter.dart';
 import '../providers/report_provider.dart';
 import '../models/report_model.dart';
@@ -314,7 +313,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  translateCategory(cat.categoryNameEn.isNotEmpty ? cat.categoryNameEn : cat.categoryName),
+                  cat.categoryNameEn,
                   style: const TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -553,7 +552,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  translateCategory(cat.categoryNameEn.isNotEmpty ? cat.categoryNameEn : cat.categoryName),
+                  cat.categoryNameEn,
                   style: const TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),

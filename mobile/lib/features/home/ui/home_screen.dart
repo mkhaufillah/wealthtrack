@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
+import '../../../shared/providers/app_providers.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/recent_transactions.dart';
 
@@ -17,6 +18,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  int _savingsBalance = 0;
+  int _emergencyBalance = 0;
+
   String _formatDate(String iso) {
     try {
       final dt = DateTime.parse(iso);
@@ -30,6 +34,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(dashboardProvider.notifier).load());
+    Future.microtask(() => _loadAllTimeBalances());
+  }
+
+  Future<void> _loadAllTimeBalances() async {
+    try {
+      final api = ref.read(apiClientProvider);
+      final resp = await api.get('/summaries/all-time-category-balance');
+      final data = resp.data as List? ?? [];
+      int savings = 0;
+      int emergency = 0;
+      for (final item in data) {
+        final name = (item['name_en'] as String? ?? item['name'] as String? ?? '') as String;
+        final balance = (item['balance'] as int? ?? 0);
+        if (name == 'Savings & Investment') {
+          savings = balance;
+        } else if (name == 'Emergency Funds') {
+          emergency = balance;
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _savingsBalance = savings;
+          _emergencyBalance = emergency;
+        });
+      }
+    } catch (_) {
+      // Silently fail — the summary card is optional
+    }
   }
 
   @override
@@ -62,6 +94,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             : null,
                       ),
                       const SizedBox(height: 24),
+                      _buildCategoriesCard(),
+                      const SizedBox(height: 24),
                       _buildAiCard(),
                       const SizedBox(height: 24),
                       RecentTransactions(transactions: state.recentTransactions),
@@ -70,6 +104,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+  Widget _buildCategoriesCard() {
+    return Card(
+      color: AppColors.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.account_balance_outlined,
+                      color: AppColors.textPrimary, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Text('All-time Balances',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _balanceRow('💳  Savings & Investment', _savingsBalance),
+            const SizedBox(height: 8),
+            _balanceRow('🆘  Emergency Funds', _emergencyBalance),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _balanceRow(String label, int amount) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(label,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        ),
+        Text(
+          formatCurrency(amount),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: amount >= 0 ? AppColors.success : AppColors.highlight,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAiCard() {
     return Card(
       color: AppColors.surface,

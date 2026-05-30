@@ -5,7 +5,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
-import '../../../shared/utils/category_translator.dart';
 import '../../../shared/utils/date_formatter.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../features/transactions/ui/widgets/amount_field.dart';
@@ -362,9 +361,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(item.categoryNameEn.isNotEmpty
-                    ? item.categoryNameEn
-                    : item.categoryName,
+                child: Text(item.categoryNameEn,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ),
               Text(formatCurrency(item.total),
@@ -403,9 +400,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(item.categoryNameEn.isNotEmpty
-                      ? item.categoryNameEn
-                      : translateCategory(item.categoryName),
+                  child: Text(item.categoryNameEn,
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
                 // Cycle date range badge
@@ -492,9 +487,11 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 ),
                 const Spacer(),
                 Text(
-                  isOverBudget
-                      ? 'Over by ${formatCurrency(item.actualSpent - item.budgetAmount)}'
-                      : '${formatCurrency(item.remaining)} remaining',
+                  item.remaining <= 0 && item.percentage == 100
+                      ? 'Budget exhausted'
+                      : isOverBudget
+                          ? 'Over by ${formatCurrency(item.actualSpent - item.budgetAmount)}'
+                          : '${formatCurrency(item.remaining)} remaining',
                   style: TextStyle(
                     fontSize: 12,
                     color: isOverBudget ? AppColors.highlight : AppColors.textSecondary,
@@ -543,7 +540,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Budget'),
-        content: Text('Remove budget for ${item.categoryNameEn.isNotEmpty ? item.categoryNameEn : translateCategory(item.categoryName)}?'),
+        content: Text('Remove budget for ${item.categoryNameEn}?'),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
           FilledButton(
@@ -653,9 +650,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
                   Text(widget.existingItem!.categoryIcon, style: const TextStyle(fontSize: 18)),
                   const SizedBox(width: 10),
                   Text(
-                    widget.existingItem!.categoryNameEn.isNotEmpty
-                        ? widget.existingItem!.categoryNameEn
-                        : translateCategory(widget.existingItem!.categoryName),
+                    widget.existingItem!.categoryNameEn,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ],
@@ -671,7 +666,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
               ),
               items: widget.categories.map((c) => DropdownMenuItem(
                 value: c['id'] as int,
-                child: Text('${c['icon'] ?? '📦'}  ${(c['name_en'] as String? ?? '').isNotEmpty ? (c['name_en'] as String) : translateCategory(c['name'] as String)}'),
+                child: Text('${c['icon'] ?? '📦'}  ${(c['name_en'] as String? ?? c['name']) as String}'),
               )).toList(),
               onChanged: (v) => setState(() => _selectedCategoryId = v),
             ),

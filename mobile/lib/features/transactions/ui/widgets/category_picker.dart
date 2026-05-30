@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/utils/category_translator.dart';
 
 class CategoryChip {
   final int id;
@@ -38,7 +37,7 @@ class CategoryPicker extends StatelessWidget {
           final cat = categories[i];
           final isSelected = cat.id == selectedId;
           return FilterChip(
-            label: Text('${cat.icon} ${cat.nameEn.isNotEmpty ? cat.nameEn : translateCategory(cat.name)}'),
+            label: Text('${cat.icon} ${cat.nameEn}'),
             selected: isSelected,
             onSelected: (_) => onSelected(cat.id),
             selectedColor: isDark

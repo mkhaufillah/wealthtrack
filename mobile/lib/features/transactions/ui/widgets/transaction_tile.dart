@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/utils/date_formatter.dart';
-import '../../../../shared/utils/category_translator.dart';
 import '../../data/transaction_repository.dart';
 import '../../models/transaction_model.dart';
 import '../../providers/transaction_provider.dart';
@@ -26,9 +25,7 @@ class TransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isExpense = transaction.type == 'expense';
     final icon = transaction.category.icon.isNotEmpty ? transaction.category.icon : '📦';
-    final translatedCategory = transaction.category.nameEn.isNotEmpty
-        ? transaction.category.nameEn
-        : translateCategory(transaction.category.name);
+    final translatedCategory = transaction.category.nameEn;
     final description = transaction.description;
     final ownerName = transaction.user?.displayName ?? '';
 

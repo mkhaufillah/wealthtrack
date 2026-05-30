@@ -67,6 +67,12 @@ Jangan panggil atau sebut nama anggota keluarga lain dalam sapaan.
 **Tren 6 Siklus Terakhir (Pemasukan | Pengeluaran):**
 {trend}
 
+**Catatan Kategori Khusus:**
+Pengguna memiliki dua kategori khusus:
+• Tabungan & Investasi / Savings & Investment — dicatat sebagai pengeluaran saat menabung, pemasukan saat menarik dana.
+• Dana Darurat / Emergency Funds — dicatat sebagai pengeluaran saat menyisihkan, pemasukan saat menggunakan dana.
+Saldo terkini kedua kategori ini dapat diperoleh dari endpoint /summaries/all-time-category-balance (balance positif = saldo terkumpul, negatif = defisit).
+
 {search_results}
 
 ─── CARA MENGANALISIS ───

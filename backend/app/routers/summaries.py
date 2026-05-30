@@ -466,3 +466,50 @@ async def cycle_info(
         "date_from": d_from.isoformat(),
         "date_to": d_to.isoformat(),
     }
+
+
+@router.get("/all-time-category-balance")
+async def all_time_category_balance(
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Returns all-time balance for Savings & Investment and Emergency Funds.
+
+    For each, it calculates: SUM(expense transactions) - SUM(income transactions)
+    """
+    user_id = current_user["id"]
+
+    # Fetch category IDs for Savings & Investment (both name_en variants)
+    cursor = await db.execute(
+        "SELECT id FROM categories WHERE name_en IN ('Savings & Investment', 'Saving & Investment')"
+    )
+    savings_ids = [r["id"] for r in await cursor.fetchall()]
+
+    # Fetch category IDs for Emergency Funds
+    cursor = await db.execute(
+        "SELECT id FROM categories WHERE name_en = 'Emergency Funds'"
+    )
+    emergency_ids = [r["id"] for r in await cursor.fetchall()]
+
+    async def _query_balance(cat_ids: list[int]) -> dict:
+        if not cat_ids:
+            return {"total_expense": 0, "total_income": 0, "balance": 0}
+        placeholders = ",".join("?" for _ in cat_ids)
+        cursor = await db.execute(
+            f"""SELECT
+                   COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense,
+                   COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income
+               FROM transactions t
+               WHERE t.user_id = ?
+                 AND t.category_id IN ({placeholders})""",
+            (user_id, *cat_ids),
+        )
+        row = await cursor.fetchone()
+        exp = int(row["total_expense"])
+        inc = int(row["total_income"])
+        return {"total_expense": exp, "total_income": inc, "balance": exp - inc}
+
+    return {
+        "savings_investment": await _query_balance(savings_ids),
+        "emergency_funds": await _query_balance(emergency_ids),
+    }
