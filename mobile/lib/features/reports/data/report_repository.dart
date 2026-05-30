@@ -5,12 +5,14 @@ class ReportRepository {
   final ApiClient _client;
   ReportRepository(this._client);
 
-  Future<MonthlyReport> getMonthlyReport(String month) async {
+  Future<MonthlyReport> getMonthlyReport(String month, {String? dateFrom, String? dateTo}) async {
     try {
-      final res = await _client.get('/summaries/monthly', queryParams: {
-        'month': month,
-        'use_cycle': 'true',
-      });
+      final params = <String, dynamic>{'month': month};
+      if (dateFrom != null && dateTo != null) {
+        params['d_from_override'] = dateFrom;
+        params['d_to_override'] = dateTo;
+      }
+      final res = await _client.get('/summaries/monthly', queryParams: params);
       return MonthlyReport.fromJson(res.data);
     } catch (e) {
       throw _client.handleError(e);

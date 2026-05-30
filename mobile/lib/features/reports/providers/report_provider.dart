@@ -57,10 +57,10 @@ class ReportNotifier extends StateNotifier<ReportState> {
     load(month);
   }
 
-  Future<void> load(String month) async {
+  Future<void> load(String month, {String? dateFrom, String? dateTo}) async {
     state = state.copyWith(isLoading: true, error: null, selectedMonth: month);
     try {
-      final monthly = await _repo.getMonthlyReport(month);
+      final monthly = await _repo.getMonthlyReport(month, dateFrom: dateFrom, dateTo: dateTo);
       state = state.copyWith(isLoading: false, monthly: monthly);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _api.handleError(e).toString());

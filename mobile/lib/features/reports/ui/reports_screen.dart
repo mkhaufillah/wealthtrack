@@ -68,7 +68,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
     }
 
-    ref.read(reportProvider.notifier).load(monthStr);
+    ref.read(reportProvider.notifier).load(monthStr, dateFrom: firstDay, dateTo: lastDay);
     ref.read(reportProvider.notifier).loadHousehold(dateFrom: firstDay, dateTo: lastDay);
 
     // Load 6-month trend for charts

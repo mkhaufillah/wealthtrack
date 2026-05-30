@@ -256,13 +256,19 @@ async def monthly_summary(
     month: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
     month_from: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
     month_to: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
+    d_from_override: Optional[str] = Query(None, description="Explicit date_from (YYYY-MM-DD) for cycle support"),
+    d_to_override: Optional[str] = Query(None, description="Explicit date_to (YYYY-MM-DD) for cycle support"),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Monthly summary for a given month (YYYY-MM). Default: current month.
 
     With month_from + month_to, returns an array of monthly summaries
-    (multi-month range) for trend charts."""
+    (multi-month range) for trend charts.
+
+    With d_from_override + d_to_override, overrides the date range
+    (used for billing cycle support from client).
+    """
     today = date.today()
 
     # Multi-month range mode
@@ -275,7 +281,10 @@ async def monthly_summary(
 
     # Single month mode (backward compatible)
     m = month or today.strftime("%Y-%m")
-    return await _single_month(m, today, db, current_user)
+    d_from_parsed = date.fromisoformat(d_from_override) if d_from_override is not None else None
+    d_to_parsed = date.fromisoformat(d_to_override) if d_to_override is not None else None
+    return await _single_month(m, today, db, current_user,
+                                d_from_override=d_from_parsed, d_to_override=d_to_parsed)
 
 
 async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_user: dict,
@@ -423,7 +432,7 @@ async def current_month_summary(
             f"{d_from.year}-{d_from.month:02d}", today, db, current_user,
             d_from_override=d_from, d_to_override=d_to,
         )
-    return await monthly_summary(month=None, db=db, current_user=current_user)
+    return await monthly_summary(month=None, db=db, current_user=current_user, d_from_override=None, d_to_override=None)
 
 
 @router.get("/cycle-info")
