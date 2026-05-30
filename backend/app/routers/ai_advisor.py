@@ -315,27 +315,49 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         )
     budgets = "\n".join(budgets_list) if budgets_list else "Belum ada anggaran"
 
-    # ── All-time category balances (Tabungan & Investasi, Dana Darurat) ──
+    # ── All-time category balances (S&I, Dana Darurat) ──
     cursor = await db.execute(
-        f"""SELECT category_name, type, amount
+        f"""SELECT category_name, type, SUM(amount) as total
            FROM transactions
            WHERE user_id IN ({placeholders})
-             AND category_name IN ('Tabungan & Investasi', 'Dana Darurat')""",
+             AND category_name IN ('Tabungan & Investasi', 'Penarikan Tabungan & Investasi', 'Hasil Investasi', 'Dana Darurat')
+           GROUP BY category_name, type""",
         (*member_ids,),
     )
-    all_time_balances_dict = {"Tabungan & Investasi": 0, "Dana Darurat": 0}
+    si_saved = 0        # expense → uang masuk (saving)
+    si_withdrawn = 0    # income Penarikan → uang ditarik
+    si_returns = 0      # income Hasil Investasi → return
+    emergency_bal = 0
     async for r in cursor:
-        cat = r["category_name"]
-        if r["type"] == "expense":
-            all_time_balances_dict[cat] += r["amount"]
-        else:
-            all_time_balances_dict[cat] -= r["amount"]
+        cat, typ, total = r["category_name"], r["type"], (r["total"] or 0)
+        if cat == "Tabungan & Investasi" and typ == "expense":
+            si_saved += total
+        elif cat == "Penarikan Tabungan & Investasi" and typ == "income":
+            si_withdrawn += total
+        elif cat == "Hasil Investasi" and typ == "income":
+            si_returns += total
+        elif cat == "Dana Darurat" and typ == "expense":
+            emergency_bal += total
+        elif cat == "Dana Darurat" and typ == "income":
+            emergency_bal -= total
+        elif cat == "Tabungan & Investasi" and typ == "income":
+            # Legacy: old income tx still use "Tabungan & Investasi" name
+            si_withdrawn += total
 
-    savings_bal = all_time_balances_dict.get("Tabungan & Investasi", 0)
-    emergency_bal = all_time_balances_dict.get("Dana Darurat", 0)
+    si_bal = si_saved - si_withdrawn
+    breakdown_parts = []
+    if si_saved:
+        breakdown_parts.append(f"Tabungan Rp{si_saved:,}")
+    if si_withdrawn:
+        breakdown_parts.append(f"Penarikan Rp{si_withdrawn:,}")
+    if si_returns:
+        breakdown_parts.append(f"Return Rp{si_returns:,}")
+    breakdown_str = " • ".join(breakdown_parts) if breakdown_parts else ""
+
     all_time_balances = (
-        f"• Saldo Tabungan & Investasi: Rp{savings_bal:,}\n"
-        f"• Saldo Dana Darurat: Rp{emergency_bal:,}\n"
+        f"• Saldo Tabungan & Investasi: Rp{si_bal:,}\n"
+        + (f"  ({breakdown_str})\n" if breakdown_str else "")
+        + f"• Saldo Dana Darurat: Rp{emergency_bal:,}\n"
         f"(Balance positif = saldo terkumpul, negatif = defisit)"
     )
 

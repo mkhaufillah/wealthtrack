@@ -317,7 +317,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         .where((c) => c.categoryNameEn == 'Savings & Investment')
         .fold<int>(0, (sum, c) => sum + c.total);
     final savingsIncome = report.incomeCategories
-        .where((c) => c.categoryNameEn == 'Savings & Investment Disbursed' || c.categoryNameEn == 'Savings & Investment Return')
+        .where((c) => c.categoryNameEn == 'Savings & Investment Disbursed')
         .fold<int>(0, (sum, c) => sum + c.total);
 
     // Adjusted savings rate: (income - expense + savingsExpense - savingsIncome) / income * 100

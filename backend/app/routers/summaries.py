@@ -504,7 +504,7 @@ async def all_time_category_balance(
 
     # Fetch category IDs for Savings & Investment (both name_en variants)
     cursor = await db.execute(
-        "SELECT id FROM categories WHERE name_en IN ('Savings & Investment', 'Saving & Investment', 'Savings & Investment Disbursed', 'Savings & Investment Return')"
+        "SELECT id FROM categories WHERE name_en IN ('Savings & Investment', 'Savings & Investment Disbursed')"
     )
     savings_ids = [r["id"] for r in await cursor.fetchall()]
 
