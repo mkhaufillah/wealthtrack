@@ -1,46 +1,34 @@
 # Changelog
 
-## v0.2.0 — Household Finance (2026-05-28)
+## v0.3.0 — Billing Cycle Support (2026-05-30)
 
 ### Core Features
 
-- **Auth** — Register, login, JWT session persistence, profile management
-- **Transactions** — CRUD with categories, date filter, search, household split view
-- **Household** — Create/join via invite code, combined dashboard, change transaction owner
-- **Budgets** — Per-category monthly limits with progress tracking in mobile
-- **Reports** — Monthly summary, category breakdown, daily snapshot, household split, charts (pie/bar/line)
+- **Billing Cycles** — Configurable cycle start day per user, budgets & reports align to cycle date range, cycle-on overrides in budget create/upsert
+- **Budget Overview** — Home screen shows totalBudget vs totalIncome comparison + non-budget expenses
+- **Cycle Picker** — Flutter cycle picker in budgets & reports screens replacing calendar month view
 
-### P4 Features
+### Fixes
 
-- **Transfer Balance** — Move funds between household members with dedicated category
-- **AI Financial Advisor** — Streaming chat with Brave Search integration, model toggle (Flash/Opus)
-- **OCR Invoice Scanner** — Camera/gallery upload with auto-prefill via Kimi K2.6 vision
-- **Excel Export** — Yearly multi-sheet export (openpyxl) with download & share
-- **Charts** — Interactive pie/bar/line charts with fl_chart, conditional labels
-
-### UI & UX
-
-- **Dark Mode** — Full theme toggle in profile with light/dark consistency across all screens
-- **Amount Field** — Rp prefix, numeric formatting, focus UX
-- **Pull-to-refresh** — On transactions, budgets, and reports screens
-- **Transaction Edit** — Edit all fields inline from the transaction tile menu
-- **Delete Account** — With FK cascade cleanup
+- **Cycle Logic** — 4 major cycle bugs: correct date range per cycle, month label = START month, each budget uses its own cycle_on for actual_spent, cycle-info accepts `?date=` param, monthly endpoints accept `d_from/d_to_override`
+- **UI Consistency** — Dark mode dropdown fix, default view loads correct month (not last), balance per month, color audit fixes across all screens, keyboard UX, edit type, screen refresh after mutations
+- **Device Date** — Backend `/current-month` accepts `?ref_date=YYYY-MM-DD` so device date overrides server date
 
 ### Infrastructure
 
-- **CI/CD** — GitHub Actions: APK build on push, auto-deploy backend via SSH
-- **Deployment** — Systemd service, nginx reverse proxy, certbot SSL, backup script
-- **Security** — Rate limiting, role-based access, CORS restrict, global error handler
+- **CI** — Release APK signing, debug + release APK both built per run, ProGuard rules for network classes, AndroidManifest INTERNET + cleartext patching
+- **Deploy** — Health check via SSH (not runner localhost), backend config resolved by absolute path
+- **Timezones** — Server set to Asia/Jakarta, WIB-conversion fixes for date handling
 
 ### Test Coverage
 
-- **Backend** — 109 tests (auth, transactions, budgets, households, summaries, AI advisor, OCR, exports)
-- **Mobile** — 106+ Flutter widget tests (auth, home, transactions, budgets, reports, profile, transfer)
+- **Backend** — +41 new tests (OCR mock, AI Advisor stream, households success, budgets upsert, export xlsx, multi-month range)
+- **Mobile** — +59 new tests (AiAdvisorScreen, provider, network, service layers)
 
 ### Docs
 
-- 12 feature docs covering architecture, API, deployment, and mobile UI
-- EDN API endpoint spec with schemas, examples, and error codes
+- Billing cycle feature doc with architecture, API spec, and Flutter implementation
+- README sync with cycle overview, budget overview, non-budget expenses, home cycle label
 
 ---
 
