@@ -25,7 +25,9 @@ class TransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isExpense = transaction.type == 'expense';
     final icon = transaction.category.icon.isNotEmpty ? transaction.category.icon : '📦';
-    final translatedCategory = transaction.category.nameEn;
+    final translatedCategory = transaction.category.nameEn.isNotEmpty
+        ? transaction.category.nameEn
+        : transaction.category.name;
     final description = transaction.description;
     final ownerName = transaction.user?.displayName ?? '';
 

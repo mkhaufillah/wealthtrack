@@ -11,13 +11,13 @@ void main() {
     id: 1, type: 'expense', amount: 50000,
     description: 'Lunch at Sate Padang', note: '',
     date: '2026-05-27',
-    category: CategoryBrief(id: 3, name: 'Food', nameEn: '', icon: '🍔'),
+     category: CategoryBrief(id: 3, name: 'Food', nameEn: 'Food & Drinks', icon: '🍔'),
   );
   final income = TransactionModel(
     id: 2, type: 'income', amount: 3000000,
     description: '', note: '',
     date: '2026-05-26',
-    category: CategoryBrief(id: 1, name: 'Salary', nameEn: '', icon: '💰'),
+     category: CategoryBrief(id: 1, name: 'Salary', nameEn: 'Salary', icon: '💰'),
   );
 
   group('TransactionTile', () {
@@ -51,7 +51,7 @@ void main() {
         id: 3, type: 'expense', amount: 10000,
         description: 'Test', note: '',
         date: '2026-05-27',
-        category: CategoryBrief(id: 9, name: 'Other', nameEn: '', icon: ''),
+         category: CategoryBrief(id: 9, name: 'Other', nameEn: 'Other', icon: ''),
       );
       await tester.pumpWidget(wrap(TransactionTile(transaction: noIcon)));
       expect(find.text('📦'), findsOneWidget);

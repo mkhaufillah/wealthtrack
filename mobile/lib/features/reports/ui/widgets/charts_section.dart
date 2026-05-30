@@ -62,7 +62,7 @@ Widget buildPieChartSection(List<CategoryBreakdown> categories) {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        '${cat.icon} ${cat.categoryNameEn}',
+                        '${cat.icon} ${(cat.categoryNameEn.isNotEmpty ? cat.categoryNameEn : cat.categoryName)}',
                         style: const TextStyle(fontSize: 11),
                         overflow: TextOverflow.ellipsis,
                       ),

@@ -99,8 +99,8 @@ void main() {
     testWidgets('loads categories from API', (tester) async {
       final mockApi = MockApiClient();
       mockApi.onGet('/categories', [
-        {'id': 6, 'name': 'Makanan & Minuman', 'type': 'expense', 'icon': '🍜'},
-        {'id': 7, 'name': 'Transportasi & Bensin', 'type': 'expense', 'icon': '🚗'},
+        {'id': 6, 'name': 'Makanan & Minuman', 'name_en': 'Food & Drinks', 'type': 'expense', 'icon': '🍜'},
+        {'id': 7, 'name': 'Transportasi & Bensin', 'name_en': 'Transport & Fuel', 'type': 'expense', 'icon': '🚗'},
       ]);
 
       await tester.pumpWidget(

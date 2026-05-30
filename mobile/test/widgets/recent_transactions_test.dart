@@ -24,13 +24,13 @@ void main() {
           id: 1, type: 'expense', amount: 50000,
           description: 'Coffee', note: '',
           date: '2026-05-27',
-          category: CategoryBrief(id: 3, name: 'Food', nameEn: '', icon: '☕'),
+          category: CategoryBrief(id: 3, name: 'Food', nameEn: 'Food & Drinks', icon: '☕'),
         ),
         TransactionModel(
           id: 2, type: 'income', amount: 5000000,
           description: 'Gaji', note: '',
           date: '2026-05-01',
-          category: CategoryBrief(id: 1, name: 'Salary', nameEn: '', icon: '💰'),
+          category: CategoryBrief(id: 1, name: 'Salary', nameEn: 'Salary', icon: '💰'),
         ),
       ];
       await tester.pumpWidget(wrap(RecentTransactions(transactions: txns)));

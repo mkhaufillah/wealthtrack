@@ -37,7 +37,7 @@ class CategoryPicker extends StatelessWidget {
           final cat = categories[i];
           final isSelected = cat.id == selectedId;
           return FilterChip(
-            label: Text('${cat.icon} ${cat.nameEn}'),
+            label: Text('${cat.icon} ${cat.nameEn.isNotEmpty ? cat.nameEn : cat.name}'),
             selected: isSelected,
             onSelected: (_) => onSelected(cat.id),
             selectedColor: isDark

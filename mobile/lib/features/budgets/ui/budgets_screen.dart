@@ -361,9 +361,8 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(item.categoryNameEn,
+                child: Text(item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              ),
               Text(formatCurrency(item.total),
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.warning)),
             ],
@@ -400,7 +399,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(item.categoryNameEn,
+                  child: Text(item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName,
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
                 // Cycle date range badge
@@ -540,7 +539,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Budget'),
-        content: Text('Remove budget for ${item.categoryNameEn}?'),
+        content: Text('Remove budget for ${item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName}?'),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
           FilledButton(
@@ -650,7 +649,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
                   Text(widget.existingItem!.categoryIcon, style: const TextStyle(fontSize: 18)),
                   const SizedBox(width: 10),
                   Text(
-                    widget.existingItem!.categoryNameEn,
+                    (widget.existingItem!.categoryNameEn.isNotEmpty ? widget.existingItem!.categoryNameEn : widget.existingItem!.categoryName),
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ],
