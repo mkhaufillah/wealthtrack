@@ -90,6 +90,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     final cats = notifier.categories;
     final state = ref.read(transactionListProvider);
     final selected = List<int>.from(state.selectedCategoryIds);
+    // Always start with a populated list — empty means "no filter" (all selected)
+    if (selected.isEmpty && cats.isNotEmpty) {
+      selected.addAll(cats.map((c) => c['id'] as int));
+    }
 
     // Notify MainShell to hide FAB
     ref.read(isCategoryFilterSheetOpenProvider.notifier).state = true;
@@ -104,8 +108,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
-            final allSelected = selected.isEmpty || selected.length == cats.length;
+            final allSelected = selected.length == cats.length;
             final theme = Theme.of(ctx);
+            final isDarkSheet = theme.brightness == Brightness.dark;
             return Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -122,7 +127,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                             ? null
                             : () {
                                 setSheetState(() {
-                                  selected.clear();
+                                  selected
+                                    ..clear()
+                                    ..addAll(cats.map((c) => c['id'] as int));
                                 });
                               },
                         child: Text('Clear',
@@ -130,7 +137,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                               fontSize: 14,
                               color: allSelected
                                   ? AppColors.textSecondary.withOpacity(0.4)
-                                  : AppColors.accent,
+                                  : (isDarkSheet ? Colors.white : AppColors.accent),
                             )),
                       ),
                     ],
@@ -154,8 +161,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         ? null
                         : (_) {
                             setSheetState(() {
-                              selected.clear();
-                              selected.addAll(cats.map((c) => c['id'] as int));
+                              selected
+                                ..clear()
+                                ..addAll(cats.map((c) => c['id'] as int));
                             });
                           },
                   ),
@@ -172,10 +180,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         final nameEn = cat['name_en'] as String? ?? '';
                         final name = cat['name'] as String? ?? '';
                         final label = nameEn.isNotEmpty ? nameEn : name;
-                        final isSelected = selected.contains(catId) || allSelected;
                         return CheckboxListTile(
                           dense: false,
-                          value: isSelected,
+                          value: selected.contains(catId),
                           title: Text(label, style: const TextStyle(fontSize: 15)),
                           secondary: Text(cat['icon'] as String? ?? '\uD83D\uDCE6',
                               style: const TextStyle(fontSize: 22)),
@@ -183,18 +190,14 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                           activeColor: AppColors.accent,
                           checkColor: Colors.white,
                           onChanged: (_) {
-                                  setSheetState(() {
-                                    if (allSelected) {
-                                      // Transition from "all" → specific deselection
-                                      selected.addAll(cats.map((c) => c['id'] as int));
-                                      selected.remove(catId);
-                                    } else if (selected.contains(catId)) {
-                                      selected.remove(catId);
-                                    } else {
-                                      selected.add(catId);
-                                    }
-                                  });
-                                },
+                            setSheetState(() {
+                              if (selected.contains(catId)) {
+                                selected.remove(catId);
+                              } else {
+                                selected.add(catId);
+                              }
+                            });
+                          },
                         );
                       }).cast<Widget>().toList(),
                     ),
@@ -211,7 +214,8 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         Navigator.pop(ctx);
                         // Notify MainShell to show FAB again
                         ref.read(isCategoryFilterSheetOpenProvider.notifier).state = false;
-                        notifier.setCategoryFilter(selected);
+                        // Pass empty list = all (no filter)
+                        notifier.setCategoryFilter(allSelected ? [] : selected);
                       },
                       child: const Text('Apply', style: TextStyle(color: Colors.white, fontSize: 15)),
                     ),
@@ -427,17 +431,27 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   // Category filter button
                   ActionChip(
                     avatar: Icon(Icons.category_outlined, size: 16,
-                        color: state.selectedCategoryIds.isNotEmpty ? AppColors.accent : AppColors.textSecondary),
+                        color: state.selectedCategoryIds.isNotEmpty
+                            ? (isDark ? Colors.white : AppColors.accent)
+                            : AppColors.textSecondary),
                     label: Text(
                       state.selectedCategoryIds.isNotEmpty
                           ? '${state.selectedCategoryIds.length} categories'
                           : 'Categories',
                       style: TextStyle(fontSize: 12,
-                          color: state.selectedCategoryIds.isNotEmpty ? AppColors.accent : AppColors.textSecondary),
+                          color: state.selectedCategoryIds.isNotEmpty
+                              ? (isDark ? Colors.white : AppColors.accent)
+                              : AppColors.textSecondary),
                     ),
-                    backgroundColor: AppColors.surface,
+                    backgroundColor: isDark && state.selectedCategoryIds.isNotEmpty
+                        ? AppColors.surface
+                        : AppColors.surface,
                     onPressed: _showCategoryFilterSheet,
-                    side: BorderSide(color: AppColors.divider),
+                    side: BorderSide(
+                      color: state.selectedCategoryIds.isNotEmpty
+                          ? (isDark ? Colors.white38 : AppColors.accent)
+                          : AppColors.divider,
+                    ),
                   ),
                   const SizedBox(width: 8),
 
