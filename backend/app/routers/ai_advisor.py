@@ -52,6 +52,12 @@ Jangan panggil atau sebut nama anggota keluarga lain dalam sapaan.
 **Ringkasan Per Kategori:**
 {category_breakdown}
 
+**Statistik Per Kategori:**
+{cat_stats}
+
+**Aktivitas Per Anggota:**
+{member_summary}
+
 **Transaksi Terbaru:**
 {recent_transactions}
 
@@ -204,6 +210,37 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         )
     category_breakdown = "\n".join(cat_parts) if cat_parts else "Belum ada transaksi"
 
+    # ── Per-category stats: avg per transaction + top 3 most expensive ──
+    cat_stats = {}  # category_key -> {"avg": int, "top3": list}
+    for t in all_txns:
+        key = f"{t['category_name']} ({t['type']})"
+        if key not in cat_stats:
+            cat_stats[key] = {"amounts": []}
+        cat_stats[key]["amounts"].append(t["amount"])
+
+    cat_extra_parts = []
+    for cat_name in sorted(cat_stats.keys(), key=lambda k: -sum(cat_stats[k]["amounts"])):
+        amounts = sorted(cat_stats[cat_name]["amounts"], reverse=True)
+        avg_val = sum(amounts) // len(amounts)
+        top3_str = ", ".join(f"Rp{a:,}" for a in amounts[:3])
+        cat_extra_parts.append(f"• {cat_name}: rata-rata Rp{avg_val:,}/transaksi | termahal: {top3_str}")
+
+    # ── Per-member totals ──
+    member_totals = {}
+    for t in all_txns:
+        owner = t["owner"]
+        if owner not in member_totals:
+            member_totals[owner] = {"income": 0, "expense": 0, "count": 0}
+        member_totals[owner][t["type"]] += t["amount"]
+        member_totals[owner]["count"] += 1
+
+    member_parts = []
+    for name in sorted(member_totals.keys()):
+        m = member_totals[name]
+        member_parts.append(
+            f"• {name}: {m['count']} transaksi | pemasukan Rp{m['income']:,} | pengeluaran Rp{m['expense']:,}"
+        )
+
     # ── Recent transactions (last 15, with owner) ──
     recent = all_txns[:15]
     txn_parts = []
@@ -289,6 +326,8 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         "expense_ratio": expense_ratio,
         "avg_daily_expense": avg_daily_expense,
         "category_breakdown": category_breakdown,
+        "cat_stats": "\n".join(cat_extra_parts) if cat_extra_parts else "",
+        "member_summary": "\n".join(member_parts) if member_parts else "",
         "recent_transactions": recent_transactions,
         "trend": trend,
         "budgets": budgets,
