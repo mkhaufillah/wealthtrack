@@ -71,7 +71,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         final (dFrom, dTo) = getCycleRangeForMonth(_monthParam, cycleStartDay);
         _cycleDateFrom = DateFormat('yyyy-MM-dd').format(dFrom);
         _cycleDateTo = DateFormat('yyyy-MM-dd').format(dTo);
-        _cycleLabel = '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
+        _cycleLabel = '${DateFormat('dd MMM yyyy').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
       });
     } catch (_) {
       if (!mounted) return;

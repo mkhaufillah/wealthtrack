@@ -83,7 +83,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final lastDay = DateFormat('yyyy-MM-dd').format(dTo);
 
     // Build cycle label from dates (e.g. "25 Apr – 24 Mei 2026")
-    _cycleLabel = '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
+    _cycleLabel = '${DateFormat('dd MMM yyyy').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
 
     ref.read(reportProvider.notifier).load(monthStr, dateFrom: firstDay, dateTo: lastDay);
     ref.read(reportProvider.notifier).loadHousehold(dateFrom: firstDay, dateTo: lastDay);
@@ -333,7 +333,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final parts = _cycleLabel.split(' – ');
       if (parts.length == 2) {
         try {
-          final from = DateFormat('dd MMM').parse(parts[0]);
+          final from = DateFormat('dd MMM yyyy').parse(parts[0]);
           final to = DateFormat('dd MMM yyyy').parse(parts[1]);
           actualDays = to.difference(from).inDays;
           if (actualDays <= 0) actualDays = 30;
