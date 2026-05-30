@@ -109,13 +109,13 @@ void main() {
       expect(find.byIcon(Icons.send), findsOneWidget);
     });
 
-    testWidgets('shows Flash model toggle for user id 1', (tester) async {
+    testWidgets('shows Flash model toggle for admin user', (tester) async {
       await tester.pumpWidget(buildAiAdvisorApp(
         currentUser: UserModel(
           id: 1,
           username: 'filla',
           displayName: 'Filla',
-          role: 'user',
+          role: 'admin',
         ),
       ));
       await tester.pump();
@@ -124,20 +124,18 @@ void main() {
       expect(find.text('Flash'), findsOneWidget);
     });
 
-    testWidgets('toggle switches to Advanced for user id 1',
+    testWidgets('toggle switches to Advanced for admin user',
         (tester) async {
       await tester.pumpWidget(buildAiAdvisorApp(
         currentUser: UserModel(
           id: 1,
           username: 'filla',
           displayName: 'Filla',
-          role: 'user',
+          role: 'admin',
         ),
       ));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
-
-      // Tap the model toggle
       await tester.tap(find.text('Flash'));
       await tester.pump();
 
