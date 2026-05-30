@@ -74,6 +74,7 @@ All summary endpoints now accept `?use_cycle=true`:
 | `GET /summaries/monthly` | Calendar month | Cycle range |
 | `GET /summaries/household` | Explicit dates | Cycle range if no dates |
 | `GET /summaries/cycle-info` | — | Returns `{cycle_start_day, date_from, date_to}` |
+| `GET /budgets/summary` | Calendar month dates | Cycle-aware actuals with `?use_cycle=true` |
 
 ### Profile Update
 
@@ -103,6 +104,7 @@ The `_build_context()` function now:
 | `backend/app/schemas/auth.py` | `UpdateProfileIn.cycle_start_day` (Optional[int], ge=1, le=28) |
 | `backend/app/routers/summaries.py` | All endpoints: `use_cycle` param, `get_cycle_range()`, `cycle-info` endpoint |
 | `backend/app/routers/ai_advisor.py` | `_build_context()` uses cycle range, injects cycle label in prompt |
+| `backend/app/routers/budgets.py` | `/summary` — `?use_cycle=true` for cycle-aware actuals date range |
 
 ### Mobile (Flutter)
 | File | Change |
@@ -113,6 +115,9 @@ The `_build_context()` function now:
 | `lib/features/profile/ui/profile_screen.dart` | +Billing Cycle section, grid picker (1–28), `_saveCycleDay()` |
 | `lib/features/home/providers/dashboard_provider.dart` | Pass `use_cycle=true` to `/current-month` |
 | `lib/features/reports/data/report_repository.dart` | Pass `use_cycle=true` to `/monthly` + trend |
+| `lib/features/reports/ui/reports_screen.dart` | Fetch `/cycle-info` for household dates, show cycle label in picker |
+| `lib/features/budgets/data/budget_repository.dart` | Pass `use_cycle=true` to `/summary` |
+| `lib/features/budgets/ui/budgets_screen.dart` | Show cycle label in picker |
 
 ### Cron
 | File | Change |

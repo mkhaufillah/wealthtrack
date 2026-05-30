@@ -769,3 +769,17 @@ git commit -m "feat(cycle): flutter profile picker, use_cycle providers, cron cy
 - Context dict → added `cycle_label` key
 - SYSTEM_PROMPT unchanged — `{month}` already renders cycle label
 - Trend 6 bulan tetap pakai calendar month (long-range trending)
+
+---
+
+## Bonus sync (post-implementation)
+
+After review, these were also updated:
+
+| Area | Change |
+|------|--------|
+| `backend/app/routers/budgets.py` | `/summary` + `?use_cycle=true` → cycle-aware actuals |
+| `mobile/lib/features/budgets/data/budget_repository.dart` | Pass `use_cycle=true` to `/summary` |
+| `mobile/lib/features/reports/ui/reports_screen.dart` | Fetch `/cycle-info` for household dates, cycle label in picker |
+| `mobile/lib/features/budgets/ui/budgets_screen.dart` | Cycle label in picker |
+| `docs/14-custom-billing-cycle.md` | Updated with budgets + reports changes |
