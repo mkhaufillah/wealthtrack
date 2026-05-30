@@ -237,6 +237,49 @@ class TestFinancialAdvise:
         finally:
             settings.OPENCODE_GO_API_KEY = saved
 
+    async def test_opus_requires_admin_role(
+        self, client: AsyncClient, nahda_token: str, monkeypatch
+    ):
+        """Non-admin user gets 403 when requesting opus model."""
+        saved = _setup_api_key()
+        try:
+            resp = await client.post(
+                "/api/v1/ai/advise",
+                headers={"Authorization": f"Bearer {nahda_token}"},
+                json={
+                    "question": "How am I doing?",
+                    "model": "opus",
+                },
+            )
+            assert resp.status_code == 403
+            assert "Advanced model" in resp.json()["detail"]
+        finally:
+            settings.OPENCODE_GO_API_KEY = saved
+
+    async def test_opus_allowed_for_admin(
+        self, client: AsyncClient, filla_token: str, monkeypatch
+    ):
+        """Admin user can use opus model (would fail at API call without mock, but 403 not raised)."""
+        saved = _setup_api_key()
+        try:
+            _install_ai_mock(
+                monkeypatch,
+                post_result=MockAIResponse(status_code=200, content="Opus answer"),
+            )
+
+            resp = await client.post(
+                "/api/v1/ai/advise",
+                headers={"Authorization": f"Bearer {filla_token}"},
+                json={
+                    "question": "How am I doing?",
+                    "model": "opus",
+                },
+            )
+            # Should not be 403 — admin is allowed
+            assert resp.status_code != 403
+        finally:
+            settings.OPENCODE_GO_API_KEY = saved
+
     async def test_ai_api_error(
         self, client: AsyncClient, filla_token: str, monkeypatch
     ):
@@ -458,5 +501,48 @@ class TestFinancialAdviseStream:
             )
             assert resp.status_code == 200
             assert "Answer with context" in resp.text
+        finally:
+            settings.OPENCODE_GO_API_KEY = saved
+
+    async def test_stream_opus_requires_admin_role(
+        self, client: AsyncClient, nahda_token: str, monkeypatch
+    ):
+        """Stream: non-admin user gets 403 when requesting opus model."""
+        saved = _setup_api_key()
+        try:
+            resp = await client.post(
+                "/api/v1/ai/advise/stream",
+                headers={"Authorization": f"Bearer {nahda_token}"},
+                json={
+                    "question": "How am I doing?",
+                    "model": "opus",
+                },
+            )
+            assert resp.status_code == 403
+            assert "Advanced model" in resp.text
+        finally:
+            settings.OPENCODE_GO_API_KEY = saved
+
+    async def test_stream_opus_allowed_for_admin(
+        self, client: AsyncClient, filla_token: str, monkeypatch
+    ):
+        """Stream: admin user can use opus model (403 not raised)."""
+        saved = _setup_api_key()
+        try:
+            stream_resp = MockAIStreamResponse(
+                status_code=200, tokens=["Admin opus answer"]
+            )
+            _install_ai_mock(monkeypatch, stream_result=stream_resp)
+
+            resp = await client.post(
+                "/api/v1/ai/advise/stream",
+                headers={"Authorization": f"Bearer {filla_token}"},
+                json={
+                    "question": "How am I doing?",
+                    "model": "opus",
+                },
+            )
+            # Should not be 403 — admin is allowed
+            assert resp.status_code != 403
         finally:
             settings.OPENCODE_GO_API_KEY = saved

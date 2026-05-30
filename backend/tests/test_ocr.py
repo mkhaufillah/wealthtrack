@@ -112,7 +112,7 @@ class TestProcessOcr:
             files={"file": ("test.txt", b"not an image", "text/plain")},
         )
         assert resp.status_code == 400
-        assert "Only image files" in resp.json()["detail"]
+        assert "Unsupported image format" in resp.json()["detail"]
 
     async def test_empty_upload_rejected(self, client: AsyncClient, filla_token: str):
         """POST /ocr/process without file field returns 422."""

@@ -32,40 +32,87 @@ class AdviseResponse(BaseModel):
     model_used: str
 
 
-SYSTEM_PROMPT = """Kamu adalah asisten keuangan pribadi yang membantu {user_name} mengelola keuangan keluarga.
+SYSTEM_PROMPT = """Kamu adalah asisten keuangan keluarga yang berpengalaman untuk {user_name}. 
+Kamu membantu {user_name} dan pasangannya mengelola keuangan rumah tangga secara cerdas.
 Percakapan ini bersifat personal — hanya {user_name} yang sedang berbicara denganmu.
 Jangan panggil atau sebut nama anggota keluarga lain dalam sapaan.
 
-Saat ini: {current_datetime_wib}
+━━━ DATA TERKINI — {current_datetime_wib} ━━━
 
-Data Keuangan Periode {month}:
-- Saldo: Rp{balance:,}
-- Total Pemasukan: Rp{income:,}
-- Total Pengeluaran: Rp{expense:,}
-- Pengeluaran per kategori: {category_breakdown}
+**Siklus Keuangan:** {cycle_label}
+**Anggota Keluarga:** {members}
 
-Tren 6 Bulan Terakhir: {trend}
+**Ringkasan Keuangan Keluarga:**
+• Pemasukan: Rp{income:,}
+• Pengeluaran: Rp{expense:,}
+• Saldo Bersih: Rp{balance:,}
+• Rasio Pengeluaran: {expense_ratio:.1f}% dari pemasukan
+• Rata-rata Pengeluaran Harian: Rp{avg_daily_expense:,}
 
-Anggaran: {budgets}
+**Ringkasan Per Kategori:**
+{category_breakdown}
 
-Anggota Keluarga (konteks data): {members}
+**Statistik Per Kategori:**
+{cat_stats}
+
+**Aktivitas Per Anggota:**
+{member_summary}
+
+**Transaksi Terbaru:**
+{recent_transactions}
+
+**Anggaran vs Realisasi:**
+{budgets}
+
+**Tren 6 Siklus Terakhir (Pemasukan | Pengeluaran):**
+{trend}
 
 {search_results}
 
-Berikan saran yang personal, relevan, dan actionable berdasarkan data di atas.
-Gunakan bahasa Indonesia yang natural.
-Jika ada data yang relevan, sertakan angka spesifik.
-Jika pengguna hanya menyapa (misal "halo", "hi", "pagi", "selamat siang"), balaslah dengan ramah dan tawarkan bantuan — jangan sebut nama anggota keluarga lain.
-Jika ditanya di luar topik keuangan, arahkan kembali ke pengelolaan keuangan.
-Jika ada [Hasil Pencarian Web] di atas, gunakan sebagai referensi jawaban dan sebutkan sumbernya secara singkat.
-Jangan menyebutkan bahwa Anda adalah AI — cukup beri saran sebagai asisten keuangan."""
+─── CARA MENGANALISIS ───
+Gunakan kerangka analisis berikut secara konsisten:
+
+1. **Kesehatan Anggaran** — Bandingkan realisasi vs anggaran per kategori. Kategori mana yang over budget? Mana yang masih aman? Hitung sisa anggaran.
+
+2. **Pola Pengeluaran** — Identifikasi kategori dengan pengeluaran tertinggi. Apakah ada anomali (lonjakan tidak wajar)? Bandingkan dengan siklus sebelumnya dari data tren.
+
+3. **Rasio Keuangan** — Hitung: (a) savings rate = saldo ÷ pemasukan, (b) proporsi per kategori terhadap total pengeluaran, (c) rata-rata harian.
+
+4. **Rekomendasi Kontekstual** — Berdasarkan data nyata, beri saran spesifik: "Kamu bisa hemat RpX dari kategori Y dengan cara Z." Jangan memberi saran umum tanpa data.
+
+─── ATURAN ───
+• Bahasa Indonesia natural, hangat tapi profesional.
+• Sertakan angka spesifik dari data — jangan generalisasi.
+• Sebut nama anggota keluarga jika relevan dengan konteks transaksi (misal "Nahda belanja kebutuhan bayi").
+• Jika hanya sapaan, balas ramah + tawarkan analisis keuangan.
+• Jika ditanya di luar keuangan, arahkan kembali.
+• Jika ada [Hasil Pencarian Web], gunakan sebagai referensi dengan menyebut sumbernya singkat.
+• Jangan sebut diri sebagai AI — cukup "saya" atau "asisten keuangan".
+• Jangan rekomendasikan aplikasi AI keuangan, budgeting, atau platform finansial lain."""
+
+
+async def _get_household_id(user_id: int, db) -> Optional[int]:
+    """Get the household ID for a user, or None if not in a household."""
+    cursor = await db.execute(
+        "SELECT household_id FROM household_members WHERE user_id = ?",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    return row["household_id"] if row else None
 
 
 async def _build_context(user_id: int, db, question: str = "") -> dict:
+    """Build financial context for the AI advisor prompt.
+
+    Includes household-level data (all members) when the user is in a household.
+    """
     # User info
     cursor = await db.execute("SELECT display_name FROM users WHERE id = ?", (user_id,))
     user = await cursor.fetchone()
     user_name = user["display_name"] if user else f"User #{user_id}"
+
+    # Household info
+    household_id = await _get_household_id(user_id, db)
 
     # Household members
     cursor = await db.execute(
@@ -80,11 +127,10 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         member_list.append(f"{r['display_name']} ({r['role']})")
     members = ", ".join(member_list) or "Sendiri"
 
-    # Current month summary — cycle-aware
+    # Current cycle
     now = datetime.now(timezone(timedelta(hours=7)))
     current_datetime = now.strftime("%A, %d %B %Y %H:%M WIB")
 
-    # Read user's cycle_start_day
     cursor = await db.execute(
         "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
         (user_id,),
@@ -97,13 +143,27 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
     d_from = d_from_date.isoformat()
     d_to = d_to_date.isoformat()
     cycle_label = f"{d_from_date.strftime('%d %b')} – {d_to_date.strftime('%d %b %Y')}"
-    month_display = cycle_label
 
+    # ── Household-level financial summary ──
+    if household_id:
+        # All household members' user IDs
+        cursor = await db.execute(
+            "SELECT user_id FROM household_members WHERE household_id = ?",
+            (household_id,),
+        )
+        member_ids = [r["user_id"] async for r in cursor]
+    else:
+        member_ids = [user_id]
+
+    placeholders = ",".join("?" * len(member_ids))
+
+    # Income / Expense summary for household
     cursor = await db.execute(
-        """SELECT type, COALESCE(SUM(amount), 0) as total
-           FROM transactions WHERE user_id = ? AND COALESCE(date, substr(created_at,1,10)) BETWEEN ? AND ?
+        f"""SELECT type, COALESCE(SUM(amount), 0) as total
+           FROM transactions WHERE user_id IN ({placeholders})
+             AND COALESCE(date, substr(created_at,1,10)) BETWEEN ? AND ?
            GROUP BY type""",
-        (user_id, d_from, d_to),
+        (*member_ids, d_from, d_to),
     )
     income = 0
     expense = 0
@@ -114,35 +174,107 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
             expense = r["total"]
     balance = income - expense
 
-    # Category breakdown
-    cursor = await db.execute(
-        """SELECT category_name, SUM(amount) as total
-           FROM transactions WHERE user_id = ? AND type = 'expense'
-             AND COALESCE(date, substr(created_at,1,10)) BETWEEN ? AND ?
-           GROUP BY category_name ORDER BY total DESC LIMIT 5""",
-        (user_id, d_from, d_to),
-    )
-    cat_parts = []
-    async for r in cursor:
-        cat_parts.append(f"{r['category_name']}: Rp{r['total']:,}")
-    cat_breakdown = ", ".join(cat_parts) or "Belum ada"
+    # Derived metrics
+    expense_ratio = (expense / income * 100) if income > 0 else 0.0
+    cycle_days = (d_to_date - d_from_date).days or 1
+    avg_daily_expense = expense / cycle_days if cycle_days > 0 else 0
 
-    # 6-month trend
-    from calendar import monthrange
+    # ── Per-category breakdown (household, with owner info) ──
+    cursor = await db.execute(
+        f"""SELECT t.category_name, t.type, t.amount, u.display_name as owner, t.date, t.description
+           FROM transactions t
+           JOIN users u ON t.user_id = u.id
+           WHERE t.user_id IN ({placeholders})
+             AND COALESCE(t.date, substr(t.created_at,1,10)) BETWEEN ? AND ?
+           ORDER BY t.date DESC""",
+        (*member_ids, d_from, d_to),
+    )
+    all_txns = await cursor.fetchall()
+
+    # Category summary
+    cat_map = {}  # category_key -> {total, count, members: set}
+    for t in all_txns:
+        key = f"{t['category_name']} ({t['type']})"
+        if key not in cat_map:
+            cat_map[key] = {"total": 0, "count": 0, "members": set()}
+        cat_map[key]["total"] += t["amount"]
+        cat_map[key]["count"] += 1
+        cat_map[key]["members"].add(t["owner"])
+
+    cat_parts = []
+    for cat_name in sorted(cat_map.keys(), key=lambda k: -cat_map[k]["total"]):
+        info = cat_map[cat_name]
+        members_str = ", ".join(sorted(info["members"]))
+        cat_parts.append(
+            f"• {cat_name}: Rp{info['total']:,} ({info['count']} transaksi oleh {members_str})"
+        )
+    category_breakdown = "\n".join(cat_parts) if cat_parts else "Belum ada transaksi"
+
+    # ── Per-category stats: avg per transaction + top 3 most expensive ──
+    cat_stats = {}  # category_key -> {"avg": int, "top3": list}
+    for t in all_txns:
+        key = f"{t['category_name']} ({t['type']})"
+        if key not in cat_stats:
+            cat_stats[key] = {"amounts": []}
+        cat_stats[key]["amounts"].append(t["amount"])
+
+    cat_extra_parts = []
+    for cat_name in sorted(cat_stats.keys(), key=lambda k: -sum(cat_stats[k]["amounts"])):
+        amounts = sorted(cat_stats[cat_name]["amounts"], reverse=True)
+        avg_val = sum(amounts) // len(amounts)
+        top3_str = ", ".join(f"Rp{a:,}" for a in amounts[:3])
+        cat_extra_parts.append(f"• {cat_name}: rata-rata Rp{avg_val:,}/transaksi | termahal: {top3_str}")
+
+    # ── Per-member totals ──
+    member_totals = {}
+    for t in all_txns:
+        owner = t["owner"]
+        if owner not in member_totals:
+            member_totals[owner] = {"income": 0, "expense": 0, "count": 0}
+        member_totals[owner][t["type"]] += t["amount"]
+        member_totals[owner]["count"] += 1
+
+    member_parts = []
+    for name in sorted(member_totals.keys()):
+        m = member_totals[name]
+        member_parts.append(
+            f"• {name}: {m['count']} transaksi | pemasukan Rp{m['income']:,} | pengeluaran Rp{m['expense']:,}"
+        )
+
+    # ── Recent transactions (last 15, with owner) ──
+    recent = all_txns[:15]
+    txn_parts = []
+    for t in recent:
+        label = "pemasukan" if t["type"] == "income" else "pengeluaran"
+        txn_parts.append(
+            f"• {t['date']} | {t['owner']} | {label} | {t['category_name']} | Rp{t['amount']:,} | {t['description'] or '-'}"
+        )
+    recent_transactions = "\n".join(txn_parts) if txn_parts else "Belum ada transaksi"
+
+    # ── 6-cycle trend (cycle-aware) ──
     trend_parts = []
+    from calendar import monthrange
     for i in range(5, -1, -1):
+        # Navigate to the month that is i months ago
         y = now.year
         m = now.month - i
         while m < 1:
             m += 12
             y -= 1
-        m_str = f"{y}-{m:02d}"
-        _, days = monthrange(y, m)
+        # Use the 15th of that month as the anchor date for get_cycle_range
+        from datetime import date
+        anchor = date(y, m, min(15, monthrange(y, m)[1]))
+        c_from, c_to = get_cycle_range(anchor, cycle_start_day)
+        c_from_s = c_from.isoformat()
+        c_to_s = c_to.isoformat()
+        cycle_range_str = f"{c_from.strftime('%d/%m')}-{c_to.strftime('%d/%m')}"
+
         cursor = await db.execute(
-            """SELECT type, COALESCE(SUM(amount), 0) as total
-               FROM transactions WHERE user_id = ? AND COALESCE(date, substr(created_at,1,10)) BETWEEN ? AND ?
+            f"""SELECT type, COALESCE(SUM(amount), 0) as total
+               FROM transactions WHERE user_id IN ({placeholders})
+                 AND COALESCE(date, substr(created_at,1,10)) BETWEEN ? AND ?
                GROUP BY type""",
-            (user_id, f"{m_str}-01", f"{m_str}-{days}"),
+            (*member_ids, c_from_s, c_to_s),
         )
         inc = 0
         exp = 0
@@ -151,10 +283,10 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
                 inc = r["total"]
             else:
                 exp = r["total"]
-        trend_parts.append(f"{m_str}: I=Rp{inc:,}, E=Rp{exp:,}")
+        trend_parts.append(f"{cycle_range_str} | I=Rp{inc:,} | E=Rp{exp:,}")
     trend = " | ".join(trend_parts)
 
-    # Budgets vs actuals
+    # ── Budgets vs actuals (user's own budgets, cycle-aware) ──
     cursor = await db.execute(
         """SELECT b.category_name, b.budget_amount,
                   COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual
@@ -169,10 +301,14 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
     budgets_list = []
     async for r in cursor:
         pct = (r["actual"] / r["budget_amount"] * 100) if r["budget_amount"] > 0 else 0
-        budgets_list.append(f"{r['category_name']}: Rp{r['actual']:,} / Rp{r['budget_amount']:,} ({pct:.0f}%)")
+        remaining = r["budget_amount"] - r["actual"]
+        status = "✅" if remaining >= 0 else "🔴"
+        budgets_list.append(
+            f"• {r['category_name']}: Rp{r['actual']:,} / Rp{r['budget_amount']:,} ({pct:.0f}%) — sisa Rp{remaining:,} {status}"
+        )
     budgets = "\n".join(budgets_list) if budgets_list else "Belum ada anggaran"
 
-    # Web search (if question triggers it)
+    # ── Web search (if question triggers it) ──
     search_text = ""
     if question and _should_search(question):
         results = await search_web(question)
@@ -182,59 +318,21 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
     return {
         "user_name": user_name,
         "current_datetime_wib": current_datetime,
-        "month": month_display,
         "cycle_label": cycle_label,
+        "members": members,
         "income": income,
         "expense": expense,
         "balance": balance,
-        "category_breakdown": cat_breakdown,
+        "expense_ratio": expense_ratio,
+        "avg_daily_expense": avg_daily_expense,
+        "category_breakdown": category_breakdown,
+        "cat_stats": "\n".join(cat_extra_parts) if cat_extra_parts else "",
+        "member_summary": "\n".join(member_parts) if member_parts else "",
+        "recent_transactions": recent_transactions,
         "trend": trend,
         "budgets": budgets,
-        "members": members,
         "search_results": search_text,
     }
-
-
-async def _call_model(messages: list, api_key: str, model: str = "deepseek-v4-flash") -> str:
-    model_map = {
-        "flash": "deepseek-v4-flash",
-        "opus": "anthropic/claude-opus-4.7",
-    }
-    resolved = model_map.get(model, model)
-
-    # OpenCode Go for flash/light models
-    api_url = "https://opencode.ai/zen/go/v1/chat/completions"
-
-    # OpenRouter for premium models
-    if model == "opus":
-        from app.core.config import settings as cfg
-        if cfg.OPENROUTER_API_KEY:
-            api_key = cfg.OPENROUTER_API_KEY
-            api_url = "https://openrouter.ai/api/v1/chat/completions"
-        else:
-            # Downgrade to flash if no OpenRouter key
-            resolved = "deepseek-v4-flash"
-
-    async with httpx.AsyncClient(timeout=60) as client:
-        resp = await client.post(
-            api_url,
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={
-                "model": resolved,
-                "messages": messages,
-                "max_tokens": 16384,
-                "temperature": 0.7,
-            },
-        )
-
-    if resp.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"AI API error: {resp.status_code}")
-
-    body = resp.json()
-    content = body["choices"][0]["message"]["content"]
-    if not content or not content.strip():
-        return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
-    return content.strip()
 
 
 async def _resolve_model(model: str) -> tuple[str, str, str]:
@@ -301,6 +399,32 @@ async def _call_model_stream(
                 yield "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
 
 
+async def _call_model(messages: list, model: str = "deepseek-v4-flash") -> str:
+    """Call the model API without streaming. Returns full response text."""
+    resolved, api_url, api_key = await _resolve_model(model)
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.post(
+            api_url,
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": resolved,
+                "messages": messages,
+                "max_tokens": 16384,
+                "temperature": 0.7,
+            },
+        )
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"AI API error: {resp.status_code}")
+
+    body = resp.json()
+    content = body["choices"][0]["message"]["content"]
+    if not content or not content.strip():
+        return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
+    return content.strip()
+
+
 async def _build_messages(req: AdviseRequest, current_user: dict, db) -> list:
     """Build the full messages array: system → history → current question."""
     ctx = await _build_context(current_user["id"], db, question=req.question)
@@ -333,7 +457,7 @@ async def financial_advise(
         )
 
     messages = await _build_messages(req, current_user, db)
-    answer = await _call_model(messages=messages, api_key=api_key, model=req.model)
+    answer = await _call_model(messages=messages, model=req.model)
 
     return AdviseResponse(answer=answer, model_used=req.model)
 
