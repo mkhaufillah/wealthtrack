@@ -86,9 +86,28 @@ Now returns `name_en` and `keywords` in every response.
 
 ## Flutter Changes
 
+### name_en Propagation (v0.3.1)
+
+`name_en` now flows through the entire system from `categories` DB → API responses → Flutter UI.
+
+| Consumer | API Field | Flutter Display |
+|----------|-----------|-----------------|
+| Transaction tiles | `category.name_en` | Primary name, fallback to `category.name` |
+| Budget list | `category_name_en` | Primary name, fallback to `category_name` |
+| Budget summary | `category_name_en` | Primary name, fallback to `category_name` |
+| Reports breakdown | `category_name_en` | Primary name, fallback to `category_name` |
+| Charts (pie/bar) | `category_name_en` | Chart labels |
+| Category picker | `name_en` | Dropdown label, fallback to `name` |
+
+**`category_translator.dart` simplified** — `translateCategory()` removed. Flutter no longer does client-side translation; `name_en` comes from the server. The fallback mechanism is:
+
+```dart
+categoryNameEn.isNotEmpty ? categoryNameEn : categoryName
+```
+
 ### CategoryChip (category_picker.dart)
 - Added `nameEn` field
-- Label prefers `nameEn` if available, falls back to `translateCategory(name)`
+- Label prefers `nameEn` if available, falls back to `name` (not `translateCategory(name)` since that function was removed)
 
 ### Category Management Screen
 - **Route:** `/categories/manage`
@@ -119,3 +138,17 @@ Now returns `name_en` and `keywords` in every response.
 | `mobile/lib/features/profile/ui/profile_screen.dart` | Nav entry for admin |
 | `mobile/lib/app.dart` | Route + import |
 | `~/.hermes/.../finance_db.py` | Keywords from DB, no auto-create |
+| `backend/app/routers/budgets.py` | Added `category_name_en` to all responses + budget exhausted message |
+| `backend/app/routers/summaries.py` | Added `category_name_en` to monthly/household summaries |
+| `backend/app/routers/transactions.py` | Added `name_en` to transaction category object |
+| `backend/app/schemas/budget.py` | Added `category_name_en` field to `BudgetResponse`, `BudgetSummaryItem` |
+| `backend/app/schemas/transaction.py` | Added `name_en` to transaction category response |
+| `mobile/lib/features/budgets/models/budget_model.dart` | Added `categoryNameEn` |
+| `mobile/lib/features/budgets/ui/budgets_screen.dart` | Shows `categoryNameEn`, budget exhausted label |
+| `mobile/lib/features/home/ui/home_screen.dart` | Added savings & emergency widget |
+| `mobile/lib/features/reports/models/report_model.dart` | Added `categoryNameEn` |
+| `mobile/lib/features/reports/ui/reports_screen.dart` | Displays `categoryNameEn` |
+| `mobile/lib/features/reports/ui/widgets/charts_section.dart` | Uses `categoryNameEn` for labels |
+| `mobile/lib/features/transactions/models/transaction_model.dart` | Added `nameEn` field |
+| `mobile/lib/features/transactions/ui/widgets/transaction_tile.dart` | Shows `nameEn` |
+| `mobile/lib/shared/utils/category_translator.dart` | `translateCategory()` removed |

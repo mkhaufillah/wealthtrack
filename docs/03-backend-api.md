@@ -259,6 +259,7 @@ List transactions with pagination and filters.
       "category": {
         "id": 1,
         "name": "Makan & Minum",
+        "name_en": "Food & Drinks",
         "icon": "🍽️"
       },
       "user": {
@@ -378,6 +379,7 @@ List transactions of **all household members**. Requires the user to be part of 
       "category": {
         "id": 1,
         "name": "Makan & Minum",
+        "name_en": "Food & Drinks",
         "icon": "🍽️"
       },
       "user": {
@@ -514,6 +516,7 @@ Daily summary for a date range.
     {
       "category_id": 1,
       "category_name": "Makan & Minum",
+      "category_name_en": "Food & Drinks",
       "icon": "🍽️",
       "total": 1200000,
       "count": 24,
@@ -555,6 +558,7 @@ Household-wide summary across **all users**. Still requires authentication (logg
     {
       "category_id": 1,
       "category_name": "Makan & Minum",
+      "category_name_en": "Food & Drinks",
       "icon": "🍽️",
       "total": 1200000,
       "count": 24,
@@ -621,6 +625,7 @@ List budgets for a specific month.
     "month": "2026-05",
     "category_id": 1,
     "category_name": "Makan & Minum",
+    "category_name_en": "Food & Drinks",
     "category_icon": "🍽️",
     "amount": 2000000,
     "user_id": 1
@@ -678,6 +683,7 @@ Budget vs actual spending comparison for a month.
   {
     "category_id": 1,
     "category_name": "Makan & Minum",
+    "category_name_en": "Food & Drinks",
     "category_icon": "🍽️",
     "budget_amount": 2000000,
     "actual_spent": 1800000,

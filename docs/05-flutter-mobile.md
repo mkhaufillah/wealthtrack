@@ -717,3 +717,32 @@ sudo ufw allow 443/tcp
 ```
 
 **Domain:** API call from `https://wealthtrack.filla.id/api/v1/...` — SSL handle by nginx.
+
+## 11. Category Display — name_en Priority
+
+All API endpoints now return `category_name_en` (English) alongside `category_name` (Indonesian). Flutter displays `name_en` as primary, falling back to `category_name` when empty:
+
+```dart
+cat.categoryNameEn.isNotEmpty ? cat.categoryNameEn : cat.categoryName
+```
+
+This applies to:
+- **Transaction tiles** — shows `name_en`
+- **Budget list & summary** — shows `categoryNameEn`
+- **Reports breakdown** — shows `categoryNameEn`
+- **Category picker** — shows `name_en`
+- **Charts** — labels use `name_en`
+
+The old `category_translator.dart` and its `translateCategory()` function are removed — translation is now entirely server-side via the `name_en` column in the `categories` table.
+
+## 12. Home Screen — Savings & Emergency Widget
+
+The home screen dashboard (`home_screen.dart`) calls `/summaries/all-time-category-balance` on init to load Savings & Investment and Emergency Funds balances. Displayed in a dedicated card below the AI Financial Advisor card with:
+
+- Savings & Investment balance (green if non-negative)
+- Emergency Funds balance (green if non-negative)
+- Silently fails on network error — the rest of the dashboard continues working
+
+## 13. Budget Exhausted Message
+
+When a budget category's `percentage >= 100`, the budget screen shows an "exhausted" label (`budgets_screen.dart`). The remaining text shows 0 and the progress bar is fully red. The backend returns `category_name_en` for all budget summary items to support this display.

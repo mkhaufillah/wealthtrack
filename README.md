@@ -61,7 +61,7 @@ scripts/               # DB init & seed scripts
 ### Backend API
 - **Auth** — register, login (JWT 30-day), profile update, password change, account delete, cycle start day
 - **Transactions** — CRUD with pagination, filtering by type/date/category, sorting, change owner
-- **Categories** — list with type filter, pre-seeded
+- **Categories** — CRUD (admin), English display name (`name_en`) in every response, keyword mapping for Hermes OCR classification
 - **Summaries** — daily, monthly, household (combined across members), current-month shorthand, cycle-aware date ranges
 - **Household** — shared household with invite codes, multi-user transaction listing & summaries
 - **Budgets** — CRUD with upsert, monthly budget vs actual spending summary, cycle-aware actuals, per-row cycle_on, non-budget expense awareness
@@ -74,10 +74,10 @@ scripts/               # DB init & seed scripts
 
 ### Mobile (Flutter)
 - **Auth screens** — Login & Register with validation, password visibility toggle
-- **Dashboard** — balance card (income/expense) with cycle range label, recent transactions list
+- **Dashboard** — balance card (income/expense) with cycle range label, AI Financial Advisor card, savings & emergency fund widget, recent transactions list
 - **Transactions** — list with pull-to-refresh, add/edit/delete transaction with category picker & amount field
 - **Reports** — interactive charts (pie, bar, line) using fl_chart, monthly summary cards, category breakdown, daily snapshot, household split
-- **Budgets** — monthly budget tracking with progress bars and color coding, non-budget expense awareness ("Outside Budget" section)
+- **Budgets** — monthly budget tracking with progress bars and color coding, exhausted message on overspent categories, non-budget expense awareness ("Outside Budget" section)
 - **AI Advisor** — chat-like interface with streaming responses and web search
 - **Transfer Balance** — send money to household members directly from the app
 - **Dark Mode** — full dark theme support with system preference detection

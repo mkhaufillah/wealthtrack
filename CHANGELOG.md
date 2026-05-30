@@ -1,3 +1,24 @@
+---
+## v0.3.1 — Category English Names & Home Widget (2026-05-30)
+
+### Features
+- **English Category Names (`category_name_en`)** — All endpoints (transactions, budgets, reports, summaries) now return `category_name_en`/`name_en` from the DB. Flutter UI uses `name_en` as primary display, falls back to Indonesian `category_name`.
+- **Home Savings & Emergency Widget** — Dashboard now shows Savings & Investment and Emergency Funds balances from `/summaries/all-time-category-balance` endpoint.
+- **Budget Exhausted Message** — Overspent budget categories show an "exhausted" label when percentage ≥ 100%.
+- **Lainnya Locked** — "Lainnya" category cannot be edited or deleted via admin CRUD.
+
+### Fixes
+- **category_translator.dart** — `translateCategory()` removed; category translation is now server-side via `name_en`. Flutter simply displays the field from the API response.
+- **Test Fixtures** — Updated all Flutter test mock data to include `category_name_en`/`name_en` for consistency with new response shape.
+- **Home Screen Tests** — Fixed timing-dependent assertions to match actual post-`load()` state.
+
+### Docs
+- API spec updated with `category_name_en`/`name_en` in all response examples
+- README synced with new features (AI Advisor card, savings widget, budget exhausted, category CRUD)
+- Flutter docs updated for name_en display logic
+
+---
+
 # Changelog
 
 ## v0.3.0 — Billing Cycle Support (2026-05-30)
