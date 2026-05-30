@@ -20,11 +20,50 @@ HIGH_CONFIDENCE = [
     "harga emas", "emas hari ini", "harga saham",
     "kpr", "bi rate", "kurs", "nilai tukar",
     "pajak", "tarif pajak",
+    # Stock market & analysis
+    "saham", "analisa teknikal", "analisis teknikal",
+    "analisa fundamental", "analisis fundamental",
+    "sentimen pasar", "rekomendasi saham",
+    "pasar modal", "bursa efek", "bei",
+    "ipo", "right issue", "stock split", "buyback",
+    "saham syariah", "jakarta islamic index",
+    "beli saham", "jual saham", "investasi saham",
+    "portofolio saham", "diversifikasi saham",
+    "sector rotation", "saham sektor",
+    # Property & housing
+    "properti", "rumah", "harga rumah", "harga properti",
+    "subsidi perumahan", "flpp", "kpr bersubsidi",
+    # Banking & savings
+    "bunga bank", "bunga tabungan", "bunga deposito",
+    "suku bunga acuan", "giro", "tabungan berjangka",
+    "ldp", "loan to deposit",
+    # Insurance
+    "asuransi", "premi asuransi", "asuransi jiwa",
+    "asuransi kesehatan", "asuransi pendidikan",
+    # General finance & economy
+    "produk domestik bruto", "pdb", "pertumbuhan ekonomi",
+    "tenaga kerja", "pengangguran", "upah minimum",
+    "umr", "umk", "harga pangan", "harga kebutuhan pokok",
+    "kartu prakerja", "bansos", "bantuan sosial",
+    "subsidi", "subsidi bbm", "subsidi listrik",
+    "blt", "bantuan langsung tunai",
+    # Investment products
+    "reksadana pasar uang", "reksadana pendapatan tetap",
+    "reksadana campuran", "reksadana saham", "rdpu", "rdpt",
+    "etf", "sbn", "sukuk", "obligasi pemerintah",
+    "obligasi korporasi", "sukuk ritel", "sbr",
+    "st012", "st010", "orip",
+    # Defined contribution
+    "dana pensiun", "bpjs ketenagakerjaan", "jht", "jp",
     # English
     "interest rate", "inflation", "stock price", "stock market",
     "mutual fund", "bond yield", "exchange rate", "forex",
     "gold price", "crypto price", "bitcoin price",
     "mortgage rate", "tax rate", "central bank",
+    "technical analysis", "fundamental analysis",
+    "market sentiment", "stock recommendation",
+    "ipo", "etf", "dividend yield", "pe ratio",
+    "market cap", "trading volume",
 ]
 
 MEDIUM_KEYWORDS = [
@@ -34,12 +73,26 @@ MEDIUM_KEYWORDS = [
     "prediksi", "perkiraan", "proyeksi", "ramalan", "tren",
     "bandingkan", "perbandingan", "vs",
     "perform", "kinerja", "return",
+    "keuntungan", "risiko", "resiko",
+    "cara", "tips", "panduan", "tutorial",
+    "beda", "perbedaan", "pilih", "mana yang",
+    "layak", "worth it", "mahal", "murah",
+    "laris", "populer", "diminati",
+    "simulasi", "kalkulator",
+    "biaya", "tarif", "ongkos",
+    "daftar", "list", "urutan",
+    "menguntungkan", "potensi", "peluang",
     # English
     "latest", "current", "today", "update",
     "recommendation", "best", "top", "review", "rating",
     "prediction", "forecast", "projection", "trend",
     "compare", "comparison", "vs",
     "performance", "yield",
+    "how to", "guide", "tips", "tutorial",
+    "cost", "fee", "rate",
+    "list", "ranking", "top",
+    "profitable", "potential", "opportunity",
+    "definition", "meaning", "explanation",
 ]
 
 
