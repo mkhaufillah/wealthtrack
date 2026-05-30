@@ -5,6 +5,7 @@ from typing import Optional
 from app.database import get_db
 from app.core.security import get_current_user
 from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetSummaryItem
+from app.utils.cycle import get_cycle_range_for_month
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
 
@@ -123,58 +124,51 @@ async def budget_summary(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Budgets vs actual spending for a given month."""
-    # Determine date range for actuals
-    if use_cycle:
-        from app.utils.cycle import get_cycle_range_for_month
-        # Determine the cycle_on to use: first, check budgets for this month
-        cursor = await db.execute(
-            "SELECT cycle_on FROM budgets WHERE month = ? AND user_id = ? LIMIT 1",
-            (month, current_user["id"]),
-        )
-        budget_row = await cursor.fetchone()
-        if budget_row:
-            cycle_on = budget_row["cycle_on"]
-        else:
-            # Fallback to user's current cycle setting
-            cycle_cursor = await db.execute(
-                "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
-                (current_user["id"],),
-            )
-            user_row = await cycle_cursor.fetchone()
-            cycle_on = user_row["cycle_start_day"] if user_row else 1
-        d_from, d_to = get_cycle_range_for_month(month, cycle_on)
-        d_from_str = d_from.isoformat()
-        d_to_str = d_to.isoformat()
-    else:
-        d_from_str = f"{month}-01"
-        d_to_str = f"{month}-31"
+    """Budgets vs actual spending for a given month.
 
+    Each budget uses its OWN stored cycle_on for computing actual_spent.
+    Previously all budgets shared the first budget's cycle_on, causing
+    confusing behavior where only the highest-budget category's cycle
+    affected the summary (typically Food & Drinks).
+    """
+    # Get all budgets for this month
     cursor = await db.execute(
         """SELECT b.id, b.category_id, b.category_name, b.budget_amount, b.cycle_on,
-                  c.icon AS category_icon,
-                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual_spent
+                  c.icon AS category_icon
            FROM budgets b
            LEFT JOIN categories c ON b.category_id = c.id
-           LEFT JOIN transactions t ON t.category_id = b.category_id
-               AND t.user_id = b.user_id
-               AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-               AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
            WHERE b.month = ? AND b.user_id = ?
-           GROUP BY b.category_id, b.category_name, b.budget_amount, c.icon
            ORDER BY b.budget_amount DESC""",
-        (
-            d_from_str,
-            d_to_str,
-            month,
-            current_user["id"],
-        ),
+        (month, current_user["id"]),
     )
     rows = await cursor.fetchall()
+
     results = []
     for r in rows:
         budget_amount = r["budget_amount"]
-        actual_spent = r["actual_spent"]
+        cycle_on = r["cycle_on"]
+
+        # Compute date range from this budget's own cycle_on
+        if use_cycle:
+            d_from, d_to = get_cycle_range_for_month(month, cycle_on)
+            d_from_str = d_from.isoformat()
+            d_to_str = d_to.isoformat()
+        else:
+            d_from_str = f"{month}-01"
+            d_to_str = f"{month}-31"
+
+        # Query actual spending for this specific category + cycle range
+        cur = await db.execute(
+            """SELECT COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual_spent
+               FROM transactions t
+               WHERE t.category_id = ? AND t.user_id = ?
+                 AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
+                 AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?""",
+            (r["category_id"], current_user["id"], d_from_str, d_to_str),
+        )
+        row = await cur.fetchone()
+        actual_spent = row[0] if row is not None else 0
+
         percentage = (actual_spent / budget_amount * 100) if budget_amount > 0 else 0
         results.append(BudgetSummaryItem(
             id=r["id"],
@@ -185,6 +179,7 @@ async def budget_summary(
             actual_spent=actual_spent,
             percentage=round(percentage, 1),
             remaining=budget_amount - actual_spent,
-            cycle_on=r["cycle_on"],
+            cycle_on=cycle_on,
         ))
+
     return results
