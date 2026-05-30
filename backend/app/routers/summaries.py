@@ -1,13 +1,22 @@
+from datetime import date, datetime
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Query
 import aiosqlite
-from datetime import date
-from typing import Optional
 
 from app.database import get_db
 from app.core.security import get_current_user
 from app.utils.cycle import get_cycle_range
 
 router = APIRouter(prefix="/summaries", tags=["summaries"])
+
+
+def _parse_date_iso(s: str) -> date:
+    """Parse date from ISO string — handles both '2026-05-28' and '2026-05-28T00:00:00.000'."""
+    try:
+        return date.fromisoformat(s)
+    except ValueError:
+        return datetime.fromisoformat(s).date()
 
 
 async def _get_cycle_start_day(db: aiosqlite.Connection, user_id: int) -> int:
@@ -281,8 +290,8 @@ async def monthly_summary(
 
     # Single month mode (backward compatible)
     m = month or today.strftime("%Y-%m")
-    d_from_parsed = date.fromisoformat(d_from_override) if d_from_override is not None else None
-    d_to_parsed = date.fromisoformat(d_to_override) if d_to_override is not None else None
+    d_from_parsed = _parse_date_iso(d_from_override) if d_from_override is not None else None
+    d_to_parsed = _parse_date_iso(d_to_override) if d_to_override is not None else None
     return await _single_month(m, today, db, current_user,
                                 d_from_override=d_from_parsed, d_to_override=d_to_parsed)
 
