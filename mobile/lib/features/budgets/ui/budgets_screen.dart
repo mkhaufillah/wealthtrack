@@ -22,6 +22,7 @@ class BudgetsScreen extends ConsumerStatefulWidget {
 class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   late DateTime _currentMonth;
   String _cycleLabel = '';
+  int _userCycleDay = 1;
 
   @override
   void initState() {
@@ -47,10 +48,11 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         setState(() {
           _cycleLabel =
               '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
+          _userCycleDay = data['cycle_start_day'] as int? ?? 1;
         });
       }
     } catch (_) {
-      // fallback: keep _cycleLabel empty → calendar month shown
+      // fallback: keep _cycleLabel empty calendar month shown
     }
   }
 
@@ -286,6 +288,20 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   child: Text(translateCategory(item.categoryName),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
+                // Edit button
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => _showAddBudgetSheet(existingItem: item),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Icon(Icons.edit_outlined, size: 16, color: AppColors.accent),
+                  ),
+                ),
+                const SizedBox(width: 6),
                 // Delete button
                 InkWell(
                   borderRadius: BorderRadius.circular(20),
@@ -353,7 +369,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     );
   }
 
-  Future<void> _showAddBudgetSheet() async {
+  Future<void> _showAddBudgetSheet({BudgetSummaryItem? existingItem}) async {
     // Load categories for the picker
     final api = ref.read(apiClientProvider);
     List<Map<String, dynamic>> categories = [];
@@ -374,8 +390,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       builder: (ctx) => _AddBudgetSheet(
         categories: categories,
         month: _monthParam,
-        onSaved: (catId, amount) {
-          ref.read(budgetProvider.notifier).setBudget(catId, amount, _monthParam);
+        defaultCycleDay: _userCycleDay,
+        existingItem: existingItem,
+        onSaved: (catId, amount, cycleOn) {
+          ref.read(budgetProvider.notifier).setBudget(catId, amount, _monthParam, cycleOn: cycleOn);
         },
       ),
     );
@@ -403,16 +421,20 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 }
 
-// ─── Add Budget Bottom Sheet ──────────────────────────────────
+// ─── Add / Edit Budget Bottom Sheet ───────────────────────────
 
 class _AddBudgetSheet extends StatefulWidget {
   final List<Map<String, dynamic>> categories;
   final String month;
-  final Function(int categoryId, int amount) onSaved;
+  final int defaultCycleDay;
+  final BudgetSummaryItem? existingItem;
+  final void Function(int categoryId, int amount, int? cycleOn) onSaved;
 
   const _AddBudgetSheet({
     required this.categories,
     required this.month,
+    required this.defaultCycleDay,
+    this.existingItem,
     required this.onSaved,
   });
 
@@ -423,7 +445,24 @@ class _AddBudgetSheet extends StatefulWidget {
 class _AddBudgetSheetState extends State<_AddBudgetSheet> {
   final _amountCtrl = TextEditingController();
   int? _selectedCategoryId;
+  int _cycleOn = 1;
   bool _isSaving = false;
+  int? _existingBudgetId;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existingItem;
+    if (existing != null) {
+      // Editing mode: pre-fill values
+      _selectedCategoryId = existing.categoryId;
+      _amountCtrl.text = existing.budgetAmount.toString();
+      _cycleOn = widget.defaultCycleDay;
+    } else {
+      // New budget: default to user's current cycle
+      _cycleOn = widget.defaultCycleDay;
+    }
+  }
 
   @override
   void dispose() {
@@ -452,8 +491,10 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text('Set Monthly Budget',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(
+            widget.existingItem != null ? 'Edit Budget' : 'Set Monthly Budget',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 16),
 
           // Category picker
@@ -477,6 +518,30 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
           const Text('Monthly Limit', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
           AmountField(controller: _amountCtrl),
+          const SizedBox(height: 16),
+
+          // Cycle Day picker
+          const Text('Billing Cycle Day', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 6),
+          DropdownButtonFormField<int>(
+            value: _cycleOn,
+            decoration: const InputDecoration(
+              hintText: 'Select cycle day',
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+            items: List.generate(28, (i) => DropdownMenuItem(
+              value: i + 1,
+              child: Text('Day ${i + 1}'),
+            )),
+            onChanged: (v) {
+              if (v != null) setState(() => _cycleOn = v);
+            },
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Actual spending is computed from this cycle day of previous month\nto day before this cycle day of current month.',
+            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          ),
           const SizedBox(height: 20),
 
           SizedBox(
@@ -485,7 +550,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
               onPressed: _isSaving ? null : _save,
               child: _isSaving
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Save Budget'),
+                  : Text(widget.existingItem != null ? 'Update Budget' : 'Save Budget'),
             ),
           ),
           const SizedBox(height: 24),
@@ -500,7 +565,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
     if (amount == null || amount <= 0) return;
 
     setState(() => _isSaving = true);
-    widget.onSaved(_selectedCategoryId!, amount);
+    widget.onSaved(_selectedCategoryId!, amount, _cycleOn);
     Navigator.pop(context);
   }
 }

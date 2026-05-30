@@ -52,29 +52,34 @@ async def create_or_update_budget(
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    # Get user's current cycle setting
+    # Get user's current cycle setting (fallback)
     cycle_cursor = await db.execute(
         "SELECT cycle_start_day FROM users WHERE id = ?",
         (current_user["id"],),
     )
     user_row = await cycle_cursor.fetchone()
-    cycle_on = user_row["cycle_start_day"] if user_row else 1
+    user_cycle = user_row["cycle_start_day"] if user_row else 1
 
-    # Upsert: if same user+month+category exists, update amount (but keep original cycle_on)
+    # Determine cycle_on: explicit override > existing budget's cycle > user's current setting
+    explicit_cycle = data.cycle_on  # may be None
+
+    # Upsert: if same user+month+category exists, update amount (optionally cycle_on)
     cursor = await db.execute(
-        "SELECT id FROM budgets WHERE user_id = ? AND month = ? AND category_id = ?",
+        "SELECT id, cycle_on FROM budgets WHERE user_id = ? AND month = ? AND category_id = ?",
         (current_user["id"], data.month, data.category_id),
     )
     existing = await cursor.fetchone()
 
     if existing:
+        cycle_on = explicit_cycle if explicit_cycle is not None else existing["cycle_on"]
         await db.execute(
-            "UPDATE budgets SET budget_amount = ?, category_name = ? WHERE id = ?",
-            (data.amount, cat["name"], existing["id"]),
+            "UPDATE budgets SET budget_amount = ?, category_name = ?, cycle_on = ? WHERE id = ?",
+            (data.amount, cat["name"], cycle_on, existing["id"]),
         )
         await db.commit()
         budget_id = existing["id"]
     else:
+        cycle_on = explicit_cycle if explicit_cycle is not None else user_cycle
         cursor = await db.execute(
             """INSERT INTO budgets (user_id, month, category_id, category_name, budget_amount, cycle_on)
                VALUES (?, ?, ?, ?, ?, ?)""",

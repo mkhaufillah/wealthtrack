@@ -420,3 +420,64 @@ class TestBudgetSummary:
         finally:
             await db.execute("UPDATE users SET cycle_start_day = 1 WHERE id = 1")
             await db.commit()
+
+    async def test_upsert_with_cycle_on_override(
+        self, client: AsyncClient, filla_token: str, db
+    ):
+        """POST with cycle_on overrides cycle_on on upsert for existing budgets."""
+        # Create budget with default cycle (1)
+        resp = await client.post(
+            "/api/v1/budgets",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"month": "2026-06", "category_id": 2, "amount": 300000},
+        )
+        budget_id = resp.json()["id"]
+
+        # Verify cycle_on=1
+        cursor = await db.execute(
+            "SELECT cycle_on FROM budgets WHERE id = ?", (budget_id,)
+        )
+        assert (await cursor.fetchone())["cycle_on"] == 1
+
+        # Upsert with cycle_on=15 override
+        resp = await client.post(
+            "/api/v1/budgets",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "month": "2026-06",
+                "category_id": 2,
+                "amount": 500000,
+                "cycle_on": 15,
+            },
+        )
+        assert resp.status_code == 201
+        assert resp.json()["id"] == budget_id
+
+        # Verify cycle_on changed to 15
+        cursor = await db.execute(
+            "SELECT cycle_on FROM budgets WHERE id = ?", (budget_id,)
+        )
+        assert (await cursor.fetchone())["cycle_on"] == 15
+
+    async def test_create_with_explicit_cycle_on(
+        self, client: AsyncClient, filla_token: str, db
+    ):
+        """New budget with explicit cycle_on uses that value, not user's current setting."""
+        # User has cycle=1, but we create with cycle=20
+        resp = await client.post(
+            "/api/v1/budgets",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "month": "2026-06",
+                "category_id": 3,
+                "amount": 200000,
+                "cycle_on": 20,
+            },
+        )
+        assert resp.status_code == 201
+        budget_id = resp.json()["id"]
+
+        cursor = await db.execute(
+            "SELECT cycle_on FROM budgets WHERE id = ?", (budget_id,)
+        )
+        assert (await cursor.fetchone())["cycle_on"] == 20

@@ -47,12 +47,13 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     }
   }
 
-  Future<bool> setBudget(int categoryId, int amount, String month) async {
+  Future<bool> setBudget(int categoryId, int amount, String month, {int? cycleOn}) async {
     try {
       await _repo.create({
         'month': month,
         'category_id': categoryId,
         'amount': amount,
+        if (cycleOn != null) 'cycle_on': cycleOn,
       });
       await load(month);
       return true;
