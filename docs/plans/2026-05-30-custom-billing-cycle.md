@@ -745,32 +745,27 @@ month_display = f"{d_from_date.strftime('%d %b')} – {d_to_date.strftime('%d %b
 | `month_display` (line 87) | `now.strftime("%B %Y")` | `f"{d_from_date.strftime('%d %b')} – {d_to_date.strftime('%d %b %Y')}"` |
 | Trend (lines 122-144) | Calendar months | Keep as-is — trend can stay monthly for long-range view |
 
-**System prompt update:** Add cycle info to `SYSTEM_PROMPT` so AI is aware:
+**System prompt update:** `{month}` now resolves to cycle label (e.g., `"25 Apr – 24 Mei 2026"`) — no separate cycle line needed.
 
-```
-Siklus billing kamu: {cycle_label} ({d_from} – {d_to})
-```
-
-**Step 4: Update SYSTEM_PROMPT** to include cycle context in the template:
-
-```
-Saat ini: {current_datetime_wib}
-Siklus billing: {cycle_label} ({d_from} – {d_to})
-
-Data Keuangan Periode {cycle_label}:
-```
-
-**Step 5: Run tests**
+**Step 4: Run tests**
 
 ```bash
-pytest backend/tests/test_ai_advisor.py -v
-# Also run all tests to ensure no regressions
 pytest backend/tests/ -v
+# 157 tests pass (7 new cycle tests)
 ```
 
-**Step 6: Commit**
+**Step 5: Commit**
+
+Combined with Flutter + cron changes:
 
 ```bash
-git add backend/app/routers/ai_advisor.py
-git commit -m "feat(ai): inject billing cycle context for accurate financial advice"
+git commit -m "feat(cycle): flutter profile picker, use_cycle providers, cron cycle, ai advisor cycle"
 ```
+
+**Actual diff summary:**
+- `d_from`/`d_to` → `get_cycle_range()` with cycle_start_day from DB
+- `month` variable removed → budgets use `d_from_date.strftime("%Y-%m")`
+- `month_display` → cycle label string
+- Context dict → added `cycle_label` key
+- SYSTEM_PROMPT unchanged — `{month}` already renders cycle label
+- Trend 6 bulan tetap pakai calendar month (long-range trending)
