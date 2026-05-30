@@ -705,6 +705,88 @@ Budget vs actual spending comparison for a month.
 | percentage >= 75% and < 100% | 🟡 Yellow (warning) |
 | percentage >= 100% | 🔴 Red (overspent) |
 
+### GET `/api/v1/budgets/suggestions?month=YYYY-MM&num_cycles=3`
+
+AI-powered budget suggestions based on historical spending analysis.
+
+**Auth:** Bearer token
+
+**Query params:**
+- `month` (required, format: `YYYY-MM`) — target month for suggestions
+- `num_cycles` (optional, default 3, max 12) — number of past billing cycles to analyze
+
+**Logic:** For each expense category with transaction history, calculates average spending across the last N cycles, then rounds up to the nearest Rp10,000 (minimum Rp10,000). Categories that already have a budget for this month are marked `has_budget: true` but still returned for reference.
+
+```json
+// Response 200
+{
+  "items": [
+    {
+      "category_id": 1,
+      "category_name": "Makanan & Minuman",
+      "category_name_en": "Food & Drinks",
+      "category_icon": "🍽️",
+      "suggested_amount": 1500000,
+      "historical_avg": 1420000,
+      "historical_max": 1850000,
+      "months_analyzed": 3,
+      "has_budget": true,
+      "existing_amount": 1200000
+    }
+  ],
+  "total_suggested": 5000000,
+  "total_income": 8000000,
+  "warning": ""
+}
+```
+
+The `warning` field is populated when `total_suggested > total_income`.
+
+### GET `/api/v1/budgets/health?month=YYYY-MM`
+
+Budget health forecast — mid-cycle projections and per-category risk assessment.
+
+**Auth:** Bearer token
+
+**Query params:**
+- `month` (required, format: `YYYY-MM`) — target month
+
+**Response:**
+
+```json
+{
+  "days_elapsed": 6,
+  "total_days": 30,
+  "cycle_progress_pct": 20.0,
+  "categories": [
+    {
+      "category_id": 1,
+      "category_name": "Makanan & Minuman",
+      "category_icon": "🍽️",
+      "budget_amount": 1500000,
+      "actual_spent": 450000,
+      "percentage": 30.0,
+      "remaining": 1050000,
+      "daily_rate": 75000,
+      "projected_end": 2250000,
+      "projected_remaining": -750000,
+      "health": "at_risk"
+    }
+  ]
+}
+```
+
+**Health status mapping:**
+
+| Status | Meaning |
+|--------|---------|
+| `healthy` | Under 70% spent or well within budget |
+| `warning` | 70-99% spent, or projected to exceed |
+| `at_risk` | Projected spending > budget by current rate |
+| `exhausted` | Budget fully consumed (100%+) |
+
+**Projection formula:** `projected_end = (actual_spent / days_elapsed) × total_days`
+
 ### GET `/api/v1/summaries/all-time-category-balance`
 
 Returns lifetime balance for Savings & Investment and Emergency Funds categories. Used by the home screen dashboard widget.

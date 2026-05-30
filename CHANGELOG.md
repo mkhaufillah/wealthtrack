@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.4.0 — AI Budgeting, Phase A (2026-05-31)
+
+### Features
+- **Budget Suggestions API** — `GET /budgets/suggestions` analyzes last 3-12 billing cycles of historical spending and recommends budget amounts per expense category. Suggestion = historical average rounded up to nearest Rp10k (min Rp10k). Detects existing budgets and warns if total suggested exceeds income.
+- **Budget Health API** — `GET /budgets/health` returns mid-cycle projections: daily spending rate, projected end-of-cycle total, and per-category health status (healthy/warning/at_risk/exhausted).
+- **Budget AI Utils** — `app/utils/budget_ai.py` with reusable `get_historical_spending()` and `get_projection()` functions.
+
+### API Changes
+- New `GET /api/v1/budgets/suggestions?month=&num_cycles=`
+- New `GET /api/v1/budgets/health?month=`
+
+### Tests
+- 6 test cases for suggestions endpoint, 181 total backend tests passing.
+
 ## v0.3.3 — OCR Performance Optimization (2026-05-31)
 
 ### Performance
