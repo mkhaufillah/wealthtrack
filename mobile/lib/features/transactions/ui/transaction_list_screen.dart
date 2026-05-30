@@ -123,19 +123,15 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                       const Text('Filter by Category',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                       TextButton(
-                        onPressed: allSelected
-                            ? null
-                            : () {
-                                setSheetState(() {
-                                  selected
-                                    ..clear()
-                                    ..addAll(cats.map((c) => c['id'] as int));
-                                });
-                              },
+                        onPressed: () {
+                          setSheetState(() {
+                            selected.clear();
+                          });
+                        },
                         child: Text('Clear',
                             style: TextStyle(
                               fontSize: 14,
-                              color: allSelected
+                              color: selected.isEmpty
                                   ? AppColors.textSecondary.withOpacity(0.4)
                                   : (isDarkSheet ? Colors.white : AppColors.accent),
                             )),
