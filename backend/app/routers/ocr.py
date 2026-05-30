@@ -5,6 +5,8 @@ import httpx
 import base64
 import json
 import re
+from io import BytesIO
+from PIL import Image
 
 from app.core.config import settings
 from app.core.security import get_current_user
@@ -131,10 +133,25 @@ async def process_ocr(
     # Validate image
     _validate_image(file.content_type, image_bytes)
 
-    # Encode as base64 data URL
-    b64 = base64.b64encode(image_bytes).decode()
-    mime = file.content_type or "image/jpeg"
-    data_url = f"data:{mime};base64,{b64}"
+    # Compress: resize if longest side > 1200px, re-encode as JPEG
+    img = Image.open(BytesIO(image_bytes))
+    w, h = img.size
+    max_side = 1200
+    if max(w, h) > max_side:
+        ratio = max_side / max(w, h)
+        new_w, new_h = int(w * ratio), int(h * ratio)
+        img = img.resize((new_w, new_h), Image.LANCZOS)
+
+    # Convert to RGB (JPEG doesn't support alpha) and compress
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+    compressed = BytesIO()
+    img.save(compressed, format="JPEG", optimize=True, quality=85)
+    compressed_bytes = compressed.getvalue()
+
+    # Encode as base64 data URL — always JPEG after compression
+    b64 = base64.b64encode(compressed_bytes).decode()
+    data_url = f"data:image/jpeg;base64,{b64}"
 
     api_key = settings.OPENCODE_GO_API_KEY
     if not api_key:
@@ -150,7 +167,7 @@ async def process_ocr(
                 "https://opencode.ai/zen/go/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "kimi-k2.6",
+                    "model": "minimax-m2.5",
                     "messages": [
                         {"role": "system", "content": prompt},
                         {

@@ -16,3 +16,6 @@ slowapi>=0.1.9
 
 # Export
 openpyxl>=3.1.0
+
+# OCR image processing
+Pillow>=10.0.0
