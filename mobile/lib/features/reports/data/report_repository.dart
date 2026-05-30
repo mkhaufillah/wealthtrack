@@ -7,7 +7,10 @@ class ReportRepository {
 
   Future<MonthlyReport> getMonthlyReport(String month) async {
     try {
-      final res = await _client.get('/summaries/monthly', queryParams: {'month': month});
+      final res = await _client.get('/summaries/monthly', queryParams: {
+        'month': month,
+        'use_cycle': 'true',
+      });
       return MonthlyReport.fromJson(res.data);
     } catch (e) {
       throw _client.handleError(e);
@@ -54,6 +57,7 @@ class ReportRepository {
       final res = await _client.get('/summaries/monthly', queryParams: {
         'month_from': monthFrom,
         'month_to': monthTo,
+        'use_cycle': 'true',
       });
       return (res.data as List).map((e) => MonthlyTrend.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {

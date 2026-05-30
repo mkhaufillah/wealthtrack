@@ -41,11 +41,11 @@ class AuthRepository {
     }
   }
 
-  Future<UserModel> updateProfile(String displayName) async {
+  Future<UserModel> updateProfile(String displayName, {int? cycleStartDay}) async {
     try {
-      final res = await _client.put('/auth/me', data: {
-        'display_name': displayName,
-      });
+      final data = <String, dynamic>{'display_name': displayName};
+      if (cycleStartDay != null) data['cycle_start_day'] = cycleStartDay;
+      final res = await _client.put('/auth/me', data: data);
       return UserModel.fromJson(res.data);
     } catch (e) {
       throw _client.handleError(e);

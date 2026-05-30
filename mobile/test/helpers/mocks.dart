@@ -110,8 +110,8 @@ class MockAuthRepository extends AuthRepository {
   }
 
   @override
-  Future<UserModel> updateProfile(String displayName) async {
-    return UserModel(id: 1, username: 'mock', displayName: displayName, role: 'user');
+  Future<UserModel> updateProfile(String displayName, {int? cycleStartDay}) async {
+    return UserModel(id: 1, username: 'mock', displayName: displayName, role: 'user', cycleStartDay: cycleStartDay ?? 1);
   }
 
   @override

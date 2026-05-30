@@ -27,6 +27,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _newPwCtrl = TextEditingController();
   final _confirmPwCtrl = TextEditingController();
 
+  // Billing cycle state
+  int _cycleStartDay = 1;
+
   // Loading states
   bool _savingProfile = false;
   bool _changingPassword = false;
@@ -42,7 +45,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void initState() {
     super.initState();
     _displayNameCtrl = TextEditingController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHousehold());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadHousehold();
+      _loadCycleDay();
+    });
   }
 
   @override
@@ -169,6 +175,120 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (_) {
       if (mounted) setState(() => _loadingHousehold = false);
     }
+  }
+
+  void _loadCycleDay() {
+    final user = ref.read(authProvider).user;
+    if (user != null) {
+      setState(() => _cycleStartDay = user.cycleStartDay);
+    }
+  }
+
+  Future<void> _saveCycleDay(int day) async {
+    try {
+      await ref.read(authProvider.notifier).updateProfile(
+        ref.read(authProvider).user?.displayName ?? '',
+        cycleStartDay: day,
+      );
+      setState(() => _cycleStartDay = day);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Billing cycle updated')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Failed: $e')),
+        );
+      }
+    }
+  }
+
+  void _showCyclePicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              left: 24,
+              right: 24,
+              top: 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Cycle Start Day',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text(
+                  'Your billing cycle runs from day {n} to day {n-1} of next month.',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 340,
+                  child: GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 7,
+                      childAspectRatio: 1,
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
+                    ),
+                    itemCount: 28,
+                    itemBuilder: (ctx, i) {
+                      final day = i + 1;
+                      final isSelected = day == _cycleStartDay;
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _saveCycleDay(day);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.primary : null,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected ? AppColors.primary : AppColors.divider,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$day',
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.bold : null,
+                                color: isSelected ? Colors.white : null,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showJoinHouseholdSheet() {
@@ -396,6 +516,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   icon: Icons.psychology_outlined,
                   title: 'AI Financial Advisor',
                   onTap: () => context.push('/ai/advise'),
+                ),
+
+                const SizedBox(height: 24),
+
+                // ── Billing Cycle ──
+                _buildSectionHeader(Icons.calendar_month_outlined, 'Billing Cycle'),
+                const SizedBox(height: 8),
+
+                _buildMenuItem(
+                  icon: Icons.edit_calendar,
+                  title: 'Cycle Start Day: Day $_cycleStartDay',
+                  onTap: _showCyclePicker,
                 ),
 
                 const SizedBox(height: 24),

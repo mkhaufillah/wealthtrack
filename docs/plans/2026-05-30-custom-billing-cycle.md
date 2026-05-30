@@ -702,3 +702,75 @@ Create `docs/10-custom-billing-cycle.md` with architecture diagram, file changes
 git add docs/10-custom-billing-cycle.md
 git commit -m "docs: add custom billing cycle documentation"
 ```
+
+---
+
+## Task 11: AI Advisor — inject cycle context for accurate recommendations
+
+**Objective:** AI Financial Advisor (`/api/v1/ai/advise`) must use the user's billing cycle when querying financial data, so recommendations reflect the correct period — not calendar month.
+
+**Why:** Without this, user sets cycle_start_day=25 but AI still reads Jan 1–31 instead of Jan 25–Feb 24. All balance, income, expense, category breakdown, and trend data are wrong.
+
+**Files:**
+- Modify: `backend/app/routers/ai_advisor.py`
+
+**Changes needed in `_build_context()`:**
+
+```python
+# Step 1: Read user's cycle_start_day from DB
+cursor = await db.execute(
+    "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
+    (user_id,),
+)
+row = await cursor.fetchone()
+cycle_start_day = row["cycle_start_day"] if row else 1
+
+# Step 2: Use get_cycle_range instead of calendar month
+from app.utils.cycle import get_cycle_range
+now = datetime.now(timezone(timedelta(hours=7)))
+d_from_date, d_to_date = get_cycle_range(now.date(), cycle_start_day)
+d_from = d_from_date.isoformat()
+d_to = d_to_date.isoformat()
+
+# Step 3: Update month_display to reflect cycle range
+month_display = f"{d_from_date.strftime('%d %b')} – {d_to_date.strftime('%d %b %Y')}"
+```
+
+**Detail file:**
+| Location | Before | After |
+|----------|--------|-------|
+| `d_from` (line 88) | `f"{month}-01"` | `d_from_date.isoformat()` from `get_cycle_range()` |
+| `d_to` (line 89) | `f"{month}-31"` | `d_to_date.isoformat()` from `get_cycle_range()` |
+| `month` variable | `now.strftime("%Y-%m")` | Still used for budgets, but budgets query uses `d_from`/`d_to` |
+| `month_display` (line 87) | `now.strftime("%B %Y")` | `f"{d_from_date.strftime('%d %b')} – {d_to_date.strftime('%d %b %Y')}"` |
+| Trend (lines 122-144) | Calendar months | Keep as-is — trend can stay monthly for long-range view |
+
+**System prompt update:** Add cycle info to `SYSTEM_PROMPT` so AI is aware:
+
+```
+Siklus billing kamu: {cycle_label} ({d_from} – {d_to})
+```
+
+**Step 4: Update SYSTEM_PROMPT** to include cycle context in the template:
+
+```
+Saat ini: {current_datetime_wib}
+Siklus billing: {cycle_label} ({d_from} – {d_to})
+
+Data Keuangan Periode {cycle_label}:
+```
+
+**Step 5: Run tests**
+
+```bash
+pytest backend/tests/test_ai_advisor.py -v
+# Also run all tests to ensure no regressions
+pytest backend/tests/ -v
+```
+
+**Step 6: Commit**
+
+```bash
+git add backend/app/routers/ai_advisor.py
+git commit -m "feat(ai): inject billing cycle context for accurate financial advice"
+```

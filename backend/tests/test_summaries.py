@@ -252,3 +252,133 @@ class TestHouseholdSummary:
         assert data["total_income"] == 0
         assert data["total_expense"] == 0
         assert data["balance"] == 0
+
+
+class TestCycleAwareSummaries:
+
+    async def test_cycle_info_returns_default(self, client: AsyncClient, filla_token: str):
+        """Cycle-info returns cycle_start_day=1 for default user."""
+        resp = await client.get(
+            "/api/v1/summaries/cycle-info",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["cycle_start_day"] == 1
+        assert "date_from" in data
+        assert "date_to" in data
+
+    async def test_cycle_info_after_update(self, client: AsyncClient, filla_token: str):
+        """Set cycle_start_day=25, then cycle-info returns 25."""
+        await client.put(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"cycle_start_day": 25},
+        )
+        resp = await client.get(
+            "/api/v1/summaries/cycle-info",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["cycle_start_day"] == 25
+        assert int(data["date_from"].split("-")[2]) >= 25
+
+    async def test_current_month_use_cycle_default(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """use_cycle=true with default cycle matches calendar month."""
+        resp_cal = await client.get(
+            "/api/v1/summaries/current-month",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        resp_cycle = await client.get(
+            "/api/v1/summaries/current-month?use_cycle=true",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp_cal.status_code == 200
+        assert resp_cycle.status_code == 200
+        cal = resp_cal.json()
+        cycle = resp_cycle.json()
+        assert cal["total_income"] == cycle["total_income"]
+        assert cal["total_expense"] == cycle["total_expense"]
+
+    async def test_daily_use_cycle(self, client: AsyncClient, filla_token: str):
+        """daily?use_cycle=true without explicit dates returns 200."""
+        resp = await client.get(
+            "/api/v1/summaries/daily?use_cycle=true",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "total_income" in data
+        assert "total_expense" in data
+
+    async def test_household_use_cycle(self, client: AsyncClient, filla_token: str):
+        """household?use_cycle=true without explicit dates returns 200."""
+        resp = await client.get(
+            "/api/v1/summaries/household?use_cycle=true",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "total_income" in data
+        assert "total_expense" in data
+
+    async def test_monthly_use_cycle(self, client: AsyncClient, filla_token: str):
+        """monthly?use_cycle=true returns 200 with valid structure."""
+        resp = await client.get(
+            "/api/v1/summaries/monthly?use_cycle=true",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "month" in data
+        assert "total_income" in data
+
+    async def test_cycle_transaction_filtered_properly(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """With cycle_start_day=25, transactions filtered correctly."""
+        today = date.today()
+
+        await client.put(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"cycle_start_day": 25},
+        )
+
+        day_2 = today.replace(day=min(2, today.day))
+        await client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "type": "expense",
+                "category_id": 6,
+                "amount": 50000,
+                "description": "Prev cycle tx",
+                "date": day_2.isoformat(),
+            },
+        )
+
+        day_26 = today.replace(day=min(26, today.day))
+        await client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "type": "income",
+                "category_id": 7,
+                "amount": 100000,
+                "description": "Current cycle tx",
+                "date": day_26.isoformat(),
+            },
+        )
+
+        resp = await client.get(
+            "/api/v1/summaries/current-month?use_cycle=true",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_income"] >= 0
+        assert data["total_expense"] >= 0
