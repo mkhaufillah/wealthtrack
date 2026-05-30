@@ -5,8 +5,18 @@ from typing import Optional
 
 from app.database import get_db
 from app.core.security import get_current_user
+from app.utils.cycle import get_cycle_range
 
 router = APIRouter(prefix="/summaries", tags=["summaries"])
+
+
+async def _get_cycle_start_day(db: aiosqlite.Connection, user_id: int) -> int:
+    cursor = await db.execute(
+        "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    return row["cycle_start_day"] if row else 1
 
 
 @router.get("/daily")
@@ -268,15 +278,25 @@ async def monthly_summary(
     return await _single_month(m, today, db, current_user)
 
 
-async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_user: dict) -> dict:
-    """Monthly summary for a single month (YYYY-MM)."""
-    d_from = f"{m}-01"
-    if m == today.strftime("%Y-%m"):
-        d_to = today.isoformat()
+async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_user: dict,
+                         d_from_override: Optional[date] = None,
+                         d_to_override: Optional[date] = None) -> dict:
+    """Monthly summary for a single month (YYYY-MM).
+
+    When d_from_override/d_to_override are provided, uses those dates
+    instead of calendar month — supports billing cycle range.
+    """
+    if d_from_override and d_to_override:
+        d_from = d_from_override.isoformat()
+        d_to = d_to_override.isoformat()
     else:
-        import calendar
-        y, mo = map(int, m.split("-"))
-        d_to = f"{m}-{calendar.monthrange(y, mo)[1]}"
+        d_from = f"{m}-01"
+        if m == today.strftime("%Y-%m"):
+            d_to = today.isoformat()
+        else:
+            import calendar
+            y, mo = map(int, m.split("-"))
+            d_to = f"{m}-{calendar.monthrange(y, mo)[1]}"
 
     cursor = await db.execute(
         """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
@@ -390,8 +410,32 @@ async def _monthly_range(m_from: str, m_to: str, db: aiosqlite.Connection, curre
 
 @router.get("/current-month")
 async def current_month_summary(
+    use_cycle: bool = Query(False, description="Use user's billing cycle instead of calendar month"),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Shorthand — monthly summary for the current month."""
+    """Shorthand — monthly summary for the current cycle or month."""
+    today = date.today()
+    if use_cycle:
+        cycle_start = await _get_cycle_start_day(db, current_user["id"])
+        d_from, d_to = get_cycle_range(today, cycle_start)
+        return await _single_month(
+            f"{d_from.year}-{d_from.month:02d}", today, db, current_user,
+            d_from_override=d_from, d_to_override=d_to,
+        )
     return await monthly_summary(month=None, db=db, current_user=current_user)
+
+
+@router.get("/cycle-info")
+async def cycle_info(
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Return the current billing cycle date range and label."""
+    cycle_start_day = await _get_cycle_start_day(db, current_user["id"])
+    d_from, d_to = get_cycle_range(date.today(), cycle_start_day)
+    return {
+        "cycle_start_day": cycle_start_day,
+        "date_from": d_from.isoformat(),
+        "date_to": d_to.isoformat(),
+    }
