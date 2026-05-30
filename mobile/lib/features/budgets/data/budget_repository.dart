@@ -34,4 +34,12 @@ class BudgetRepository {
   Future<void> delete(int id) async {
     await _client.delete('/budgets/$id');
   }
+
+  Future<BudgetSuggestionResponse> getSuggestions(String month, {int numCycles = 3}) async {
+    final res = await _client.get('/budgets/suggestions', queryParams: {
+      'month': month,
+      'num_cycles': numCycles.toString(),
+    });
+    return BudgetSuggestionResponse.fromJson(res.data as Map<String, dynamic>);
+  }
 }

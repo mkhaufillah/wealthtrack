@@ -10,6 +10,7 @@ import '../../../shared/providers/app_providers.dart';
 import '../../../features/transactions/ui/widgets/amount_field.dart';
 import '../providers/budget_provider.dart';
 import '../models/budget_model.dart';
+import 'budget_suggestion_sheet.dart';
 
 class BudgetsScreen extends ConsumerStatefulWidget {
   const BudgetsScreen({super.key});
@@ -138,9 +139,30 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddBudgetSheet(),
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'ai_suggestions',
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: AppColors.surface,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              builder: (_) => BudgetSuggestionSheet(month: _monthParam),
+            ),
+            backgroundColor: AppColors.accent,
+            child: const Icon(Icons.auto_awesome, size: 20),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'add_budget',
+            onPressed: () => _showAddBudgetSheet(),
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }
@@ -184,6 +206,20 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
           const SizedBox(height: 8),
           Text('Tap + to add a spending limit per category',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: AppColors.surface,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              builder: (_) => BudgetSuggestionSheet(month: _monthParam),
+            ),
+            icon: const Icon(Icons.auto_awesome, size: 18),
+            label: const Text('AI Suggestions'),
+          ),
         ],
       ),
     );

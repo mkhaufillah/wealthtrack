@@ -146,7 +146,7 @@ void main() {
 
     testWidgets('shows FAB to add budget', (tester) async {
       await tester.pumpWidget(buildBudgetsApp());
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byIcon(Icons.add), findsOneWidget);
     });
 
     testWidgets('shows month picker with navigation arrows', (tester) async {
