@@ -54,17 +54,17 @@ scripts/               # DB init & seed scripts
 ## Features
 
 ### Backend API
-- **Auth** — register, login (JWT 30-day), profile update, password change, account delete
+- **Auth** — register, login (JWT 30-day), profile update, password change, account delete, cycle start day
 - **Transactions** — CRUD with pagination, filtering by type/date/category, sorting, change owner
 - **Categories** — list with type filter, pre-seeded
-- **Summaries** — daily, monthly, household (combined across members), current-month shorthand
+- **Summaries** — daily, monthly, household (combined across members), current-month shorthand, cycle-aware date ranges
 - **Household** — shared household with invite codes, multi-user transaction listing & summaries
-- **Budgets** — CRUD with upsert, monthly budget vs actual spending summary with color coding
+- **Budgets** — CRUD with upsert, monthly budget vs actual spending summary, cycle-aware actuals, per-row cycle_on
 - **Transfer Balance** — create paired send/transfer transactions between household members
 - **Reports** — monthly summary cards, category breakdown, daily snapshot, household split
 - **Export** — yearly Excel (.xlsx) export with 12 monthly sheets
 - **OCR / Smart Input** — receipt image upload processed via Kimi K2.6 vision AI
-- **AI Advisor** — personalized financial advice using DeepSeek Flash V4 with Brave Search
+- **AI Advisor** — personalized financial advice using DeepSeek Flash V4 with Brave Search, cycle-aware context
 - **Health** — lightweight health check endpoint
 
 ### Mobile (Flutter)

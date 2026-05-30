@@ -54,14 +54,19 @@ if "cycle_start_day" not in existing_cols:
 
 ### Cycle Utility (`backend/app/utils/cycle.py`)
 
-| Function | Returns |
-|----------|---------|
-| `get_cycle_range(today, cycle_start_day)` | `(date_from, date_to)` tuple |
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `get_cycle_range(today, cycle_start_day)` | `(date_from, date_to)` | Cycle containing today's date |
+| `get_cycle_range_for_month(month, cycle_on)` | `(date_from, date_to)` | Budget period for a given month label |
 
-Logic:
-- Default `cycle_start_day=1` → standard calendar month
-- Custom day N → range from Nth of current/prev month to N-1 of next month
-- Handles: month boundaries, December crossover, day clamping (e.g., Feb 30→28/29), year wrap
+**`get_cycle_range_for_month` logic:**
+- `cycle_on=1` → calendar month (1st to last day)
+- `cycle_on=N` → runs from **Nth of this month** to **(N-1)th of next month**
+  - Example: month `"2026-05"`, `cycle_on=3` → **3 May – 2 Jun**
+
+**Key design choice:** Budget month label = **start month** of the cycle range.
+This keeps the month label consistent when you change `cycle_on` on an existing budget.
+Changing from D1→D28 always means the range shifts forward, never backward.
 
 ### Updated Endpoints
 
@@ -98,13 +103,14 @@ The `_build_context()` function now:
 ### Backend
 | File | Change |
 |------|--------|
-| `backend/app/migrate_db.py` | Auto-migration for `cycle_start_day` column |
-| `backend/app/utils/cycle.py` | **New** — `get_cycle_range()` utility |
+| `backend/app/migrate_db.py` | Auto-migration for `cycle_start_day` column + budget month migration |
+| `backend/app/utils/cycle.py` | **New** — `get_cycle_range()` + `get_cycle_range_for_month()` utilities |
 | `backend/app/routers/auth.py` | Accept `cycle_start_day` in PUT /me + GET /me |
 | `backend/app/schemas/auth.py` | `UpdateProfileIn.cycle_start_day` (Optional[int], ge=1, le=28) |
 | `backend/app/routers/summaries.py` | All endpoints: `use_cycle` param, `get_cycle_range()`, `cycle-info` endpoint |
 | `backend/app/routers/ai_advisor.py` | `_build_context()` uses cycle range, injects cycle label in prompt |
 | `backend/app/routers/budgets.py` | `/summary` — `?use_cycle=true` for cycle-aware actuals date range |
+| `backend/app/core/config.py` | Env file resolved by absolute path, not relative CWD |
 
 ### Mobile (Flutter)
 | File | Change |
@@ -112,12 +118,14 @@ The `_build_context()` function now:
 | `lib/features/auth/models/user_model.dart` | +`cycleStartDay` field (default 1) |
 | `lib/features/auth/data/auth_repository.dart` | `updateProfile()` accepts optional `cycleStartDay` |
 | `lib/features/auth/providers/auth_provider.dart` | Same — propagate `cycleStartDay` |
-| `lib/features/profile/ui/profile_screen.dart` | +Billing Cycle section, grid picker (1–28), `_saveCycleDay()` |
+| `lib/features/profile/ui/profile_screen.dart` | +Billing Cycle section, grid picker (1–28), `_saveCycleDay()`, dark mode fix |
 | `lib/features/home/providers/dashboard_provider.dart` | Pass `use_cycle=true` to `/current-month` |
 | `lib/features/reports/data/report_repository.dart` | Pass `use_cycle=true` to `/monthly` + trend |
-| `lib/features/reports/ui/reports_screen.dart` | Fetch `/cycle-info` for household dates, show cycle label in picker |
+| `lib/features/reports/ui/reports_screen.dart` | Compute cycle range locally, cycle label, `_maxMonth()` for start-month logic |
 | `lib/features/budgets/data/budget_repository.dart` | Pass `use_cycle=true` to `/summary` |
-| `lib/features/budgets/ui/budgets_screen.dart` | Show cycle label in picker |
+| `lib/features/budgets/ui/budgets_screen.dart` | Compute cycle range locally, date range badge, `_maxMonth()` start-month logic |
+| `lib/features/budgets/providers/budget_provider.dart` | Preserve date range for balance fetch across create/delete |
+| `lib/shared/utils/date_formatter.dart` | +`getCycleRangeForMonth()` — mirror backend |
 
 ### Cron
 | File | Change |
@@ -136,7 +144,7 @@ The `_build_context()` function now:
 
 | Suite | Count | Status |
 |-------|-------|--------|
-| Backend (pytest) | **157** | ✅ All pass (7 new cycle tests) |
+| Backend (pytest) | **162** | ✅ All pass (7 new cycle tests) |
 | Flutter (flutter test) | **237** | ✅ All pass |
 
 ---
@@ -156,3 +164,23 @@ The `_build_context()` function now:
 | 15 | May 28 | "15 Mei – 14 Jun 2026" |
 | 25 | May 28 | "25 Mei – 24 Jun 2026" |
 | 25 | May 2 | "25 Apr – 24 Mei 2026" |
+
+---
+
+## Budget Month Design Decision
+
+**Budget month = start month of the cycle range.** This was changed from "end month" to fix an inconsistency where editing a budget's cycle_on would drastically change the date range.
+
+**Before (end month):**
+```
+month="2026-06", cycle_on=3 → range 3 Apr – 2 May   [prev month → this month]
+month="2026-06", cycle_on=1 → range 1 Jun – 30 Jun  [calendar month]
+```
+Changing cycle_on from 3→1 shifted the range from Apr–May to just June (inconsistent).
+
+**After (start month):**
+```
+month="2026-05", cycle_on=3 → range 3 May – 2 Jun   [this month → next month]
+month="2026-05", cycle_on=1 → range 1 May – 31 May  [calendar month]
+```
+Changing cycle_on from 3→1 keeps May as the budget month (consistent).
