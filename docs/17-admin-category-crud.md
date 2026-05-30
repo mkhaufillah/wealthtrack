@@ -11,6 +11,8 @@ Admin-only category management — create and edit expense/income categories. Ca
 
 **No DELETE** — categories referenced by transactions/budgets cannot be safely removed.
 
+Default categories (is_default=1) also cannot be edited or deleted. This includes: Gaji, Makanan & Minuman, Lainnya (expense & income), Transfer (expense & income), Tabungan & Investasi (expense & income), Penarikan Tabungan & Investasi, Hasil Investasi, and Dana Darurat (expense & income).
+
 ---
 
 ## Architecture
@@ -115,7 +117,7 @@ categoryNameEn.isNotEmpty ? categoryNameEn : categoryName
 - **List:** grouped by type (expense / income), shows icon + name_en + name
 - **Add:** FAB → bottom sheet form: name, name_en, type, icon, keywords, sort_order
 - **Edit:** tap non-default category → same form pre-filled
-- **Default categories** are locked (lock icon) — cannot be edited
+- **Default categories** are locked (lock icon) — cannot be edited. The is_default flag is set server-side for system-critical categories (Gaji, Makanan & Minuman, Lainnya, Transfer, Tabungan & Investasi, Dana Darurat, Penarikan Tabungan & Investasi, Hasil Investasi).
 
 ### Category Provider
 - `CategoryManagementNotifier` — loads, creates, updates via API

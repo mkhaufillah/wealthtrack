@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.3.2 — S&I Category Split & Reports Enhancements (2026-05-31)
+
+### Features
+- **Income S&I Split** — 'Tabungan & Investasi' income category (id=4) split into two: 'Penarikan Tabungan & Investasi' (Savings & Investment Disbursed) and new 'Hasil Investasi' (Savings & Investment Return). Each has separate keyword mappings for Hermes OCR classification.
+- **Locked Categories** — Tabungan & Investasi (expense id=13, income id=4), Dana Darurat (expense id=18, income id=19), Penarikan Tabungan & Investasi, and Hasil Investasi are now locked (is_default=1) — cannot be edited or deleted via admin CRUD.
+- **Savings Rate (Reports)** — Reports screen now shows adjusted savings rate using formula: ((income − expense) + (savings_expense − savings_disbursed)) / income × 100%. Savings & Investment Return is excluded. Replaces old raw formula.
+- **Daily Average (Reports)** — Reports screen shows average daily expense (totalExpense / cycleDays) below savings rate.
+
+### Fixes
+- **Daily Average Bug** — Cycle label used 'dd MMM' for dFrom (no year) → DateFormat.parse fell back to 2000 → day diff ~9500 days → wrong value. Fixed with 'dd MMM yyyy' for both sides.
+
+### API Changes
+- **all-time-category-balance** — Return excluded from balance. Balance = Savings & Investment (expense) − Savings & Investment Disbursed (income).
+- **Monthly report** — Response includes 'income_categories' array alongside 'categories' (expense).
+- **AI Advisor** — All-time balance prompt uses dynamic breakdown (saved/withdrawn/return), handles legacy category names.
+
+### Migration
+- migrate_db.py: steps 17-18 handle S&I split idempotently.
+
+### Docs
+- API spec, Flutter (section 14), Admin Category CRUD, README updated.
+
+---
+
 ## v0.3.1 — Category English Names & Home Widget (2026-05-30)
 
 ### Features

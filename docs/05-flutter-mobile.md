@@ -755,3 +755,24 @@ Displayed in a dedicated card below the AI Financial Advisor card with:
 ## 13. Budget Exhausted Message
 
 When a budget category's `percentage >= 100`, the budget screen shows an "exhausted" label (`budgets_screen.dart`). The remaining text shows 0 and the progress bar is fully red. The backend returns `category_name_en` for all budget summary items to support this display.
+
+## 14. Reports — Savings Rate & Daily Average
+
+The reports screen (`_buildExtraStats` in `reports_screen.dart`) shows two additional cards below the summary income/expense/balance for the current cycle.
+
+### Savings Rate
+- Displays adjusted savings rate as percentage with % suffix
+- **Formula:** `((Income − Expense) + (SavingsExpense − SavingsIncome)) / Income × 100%`
+- `SavingsExpense` = transactions in category 'Tabungan & Investasi' (expense, id=13)
+- `SavingsIncome` = transactions in category 'Penarikan Tabungan & Investasi' (income, id=4, disbursed)
+- 'Hasil Investasi' / 'Savings & Investment Return' (id=20) is **not** included in savings income
+- Color: green if positive, red if negative
+
+### Daily Average
+- Total expense divided by number of days in the current cycle
+- Cycle days parsed from cycle label format: `'25 May 2026 – 24 Jun 2026'`
+- Day difference between `from` and `to` dates = cycle length
+- `Daily Avg = totalExpense / cycleDays` (integer division)
+
+### incomeCategories in MonthlyReport
+The `MonthlyReport` model now includes `incomeCategories` (`List<CategoryBreakdown>`) alongside the existing `categories` (expense). Parsed from the new `income_categories` field in the monthly summary API response.

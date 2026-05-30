@@ -605,6 +605,8 @@ Monthly summary for a given month.
 }
 ```
 
+The response also includes an `income_categories` array (same structure as `categories`) for per-category income breakdown.
+
 ### GET `/api/v1/summaries/current-month`
 
 Quick endpoint — shorthand for `/summaries/monthly?month=<current>`.
@@ -725,7 +727,7 @@ Returns lifetime balance for Savings & Investment and Emergency Funds categories
 }
 ```
 
-**Formula:** `balance = total_expense - total_income`. Savings are recorded as expense transactions (money set aside), so positive balance = accumulated savings. Both categories scoped to the authenticated user only.
+**Formula:** `balance = total_expense - total_income`. Savings & Investment balance includes: expense transactions (Tabungan & Investasi / Savings & Investment — money set aside) minus income transactions (Penarikan Tabungan & Investasi / Savings & Investment Disbursed — money withdrawn). Note: Hasil Investasi / Savings & Investment Return (dividends, capital gains) is EXCLUDED from this balance by design. Emergency Funds: expense (top up) minus income (disbursement). Both scoped to the authenticated user.
 
 ## Exports
 
