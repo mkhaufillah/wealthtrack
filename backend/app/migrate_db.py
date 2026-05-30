@@ -354,6 +354,12 @@ def run_household_migration():
         )
         print("  ✓ Savings & Investment categories locked (ids 4, 13)")
 
+        # 16. Lock Emergency Funds categories from edit/delete
+        conn.execute(
+            "UPDATE categories SET is_default = 1 WHERE id IN (18, 19)"
+        )
+        print("  ✓ Emergency Funds categories locked (ids 18, 19)")
+
         conn.commit()
         print("\n✅ Household migration complete!")
         return True
