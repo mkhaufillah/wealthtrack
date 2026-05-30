@@ -737,8 +737,17 @@ The old `category_translator.dart` and its `translateCategory()` function are re
 
 ## 12. Home Screen — Savings & Emergency Widget
 
-The home screen dashboard (`home_screen.dart`) calls `/summaries/all-time-category-balance` on init to load Savings & Investment and Emergency Funds balances. Displayed in a dedicated card below the AI Financial Advisor card with:
+The home screen dashboard (`home_screen.dart`) calls `/summaries/all-time-category-balance` on init to load Savings & Investment and Emergency Funds balances. Parsed from the response object directly:
 
+```dart
+final data = resp.data as Map<String, dynamic>? ?? {};
+final siData = data['savings_investment'];
+if (siData is Map) {
+  savings = (siData['balance'] as num?)?.toInt() ?? 0;
+}
+```
+
+Displayed in a dedicated card below the AI Financial Advisor card with:
 - Savings & Investment balance (green if non-negative)
 - Emergency Funds balance (green if non-negative)
 - Silently fails on network error — the rest of the dashboard continues working

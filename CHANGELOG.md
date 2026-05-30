@@ -10,6 +10,7 @@
 
 ### Fixes
 - **category_translator.dart** — `translateCategory()` removed; category translation is now server-side via `name_en`. Flutter simply displays the field from the API response.
+- **Home Savings Widget (bug)** — `_loadAllTimeBalances()` cast API response as `List?` but backend returns a `Map` (`savings_investment`/`emergency_funds` keys). Runtime error → catch → always Rp0. Fixed by parsing `data['savings_investment']['balance']` and `data['emergency_funds']['balance']` directly.
 - **Test Fixtures** — Updated all Flutter test mock data to include `category_name_en`/`name_en` for consistency with new response shape.
 - **Home Screen Tests** — Fixed timing-dependent assertions to match actual post-`load()` state.
 

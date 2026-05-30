@@ -701,6 +701,30 @@ Budget vs actual spending comparison for a month.
 | percentage >= 75% and < 100% | 🟡 Yellow (warning) |
 | percentage >= 100% | 🔴 Red (overspent) |
 
+### GET `/api/v1/summaries/all-time-category-balance`
+
+Returns lifetime balance for Savings & Investment and Emergency Funds categories. Used by the home screen dashboard widget.
+
+**Auth:** Bearer token
+
+```
+// Response 200
+{
+  "savings_investment": {
+    "total_expense": 74331609,
+    "total_income": 0,
+    "balance": 74331609
+  },
+  "emergency_funds": {
+    "total_expense": 22331609,
+    "total_income": 0,
+    "balance": 22331609
+  }
+}
+```
+
+**Formula:** `balance = total_expense - total_income`. Savings are recorded as expense transactions (money set aside), so positive balance = accumulated savings. Both categories scoped to the authenticated user only.
+
 ## Exports
 
 ### GET `/api/v1/exports/yearly?year=2026`
