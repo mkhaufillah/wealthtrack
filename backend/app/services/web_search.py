@@ -137,9 +137,14 @@ HIGH_CONFIDENCE = [
     # ── Healthcare costs ──
     "biaya rumah sakit", "biaya dokter",
     "biaya berobat", "tarif rs",
-    # ── E-commerce / online ──
-    "belanja online", "tokopedia", "shopee",
-    "e-commerce",
+    # ── Shopping / belanja ──
+    "belanja", "perbelanjaan", "belanja online",
+    "harga produk", "belanja kebutuhan",
+    "diskon", "promo", "obral",
+    "tokopedia", "shopee", "e-commerce",
+    # ── Tickets / travel ──
+    "tiket", "tiket pesawat", "tiket kereta",
+    "harga tiket", "pesawat", "booking",
     # ── Side business ──
     "bisnis sampingan", "usaha sampingan",
     "side hustle", "usaha online", "bisnis online",
@@ -159,6 +164,7 @@ HIGH_CONFIDENCE = [
 MEDIUM_KEYWORDS = [
     # Indonesian recency
     "terbaru", "update", "terkini", "saat ini", "sekarang",
+    "realtime", "real-time", "live",
     # Indonesian comparison & opinion
     "rekomendasi", "terbaik", "review", "rating",
     "bandingkan", "perbandingan", "vs",
@@ -173,7 +179,7 @@ MEDIUM_KEYWORDS = [
     "perform", "kinerja", "return", "keuntungan", "risiko",
     # Indonesian guidance
     "cara", "tips", "panduan", "tutorial",
-    "biaya", "tarif", "ongkos",
+    "biaya", "tarif", "ongkos", "harga", "produk",
     "daftar", "list", "urutan",
     # English
     "latest", "current", "today", "update",
