@@ -70,8 +70,8 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         // but budgets need get_cycle_range_for_month (budget period for month label).
         // These differ for D1-D15 (get_cycle_range shifts forward one month).
         final (dFrom, dTo) = getCycleRangeForMonth(_monthParam, cycleStartDay);
-        _cycleDateFrom = dFrom.toIso8601String();
-        _cycleDateTo = dTo.toIso8601String();
+        _cycleDateFrom = DateFormat('yyyy-MM-dd').format(dFrom);
+        _cycleDateTo = DateFormat('yyyy-MM-dd').format(dTo);
         _cycleLabel = '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
       });
     } catch (_) {

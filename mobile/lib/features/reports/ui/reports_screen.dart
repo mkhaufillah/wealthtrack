@@ -77,8 +77,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     // but reports need get_cycle_range_for_month (period for the month label).
     // These differ for D1-D15 (get_cycle_range shifts forward one month).
     final (dFrom, dTo) = getCycleRangeForMonth(monthStr, cycleDay);
-    final firstDay = dFrom.toIso8601String();
-    final lastDay = dTo.toIso8601String();
+    final firstDay = DateFormat('yyyy-MM-dd').format(dFrom);
+    final lastDay = DateFormat('yyyy-MM-dd').format(dTo);
 
     // Build cycle label from dates (e.g. "25 Apr – 24 Mei 2026")
     _cycleLabel = '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
