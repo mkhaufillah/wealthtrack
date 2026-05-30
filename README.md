@@ -47,7 +47,9 @@ docs/                  # Planning docs (agent-executable)
   ├── 11-delete-transaction.md
   ├── 12-transfer-balance.md
   ├── 13-ai-chat-history.md
-  └── 14-custom-billing-cycle.md
+  ├── 14-custom-billing-cycle.md
+  ├── 15-improvement-plan-ai-ocr.md
+  └── 16-ocr-scanner.md
 backend/               # FastAPI application
 mobile/                # Flutter app (Android)
 scripts/               # DB init & seed scripts

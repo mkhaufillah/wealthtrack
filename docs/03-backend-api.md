@@ -766,7 +766,7 @@ Ask financial questions with full user context injected for personalized advice.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `question` | string | required | Financial question |
-| `model` | string | `"flash"` | `"flash"` for DeepSeek V4, `"opus"` for Claude Opus (user id=1 only) |
+| `model` | string | `"flash"` | `"flash"` for DeepSeek V4 (all users), `"opus"` for Claude Opus (admin only) |
 | `history` | array | `[]` | Last 10 chat exchanges (max) for conversation continuity. Each item: `{"role": "user"|"assistant", "content": "..."}` |
 
 **Model routing:**
@@ -774,7 +774,7 @@ Ask financial questions with full user context injected for personalized advice.
 | Model | When used |
 |-------|-----------|
 | `flash` | Fast, budget — default for all (OpenCode Go) |
-| `opus` | Deep analysis — Filla only, via OpenRouter |
+| `opus` | Deep analysis — admin only, via OpenRouter |
 
 ```json
 // Response 200

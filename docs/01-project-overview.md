@@ -18,6 +18,10 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 - [Edit Transaction](10-edit-transaction.md) — edit flow & UI states
 - [Delete Transaction](11-delete-transaction.md) — delete flow & confirmation dialog
 - [Transfer Balance](12-transfer-balance.md) — send money between household members
+- [AI Chat History](13-ai-chat-history.md) — local chat persistence on-device
+- [Custom Billing Cycle](14-custom-billing-cycle.md) — cycle-based summaries & budgets
+- [Improvement Plan AI & OCR](15-improvement-plan-ai-ocr.md) — AI Advisor & OCR improvements roadmap
+- [OCR Scanner](16-ocr-scanner.md) — receipt scanning with vision AI
 
 
 ## Architecture
