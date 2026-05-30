@@ -34,15 +34,16 @@ String formatDateRelative(String isoDate) {
     return (start, end);
   }
 
-  // Cycle starts at cycleOn of previous month
-  final prevYear = mon == 1 ? year - 1 : year;
-  final prevMon = mon == 1 ? 12 : mon - 1;
-  final startDay = cycleOn.clamp(1, DateTime(prevYear, prevMon + 1, 0).day);
-  final start = DateTime(prevYear, prevMon, startDay);
+  // Cycle starts at cycleOn of THIS month
+  final startDay = cycleOn.clamp(1, DateTime(year, mon + 1, 0).day);
+  final start = DateTime(year, mon, startDay);
 
-  final endDayCap = DateTime(year, mon + 1, 0).day;
+  // ends at cycleOn of NEXT month - 1
+  final nextYear = mon == 12 ? year + 1 : year;
+  final nextMon = mon == 12 ? 1 : mon + 1;
+  final endDayCap = DateTime(nextYear, nextMon + 1, 0).day;
   final endDay = cycleOn > endDayCap ? endDayCap : cycleOn;
-  final end = DateTime(year, mon, endDay).subtract(const Duration(days: 1));
+  final end = DateTime(nextYear, nextMon, endDay).subtract(const Duration(days: 1));
 
   return (start, end);
 }

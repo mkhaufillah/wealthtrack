@@ -99,14 +99,14 @@ def get_cycle_range_for_month(month: str, cycle_on: int) -> Tuple[date, date]:
             end = date(year, mon + 1, 1) - timedelta(days=1)
         return start, end
 
-    # Cycle starts at cycle_on of previous month
-    if mon == 1:
-        prev_year, prev_mon = year - 1, 12
+    # Cycle starts at cycle_on of THIS month
+    start = _safe_date(year, mon, cycle_on)
+    # ends at cycle_on of NEXT month - 1
+    if mon == 12:
+        next_year, next_mon = year + 1, 1
     else:
-        prev_year, prev_mon = year, mon - 1
-
-    start = _safe_date(prev_year, prev_mon, cycle_on)
-    end_day = _safe_date(year, mon, cycle_on)
+        next_year, next_mon = year, mon + 1
+    end_day = _safe_date(next_year, next_mon, cycle_on)
     end = end_day - timedelta(days=1)
     return start, end
 

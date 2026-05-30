@@ -41,13 +41,17 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
   DateTime _maxMonth() {
     if (_userCycleDay <= 1) return DateTime.now();
-    // With billing cycle, allow viewing the cycle whose end month is now or future
+    // With new month=start logic:
+    // - today >= cycle: budget starting this month is current
+    // - today < cycle: still in previous month's budget period
     final today = DateTime.now();
     if (today.day >= _userCycleDay) {
-      // Current cycle started this month, ends next month
-      return DateTime(today.year, today.month + 1);
+      return DateTime(today.year, today.month);
     }
-    return DateTime(today.year, today.month);
+    if (today.month == 1) {
+      return DateTime(today.year - 1, 12);
+    }
+    return DateTime(today.year, today.month - 1);
   }
 
   Future<void> _loadCycleInfo() async {

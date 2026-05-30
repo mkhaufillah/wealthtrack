@@ -114,6 +114,32 @@ def run_migration():
         )
         print("  ✓ backfilled existing transactions (user_id=1, date from created_at)")
 
+        # 7. Migrate existing budget months: month label now = START month of cycle range
+        #    Previously month was END month (e.g. "2026-06" for range May 5 - June 4).
+        #    Now month = START month (e.g. "2026-05" for range May 5 - June 4).
+        cursor = conn.execute(
+            "SELECT id, month FROM budgets WHERE cycle_on > 1"
+        )
+        budget_rows = cursor.fetchall()
+        migrated = 0
+        for row in budget_rows:
+            bid, old_month = row
+            year, mon = map(int, old_month.split('-'))
+            # Decrement month by 1 (with year wrap)
+            if mon == 1:
+                new_month = f"{year - 1}-12"
+            else:
+                new_month = f"{year}-{mon - 1:02d}"
+            conn.execute(
+                "UPDATE budgets SET month = ? WHERE id = ?",
+                (new_month, bid),
+            )
+            migrated += 1
+        if migrated:
+            print(f"  ✓ migrated {migrated} budget(s) to new month schema (cycle_on > 1)")
+        else:
+            print("  ✓ no budgets to migrate (cycle_on > 1)")
+
         conn.commit()
         print(f"\n✅ Migration complete! DB: {DB_PATH}")
         print("   Users: filla (password123), nahda (password123)")

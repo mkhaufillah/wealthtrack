@@ -45,9 +45,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     if (_userCycleDay <= 1) return DateTime.now();
     final today = DateTime.now();
     if (today.day >= _userCycleDay) {
-      return DateTime(today.year, today.month + 1);
+      return DateTime(today.year, today.month);
     }
-    return DateTime(today.year, today.month);
+    if (today.month == 1) {
+      return DateTime(today.year - 1, 12);
+    }
+    return DateTime(today.year, today.month - 1);
   }
 
   String get _monthParam => DateFormat('yyyy-MM').format(_currentMonth);
