@@ -1,4 +1,5 @@
----
+# Changelog
+
 ## v0.3.1 — Category English Names & Home Widget (2026-05-30)
 
 ### Features
@@ -16,10 +17,6 @@
 - API spec updated with `category_name_en`/`name_en` in all response examples
 - README synced with new features (AI Advisor card, savings widget, budget exhausted, category CRUD)
 - Flutter docs updated for name_en display logic
-
----
-
-# Changelog
 
 ## v0.3.0 — Billing Cycle Support (2026-05-30)
 
