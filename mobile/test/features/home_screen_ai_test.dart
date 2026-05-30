@@ -22,7 +22,10 @@ Widget buildHomeApp({bool isLoading = false, String? error, int balance = 0}) {
     'data': <List<dynamic>>[],
     'meta': {'total': 0, 'page': 1, 'per_page': 5, 'total_pages': 0},
   });
-  mockApi.onGet('/summaries/all-time-category-balance', {});
+  mockApi.onGet('/summaries/all-time-category-balance', {
+    'savings_investment': {'total_expense': 0, 'total_income': 0, 'balance': 0},
+    'emergency_funds': {'total_expense': 0, 'total_income': 0, 'balance': 0},
+  });
   return ProviderScope(
     overrides: [
       dashboardProvider.overrideWithProvider(

@@ -41,18 +41,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       final api = ref.read(apiClientProvider);
       final resp = await api.get('/summaries/all-time-category-balance');
-      final data = resp.data as List? ?? [];
+      final data = resp.data as Map<String, dynamic>? ?? {};
       int savings = 0;
       int emergency = 0;
-      for (final item in data) {
-        final name = (item['name_en'] as String? ?? item['name'] as String? ?? '') as String;
-        final balance = (item['balance'] as int? ?? 0);
-        if (name == 'Savings & Investment') {
-          savings = balance;
-        } else if (name == 'Emergency Funds') {
-          emergency = balance;
-        }
+
+      final siData = data['savings_investment'];
+      if (siData is Map) {
+        savings = (siData['balance'] as num?)?.toInt() ?? 0;
       }
+
+      final efData = data['emergency_funds'];
+      if (efData is Map) {
+        emergency = (efData['balance'] as num?)?.toInt() ?? 0;
+      }
+
       if (mounted) {
         setState(() {
           _savingsBalance = savings;
