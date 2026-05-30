@@ -32,7 +32,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     super.initState();
     _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
     // Load on first build — defer to post-frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadMonth();  // loads cycle info + data for current month
+      // After load, adjust to latest viewable month and reload
+      _currentMonth = _maxMonth();
       _loadMonth();
     });
   }
@@ -48,7 +51,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   String get _monthParam => DateFormat('yyyy-MM').format(_currentMonth);
 
-  void _loadMonth() async {
+  Future<void> _loadMonth() async {
     final monthStr = _monthParam;
 
     // Try to get cycle range for household & reports

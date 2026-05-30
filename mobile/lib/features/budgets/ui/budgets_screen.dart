@@ -8,7 +8,6 @@ import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/utils/category_translator.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../features/transactions/ui/widgets/amount_field.dart';
-import '../../home/providers/dashboard_provider.dart';
 import '../providers/budget_provider.dart';
 import '../models/budget_model.dart';
 
@@ -23,15 +22,19 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   late DateTime _currentMonth;
   String _cycleLabel = '';
   int _userCycleDay = 1;
+  String? _cycleDateFrom;
+  String? _cycleDateTo;
 
   @override
   void initState() {
     super.initState();
     _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // First load cycle info for the current month, then jump to latest viewable
+      await _loadCycleInfo();
+      _currentMonth = _maxMonth();
+      await _loadCycleInfo();  // re-fetch with the correct month
       _load();
-      _loadCycleInfo();
-      ref.read(dashboardProvider.notifier).load();
     });
   }
 
@@ -60,16 +63,21 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
           _cycleLabel =
               '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
           _userCycleDay = data['cycle_start_day'] as int? ?? 1;
+          _cycleDateFrom = dFrom.toIso8601String();
+          _cycleDateTo = dTo.toIso8601String();
         });
       }
     } catch (_) {
-      // fallback: keep _cycleLabel empty calendar month shown
+      // fallback: keep defaults
     }
   }
 
   String get _monthParam => DateFormat('yyyy-MM').format(_currentMonth);
 
-  void _load() => ref.read(budgetProvider.notifier).load(_monthParam);
+  void _load() {
+    ref.read(budgetProvider.notifier).load(_monthParam,
+        dateFrom: _cycleDateFrom, dateTo: _cycleDateTo);
+  }
 
   void _prevMonth() {
     setState(() => _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1));
@@ -188,8 +196,8 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 
   Widget _buildSummaryCard(int totalBudget, int totalSpent, int totalRemaining) {
-    final dashboard = ref.watch(dashboardProvider);
-    final balance = dashboard.balance;
+    final state = ref.watch(budgetProvider);
+    final balance = state.viewBalance;
     final diff = balance - totalRemaining;
     final isOverBudgeted = totalRemaining > balance;
 
@@ -576,7 +584,6 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
           const SizedBox(height: 6),
           DropdownButtonFormField<int>(
             value: _cycleOn,
-            dropdownColor: AppColors.surface,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(
               hintText: 'Select cycle day',
@@ -584,7 +591,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
             ),
             items: List.generate(28, (i) => DropdownMenuItem<int>(
               value: i + 1,
-              child: Text('Day ${i + 1}'),
+              child: Text('Day ${i + 1}', style: TextStyle(color: AppColors.textPrimary)),
             )),
             onChanged: (v) {
               if (v != null) setState(() => _cycleOn = v);

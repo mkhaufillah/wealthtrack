@@ -9,12 +9,14 @@ class BudgetState {
   final String? error;
   final List<BudgetSummaryItem> items;
   final String month;
+  final int viewBalance;
 
   const BudgetState({
     this.isLoading = false,
     this.error,
     this.items = const [],
     this.month = '',
+    this.viewBalance = 0,
   });
 
   BudgetState copyWith({
@@ -22,12 +24,14 @@ class BudgetState {
     String? error,
     List<BudgetSummaryItem>? items,
     String? month,
+    int? viewBalance,
   }) =>
       BudgetState(
         isLoading: isLoading ?? this.isLoading,
         error: error ?? this.error,
         items: items ?? this.items,
         month: month ?? this.month,
+        viewBalance: viewBalance ?? this.viewBalance,
       );
 }
 
@@ -37,11 +41,26 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
   BudgetNotifier(this._repo, this._api) : super(const BudgetState());
 
-  Future<void> load(String month) async {
+  Future<void> load(String month, {String? dateFrom, String? dateTo}) async {
     state = state.copyWith(isLoading: true, error: null, month: month);
     try {
       final items = await _repo.getSummary(month);
-      state = BudgetState(items: items, month: month);
+
+      // Fetch balance for the viewed month's date range
+      int balance = 0;
+      if (dateFrom != null && dateTo != null) {
+        try {
+          final monthlyRes = await _api.get('/summaries/monthly', queryParams: {
+            'd_from_override': dateFrom,
+            'd_to_override': dateTo,
+          });
+          balance = monthlyRes.data['balance'] as int? ?? 0;
+        } catch (_) {
+          balance = 0;
+        }
+      }
+
+      state = BudgetState(items: items, month: month, viewBalance: balance);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _api.handleError(e).toString());
     }
