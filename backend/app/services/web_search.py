@@ -14,105 +14,167 @@ SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 # ── Keyword detection ─────────────────────────────────────────
 
 HIGH_CONFIDENCE = [
-    # Indonesian
-    "suku bunga", "inflasi", "ihsg", "reksadana", "obligasi",
-    "deposito", "dividen", "valas", "crypto", "bitcoin",
-    "harga emas", "emas hari ini", "harga saham",
-    "kpr", "bi rate", "kurs", "nilai tukar",
-    "kpr syariah", "kpr rumah pertama", "kpr rumah kedua",
-    "dp rumah", "down payment rumah", "angsuran kpr",
-    "tenor kpr", "simulasi kpr", "btn kpr",
-    "pajak", "tarif pajak",
-    # Stock market & analysis
-    "saham", "analisa teknikal", "analisis teknikal",
-    "analisa fundamental", "analisis fundamental",
-    "sentimen pasar", "rekomendasi saham",
-    "pasar modal", "bursa efek", "bei",
-    "ipo", "right issue", "stock split", "buyback",
-    "saham syariah", "jakarta islamic index",
-    "beli saham", "jual saham", "investasi saham",
+    # ── Monetary policy & macro ──
+    "suku bunga", "bi rate", "suku bunga acuan",
+    "inflasi", "produk domestik bruto", "pdb",
+    "pertumbuhan ekonomi", "tenaga kerja", "pengangguran",
+    # ── Currency ──
+    "kurs", "nilai tukar", "valas", "forex",
+    "kurs dollar", "kurs rupiah", "harga dollar", "usd idr",
+    # ── IHSG & stock market ──
+    "ihsg", "bursa efek", "bei", "pasar modal",
+    "saham", "harga saham", "beli saham", "jual saham",
+    "rekomendasi saham", "investasi saham",
     "portofolio saham", "diversifikasi saham",
-    "sector rotation", "saham sektor",
-    # Property & housing
+    "saham syariah", "jakarta islamic index",
+    "saham blue chip", "saham lapis kedua", "saham gorengan",
+    "saham sektor", "sector rotation",
+    "ipo", "right issue", "stock split", "buyback",
+    # ── Stock analysis ──
+    "analisa teknikal", "analisis teknikal",
+    "analisa fundamental", "analisis fundamental",
+    "sentimen pasar", "teknikal",
+    # ── English stock ──
+    "stock price", "stock market", "stock recommendation",
+    "technical analysis", "fundamental analysis",
+    "market sentiment", "trading volume",
+    "ipo", "etf", "dividend yield", "pe ratio", "market cap",
+    # ── Gold & commodities ──
+    "harga emas", "emas hari ini", "gold price",
+    "harga minyak dunia", "harga batubara",
+    "harga sawit", "cpo", "harga cpO",
+    # ── Crypto ──
+    "crypto", "bitcoin", "bitcoin price", "crypto price",
+    # ── Property ──
     "properti", "rumah", "harga rumah", "harga properti",
-    "subsidi perumahan", "flpp", "kpr bersubsidi",
-    # Banking & savings
+    "subsidi perumahan", "flpp",
+    # ── KPR / mortgage ──
+    "kpr", "kpr syariah", "kpr bersubsidi",
+    "kpr rumah pertama", "kpr rumah kedua",
+    "dp rumah", "down payment rumah",
+    "angsuran kpr", "tenor kpr", "simulasi kpr", "btn kpr",
+    "mortgage rate",
+    # ── Banking ──
     "bunga bank", "bunga tabungan", "bunga deposito",
-    "suku bunga acuan", "giro", "tabungan berjangka",
+    "deposito", "giro", "tabungan berjangka",
     "ldp", "loan to deposit",
-    # Insurance
-    "asuransi", "premi asuransi", "asuransi jiwa",
-    "asuransi kesehatan", "asuransi pendidikan",
-    # General finance & economy
-    "produk domestik bruto", "pdb", "pertumbuhan ekonomi",
-    "tenaga kerja", "pengangguran", "upah minimum",
-    "umr", "umk", "harga pangan", "harga kebutuhan pokok",
+    # ── Bank names ──
+    "bca", "mandiri", "bri", "bni",
+    "cimb niaga", "hsbc", "permata",
+    "bank syariah indonesia", "bsi",
+    # ── Digital bank ──
+    "bank digital", "fintech",
+    "dompet digital", "e-wallet", "gopay", "ovo", "dana",
+    "sea bank", "jenius", "blu",
+    # ── Credit cards ──
+    "kartu kredit", "limit kartu kredit",
+    "tagihan kartu kredit", "kartu kredit terbaik",
+    # ── Loans ──
+    "pinjaman online", "pinjol",
+    "kta", "kredit tanpa agunan",
+    "kredit mobil", "kredit motor", "kredit rumah",
+    "kredit kendaraan", "leasing",
+    "kredit barang", "cicilan barang",
+    "bunga pinjaman", "bunga kredit",
+    # ── Credit score ──
+    "skor kredit", "credit score", "bi checking",
+    "slik", "blacklist bank",
+    # ── Tax ──
+    "pajak", "tarif pajak", "tax rate",
+    "npwp", "spt tahunan", "lapor pajak",
+    "pph 21", "ppn", "pph final",
+    # ── Insurance ──
+    "asuransi", "premi asuransi",
+    "asuransi jiwa", "asuransi kesehatan",
+    "asuransi pendidikan", "asuransi mobil",
+    # ── Pensiun & BPJS ──
+    "dana pensiun", "perencanaan pensiun",
+    "bpjs ketenagakerjaan", "bpjs kesehatan",
+    "jht", "jp", "iuran bpjs", "kelas bpjs", "bpjs",
+    # ── Investment products ──
+    "reksadana", "rdpu", "rdpt",
+    "reksadana pasar uang", "reksadana pendapatan tetap",
+    "reksadana campuran", "reksadana saham",
+    "obligasi", "obligasi pemerintah", "obligasi korporasi",
+    "sukuk", "sukuk ritel", "sbn", "sbr",
+    "st012", "st010", "orip",
+    "etf", "mutual fund", "bond yield",
+    # ── Finance education ──
+    "financial planner", "perencana keuangan",
+    "cara mengatur keuangan", "tips keuangan",
+    "cara hemat uang", "tips hemat",
+    "dana darurat", "emergency fund",
+    "perencanaan keuangan",
+    # ── Debt management ──
+    "bebas utang", "strategi bayar utang",
+    "konsolidasi utang",
+    # ── Zakat & religious ──
+    "zakat", "zakat penghasilan", "zakat mal",
+    "zakat fitrah", "infaq", "sedekah",
+    "nishab zakat", "nishab emas",
+    # ── Hajj & Umrah ──
+    "biaya haji", "biaya umrah", "tabungan haji",
+    # ── Marriage / wedding ──
+    "biaya nikah", "biaya pernikahan",
+    # ── Education fund ──
+    "tabungan pendidikan", "dana pendidikan",
+    "biaya sekolah", "uang kuliah", "biaya kuliah",
+    "spp", "snbt", "snbp",
+    # ── Vehicle prices ──
+    "harga mobil", "harga motor",
+    "cicilan mobil", "cicilan motor",
+    # ── Commodity prices ──
+    "harga pangan", "harga kebutuhan pokok",
+    "harga beras", "harga minyak goreng",
+    "harga daging", "harga telur",
+    "harga bbm", "harga pertalite", "harga solar",
+    # ── Utilities ──
+    "tarif listrik", "token listrik", "pln", "tagihan listrik",
+    "tarif air", "pdam", "tagihan air",
+    # ── Telecom ──
+    "paket internet", "indihome", "firstmedia",
+    "biaya internet", "myrep", "biaya telpon",
+    # ── Healthcare costs ──
+    "biaya rumah sakit", "biaya dokter",
+    "biaya berobat", "tarif rs",
+    # ── E-commerce / online ──
+    "belanja online", "tokopedia", "shopee",
+    "e-commerce",
+    # ── Side business ──
+    "bisnis sampingan", "usaha sampingan",
+    "side hustle", "usaha online", "bisnis online",
+    "dropship", "reseller", "modal usaha",
+    # ── Government programs ──
     "kartu prakerja", "bansos", "bantuan sosial",
     "subsidi", "subsidi bbm", "subsidi listrik",
     "blt", "bantuan langsung tunai",
-    # Investment products
-    "reksadana pasar uang", "reksadana pendapatan tetap",
-    "reksadana campuran", "reksadana saham", "rdpu", "rdpt",
-    "etf", "sbn", "sukuk", "obligasi pemerintah",
-    "obligasi korporasi", "sukuk ritel", "sbr",
-    "st012", "st010", "orip",
-    # Defined contribution
-    "dana pensiun", "bpjs ketenagakerjaan", "jht", "jp",
-    # English
-    "interest rate", "inflation", "stock price", "stock market",
-    "mutual fund", "bond yield", "exchange rate", "forex",
-    "gold price", "crypto price", "bitcoin price",
-    "mortgage rate", "tax rate", "central bank",
-    # English
-    "technical analysis", "fundamental analysis",
-    "market sentiment", "stock recommendation",
-    "ipo", "etf", "dividend yield", "pe ratio",
-    "market cap", "trading volume",
-    # Credit cards
-    "kartu kredit", "limit kartu kredit",
-    "tagihan kartu kredit", "kartu kredit terbaik",
-    # Loans & financing
-    "pinjaman online", "pinjol", "kta",
-    "kredit tanpa agunan", "kredit mobil",
-    "kredit motor", "kredit rumah", "kredit kendaraan",
-    "leasing", "kredit barang", "cicilan barang",
-    # Credit score
-    "skor kredit", "credit score", "bi checking",
-    "slik", "blacklist bank",
-    # Fintech & digital
-    "fintech", "bank digital",
-    "dompet digital", "e-wallet", "gopay", "ovo",
-    "dana aplikasi", "sea bank", "jenius",
-    # Emergency fund
-    "dana darurat", "emergency fund",
-    # Education fund
-    "tabungan pendidikan", "dana pendidikan",
-    "biaya sekolah", "uang kuliah", "biaya kuliah",
-    # Side business
-    "bisnis sampingan", "usaha sampingan",
-    "side hustle", "investasi bisnis",
-    "usaha kecil", "modal usaha",
-    # Restructuring
-    "restrukturisasi", "keringanan pembayaran",
-    "penundaan pembayaran", "rescheduling",
+    "upah minimum", "umr", "umk",
+    # ── Economic indicators ──
+    "central bank", "interest rate", "inflation",
+    # ── Living costs ──
+    "biaya hidup", "kebutuhan sehari hari",
+    "kenaikan harga",
 ]
 
 MEDIUM_KEYWORDS = [
-    # Indonesian
+    # Indonesian recency
     "terbaru", "update", "terkini", "saat ini", "sekarang",
+    # Indonesian comparison & opinion
     "rekomendasi", "terbaik", "review", "rating",
-    "prediksi", "perkiraan", "proyeksi", "ramalan", "tren",
     "bandingkan", "perbandingan", "vs",
-    "perform", "kinerja", "return",
-    "keuntungan", "risiko", "resiko",
-    "cara", "tips", "panduan", "tutorial",
     "beda", "perbedaan", "pilih", "mana yang",
     "layak", "worth it", "mahal", "murah",
+    "menguntungkan", "potensi", "peluang",
     "laris", "populer", "diminati",
+    # Indonesian prediction
+    "prediksi", "perkiraan", "proyeksi", "ramalan", "tren",
     "simulasi", "kalkulator",
+    # Indonesian performance
+    "perform", "kinerja", "return", "keuntungan", "risiko",
+    # Indonesian guidance
+    "cara", "tips", "panduan", "tutorial",
     "biaya", "tarif", "ongkos",
     "daftar", "list", "urutan",
-    "menguntungkan", "potensi", "peluang",
     # English
     "latest", "current", "today", "update",
     "recommendation", "best", "top", "review", "rating",
@@ -123,7 +185,10 @@ MEDIUM_KEYWORDS = [
     "cost", "fee", "rate",
     "list", "ranking", "top",
     "profitable", "potential", "opportunity",
-    "definition", "meaning", "explanation",
+    # General knowledge triggers
+    "apa itu", "pengertian", "definisi",
+    "perbedaan", "arti",
+    "contoh", "perhitungan",
 ]
 
 
