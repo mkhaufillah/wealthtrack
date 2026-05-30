@@ -36,7 +36,7 @@ async def register(request: Request, data: UserRegister, db: aiosqlite.Connectio
     await db.commit()
 
     cursor = await db.execute(
-        "SELECT id, username, display_name, role, created_at FROM users WHERE id = ?",
+        "SELECT id, username, display_name, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
         (cursor.lastrowid,),
     )
     user = await cursor.fetchone()
@@ -67,7 +67,7 @@ async def me(
     db: aiosqlite.Connection = Depends(get_db),
 ):
     cursor = await db.execute(
-        "SELECT id, username, display_name, role, created_at FROM users WHERE id = ?",
+        "SELECT id, username, display_name, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
         (current_user["id"],),
     )
     user = await cursor.fetchone()
@@ -82,14 +82,23 @@ async def update_profile(
     current_user: dict = Depends(get_current_user),
     db: aiosqlite.Connection = Depends(get_db),
 ):
+    updates = {}
+    if data.display_name is not None:
+        updates["display_name"] = data.display_name
+    if data.cycle_start_day is not None:
+        updates["cycle_start_day"] = data.cycle_start_day
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    set_clause = ", ".join(f"{k} = ?" for k in updates)
     await db.execute(
-        "UPDATE users SET display_name = ? WHERE id = ?",
-        (data.display_name, current_user["id"]),
+        f"UPDATE users SET {set_clause} WHERE id = ?",
+        list(updates.values()) + [current_user["id"]],
     )
     await db.commit()
 
     cursor = await db.execute(
-        "SELECT id, username, display_name, role, created_at FROM users WHERE id = ?",
+        "SELECT id, username, display_name, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
         (current_user["id"],),
     )
     user = await cursor.fetchone()

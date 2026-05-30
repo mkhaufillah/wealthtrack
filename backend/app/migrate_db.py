@@ -68,6 +68,14 @@ def run_migration():
             conn.execute("ALTER TABLE transactions ADD COLUMN note TEXT DEFAULT ''")
             added.append("note")
 
+        # Add cycle_start_day to users table (billing cycle support)
+        user_cols = [row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()]
+        if 'cycle_start_day' not in user_cols:
+            conn.execute(
+                "ALTER TABLE users ADD COLUMN cycle_start_day INTEGER NOT NULL DEFAULT 1"
+            )
+            added.append("cycle_start_day (users)")
+
         if added:
             print(f"  ✓ added columns: {', '.join(added)}")
         else:

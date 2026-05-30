@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -20,7 +21,8 @@ class TokenOut(BaseModel):
 
 
 class UpdateProfileIn(BaseModel):
-    display_name: str = Field(min_length=1, max_length=64)
+    display_name: Optional[str] = Field(default=None, min_length=1, max_length=64)
+    cycle_start_day: Optional[int] = Field(default=None, ge=1, le=28)
 
 
 class ChangePasswordIn(BaseModel):
