@@ -6,7 +6,10 @@ class BudgetRepository {
   BudgetRepository(this._client);
 
   Future<List<BudgetSummaryItem>> getSummary(String month) async {
-    final res = await _client.get('/budgets/summary', queryParams: {'month': month});
+    final res = await _client.get('/budgets/summary', queryParams: {
+      'month': month,
+      'use_cycle': 'true',
+    });
     return (res.data as List).map((e) => BudgetSummaryItem.fromJson(e as Map<String, dynamic>)).toList();
   }
 

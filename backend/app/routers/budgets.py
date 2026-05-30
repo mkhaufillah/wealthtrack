@@ -106,10 +106,28 @@ async def delete_budget(
 @router.get("/summary", response_model=list[BudgetSummaryItem])
 async def budget_summary(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
+    use_cycle: bool = Query(False, description="Use user's billing cycle for actuals date range"),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Budgets vs actual spending for a given month."""
+    # Determine date range for actuals
+    if use_cycle:
+        from app.utils.cycle import get_cycle_range
+        from datetime import date
+        cycle_cursor = await db.execute(
+            "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
+            (current_user["id"],),
+        )
+        cycle_row = await cycle_cursor.fetchone()
+        cycle_start_day = cycle_row["cycle_start_day"] if cycle_row else 1
+        d_from, d_to = get_cycle_range(date.today(), cycle_start_day)
+        d_from_str = d_from.isoformat()
+        d_to_str = d_to.isoformat()
+    else:
+        d_from_str = f"{month}-01"
+        d_to_str = f"{month}-31"
+
     cursor = await db.execute(
         """SELECT b.id, b.category_id, b.category_name, b.budget_amount,
                   c.icon AS category_icon,
@@ -124,8 +142,8 @@ async def budget_summary(
            GROUP BY b.category_id, b.category_name, b.budget_amount, c.icon
            ORDER BY b.budget_amount DESC""",
         (
-            f"{month}-01",
-            f"{month}-31",
+            d_from_str,
+            d_to_str,
             month,
             current_user["id"],
         ),
