@@ -46,7 +46,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     String lastDay;
     try {
       final api = ref.read(apiClientProvider);
-      final cycleResp = await api.get('/summaries/cycle-info');
+      // Use mid-month as reference so cycle changes when navigated
+      final refDate = DateFormat('yyyy-MM-15').format(_currentMonth);
+      final cycleResp = await api.get('/summaries/cycle-info', queryParams: {'date': refDate});
       final cycleData = cycleResp.data;
       firstDay = cycleData['date_from'] as String;
       lastDay = cycleData['date_to'] as String;

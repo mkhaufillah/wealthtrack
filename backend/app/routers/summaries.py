@@ -428,12 +428,14 @@ async def current_month_summary(
 
 @router.get("/cycle-info")
 async def cycle_info(
+    ref_date_str: Optional[str] = Query(None, alias="date", description="Reference date (YYYY-MM-DD). Defaults to today."),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Return the current billing cycle date range and label."""
+    """Return the billing cycle date range for a given reference date."""
     cycle_start_day = await _get_cycle_start_day(db, current_user["id"])
-    d_from, d_to = get_cycle_range(date.today(), cycle_start_day)
+    ref_date = date.fromisoformat(ref_date_str) if ref_date_str else date.today()
+    d_from, d_to = get_cycle_range(ref_date, cycle_start_day)
     return {
         "cycle_start_day": cycle_start_day,
         "date_from": d_from.isoformat(),

@@ -37,7 +37,9 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   Future<void> _loadCycleInfo() async {
     try {
       final api = ref.read(apiClientProvider);
-      final resp = await api.get('/summaries/cycle-info');
+      // Use mid-month as reference so cycle changes when navigated
+      final refDate = DateFormat('yyyy-MM-15').format(_currentMonth);
+      final resp = await api.get('/summaries/cycle-info', queryParams: {'date': refDate});
       final data = resp.data;
       final dFrom = DateTime.tryParse(data['date_from'] as String);
       final dTo = DateTime.tryParse(data['date_to'] as String);
@@ -59,6 +61,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   void _prevMonth() {
     setState(() => _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1));
     _load();
+    _loadCycleInfo();
   }
 
   void _nextMonth() {
@@ -66,6 +69,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     if (next.isAfter(DateTime.now())) return;
     setState(() => _currentMonth = next);
     _load();
+    _loadCycleInfo();
   }
 
   @override
