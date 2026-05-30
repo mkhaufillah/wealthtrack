@@ -81,6 +81,36 @@ def _prev_month(year: int, month: int) -> Tuple[int, int]:
     return year, month - 1
 
 
+def get_cycle_range_for_month(month: str, cycle_on: int) -> Tuple[date, date]:
+    """Return (start_date, end_date) for a budget month with given cycle day.
+
+    For cycle_on==1: standard calendar month (1st to last day).
+    For cycle_on>1: cycle starts at cycle_on of previous month,
+                    ends at (cycle_on - 1) of the current month.
+    Example: month '2026-05', cycle_on=28 → Apr 28 to May 27
+    """
+    year, mon = map(int, month.split('-'))
+    if cycle_on == 1:
+        # Standard calendar month
+        start = date(year, mon, 1)
+        if mon == 12:
+            end = date(year, 12, 31)
+        else:
+            end = date(year, mon + 1, 1) - timedelta(days=1)
+        return start, end
+
+    # Cycle starts at cycle_on of previous month
+    if mon == 1:
+        prev_year, prev_mon = year - 1, 12
+    else:
+        prev_year, prev_mon = year, mon - 1
+
+    start = _safe_date(prev_year, prev_mon, cycle_on)
+    end_day = _safe_date(year, mon, cycle_on)
+    end = end_day - timedelta(days=1)
+    return start, end
+
+
 def _next_cycle_start(current_start: date, cycle_start_day: int) -> date:
     """Return the start date of the next cycle."""
     if current_start.month == 12:

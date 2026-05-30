@@ -31,7 +31,7 @@ class TestListBudgets:
     async def test_list_shows_created_budgets(
         self, client: AsyncClient, filla_token: str
     ):
-        """Create a budget, then list → verify it appears."""
+        """Create a budget, then list verify it appears."""
         # Create a budget
         create = await client.post(
             "/api/v1/budgets",
@@ -64,7 +64,7 @@ class TestListBudgets:
             json={"month": "2026-05", "category_id": 2, "amount": 300000},
         )
 
-        # Filla lists — should not see nahda's budget
+        # Filla lists should not see nahda's budget
         resp = await client.get(
             "/api/v1/budgets?month=2026-05",
             headers={"Authorization": f"Bearer {filla_token}"},
@@ -114,7 +114,7 @@ class TestCreateBudget:
     async def test_upsert_same_category_month_updates(
         self, client: AsyncClient, filla_token: str
     ):
-        """POST /budgets with same user+month+category → update (upsert)."""
+        """POST /budgets with same user+month+category update (upsert)."""
         # Create first
         create1 = await client.post(
             "/api/v1/budgets",
@@ -197,7 +197,7 @@ class TestDeleteBudget:
     async def test_delete_other_user_budget(
         self, client: AsyncClient, filla_token: str, nahda_token: str
     ):
-        """Delete another user's budget → 404 (not found for that user)."""
+        """Delete another user's budget 404 (not found for that user)."""
         # Filla creates a budget
         create = await client.post(
             "/api/v1/budgets",
@@ -206,7 +206,7 @@ class TestDeleteBudget:
         )
         budget_id = create.json()["id"]
 
-        # Nahda tries to delete it — should get 404 because the query filters by user_id
+        # Nahda tries to delete it should get 404 because the query filters by user_id
         resp = await client.delete(
             f"/api/v1/budgets/{budget_id}",
             headers={"Authorization": f"Bearer {nahda_token}"},
@@ -241,7 +241,7 @@ class TestBudgetSummary:
     async def test_summary_shows_budget_details(
         self, client: AsyncClient, filla_token: str
     ):
-        """Create budget with actual spending → summary shows percentage, remaining."""
+        """Create budget with actual spending summary shows percentage, remaining."""
         # Create a budget
         await client.post(
             "/api/v1/budgets",
@@ -301,3 +301,122 @@ class TestBudgetSummary:
         assert item["actual_spent"] >= 80000
         assert item["percentage"] > 0
         assert item["remaining"] == item["budget_amount"] - item["actual_spent"]
+
+    async def test_cycle_on_stored_on_create(
+        self, client: AsyncClient, filla_token: str, db
+    ):
+        """Creating a budget stores the current user's cycle setting."""
+        resp = await client.post(
+            "/api/v1/budgets",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"month": "2026-05", "category_id": 6, "amount": 100000},
+        )
+        assert resp.status_code == 201
+
+        cursor = await db.execute(
+            "SELECT cycle_on FROM budgets WHERE user_id = 1 AND month = '2026-05' AND category_id = 6"
+        )
+        row = await cursor.fetchone()
+        assert row is not None
+        # Default cycle is 1
+        assert row["cycle_on"] == 1
+
+    async def test_upsert_keeps_original_cycle_on(
+        self, client: AsyncClient, filla_token: str, db
+    ):
+        """Updating a budget amount keeps the original cycle_on."""
+        # Create budget with cycle=1
+        await client.post(
+            "/api/v1/budgets",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"month": "2026-05", "category_id": 6, "amount": 100000},
+        )
+
+        # Update user cycle to 25
+        await db.execute("UPDATE users SET cycle_start_day = 25 WHERE id = 1")
+        await db.commit()
+
+        try:
+            # Upsert the same budget (different amount)
+            await client.post(
+                "/api/v1/budgets",
+                headers={"Authorization": f"Bearer {filla_token}"},
+                json={"month": "2026-05", "category_id": 6, "amount": 200000},
+            )
+
+            # Verify cycle_on is still 1 (kept original)
+            cursor = await db.execute(
+                "SELECT cycle_on, budget_amount FROM budgets WHERE user_id = 1 AND month = '2026-05' AND category_id = 6"
+            )
+            row = await cursor.fetchone()
+            assert row is not None
+            assert row["cycle_on"] == 1, "Upsert should NOT update cycle_on"
+            assert row["budget_amount"] == 200000, "Amount should be updated"
+        finally:
+            # Restore cycle
+            await db.execute("UPDATE users SET cycle_start_day = 1 WHERE id = 1")
+            await db.commit()
+
+    async def test_summary_uses_stored_cycle_on_range(
+        self, client: AsyncClient, filla_token: str, db
+    ):
+        """Summary with use_cycle=true uses the budget's stored cycle_on, not current user setting."""
+        # Create a transaction outside standard calendar range but inside cycle-25 range
+        # With cycle=25: month "2026-05" range = Apr 25 to May 24
+        # Transaction on Apr 26 is outside calendar (May 1-31) but inside cycle range
+        await client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "type": "expense",
+                "category_id": 1,
+                "amount": 50000,
+                "description": "Cycle range test",
+                "date": "2026-04-26",
+            },
+        )
+
+        # Update user cycle to 25
+        await db.execute("UPDATE users SET cycle_start_day = 25 WHERE id = 1")
+        await db.commit()
+
+        try:
+            # Create a budget for 2026-05 with cycle=25
+            await client.post(
+                "/api/v1/budgets",
+                headers={"Authorization": f"Bearer {filla_token}"},
+                json={"month": "2026-05", "category_id": 1, "amount": 500000},
+            )
+
+            # Verify budget has cycle_on=25
+            cursor = await db.execute(
+                "SELECT cycle_on FROM budgets WHERE user_id = 1 AND month = '2026-05' AND category_id = 1"
+            )
+            row = await cursor.fetchone()
+            assert row is not None
+            assert row["cycle_on"] == 25
+
+            # Now change user's cycle back to 1
+            await db.execute("UPDATE users SET cycle_start_day = 1 WHERE id = 1")
+            await db.commit()
+
+            # Get summary with use_cycle=true
+            # Should use budget's stored cycle_on=25, NOT current user cycle=1
+            # With cycle=25, range for '2026-05' = Apr 25 to May 24
+            # Apr 26 transaction should be INCLUDED (inside cycle range)
+            # Seed transaction for cat 1 (at May 25) should NOT be counted (outside cycle range)
+            resp = await client.get(
+                "/api/v1/budgets/summary?month=2026-05&use_cycle=true",
+                headers={"Authorization": f"Bearer {filla_token}"},
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            item = [s for s in data if s["category_id"] == 1][0]
+            # Only the Apr 26 transaction (50000) is inside cycle range
+            # Seed cat-1 (May 25) is outside cycle range
+            assert item["actual_spent"] == 50000, (
+                f"Expected 50000 (only Apr 26 inside cycle=25 range), got {item['actual_spent']}"
+            )
+        finally:
+            await db.execute("UPDATE users SET cycle_start_day = 1 WHERE id = 1")
+            await db.commit()

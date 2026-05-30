@@ -52,7 +52,15 @@ async def create_or_update_budget(
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    # Upsert: if same user+month+category exists, update amount
+    # Get user's current cycle setting
+    cycle_cursor = await db.execute(
+        "SELECT cycle_start_day FROM users WHERE id = ?",
+        (current_user["id"],),
+    )
+    user_row = await cycle_cursor.fetchone()
+    cycle_on = user_row["cycle_start_day"] if user_row else 1
+
+    # Upsert: if same user+month+category exists, update amount (but keep original cycle_on)
     cursor = await db.execute(
         "SELECT id FROM budgets WHERE user_id = ? AND month = ? AND category_id = ?",
         (current_user["id"], data.month, data.category_id),
@@ -68,9 +76,9 @@ async def create_or_update_budget(
         budget_id = existing["id"]
     else:
         cursor = await db.execute(
-            """INSERT INTO budgets (user_id, month, category_id, category_name, budget_amount)
-               VALUES (?, ?, ?, ?, ?)""",
-            (current_user["id"], data.month, data.category_id, cat["name"], data.amount),
+            """INSERT INTO budgets (user_id, month, category_id, category_name, budget_amount, cycle_on)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (current_user["id"], data.month, data.category_id, cat["name"], data.amount, cycle_on),
         )
         await db.commit()
         budget_id = cursor.lastrowid
@@ -113,15 +121,24 @@ async def budget_summary(
     """Budgets vs actual spending for a given month."""
     # Determine date range for actuals
     if use_cycle:
-        from app.utils.cycle import get_cycle_range
-        from datetime import date
-        cycle_cursor = await db.execute(
-            "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
-            (current_user["id"],),
+        from app.utils.cycle import get_cycle_range_for_month
+        # Determine the cycle_on to use: first, check budgets for this month
+        cursor = await db.execute(
+            "SELECT cycle_on FROM budgets WHERE month = ? AND user_id = ? LIMIT 1",
+            (month, current_user["id"]),
         )
-        cycle_row = await cycle_cursor.fetchone()
-        cycle_start_day = cycle_row["cycle_start_day"] if cycle_row else 1
-        d_from, d_to = get_cycle_range(date.today(), cycle_start_day)
+        budget_row = await cursor.fetchone()
+        if budget_row:
+            cycle_on = budget_row["cycle_on"]
+        else:
+            # Fallback to user's current cycle setting
+            cycle_cursor = await db.execute(
+                "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
+                (current_user["id"],),
+            )
+            user_row = await cycle_cursor.fetchone()
+            cycle_on = user_row["cycle_start_day"] if user_row else 1
+        d_from, d_to = get_cycle_range_for_month(month, cycle_on)
         d_from_str = d_from.isoformat()
         d_to_str = d_to.isoformat()
     else:

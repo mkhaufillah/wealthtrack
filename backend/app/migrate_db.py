@@ -99,6 +99,9 @@ def run_migration():
         if 'user_id' not in budget_cols:
             conn.execute("ALTER TABLE budgets ADD COLUMN user_id INTEGER REFERENCES users(id) DEFAULT 1")
             budget_added.append("user_id")
+        if 'cycle_on' not in budget_cols:
+            conn.execute("ALTER TABLE budgets ADD COLUMN cycle_on INTEGER NOT NULL DEFAULT 1")
+            budget_added.append("cycle_on")
         if budget_added:
             print(f"  ✓ budgets added columns: {', '.join(budget_added)}")
         else:

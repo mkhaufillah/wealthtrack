@@ -115,6 +115,7 @@ def create_test_db(db_path: str):
             category_id INTEGER NOT NULL,
             category_name TEXT NOT NULL,
             budget_amount INTEGER NOT NULL,
+            cycle_on INTEGER NOT NULL DEFAULT 1,
             UNIQUE(user_id, month, category_id)
         );
     """)
