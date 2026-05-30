@@ -24,6 +24,7 @@ class ReportsScreen extends ConsumerStatefulWidget {
 
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   late DateTime _currentMonth;
+  String _cycleLabel = '';
 
   @override
   void initState() {
@@ -49,7 +50,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final cycleData = cycleResp.data;
       firstDay = cycleData['date_from'] as String;
       lastDay = cycleData['date_to'] as String;
+      // Build cycle label from dates (e.g. "25 Apr – 24 Mei 2026")
+      final dFrom = DateTime.tryParse(firstDay);
+      final dTo = DateTime.tryParse(lastDay);
+      if (dFrom != null && dTo != null) {
+        _cycleLabel = '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
+      } else {
+        _cycleLabel = '';
+      }
     } catch (_) {
+      _cycleLabel = '';
       firstDay = DateFormat('yyyy-MM-01').format(_currentMonth);
       lastDay = DateFormat('yyyy-MM-dd').format(
         DateTime(_currentMonth.year, _currentMonth.month + 1, 0),
@@ -132,7 +142,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             onPressed: _prevMonth,
           ),
           Text(
-            DateFormat('MMMM yyyy').format(_currentMonth),
+            _cycleLabel.isNotEmpty ? _cycleLabel : DateFormat('MMMM yyyy').format(_currentMonth),
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

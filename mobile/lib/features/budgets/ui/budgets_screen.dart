@@ -21,6 +21,7 @@ class BudgetsScreen extends ConsumerStatefulWidget {
 
 class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   late DateTime _currentMonth;
+  String _cycleLabel = '';
 
   @override
   void initState() {
@@ -28,8 +29,27 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _load();
+      _loadCycleInfo();
       ref.read(dashboardProvider.notifier).load();
     });
+  }
+
+  Future<void> _loadCycleInfo() async {
+    try {
+      final api = ref.read(apiClientProvider);
+      final resp = await api.get('/summaries/cycle-info');
+      final data = resp.data;
+      final dFrom = DateTime.tryParse(data['date_from'] as String);
+      final dTo = DateTime.tryParse(data['date_to'] as String);
+      if (dFrom != null && dTo != null && mounted) {
+        setState(() {
+          _cycleLabel =
+              '${DateFormat('dd MMM').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
+        });
+      }
+    } catch (_) {
+      // fallback: keep _cycleLabel empty → calendar month shown
+    }
   }
 
   String get _monthParam => DateFormat('yyyy-MM').format(_currentMonth);
@@ -102,7 +122,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         children: [
           IconButton(icon: const Icon(Icons.chevron_left), onPressed: _prevMonth),
           Text(
-            DateFormat('MMMM yyyy').format(_currentMonth),
+            _cycleLabel.isNotEmpty ? _cycleLabel : DateFormat('MMMM yyyy').format(_currentMonth),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           IconButton(
