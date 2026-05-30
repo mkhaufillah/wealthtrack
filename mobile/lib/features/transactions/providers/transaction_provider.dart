@@ -25,7 +25,7 @@ class TransactionListState {
     this.isTransferring = false, this.transferError,
     this.typeFilter = 'all', this.selectedCategoryIds = const [],
     this.sortBy = '-date', this.searchQuery = '',
-    this.page = 1, this.perPage = 50,
+    this.page = 1, this.perPage = 10,
   });
 
   TransactionListState copyWith({
@@ -171,3 +171,7 @@ final transactionListProvider = StateNotifierProvider<TransactionListNotifier, T
   final api = ref.watch(apiClientProvider);
   return TransactionListNotifier(TransactionRepository(api), api);
 });
+
+/// Tracks whether the category filter bottom sheet is open.
+/// MainShell watches this to hide the FAB when the sheet is open.
+final isCategoryFilterSheetOpenProvider = StateProvider<bool>((ref) => false);

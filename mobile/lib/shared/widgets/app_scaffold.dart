@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../features/transactions/providers/transaction_provider.dart';
 
 class MainShell extends ConsumerWidget {
   final Widget child;
@@ -40,7 +41,7 @@ class MainShell extends ConsumerWidget {
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
-      floatingActionButton: index <= 1
+      floatingActionButton: index <= 1 && (index == 0 || !ref.watch(isCategoryFilterSheetOpenProvider))
           ? FloatingActionButton(
               onPressed: () => context.push('/transactions/add'),
               child: const Icon(Icons.add),

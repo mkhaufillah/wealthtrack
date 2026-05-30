@@ -16,6 +16,7 @@ class TransactionListScreen extends ConsumerStatefulWidget {
 
 class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -26,11 +27,16 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   void _onSearch(String q) {
     ref.read(transactionListProvider.notifier).setSearchQuery(q);
+  }
+
+  Future<void> _onRefresh() async {
+    await ref.read(transactionListProvider.notifier).load();
   }
 
   void _showSortSheet() {
@@ -47,8 +53,8 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           {'value': 'date', 'label': 'Oldest first'},
           {'value': '-amount', 'label': 'Highest amount'},
           {'value': 'amount', 'label': 'Lowest amount'},
-          {'value': 'name', 'label': 'Name A–Z'},
-          {'value': '-name', 'label': 'Name Z–A'},
+          {'value': 'name', 'label': 'Name A\u2013Z'},
+          {'value': '-name', 'label': 'Name Z\u2013A'},
         ];
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -85,6 +91,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     final state = ref.read(transactionListProvider);
     final selected = List<int>.from(state.selectedCategoryIds);
 
+    // Notify MainShell to hide FAB
+    ref.read(isCategoryFilterSheetOpenProvider.notifier).state = true;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -96,8 +105,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             final allSelected = selected.isEmpty || selected.length == cats.length;
+            final theme = Theme.of(ctx);
             return Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,14 +116,22 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Filter by Category',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                       TextButton(
-                        onPressed: () {
-                          setSheetState(() {
-                            selected.clear();
-                          });
-                        },
-                        child: const Text('Clear'),
+                        onPressed: allSelected
+                            ? null
+                            : () {
+                                setSheetState(() {
+                                  selected.clear();
+                                });
+                              },
+                        child: Text('Clear',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: allSelected
+                                  ? AppColors.textSecondary.withOpacity(0.4)
+                                  : AppColors.accent,
+                            )),
                       ),
                     ],
                   ),
@@ -121,20 +139,30 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   // Select All toggle
                   CheckboxListTile(
                     value: allSelected,
-                    title: const Text('All Categories', style: TextStyle(fontWeight: FontWeight.w500)),
+                    title: Text('All Categories',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: allSelected
+                              ? AppColors.textSecondary.withOpacity(0.4)
+                              : AppColors.textPrimary,
+                        )),
                     controlAffinity: ListTileControlAffinity.leading,
-                    onChanged: (_) {
-                      setSheetState(() {
-                        if (allSelected) {
-                          selected.clear();
-                        } else {
-                          selected.clear();
-                          selected.addAll(cats.map((c) => c['id'] as int));
-                        }
-                      });
-                    },
+                    activeColor: AppColors.accent,
+                    checkColor: Colors.white,
+                    onChanged: allSelected
+                        ? null
+                        : (_) {
+                            setSheetState(() {
+                              selected.clear();
+                              selected.addAll(cats.map((c) => c['id'] as int));
+                            });
+                          },
                   ),
-                  const Divider(height: 1),
+                  Divider(
+                    height: 1,
+                    color: theme.dividerColor.withOpacity(0.3),
+                  ),
                   ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.4),
                     child: ListView(
@@ -144,22 +172,27 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         final nameEn = cat['name_en'] as String? ?? '';
                         final name = cat['name'] as String? ?? '';
                         final label = nameEn.isNotEmpty ? nameEn : name;
-                        final isSelected = selected.contains(catId);
+                        final isSelected = selected.contains(catId) || allSelected;
                         return CheckboxListTile(
-                          dense: true,
-                          value: isSelected || allSelected,
-                          title: Text(label),
-                          secondary: Text(cat['icon'] as String? ?? '📦'),
+                          dense: false,
+                          value: isSelected,
+                          title: Text(label, style: const TextStyle(fontSize: 15)),
+                          secondary: Text(cat['icon'] as String? ?? '\uD83D\uDCE6',
+                              style: const TextStyle(fontSize: 22)),
                           controlAffinity: ListTileControlAffinity.leading,
-                          onChanged: (_) {
-                            setSheetState(() {
-                              if (isSelected) {
-                                selected.remove(catId);
-                              } else {
-                                selected.add(catId);
-                              }
-                            });
-                          },
+                          activeColor: AppColors.accent,
+                          checkColor: Colors.white,
+                          onChanged: allSelected
+                              ? null
+                              : (_) {
+                                  setSheetState(() {
+                                    if (selected.contains(catId)) {
+                                      selected.remove(catId);
+                                    } else {
+                                      selected.add(catId);
+                                    }
+                                  });
+                                },
                         );
                       }).cast<Widget>().toList(),
                     ),
@@ -168,12 +201,17 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
                       onPressed: () {
                         Navigator.pop(ctx);
+                        // Notify MainShell to show FAB again
+                        ref.read(isCategoryFilterSheetOpenProvider.notifier).state = false;
                         notifier.setCategoryFilter(selected);
                       },
-                      child: const Text('Apply', style: TextStyle(color: Colors.white)),
+                      child: const Text('Apply', style: TextStyle(color: Colors.white, fontSize: 15)),
                     ),
                   ),
                 ],
@@ -182,7 +220,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      // Ensure FAB shows again even if dismissed without pressing Apply
+      ref.read(isCategoryFilterSheetOpenProvider.notifier).state = false;
+    });
   }
 
   Future<void> _showChangeOwnerSheet(int txnId, int currentOwnerId) async {
@@ -298,6 +339,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(transactionListProvider);
     final notifier = ref.read(transactionListProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -362,18 +404,21 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     label: 'All',
                     selected: state.typeFilter == 'all',
                     onTap: () => notifier.setTypeFilter('all'),
+                    isDark: isDark,
                   ),
                   const SizedBox(width: 8),
                   _FilterChip(
                     label: 'Expense',
                     selected: state.typeFilter == 'expense',
                     onTap: () => notifier.setTypeFilter('expense'),
+                    isDark: isDark,
                   ),
                   const SizedBox(width: 8),
                   _FilterChip(
                     label: 'Income',
                     selected: state.typeFilter == 'income',
                     onTap: () => notifier.setTypeFilter('income'),
+                    isDark: isDark,
                   ),
                   const SizedBox(width: 12),
 
@@ -418,30 +463,40 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         onRetry: () => notifier.load(),
                       )
                     : state.transactions.isEmpty
-                        ? CustomScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            slivers: [
-                              SliverFillRemaining(
-                                child: EmptyState(message: 'No transactions found.'),
-                              ),
-                            ],
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-                            itemCount: state.transactions.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 1),
-                            itemBuilder: (context, i) {
-                              final txn = state.transactions[i];
-                              return Card(
-                                elevation: 0,
-                                child: TransactionTile(
-                                  transaction: txn,
-                                  showActions: true,
-                                  onTransferOwner: () => _showChangeOwnerSheet(txn.id, txn.user?.id ?? 0),
-                                  onDelete: () => _confirmDelete(txn.id, txn.description),
+                        ? RefreshIndicator(
+                            onRefresh: _onRefresh,
+                            child: CustomScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              slivers: [
+                                SliverFillRemaining(
+                                  child: EmptyState(message: 'No transactions found.'),
                                 ),
-                              );
-                            },
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _onRefresh,
+                            child: ListView.separated(
+                              padding: const EdgeInsets.only(
+                                left: 16, right: 16, top: 4, bottom: 88,
+                              ),
+                              controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: state.transactions.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 1),
+                              itemBuilder: (context, i) {
+                                final txn = state.transactions[i];
+                                return Card(
+                                  elevation: 0,
+                                  child: TransactionTile(
+                                    transaction: txn,
+                                    showActions: true,
+                                    onTransferOwner: () => _showChangeOwnerSheet(txn.id, txn.user?.id ?? 0),
+                                    onDelete: () => _confirmDelete(txn.id, txn.description),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
           ),
 
@@ -482,8 +537,8 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       case 'date': return 'Oldest';
       case '-amount': return 'Highest';
       case 'amount': return 'Lowest';
-      case 'name': return 'A–Z';
-      case '-name': return 'Z–A';
+      case 'name': return 'A\u2013Z';
+      case '-name': return 'Z\u2013A';
       default: return 'Sort';
     }
   }
@@ -492,8 +547,14 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
+  final bool isDark;
   final VoidCallback onTap;
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.isDark,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -502,9 +563,13 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? AppColors.accent : AppColors.surface,
+          color: selected
+              ? (isDark ? AppColors.accent.withOpacity(0.85) : AppColors.accent)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? AppColors.accent : AppColors.divider),
+          border: Border.all(
+            color: selected ? Colors.transparent : AppColors.divider,
+          ),
         ),
         child: Text(
           label,
