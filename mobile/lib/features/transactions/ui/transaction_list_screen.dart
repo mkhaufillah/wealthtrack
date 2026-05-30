@@ -182,11 +182,13 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                           controlAffinity: ListTileControlAffinity.leading,
                           activeColor: AppColors.accent,
                           checkColor: Colors.white,
-                          onChanged: allSelected
-                              ? null
-                              : (_) {
+                          onChanged: (_) {
                                   setSheetState(() {
-                                    if (selected.contains(catId)) {
+                                    if (allSelected) {
+                                      // Transition from "all" → specific deselection
+                                      selected.addAll(cats.map((c) => c['id'] as int));
+                                      selected.remove(catId);
+                                    } else if (selected.contains(catId)) {
                                       selected.remove(catId);
                                     } else {
                                       selected.add(catId);
@@ -482,9 +484,24 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                               ),
                               controller: _scrollController,
                               physics: const AlwaysScrollableScrollPhysics(),
-                              itemCount: state.transactions.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 1),
+                              itemCount: state.transactions.length + (state.totalPages > 1 ? 1 : 0),
+                              separatorBuilder: (_, index) {
+                                // No divider before the pagination item
+                                if (state.totalPages > 1 && index == state.transactions.length - 1) {
+                                  return const SizedBox.shrink();
+                                }
+                                return const SizedBox(height: 1);
+                              },
                               itemBuilder: (context, i) {
+                                // Pagination item at the end
+                                if (state.totalPages > 1 && i == state.transactions.length) {
+                                  return _PaginationRow(
+                                    page: state.page,
+                                    totalPages: state.totalPages,
+                                    onPrev: state.page > 1 ? () => notifier.prevPage() : null,
+                                    onNext: state.page < state.totalPages ? () => notifier.nextPage() : null,
+                                  );
+                                }
                                 final txn = state.transactions[i];
                                 return Card(
                                   elevation: 0,
@@ -500,32 +517,6 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                           ),
           ),
 
-          // Pagination footer
-          if (state.totalPages > 1)
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border(top: BorderSide(color: AppColors.divider)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left, size: 20),
-                    onPressed: state.page > 1 ? () => notifier.prevPage() : null,
-                  ),
-                  Text(
-                    'Page ${state.page} of ${state.totalPages}',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right, size: 20),
-                    onPressed: state.page < state.totalPages ? () => notifier.nextPage() : null,
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );
@@ -579,6 +570,45 @@ class _FilterChip extends StatelessWidget {
             color: selected ? Colors.white : AppColors.textSecondary,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PaginationRow extends StatelessWidget {
+  final int page;
+  final int totalPages;
+  final VoidCallback? onPrev;
+  final VoidCallback? onNext;
+  const _PaginationRow({
+    required this.page,
+    required this.totalPages,
+    this.onPrev,
+    this.onNext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left, size: 20),
+            onPressed: onPrev,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Page $page of $totalPages',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.chevron_right, size: 20),
+            onPressed: onNext,
+          ),
+        ],
       ),
     );
   }
