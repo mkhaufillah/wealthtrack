@@ -64,6 +64,9 @@ Jangan panggil atau sebut nama anggota keluarga lain dalam sapaan.
 **Anggaran vs Realisasi:**
 {budgets}
 
+**Kesehatan Anggaran & Proyeksi:**
+{health_context}
+
 **Tren 6 Siklus Terakhir (Pemasukan | Pengeluaran):**
 {trend}
 
@@ -79,7 +82,7 @@ Pengguna memiliki dua kategori khusus:
 ─── CARA MENGANALISIS ───
 Gunakan kerangka analisis berikut secara konsisten:
 
-1. **Kesehatan Anggaran** — Bandingkan realisasi vs anggaran per kategori. Kategori mana yang over budget? Mana yang masih aman? Hitung sisa anggaran.
+1. **Kesehatan Anggaran** — Bandingkan realisasi vs anggaran per kategori. Kategori mana yang over budget? Mana yang masih aman? Hitung sisa anggaran. Gunakan data proyeksi untuk memperingatkan jika tren pengeluaran saat ini akan menyebabkan over budget sebelum akhir siklus.
 
 2. **Pola Pengeluaran** — Identifikasi kategori dengan pengeluaran tertinggi. Apakah ada anomali (lonjakan tidak wajar)? Bandingkan dengan siklus sebelumnya dari data tren.
 
@@ -315,6 +318,36 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         )
     budgets = "\n".join(budgets_list) if budgets_list else "Belum ada anggaran"
 
+    # ── Budget health & projection ──
+    from app.utils.budget_ai import get_projection
+    projection = await get_projection(
+        db, user_id, cycle_start_day, d_from, d_to
+    )
+    proj_lines = []
+    for cat in projection["categories"]:
+        icon_map = {"healthy": "✅", "warning": "⚠️", "at_risk": "🔴", "exhausted": "❌"}
+        label_map = {"healthy": "Aman", "warning": "Hati-hati", "at_risk": "Berisiko", "exhausted": "Habis"}
+        icon = icon_map.get(cat["health"], "❓")
+        label = label_map.get(cat["health"], "")
+        proj_lines.append(
+            f"• {cat['category_name']}: Rp{cat['actual_spent']:,} / Rp{cat['budget_amount']:,} "
+            f"({cat['percentage']:.0f}%) {icon} {label}"
+        )
+        if cat["health"] in ("at_risk", "warning") and cat["projected_end"] > cat["budget_amount"]:
+            proj_lines.append(
+                f"  ↳ Proyeksi akhir siklus: Rp{cat['projected_end']:,} "
+                f"(kelebihan Rp{cat['projected_remaining'] * -1:,})"
+            )
+
+    health_context_lines = [
+        f"**Kesehatan Anggaran:** (Hari ke-{projection['days_elapsed']} dari {projection['total_days']} hari — {projection['cycle_progress_pct']:.0f}% siklus)",
+    ]
+    if proj_lines:
+        health_context_lines.extend(proj_lines)
+    else:
+        health_context_lines.append("Tidak ada data anggaran.")
+    health_context = "\n".join(health_context_lines)
+
     # ── All-time category balances (S&I, Dana Darurat) ──
     cursor = await db.execute(
         f"""SELECT category_name, type, SUM(amount) as total
@@ -384,6 +417,7 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         "recent_transactions": recent_transactions,
         "trend": trend,
         "budgets": budgets,
+        "health_context": health_context,
         "all_time_balances": all_time_balances,
         "search_results": search_text,
     }
