@@ -165,7 +165,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('OCR failed: $e'),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppColors.highlight,
         ),
       );
     }

@@ -56,6 +56,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       setState(() {
         _messages.addAll(
           _chatStorage.messages.map((m) => _ChatMessage(
+            id: DateTime.now().millisecondsSinceEpoch + _chatStorage.messages.indexOf(m),
             text: m.content, isUser: m.role == 'user', status: 'complete')),
         );
         _loaded = true;
@@ -352,10 +353,10 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline, size: 16, color: AppColors.error),
+                            Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
                             const SizedBox(width: 6),
                             Text('Failed — tap to retry',
-                                style: TextStyle(fontSize: 13, color: AppColors.error)),
+                                style: TextStyle(fontSize: 13, color: AppColors.highlight)),
                           ],
                         ),
                       )
