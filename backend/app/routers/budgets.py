@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.database import get_db
 from app.core.security import get_current_user
-from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetSummaryItem, BudgetSummaryResponse, UnbudgetedExpense, BudgetSuggestion, BudgetSuggestionResponse
+from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetSummaryItem, BudgetSummaryResponse, UnbudgetedExpense, BudgetSuggestion, BudgetSuggestionResponse, BudgetHealthResponse
 from app.utils.cycle import get_cycle_range_for_month
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
@@ -363,4 +363,28 @@ async def budget_suggestions(
         total_suggested=total_suggested,
         total_income=total_income,
         warning=warning,
+    )
+
+
+@router.get("/health", response_model=BudgetHealthResponse)
+async def budget_health(
+    month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get budget health forecast — projected end-of-cycle spending vs budget."""
+    cursor = await db.execute(
+        "SELECT cycle_start_day FROM users WHERE id = ?",
+        (current_user["id"],),
+    )
+    user_row = await cursor.fetchone()
+    cycle_start_day = user_row["cycle_start_day"] if user_row else 1
+
+    from app.utils.cycle import get_cycle_range_for_month
+    d_from, d_to = get_cycle_range_for_month(month, cycle_start_day)
+
+    from app.utils.budget_ai import get_projection
+    return await get_projection(
+        db, current_user["id"], cycle_start_day,
+        d_from.isoformat(), d_to.isoformat(),
     )
