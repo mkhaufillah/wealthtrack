@@ -10,6 +10,11 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+permissions:
+  contents: write
+  actions: read
+  packages: read
+
 concurrency:
   group: build-apk-${{ github.ref }}
   cancel-in-progress: true
@@ -133,8 +138,8 @@ jobs:
             --notes "Auto-built from commit ${GITHUB_SHA}" \
             --target "$GITHUB_SHA" \
             --latest=false \
-            --prerelease 2>/dev/null || \
-          gh release upload "$TAG" "$APK_PATH" --clobber 2>/dev/null || true
+            --prerelease || \
+          gh release upload "$TAG" "$APK_PATH" --clobber || true
 
       - name: Telegram notification — success
         if: success()
