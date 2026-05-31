@@ -62,7 +62,7 @@ class _BudgetSuggestionSheetState
                 children: [
                   Expanded(
                     child: Text(
-                      'AI Budget Suggestions',
+                      'Budget Suggestions',
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.w700),
                     ),
@@ -106,7 +106,7 @@ class _BudgetSuggestionSheetState
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Add more transactions to get AI-powered budget suggestions.',
+                        'Add more transactions to get budget suggestions.',
                         style: TextStyle(
                             fontSize: 13,
                             color: AppColors.textSecondary),

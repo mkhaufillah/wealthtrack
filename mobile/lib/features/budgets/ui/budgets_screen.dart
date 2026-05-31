@@ -218,7 +218,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               builder: (_) => BudgetSuggestionSheet(month: _monthParam),
             ),
             icon: const Icon(Icons.auto_awesome, size: 18),
-            label: const Text('AI Suggestions'),
+            label: const Text('Suggestions'),
           ),
         ],
       ),
