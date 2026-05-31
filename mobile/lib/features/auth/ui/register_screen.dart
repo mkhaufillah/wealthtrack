@@ -209,31 +209,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         v != null && v.length == 6 ? null : 'Enter 6-digit OTP',
                     enabled: !_registering,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
+
+                  // ── Register Button ── (only visible after OTP sent)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: !_registering ? _register : null,
+                      child: _registering
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : const Text('Register'),
+                    ),
+                  ),
                 ],
 
                 if (authState.error != null) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(authState.error!,
                       style: const TextStyle(
                           color: AppColors.highlight, fontSize: 13)),
                 ],
-                const SizedBox(height: 24),
-
-                // ── Register Button ──
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: (_otpSent && !_registering) ? _register : null,
-                    child: _registering
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Text('Register'),
-                  ),
-                ),
                 const SizedBox(height: 16),
 
                 // ── Login Link ──
