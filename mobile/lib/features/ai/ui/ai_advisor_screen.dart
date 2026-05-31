@@ -333,6 +333,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   }
 
   Widget _buildMessage(_ChatMessage msg) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Align(
       alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -377,7 +378,29 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                         data: msg.text,
                         styleSheet: MarkdownStyleSheet(
                           p: TextStyle(fontSize: 14, color: AppColors.textPrimary),
-                          strong: const TextStyle(fontWeight: FontWeight.bold),
+                          strong: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          code: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? const Color(0xFFE0E0E0) : const Color(0xFF333333),
+                            backgroundColor: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F0F0),
+                          ),
+                          codeblockDecoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          blockquoteDecoration: BoxDecoration(
+                            border: Border(
+                              left: BorderSide(
+                                color: AppColors.accent.withOpacity(0.5),
+                                width: 3,
+                              ),
+                            ),
+                          ),
+                          h1: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          h2: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          h3: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          a: TextStyle(color: AppColors.accent, decoration: TextDecoration.underline),
+                          listBullet: TextStyle(fontSize: 14, color: AppColors.textPrimary),
                         ),
                       ),
       ),
