@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.4.2 — CI Notifications & Workflow Cleanup (2026-05-31)
+
+### Infrastructure
+- **Telegram CI Notifications** — Both `build-apk.yml` and `deploy-backend.yml` now send build/deploy result notifications to dedicated **🤖 Deployment** topic in Forum Anak Intern group.
+- **Artifact cleanup** — Removed debug APK upload (saves ~76MB/run). Set artifact retention to 1 day (was 90 days). Prevents GitHub Actions storage quota exhaustion.
+- **Secrets configured** — `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_TOPIC_ID` added to repo secrets.
+
+### CI Changes
+- `build-apk.yml` — Removed debug APK build/verify/upload steps. Added Telegram success + failure notifications with commit SHA and run link.
+- `deploy-backend.yml` — Added `message_thread_id` targeting to route notifications to **🤖 Deployment** topic (previously sent to General).
+
+### Docs
+- CHANGELOG, deployment doc synced with CI notification setup.
+
 ## v0.4.1 — Email Registration & OTP Verification (2026-05-31)
 
 ### Features

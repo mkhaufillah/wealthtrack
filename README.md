@@ -96,3 +96,12 @@ scripts/               # DB init & seed scripts
 - [x] P3 — Flutter Mobile MVP ✅
 - [x] P4 — Charts, Budgets, Export, OCR, AI Advisor, Change Owner ✅
 - [x] P5 — AI chat history (local persistence, sliding window 10, clear on logout) ✅
+
+## CI/CD
+
+| Workflow | Status | Notifications |
+|----------|--------|---------------|
+| **Build APK** | [![Build APK](https://github.com/mkhaufillah/wealthtrack/actions/workflows/build-apk.yml/badge.svg)](https://github.com/mkhaufillah/wealthtrack/actions/workflows/build-apk.yml) | ✅ / ❌ → #🤖-Deployment topic |
+| **Deploy Backend** | [![Deploy Backend](https://github.com/mkhaufillah/wealthtrack/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/mkhaufillah/wealthtrack/actions/workflows/deploy-backend.yml) | ✅ / ❌ → #🤖-Deployment topic |
+
+Both workflows notify to **Forum Anak Intern → topic #🤖-Deployment** via Telegram bot. See [Deployment](docs/07-deployment.md#step-8-cicd-pipeline) for full setup.

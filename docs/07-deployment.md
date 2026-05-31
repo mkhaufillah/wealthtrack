@@ -298,7 +298,39 @@ Cron:
 0 2 * * * ~/dev/wealthtrack/scripts/backup.sh
 ```
 
-## Step 8: Monitoring
+## Step 8: CI/CD Pipeline
+
+### Workflows
+
+| Workflow | Trigger | What it does |
+|----------|---------|--------------|
+| `build-apk.yml` | Push to `main` with `mobile/**` changes, or `workflow_dispatch` | Installs Flutter, runs tests, builds release APK (~27MB), uploads artifact (retained 1 day). |
+| `deploy-backend.yml` | Push to `main` with `backend/**` or `deploy/**` changes, or `workflow_dispatch` | Runs tests → deploys via SSH → restart systemd service → health check. |
+
+### Telegram Notifications
+
+Both workflows send build/deploy results to **Forum Anak Intern → topic #🤖-deployment**, with:
+
+- ✅ **Success** — commit SHA short hash + link to run
+- ❌ **Failure** — commit SHA + direct link to GitHub Actions logs
+
+### Required Secrets
+
+| Secret | Description |
+|--------|------------|
+| `TELEGRAM_BOT_TOKEN` | Bot token for CI notifications |
+| `TELEGRAM_CHAT_ID` | Telegram group ID (`-1003981338873` — Forum Anak Intern) |
+| `TELEGRAM_TOPIC_ID` | Topic ID within group (`4723` — #🤖-Deployment) |
+| `VPS_HOST` + `VPS_USER` + `VPS_SSH_KEY` | SSH access for backend deployment |
+| `KEYSTORE_BASE64` + `KEYSTORE_PASSWORD` + `KEY_ALIAS` + `KEY_PASSWORD` | APK release signing |
+
+### Artifact Storage
+
+- Only **release APK** is uploaded (no debug APK).
+- Retention: **1 day** — artifacts auto-expire within 24 hours.
+- Free quota: ~500MB. At ~27MB/run, this allows ~18 runs before cleanup cycles kick in.
+
+## Step 9: Monitoring
 
 ```bash
 # Check service status
