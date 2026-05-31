@@ -95,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Auto-refresh when OCR pending drops to 0
     ref.listen<int>(ocrPendingCountProvider, (previous, next) {
-      if (previous != null && previous > 0 && next == 0) {
+      if (previous != null && next < previous) {
         ref.read(dashboardProvider.notifier).load();
       }
     });

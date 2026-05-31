@@ -293,10 +293,11 @@ async def process_ocr_and_save(
                 categories_str = await _load_categories(bg_db)
                 prompt = SYSTEM_PROMPT.format(categories=categories_str)
 
-                # Vision API call with retry (3 attempts, exponential backoff for 429)
+                # Vision API call with retry (5 attempts, jittered exponential backoff for 429)
                 import asyncio as _asyncio
+                import random as _random
                 vision_resp = None
-                for attempt in range(3):
+                for attempt in range(5):
                     async with httpx.AsyncClient(timeout=60) as client:
                         vision_resp = await client.post(
                             "https://opencode.ai/zen/go/v1/chat/completions",
@@ -313,9 +314,10 @@ async def process_ocr_and_save(
                                 "max_tokens": 4096,
                             },
                         )
-                    if vision_resp.status_code == 429 and attempt < 2:
-                        wait = 2 ** (attempt + 1)  # 2s, then 4s
-                        await _asyncio.sleep(wait)
+                    if vision_resp.status_code == 429 and attempt < 4:
+                        base_wait = 2 ** attempt  # 1, 2, 4, 8s
+                        jitter = _random.uniform(0.5, 1.5)
+                        await _asyncio.sleep(base_wait * jitter)
                         continue
                     break
 

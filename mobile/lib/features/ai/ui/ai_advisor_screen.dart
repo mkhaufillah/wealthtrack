@@ -177,6 +177,17 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
             duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       }
     });
+    // Backup scroll after list fully lays out (MarkdownBody may need extra frame)
+    Future.delayed(const Duration(milliseconds: 200), () {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_scrollCtrl.hasClients || !mounted) return;
+        final target = _scrollCtrl.position.maxScrollExtent;
+        if (_scrollCtrl.position.pixels < target) {
+          _scrollCtrl.animateTo(target,
+              duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+        }
+      });
+    });
   }
 
   Future<void> _clearChat() async {
