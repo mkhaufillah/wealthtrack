@@ -43,7 +43,7 @@ class BudgetSuggestionNotifier extends StateNotifier<BudgetSuggestionState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await _repo.getSuggestions(month, numCycles: numCycles);
-      state = state.copyWith(isLoading: false, response: response);
+      state = state.copyWith(isLoading: false, response: response, numAccepted: 0);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -96,7 +96,20 @@ class BudgetSuggestionNotifier extends StateNotifier<BudgetSuggestionState> {
           'amount': item.suggestedAmount,
         });
       }
-      state = state.copyWith(isApplying: false);
+      // Mark applied items as accepted=false, hasBudget=true
+      final appliedIds = selected.map((i) => i.categoryId).toSet();
+      final updated = resp.items.map((item) {
+        if (appliedIds.contains(item.categoryId)) {
+          return item.copyWith(accepted: false, hasBudget: true);
+        }
+        return item;
+      }).toList();
+      state = state.copyWith(
+        isApplying: false,
+        response: BudgetSuggestionResponse(
+            updated, resp.totalSuggested, resp.totalIncome, resp.warning),
+        numAccepted: 0,
+      );
       return true;
     } catch (e) {
       state = state.copyWith(isApplying: false, error: e.toString());

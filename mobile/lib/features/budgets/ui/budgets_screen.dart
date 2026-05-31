@@ -144,15 +144,18 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         children: [
           FloatingActionButton.small(
             heroTag: 'ai_suggestions',
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: AppColors.surface,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              builder: (_) => BudgetSuggestionSheet(month: _monthParam),
-            ),
+            onPressed: () async {
+              await showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: AppColors.surface,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (_) => BudgetSuggestionSheet(month: _monthParam),
+              );
+              _load();
+            },
             backgroundColor: AppColors.accent,
             child: const Icon(Icons.auto_awesome, size: 20),
           ),
@@ -208,15 +211,18 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
           const SizedBox(height: 20),
           FilledButton.icon(
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: AppColors.surface,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              builder: (_) => BudgetSuggestionSheet(month: _monthParam),
-            ),
+            onPressed: () async {
+              await showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: AppColors.surface,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (_) => BudgetSuggestionSheet(month: _monthParam),
+              );
+              _load();
+            },
             icon: const Icon(Icons.auto_awesome, size: 18),
             label: const Text('Suggestions'),
           ),

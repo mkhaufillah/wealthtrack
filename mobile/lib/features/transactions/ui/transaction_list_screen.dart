@@ -245,6 +245,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       return;
     }
 
+    // Notify MainShell to hide FAB
+    ref.read(isCategoryFilterSheetOpenProvider.notifier).state = true;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -308,7 +311,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           ),
         );
       },
-    );
+    ).whenComplete(() {
+      // Ensure FAB shows again — fires even if dismissed without selecting
+      ref.read(isCategoryFilterSheetOpenProvider.notifier).state = false;
+    });
   }
 
   Future<void> _confirmDelete(int txnId, String description) async {

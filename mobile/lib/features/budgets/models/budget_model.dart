@@ -120,7 +120,7 @@ class BudgetSuggestion {
     this.accepted = false,
   });
 
-  BudgetSuggestion copyWith({bool? accepted}) =>
+  BudgetSuggestion copyWith({bool? accepted, bool? hasBudget}) =>
       BudgetSuggestion(
         categoryId: categoryId,
         categoryName: categoryName,
@@ -130,7 +130,7 @@ class BudgetSuggestion {
         historicalAvg: historicalAvg,
         historicalMax: historicalMax,
         monthsAnalyzed: monthsAnalyzed,
-        hasBudget: hasBudget,
+        hasBudget: hasBudget ?? this.hasBudget,
         existingAmount: existingAmount,
         accepted: accepted ?? this.accepted,
       );
