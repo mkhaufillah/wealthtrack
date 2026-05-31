@@ -14,7 +14,7 @@
 
 ### Task A1: Add `ai_messages` DB table to migration
 
-**Objective:** Create the `ai_messages` table for persisting AI chat messages server-side.
+|**Objective:** Create the `ai_messages` table for persisting AI chat messages server-side. `parent_message_id` enables retry — when an AI message fails (status='error'), a new AI message is created with `parent_message_id` pointing to the original user message, and the old error message is hidden.
 
 **Files:**
 - Modify: `backend/app/migrate_db.py` (add Step 19)
@@ -33,11 +33,12 @@ conn.execute("""
         content TEXT NOT NULL DEFAULT '',
         status TEXT NOT NULL DEFAULT 'processing' CHECK(status IN ('processing', 'complete', 'error')),
         model TEXT NOT NULL DEFAULT 'flash',
+        parent_message_id INTEGER REFERENCES ai_messages(id),
         created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     )
 """)
 conn.execute("CREATE INDEX IF NOT EXISTS idx_ai_messages_user ON ai_messages(user_id, created_at)")
-print("  ✓ ai_messages table ready")
+print("  ✓ ai_messages table ready (with parent_message_id for retry)")
 ```
 
 Also add this to `run_household_migration()` or create a new `run_ai_migration()` — simplest: just add to `run_migration()`.
@@ -67,6 +68,7 @@ class ChatRequest(BaseModel):
     question: str
     model: str = "flash"
     history: list[HistoryItem] = []
+    retry_parent_id: Optional[int] = None  # if retrying, the user_message_id to re-process
 
 class ChatResponse(BaseModel):
     user_message_id: int
@@ -102,10 +104,18 @@ async def ai_chat(
     user_msg_id = cursor.lastrowid
     await db.commit()
 
-    # 2. Save processing placeholder for AI
+    # 2. If retry: mark old AI messages with this parent as 'error:hidden'
+    if req.retry_parent_id:
+        await db.execute(
+            "UPDATE ai_messages SET status = 'error:hidden' WHERE parent_message_id = ? AND role = 'assistant'",
+            (req.retry_parent_id,),
+        )
+        await db.commit()
+
+    # 3. Save processing placeholder for AI, linked to user message via parent_message_id
     cursor = await db.execute(
-        "INSERT INTO ai_messages (user_id, role, content, status, model) VALUES (?, 'assistant', '', 'processing', ?)",
-        (current_user["id"], req.model),
+        "INSERT INTO ai_messages (user_id, role, content, status, model, parent_message_id) VALUES (?, 'assistant', '', 'processing', ?, ?)",
+        (current_user["id"], req.model, user_msg_id),
     )
     ai_msg_id = cursor.lastrowid
     await db.commit()
@@ -211,10 +221,11 @@ class ChatMessageResponse(BaseModel):
     content: str
     status: str
     model: str
+    parent_message_id: Optional[int] = None
     created_at: str
 ```
 
-**Step 2: Add endpoint**
+**Step 2: Add endpoint (filter out hidden error messages)**
 
 ```python
 @router.get("/chat/messages", response_model=list[ChatMessageResponse])
@@ -224,7 +235,10 @@ async def get_chat_messages(
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
-        "SELECT id, role, content, status, model, created_at FROM ai_messages WHERE user_id = ? ORDER BY created_at ASC",
+        """SELECT id, role, content, status, model, parent_message_id, created_at
+           FROM ai_messages
+           WHERE user_id = ? AND status != 'error:hidden'
+           ORDER BY created_at ASC""",
         (current_user["id"],),
     )
     rows = await cursor.fetchall()
@@ -321,7 +335,7 @@ Timer? _pollTimer;
 
 void _startPolling() {
   _pollTimer?.cancel();
-  _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollMessages());
+  _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) => _pollMessages());
 }
 
 Future<void> _pollMessages() async {
@@ -410,18 +424,53 @@ Future<void> _send() async {
     _startPolling();
   } catch (e) {
     setState(() {
-      _messages.removeLast();
+      _messages.removeLast(); // remove temp processing message
+      // Mark the user message with an error AI placeholder that shows retry
       _messages.add(_ChatMessage(
         id: tempId + 2,
-        text: '⚠️ Error: ${e.toString().replaceAll('Exception: ', '')}',
+        text: '',
         isUser: false,
-        status: 'complete',
+        status: 'error',
       ));
       _isLoading = false;
     });
   }
   _scrollToBottom();
 }
+```
+
+**Step 3b: Add `_retry()` method & update `_send()` for retry**
+
+Add after `_send()`:
+
+```dart
+Future<void> _retry(_ChatMessage failedMsg) async {
+  final userIdx = _messages.lastIndexWhere((m) => m.isUser && m.id < failedMsg.id);
+  if (userIdx == -1) return;
+  final userMsg = _messages[userIdx];
+  final originalId = userMsg.id;
+  setState(() => _messages.removeWhere((m) => m.id == failedMsg.id));
+  _msgCtrl.text = userMsg.text;
+  await _send(retryParentId: originalId);
+  _msgCtrl.clear();
+}
+```
+
+Update `_send()` signature to accept optional retryParentId:
+
+```dart
+Future<void> _send({int? retryParentId}) async {
+```
+
+And update the POST body inside `_send()` to include retry_parent_id:
+
+```dart
+    final res = await api.post('/ai/chat', data: {
+      'question': text,
+      'model': _useAdvancedModel ? 'opus' : 'flash',
+      'history': history,
+      if (retryParentId != null) 'retry_parent_id': retryParentId,
+    });
 ```
 
 **Step 4: Update `_ChatMessage` model**
@@ -437,7 +486,7 @@ class _ChatMessage {
 }
 ```
 
-**Step 5: Update `_buildMessage()` — show spinner for processing**
+**Step 5: Update `_buildMessage()` — show spinner for processing, retry button for error**
 
 ```dart
 Widget _buildMessage(_ChatMessage msg) {
@@ -468,13 +517,26 @@ Widget _buildMessage(_ChatMessage msg) {
                     Text('Thinking...', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                   ],
                 )
-              : MarkdownBody(
-                  data: msg.text,
-                  styleSheet: MarkdownStyleSheet(
-                    p: TextStyle(fontSize: 14, color: AppColors.textPrimary),
-                    strong: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
+              : msg.status == 'error'
+                  ? GestureDetector(
+                      onTap: () => _retry(msg),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.error_outline, size: 16, color: AppColors.error),
+                          const SizedBox(width: 6),
+                          Text('Failed — tap to retry',
+                              style: TextStyle(fontSize: 13, color: AppColors.error)),
+                        ],
+                      ),
+                    )
+                  : MarkdownBody(
+                      data: msg.text,
+                      styleSheet: MarkdownStyleSheet(
+                        p: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                        strong: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
     ),
   );
 }
@@ -1187,12 +1249,15 @@ git commit -m "docs: add background AI chat & OCR feature doc"
 
 After all tasks are done:
 
-- [ ] Migration re-run creates `ai_messages` and `ocr_jobs` tables (idempotent)
+- [ ] Migration re-run creates `ai_messages` and `ocr_jobs` tables (idempotent), `ai_messages` has `parent_message_id` column
 - [ ] `POST /ai/chat` returns immediately with message IDs
-- [ ] `GET /ai/chat/messages` returns persisted messages for current user
+- [ ] `POST /ai/chat` with `retry_parent_id` marks old AI messages as `error:hidden` and creates new processing message
+- [ ] `GET /ai/chat/messages` returns persisted messages, excludes `error:hidden`
 - [ ] Background LLM processing completes and updates message status to 'complete'
 - [ ] Flutter AI advisor loads messages from server on init
-- [ ] Flutter polls and shows completed AI responses after navigating back
+- [ ] Flutter polls every **1 second** and shows completed AI responses after navigating back
+- [ ] Flutter shows **"Failed — tap to retry"** button for error status on AI messages
+- [ ] Tap retry → re-sends question with `retry_parent_id` → new processing begins
 - [ ] `POST /ocr/process-and-save` creates job and returns immediately
 - [ ] Background OCR processing creates transaction
 - [ ] `GET /ocr/pending-count` returns accurate count
