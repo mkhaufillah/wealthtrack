@@ -19,6 +19,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _confirmPwCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   bool _otpSent = false;
   bool _sendingOtp = false;
   bool _registering = false;
@@ -157,10 +158,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 TextFormField(
                   key: const ValueKey('confirmPassword'),
                   controller: _confirmPwCtrl,
-                  obscureText: _obscurePassword,
-                  decoration: const InputDecoration(
+                  obscureText: _obscureConfirm,
+                  decoration: InputDecoration(
                     labelText: 'Confirm Password',
                     prefixIcon: Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirm
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscureConfirm = !_obscureConfirm),
+                    ),
                   ),
                   validator: (v) =>
                       v != null && v == _passwordCtrl.text ? null : 'Passwords do not match',

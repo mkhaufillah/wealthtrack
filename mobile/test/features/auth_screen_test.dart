@@ -144,15 +144,22 @@ void main() {
   group('RegisterScreen Eye Icon', () {
     testWidgets('shows visibility icon on password fields', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      // Only the password field has an eye icon now (confirm password no longer has one)
-      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+      // Both password fields have independent eye icons
+      expect(find.byIcon(Icons.visibility_off_outlined), findsNWidgets(2));
     });
 
-    testWidgets('toggles password visibility', (tester) async {
+    testWidgets('toggles password visibility independently', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      await tester.tap(find.byIcon(Icons.visibility_off_outlined));
+      // Toggle only password eye
+      await tester.tap(find.byIcon(Icons.visibility_off_outlined).first);
       await tester.pump();
       expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+
+      // Confirm password eye still shows visibility_off (not affected)
+      final confirmField = find.byKey(const ValueKey('confirmPassword'));
+      final confirmObscure = tester.widget<TextFormField>(confirmField).obscureText;
+      expect(confirmObscure, isTrue);
     });
   });
 }
