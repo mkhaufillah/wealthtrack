@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../home/providers/dashboard_provider.dart';
+import '../../ocr/providers/ocr_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../models/transaction_model.dart';
 import 'widgets/amount_field.dart';
@@ -129,6 +130,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       await api.uploadFile('/ocr/process-and-save', picked.path);
 
       if (!mounted) return;
+
+      // Trigger OCR badge immediately so user sees processing status right away
+      ref.read(ocrPendingCountProvider.notifier).load();
 
       // Navigate to transactions page immediately — banner shows processing status
       context.go('/transactions');

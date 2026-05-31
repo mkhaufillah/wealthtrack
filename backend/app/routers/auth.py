@@ -229,6 +229,15 @@ async def delete_account(
         "DELETE FROM households WHERE created_by = ?",
         (current_user["id"],),
     )
+    # Delete OCR jobs owned by this user
+    cursor = await db.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='ocr_jobs'"
+    )
+    if await cursor.fetchone():
+        await db.execute(
+            "DELETE FROM ocr_jobs WHERE user_id = ?",
+            (current_user["id"],),
+        )
     # Delete all transactions owned by this user
     await db.execute(
         "DELETE FROM transactions WHERE user_id = ?",

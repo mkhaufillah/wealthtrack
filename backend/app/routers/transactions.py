@@ -543,13 +543,13 @@ async def delete_transaction(
     if not await cursor.fetchone():
         raise HTTPException(status_code=404, detail="Transaction not found")
 
-    # Nullify OCR job reference before deleting (FK constraint)
+    # Delete associated OCR jobs before deleting transaction
     cursor = await db.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='ocr_jobs'"
     )
     if await cursor.fetchone():
         await db.execute(
-            "UPDATE ocr_jobs SET transaction_id = NULL WHERE transaction_id = ?",
+            "DELETE FROM ocr_jobs WHERE transaction_id = ?",
             (txn_id,),
         )
     await db.execute("DELETE FROM transactions WHERE id = ?", (txn_id,))

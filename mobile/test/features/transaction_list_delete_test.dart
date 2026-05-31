@@ -5,6 +5,7 @@ import 'package:wealthtrack/features/transactions/providers/transaction_provider
 import 'package:wealthtrack/features/transactions/data/transaction_repository.dart';
 import 'package:wealthtrack/features/transactions/models/transaction_model.dart';
 import 'package:wealthtrack/features/transactions/ui/transaction_list_screen.dart';
+import 'package:wealthtrack/features/ocr/providers/ocr_provider.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
 import '../helpers/mocks.dart';
 
@@ -29,8 +30,14 @@ Widget buildTxListApp({
   String? error,
   List<TransactionModel>? txns,
 }) {
+  final mockApi = MockApiClient();
   return ProviderScope(
     overrides: [
+      ocrPendingCountProvider.overrideWithProvider(
+        StateNotifierProvider<OcrPendingCountNotifier, int>((ref) {
+          return OcrPendingCountNotifier(mockApi);
+        }),
+      ),
       transactionListProvider.overrideWithProvider(
         StateNotifierProvider<TransactionListNotifier, TransactionListState>((ref) {
           final notifier = _MockTxNotifier();

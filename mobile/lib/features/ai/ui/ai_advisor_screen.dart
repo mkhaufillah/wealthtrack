@@ -171,7 +171,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(_scrollCtrl.position.maxScrollExtent,
             duration: const Duration(milliseconds: 300), curve: Curves.easeOut);

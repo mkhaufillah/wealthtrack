@@ -26,6 +26,8 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     super.initState();
     Future.microtask(() => ref.read(transactionListProvider.notifier).load());
     _startOcrPolling();
+    // Immediate OCR check, no wait for first poll tick
+    Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());
   }
 
   void _startOcrPolling() {

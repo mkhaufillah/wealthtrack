@@ -39,6 +39,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Future.microtask(() => ref.read(dashboardProvider.notifier).load());
     Future.microtask(() => _loadAllTimeBalances());
     _startOcrPolling();
+    Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());
   }
 
   void _startOcrPolling() {
