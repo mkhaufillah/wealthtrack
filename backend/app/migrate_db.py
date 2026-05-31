@@ -119,6 +119,39 @@ def run_migration():
         else:
             print("  ✓ no new columns needed (already migrated)")
 
+        # 19. Create ai_messages table (background AI chat persistence)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS ai_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+                content TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'processing' CHECK(status IN ('processing', 'complete', 'error', 'error:hidden')),
+                model TEXT NOT NULL DEFAULT 'flash',
+                parent_message_id INTEGER REFERENCES ai_messages(id),
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_ai_messages_user ON ai_messages(user_id, created_at)")
+        print("  ✓ ai_messages table ready (with parent_message_id for retry)")
+
+        # 20. Create ocr_jobs table (background OCR processing)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS ocr_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                image_filename TEXT,
+                status TEXT NOT NULL DEFAULT 'processing' CHECK(status IN ('processing', 'completed', 'failed')),
+                transaction_id INTEGER REFERENCES transactions(id),
+                error TEXT,
+                raw_text TEXT,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                completed_at TEXT
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_ocr_jobs_user ON ocr_jobs(user_id, status)")
+        print("  ✓ ocr_jobs table ready")
+
         # 5. Create budgets table + ensure columns
         conn.execute("""
             CREATE TABLE IF NOT EXISTS budgets (

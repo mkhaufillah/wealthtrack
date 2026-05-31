@@ -24,3 +24,16 @@ def get_sync_db():
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA foreign_keys=ON;")
     return conn
+
+
+async def get_db_bg() -> aiosqlite.Connection:
+    """Create a standalone async DB connection for background tasks.
+
+    Unlike get_db() (which is request-scoped and auto-closes),
+    this returns an unbounded connection that the caller must close explicitly.
+    """
+    db = await aiosqlite.connect(settings.DB_PATH)
+    db.row_factory = aiosqlite.Row
+    await db.execute("PRAGMA journal_mode=WAL")
+    await db.execute("PRAGMA foreign_keys=ON")
+    return db

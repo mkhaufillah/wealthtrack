@@ -587,3 +587,127 @@ async def financial_advise_stream(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ── Background Async Chat (persisted, non-streaming) ──
+
+
+class ChatRequest(BaseModel):
+    question: str
+    model: str = "flash"
+    history: list[HistoryItem] = []
+    retry_parent_id: Optional[int] = None
+
+
+class ChatResponse(BaseModel):
+    user_message_id: int
+    ai_message_id: int
+
+
+class ChatMessageResponse(BaseModel):
+    id: int
+    role: str
+    content: str
+    status: str
+    model: str
+    parent_message_id: Optional[int] = None
+    created_at: str
+
+
+@router.post("/chat", response_model=ChatResponse)
+@limiter.limit("10/minute")
+async def ai_chat(
+    request: Request,
+    req: ChatRequest,
+    db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    api_key = settings.OPENCODE_GO_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=500, detail="AI advisor not configured")
+
+    if req.model == "opus" and current_user["role"] != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Advanced model is only available for the primary account holder",
+        )
+
+    # 1. Save user message
+    cursor = await db.execute(
+        "INSERT INTO ai_messages (user_id, role, content, status, model) VALUES (?, 'user', ?, 'complete', ?)",
+        (current_user["id"], req.question, req.model),
+    )
+    user_msg_id = cursor.lastrowid
+    await db.commit()
+
+    # 2. If retry: mark old AI messages with this parent as 'error:hidden'
+    if req.retry_parent_id:
+        await db.execute(
+            "UPDATE ai_messages SET status = 'error:hidden' WHERE parent_message_id = ? AND role = 'assistant'",
+            (req.retry_parent_id,),
+        )
+        await db.commit()
+
+    # 3. Save processing placeholder for AI, linked to user message via parent_message_id
+    cursor = await db.execute(
+        "INSERT INTO ai_messages (user_id, role, content, status, model, parent_message_id) VALUES (?, 'assistant', '', 'processing', ?, ?)",
+        (current_user["id"], req.model, user_msg_id),
+    )
+    ai_msg_id = cursor.lastrowid
+    await db.commit()
+
+    # 4. Start background task
+    async def _process_ai():
+        try:
+            from app.database import get_db_bg
+
+            bg_db = await get_db_bg()
+            try:
+                messages = await _build_messages(
+                    AdviseRequest(question=req.question, model=req.model, history=req.history),
+                    current_user,
+                    bg_db,
+                )
+                answer = await _call_model(messages=messages, model=req.model)
+
+                await bg_db.execute(
+                    "UPDATE ai_messages SET content = ?, status = 'complete' WHERE id = ?",
+                    (answer, ai_msg_id),
+                )
+                await bg_db.commit()
+            finally:
+                await bg_db.close()
+        except Exception as e:
+            try:
+                from app.database import get_db_bg
+
+                bg_db = await get_db_bg()
+                await bg_db.execute(
+                    "UPDATE ai_messages SET content = ?, status = 'error' WHERE id = ?",
+                    (f"Error: {e}", ai_msg_id),
+                )
+                await bg_db.commit()
+                await bg_db.close()
+            except Exception:
+                pass
+
+    asyncio.create_task(_process_ai())
+
+    return ChatResponse(user_message_id=user_msg_id, ai_message_id=ai_msg_id)
+
+
+@router.get("/chat/messages", response_model=list[ChatMessageResponse])
+async def get_chat_messages(
+    request: Request,
+    db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    cursor = await db.execute(
+        """SELECT id, role, content, status, model, parent_message_id, created_at
+           FROM ai_messages
+           WHERE user_id = ? AND status != 'error:hidden'
+           ORDER BY created_at ASC""",
+        (current_user["id"],),
+    )
+    rows = await cursor.fetchall()
+    return [dict(row) for row in rows]

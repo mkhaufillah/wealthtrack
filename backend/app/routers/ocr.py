@@ -5,7 +5,11 @@ import httpx
 import base64
 import json
 import re
+import asyncio
+import os
 from io import BytesIO
+from pathlib import Path
+from datetime import datetime
 from PIL import Image
 
 from app.core.config import settings
@@ -211,3 +215,180 @@ async def process_ocr(
         raise HTTPException(status_code=504, detail="Vision API timed out")
     except httpx.RequestError as e:
         raise HTTPException(status_code=502, detail=f"Vision API request failed: {e}")
+
+
+# ── Background OCR (auto-save) ──
+
+
+class OcrAutoSaveResult(BaseModel):
+    job_id: int
+    transaction_id: Optional[int] = None
+    status: str = "processing"
+
+
+class OcrPendingCount(BaseModel):
+    count: int
+
+
+@router.post("/process-and-save", response_model=OcrAutoSaveResult)
+async def process_ocr_and_save(
+    file: UploadFile = File(...),
+    db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Process OCR image and auto-save transaction. Returns immediately."""
+    _check_rate_limit(current_user["id"])
+
+    if not file.content_type:
+        raise HTTPException(status_code=400, detail="Could not detect file type")
+
+    raw = await file.read()
+    if len(raw) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large (max 10 MB)")
+
+    _validate_image(file.content_type, raw)
+
+    # Save image to disk
+    ocr_dir = Path(settings.DB_PATH).parent / "ocr_images"
+    ocr_dir.mkdir(exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ext = Path(file.filename or "receipt.jpg").suffix or ".jpg"
+    img_filename = f"ocr_{current_user['id']}_{ts}{ext}"
+    img_path = str(ocr_dir / img_filename)
+    with open(img_path, "wb") as f:
+        f.write(raw)
+
+    # Create OCR job
+    cursor = await db.execute(
+        "INSERT INTO ocr_jobs (user_id, image_filename, status) VALUES (?, ?, 'processing')",
+        (current_user["id"], img_filename),
+    )
+    job_id = cursor.lastrowid
+    await db.commit()
+
+    # Background: process and save transaction
+    ocr_dir_str = str(ocr_dir)
+
+    async def _process():
+        try:
+            from app.database import get_db_bg
+
+            bg_db = await get_db_bg()
+            try:
+                # Read and compress
+                raw_bytes = open(img_path, "rb").read()
+                img = Image.open(BytesIO(raw_bytes))
+                w, h = img.size
+                max_side = 1200
+                if max(w, h) > max_side:
+                    ratio = max_side / max(w, h)
+                    img = img.resize((int(w * ratio), int(h * ratio)), Image.LANCZOS)
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+                compressed = BytesIO()
+                img.save(compressed, format="JPEG", optimize=True, quality=85)
+                b64 = base64.b64encode(compressed.getvalue()).decode()
+                data_url = f"data:image/jpeg;base64,{b64}"
+
+                categories_str = await _load_categories(bg_db)
+                prompt = SYSTEM_PROMPT.format(categories=categories_str)
+
+                async with httpx.AsyncClient(timeout=60) as client:
+                    resp = await client.post(
+                        "https://opencode.ai/zen/go/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {settings.OPENCODE_GO_API_KEY}", "Content-Type": "application/json"},
+                        json={
+                            "model": "kimi-k2.5",
+                            "messages": [
+                                {"role": "system", "content": prompt},
+                                {"role": "user", "content": [
+                                    {"type": "image_url", "image_url": {"url": data_url}},
+                                    {"type": "text", "text": "Extract transaction data from this image."},
+                                ]},
+                            ],
+                            "max_tokens": 4096,
+                        },
+                    )
+
+                if resp.status_code != 200:
+                    raise Exception(f"Vision API error: {resp.status_code}")
+
+                content = resp.json()["choices"][0]["message"]["content"].strip()
+                content = re.sub(r"^```(?:json)?\s*", "", content)
+                content = re.sub(r"\s*```$", "", content)
+                parsed = json.loads(content)
+
+                category_name = parsed.get("category_name", "")
+                txn_type = parsed.get("type", "expense")
+                cursor = await bg_db.execute(
+                    "SELECT id FROM categories WHERE name = ? AND type = ?",
+                    (category_name, txn_type),
+                )
+                cat_row = await cursor.fetchone()
+                category_id = cat_row["id"] if cat_row else None
+
+                if not category_id:
+                    cursor = await bg_db.execute(
+                        "SELECT id FROM categories WHERE name = 'Lainnya' AND type = ?",
+                        (txn_type,),
+                    )
+                    cat_row = await cursor.fetchone()
+                    category_id = cat_row["id"] if cat_row else None
+
+                amount = int(parsed.get("amount", 0))
+                description = str(parsed.get("description", ""))
+                note = str(parsed.get("note", ""))
+                txn_date = str(parsed.get("date", datetime.now().strftime("%Y-%m-%d")))
+
+                if amount > 0 and category_id:
+                    cursor = await bg_db.execute(
+                        """INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, note, date)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (current_user["id"], txn_type, category_id, category_name, amount, description, note, txn_date),
+                    )
+                    txn_id = cursor.lastrowid
+                    await bg_db.execute(
+                        "UPDATE ocr_jobs SET status = 'completed', transaction_id = ?, completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?",
+                        (txn_id, job_id),
+                    )
+                else:
+                    await bg_db.execute(
+                        "UPDATE ocr_jobs SET status = 'failed', error = 'Could not determine amount or category' WHERE id = ?",
+                        (job_id,),
+                    )
+
+                await bg_db.commit()
+            except json.JSONDecodeError:
+                await bg_db.execute(
+                    "UPDATE ocr_jobs SET status = 'failed', error = 'Invalid JSON from vision API' WHERE id = ?",
+                    (job_id,),
+                )
+                await bg_db.commit()
+            except Exception as e:
+                err_msg = str(e)
+                await bg_db.execute(
+                    "UPDATE ocr_jobs SET status = 'failed', error = ? WHERE id = ?",
+                    (err_msg, job_id),
+                )
+                await bg_db.commit()
+            finally:
+                await bg_db.close()
+        except Exception:
+            pass
+
+    asyncio.create_task(_process())
+
+    return OcrAutoSaveResult(job_id=job_id, status="processing")
+
+
+@router.get("/pending-count", response_model=OcrPendingCount)
+async def ocr_pending_count(
+    db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    cursor = await db.execute(
+        "SELECT COUNT(*) as count FROM ocr_jobs WHERE user_id = ? AND status = 'processing'",
+        (current_user["id"],),
+    )
+    row = await cursor.fetchone()
+    return OcrPendingCount(count=row["count"])
