@@ -396,8 +396,9 @@ async def process_ocr_and_save(
                 await bg_db.commit()
             finally:
                 await bg_db.close()
-        except Exception:
-            pass
+        except Exception as bg_err:
+            import logging
+            logging.getLogger("wealthtrack.ocr").exception("OCR background task crashed: %s", bg_err)
 
     asyncio.create_task(_process())
 
