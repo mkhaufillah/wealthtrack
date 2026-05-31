@@ -635,6 +635,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       color: AppColors.textSecondary,
                     ),
                   ),
+                  if (user?.email != null && user!.email.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(Icons.email_outlined, size: 13, color: AppColors.textSecondary),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            user.email,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Container(
                     padding:

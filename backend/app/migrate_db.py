@@ -26,6 +26,7 @@ def run_migration():
         return False
 
     conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=OFF;")
 
     try:
@@ -79,6 +80,42 @@ def run_migration():
 
         if added:
             print(f"  ✓ added columns: {', '.join(added)}")
+        else:
+            print("  ✓ no new columns needed (already migrated)")
+
+        # 4. Add email column + email_verifications table
+        user_cols_after = [row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()]
+        email_added = []
+        if 'email' not in user_cols_after:
+            conn.execute("ALTER TABLE users ADD COLUMN email TEXT DEFAULT ''")
+            email_added.append("email (users)")
+        # Enforce uniqueness via a unique index (SQLite can't add UNIQUE via ALTER TABLE)
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email != ''"
+        )
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS email_verifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL,
+                code TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                verified INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            );
+        """)
+        if 'email_verifications' not in [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]:
+            print("  ✓ email_verifications table created")
+        else:
+            print("  ✓ email_verifications table ready")
+
+        # Backfill existing users with emails
+        conn.execute("UPDATE users SET email = 'khaufillahmohammad@gmail.com' WHERE id = 1 AND (email IS NULL OR email = '')")
+        conn.execute("UPDATE users SET email = 'nahdanurfitriana3@gmail.com' WHERE id = 2 AND (email IS NULL OR email = '')")
+        print("  ✓ backfilled emails for existing users")
+
+        if email_added:
+            print(f"  ✓ added columns: {', '.join(email_added)}")
         else:
             print("  ✓ no new columns needed (already migrated)")
 
@@ -284,6 +321,7 @@ def run_household_migration():
         return False
 
     conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=OFF;")
 
     try:

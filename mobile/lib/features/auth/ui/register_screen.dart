@@ -11,15 +11,21 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+  final _emailCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
   final _usernameCtrl = TextEditingController();
   final _displayNameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmPwCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
+  bool _otpSent = false;
+  bool _sendingOtp = false;
 
   @override
   void dispose() {
+    _emailCtrl.dispose();
+    _otpCtrl.dispose();
     _usernameCtrl.dispose();
     _displayNameCtrl.dispose();
     _passwordCtrl.dispose();
@@ -27,9 +33,42 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  Future<void> _sendOtp() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty || !email.contains('@')) return;
+    setState(() => _sendingOtp = true);
+    try {
+      await ref.read(authProvider.notifier).sendOtp(email);
+      if (mounted) {
+        setState(() {
+          _otpSent = true;
+          _sendingOtp = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP sent to your email!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _sendingOtp = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_otpSent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Send OTP first')),
+      );
+      return;
+    }
     ref.read(authProvider.notifier).register(
+      _emailCtrl.text.trim(),
+      _otpCtrl.text.trim(),
       _usernameCtrl.text.trim(),
       _displayNameCtrl.text.trim(),
       _passwordCtrl.text,
@@ -52,6 +91,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                TextFormField(
+                  controller: _emailCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined)),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (v) =>
+                      v != null && v.contains('@') ? null : 'Valid email required',
+                  enabled: !isLoading && !_otpSent,
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _usernameCtrl,
                   decoration: const InputDecoration(
@@ -113,6 +163,41 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       v != null && v == _passwordCtrl.text ? null : 'Passwords do not match',
                   enabled: !isLoading,
                 ),
+                const SizedBox(height: 16),
+
+                // ── OTP Section ──
+                if (!_otpSent)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: _sendingOtp ? null : _sendOtp,
+                      icon: _sendingOtp
+                          ? const SizedBox(
+                              width: 18, height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.email_outlined),
+                      label: Text(_sendingOtp ? 'Sending...' : 'Send OTP'),
+                    ),
+                  ),
+
+                if (_otpSent) ...[
+                  TextFormField(
+                    controller: _otpCtrl,
+                    decoration: const InputDecoration(
+                        labelText: 'OTP Code',
+                        prefixIcon: Icon(Icons.pin_outlined),
+                        hintText: '6-digit code from email'),
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    validator: (v) =>
+                        v != null && v.length == 6 ? null : 'Enter 6-digit OTP',
+                    enabled: !isLoading,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
                 if (authState.error != null) ...[
                   const SizedBox(height: 12),
                   Text(authState.error!,
@@ -123,7 +208,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: isLoading ? null : _register,
+                    onPressed: (_otpSent && !isLoading) ? _register : null,
                     child: isLoading
                         ? const SizedBox(
                             width: 20,

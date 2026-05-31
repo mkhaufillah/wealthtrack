@@ -33,8 +33,8 @@ PWD_CTX = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Seed data
 DEFAULT_USERS = [
-    (1, "filla", "Filla", PWD_CTX.hash("password123"), "admin"),
-    (2, "nahda", "Nahda", PWD_CTX.hash("password123"), "user"),
+    (1, "filla", "Filla", PWD_CTX.hash("password123"), "admin", "khaufillahmohammad@gmail.com"),
+    (2, "nahda", "Nahda", PWD_CTX.hash("password123"), "user", "nahdanurfitriana3@gmail.com"),
 ]
 DEFAULT_CATEGORIES = [
     (1, "Makanan & Minuman", "expense", "🍽️", 1, 1, "Food & Drinks", "[]"),
@@ -69,7 +69,16 @@ def create_test_db(db_path: str):
             display_name TEXT NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'user',
+            email TEXT DEFAULT '',
             cycle_start_day INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+        CREATE TABLE IF NOT EXISTS email_verifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            code TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            verified INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
         );
         CREATE TABLE IF NOT EXISTS categories (
@@ -124,7 +133,7 @@ def create_test_db(db_path: str):
 
     for u in DEFAULT_USERS:
         conn.execute(
-            "INSERT OR IGNORE INTO users (id, username, display_name, password_hash, role) VALUES (?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO users (id, username, display_name, password_hash, role, email) VALUES (?, ?, ?, ?, ?, ?)",
             u,
         )
     for cat in DEFAULT_CATEGORIES:
@@ -211,15 +220,15 @@ async def fake_token() -> str:
 
 
 @pytest_asyncio.fixture
-async def empty_token(client: AsyncClient) -> str:
+async def empty_token(client: AsyncClient, db: aiosqlite.Connection) -> str:
     """JWT token for a user with no transaction data."""
-    await client.post(
-        "/api/v1/auth/register",
-        json={"username": "emptyuser", "display_name": "Empty", "password": "Test1234!"},
+    from passlib.context import CryptContext
+
+    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    pw_hash = pwd_ctx.hash("Test1234!")
+    await db.execute(
+        "INSERT OR IGNORE INTO users (id, username, display_name, password_hash, role, email) VALUES (99, 'emptyuser', 'Empty', ?, 'user', 'empty@example.com')",
+        (pw_hash,),
     )
-    resp = await client.post(
-        "/api/v1/auth/login",
-        json={"username": "emptyuser", "password": "Test1234!"},
-    )
-    data = resp.json()
-    return data["access_token"]
+    await db.commit()
+    return create_access_token(user_id=99, username="emptyuser", role="user")

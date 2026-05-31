@@ -6,6 +6,16 @@ class AuthRepository {
   final ApiClient _client;
   AuthRepository(this._client);
 
+  Future<void> sendOtp(String email) async {
+    try {
+      await _client.post('/auth/send-otp', data: {
+        'email': email,
+      });
+    } catch (e) {
+      throw _client.handleError(e);
+    }
+  }
+
   Future<TokenModel> login(String username, String password) async {
     try {
       final res = await _client.post('/auth/login', data: {
@@ -19,9 +29,11 @@ class AuthRepository {
   }
 
   Future<UserModel> register(
-      String username, String displayName, String password) async {
+      String email, String otpCode, String username, String displayName, String password) async {
     try {
       final res = await _client.post('/auth/register', data: {
+        'email': email,
+        'otp_code': otpCode,
         'username': username,
         'display_name': displayName,
         'password': password,
@@ -41,10 +53,11 @@ class AuthRepository {
     }
   }
 
-  Future<UserModel> updateProfile(String displayName, {int? cycleStartDay}) async {
+  Future<UserModel> updateProfile(String displayName, {int? cycleStartDay, String? email}) async {
     try {
       final data = <String, dynamic>{'display_name': displayName};
       if (cycleStartDay != null) data['cycle_start_day'] = cycleStartDay;
+      if (email != null) data['email'] = email;
       final res = await _client.put('/auth/me', data: data);
       return UserModel.fromJson(res.data);
     } catch (e) {

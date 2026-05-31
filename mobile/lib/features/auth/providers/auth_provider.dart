@@ -79,11 +79,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> register(
-      String username, String displayName, String password) async {
+  Future<void> sendOtp(String email) async {
     state = state.copyWith(status: AuthStatus.loading, error: null);
     try {
-      await _repo.register(username, displayName, password);
+      await _repo.sendOtp(email);
+      state = state.copyWith(status: AuthStatus.initial);
+    } catch (e) {
+      state = AuthState(status: AuthStatus.error, error: e.toString());
+    }
+  }
+
+  Future<void> register(
+      String email, String otpCode, String username, String displayName, String password) async {
+    state = state.copyWith(status: AuthStatus.loading, error: null);
+    try {
+      await _repo.register(email, otpCode, username, displayName, password);
       await login(username, password);
     } catch (e) {
       state = AuthState(status: AuthStatus.error, error: e.toString());
@@ -95,9 +105,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
-  Future<UserModel?> updateProfile(String displayName, {int? cycleStartDay}) async {
+  Future<UserModel?> updateProfile(String displayName, {int? cycleStartDay, String? email}) async {
     try {
-      final user = await _repo.updateProfile(displayName, cycleStartDay: cycleStartDay);
+      final user = await _repo.updateProfile(displayName, cycleStartDay: cycleStartDay, email: email);
       state = state.copyWith(user: user);
       return user;
     } catch (e) {

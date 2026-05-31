@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 import aiosqlite
 
@@ -9,8 +11,10 @@ from app.core.security import (
     get_current_user,
 )
 from app.core.limiter import limiter
+from app.core.email import generate_otp, send_otp_email
 from app.schemas.user import (
     UserRegister,
+    SendOtpIn,
     UserLogin,
     TokenOut,
     UpdateProfileIn,
@@ -21,6 +25,31 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+OTP_EXPIRE_MINUTES = 10
+
+
+@router.post("/send-otp", status_code=200)
+@limiter.limit("3/minute")
+async def send_otp(request: Request, data: SendOtpIn, db: aiosqlite.Connection = Depends(get_db)):
+    """Send an OTP code to the given email for registration."""
+    otp = generate_otp()
+    expires_at = (
+        datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRE_MINUTES)
+    ).isoformat()
+
+    await db.execute(
+        "INSERT INTO email_verifications (email, code, expires_at) VALUES (?, ?, ?)",
+        (data.email, otp, expires_at),
+    )
+    await db.commit()
+
+    try:
+        send_otp_email(data.email, otp)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {e}")
+
+    return {"message": "OTP sent to email"}
+
 
 @router.post("/register", status_code=201)
 @limiter.limit("5/minute")
@@ -28,15 +57,49 @@ async def register(request: Request, data: UserRegister, db: aiosqlite.Connectio
     cursor = await db.execute("SELECT id FROM users WHERE username = ?", (data.username,))
     if await cursor.fetchone():
         raise HTTPException(status_code=409, detail="Username already exists")
+
+    cursor = await db.execute("SELECT id FROM users WHERE email = ?", (data.email,))
+    if await cursor.fetchone():
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    # Verify OTP
+    cursor = await db.execute(
+        """SELECT code, expires_at, verified
+           FROM email_verifications
+           WHERE email = ?
+           ORDER BY created_at DESC
+           LIMIT 1""",
+        (data.email,),
+    )
+    row = await cursor.fetchone()
+    if not row:
+        raise HTTPException(status_code=400, detail="No OTP sent to this email. Request one via /auth/send-otp first")
+
+    if row["code"] != data.otp_code:
+        raise HTTPException(status_code=400, detail="Invalid OTP code")
+
+    if row["verified"]:
+        raise HTTPException(status_code=400, detail="OTP already used")
+
+    expires_at = datetime.fromisoformat(row["expires_at"])
+    if expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="OTP has expired. Request a new one")
+
+    # Mark OTP as verified
+    await db.execute(
+        "UPDATE email_verifications SET verified = 1 WHERE email = ? AND code = ?",
+        (data.email, data.otp_code),
+    )
+
     pw_hash = hash_password(data.password)
     cursor = await db.execute(
-        "INSERT INTO users (username, display_name, password_hash) VALUES (?, ?, ?)",
-        (data.username, data.display_name, pw_hash),
+        "INSERT INTO users (username, display_name, password_hash, email) VALUES (?, ?, ?, ?)",
+        (data.username, data.display_name, pw_hash, data.email),
     )
     await db.commit()
 
     cursor = await db.execute(
-        "SELECT id, username, display_name, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
+        "SELECT id, username, display_name, email, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
         (cursor.lastrowid,),
     )
     user = await cursor.fetchone()
@@ -67,7 +130,7 @@ async def me(
     db: aiosqlite.Connection = Depends(get_db),
 ):
     cursor = await db.execute(
-        "SELECT id, username, display_name, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
+        "SELECT id, username, display_name, email, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
         (current_user["id"],),
     )
     user = await cursor.fetchone()
@@ -87,6 +150,16 @@ async def update_profile(
         updates["display_name"] = data.display_name
     if data.cycle_start_day is not None:
         updates["cycle_start_day"] = data.cycle_start_day
+    if data.email is not None:
+        # Check email not taken
+        cursor = await db.execute(
+            "SELECT id FROM users WHERE email = ? AND id != ?",
+            (data.email, current_user["id"]),
+        )
+        if await cursor.fetchone():
+            raise HTTPException(status_code=409, detail="Email already in use")
+        updates["email"] = data.email
+
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
 
@@ -98,7 +171,7 @@ async def update_profile(
     await db.commit()
 
     cursor = await db.execute(
-        "SELECT id, username, display_name, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
+        "SELECT id, username, display_name, email, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
         (current_user["id"],),
     )
     user = await cursor.fetchone()

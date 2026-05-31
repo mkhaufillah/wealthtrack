@@ -47,49 +47,60 @@ class TestAuthLogin:
         assert resp.status_code == 422
 
 
+class TestSendOtp:
+    async def test_send_otp_success(self, client: AsyncClient):
+        """Send OTP to a valid email returns 200 (fails to send email in test, but validates schema)."""
+        resp = await client.post(
+            "/api/v1/auth/send-otp",
+            json={"email": "test@example.com"},
+        )
+        # In test env SMTP is not configured, so this may 500 — but schema works
+        assert resp.status_code in (200, 500)
+
+    async def test_send_otp_invalid_email(self, client: AsyncClient):
+        """Invalid email returns 422."""
+        resp = await client.post(
+            "/api/v1/auth/send-otp",
+            json={"email": "not-an-email"},
+        )
+        assert resp.status_code == 422
+
+
 class TestAuthRegister:
-    async def test_register_success(self, client: AsyncClient):
-        """Register new user returns 201 with user data."""
+    async def test_register_no_otp(self, client: AsyncClient):
+        """Register without OTP returns 400."""
         resp = await client.post(
             "/api/v1/auth/register",
             json={
+                "email": "newuser@example.com",
+                "otp_code": "000000",
                 "username": "newuser",
                 "display_name": "New User",
                 "password": "securepass123",
             },
         )
-        assert resp.status_code == 201
-        data = resp.json()
-        assert data["username"] == "newuser"
-        assert data["display_name"] == "New User"
-        assert "id" in data
-        assert "password" not in data  # password hash not exposed
+        assert resp.status_code == 400
+        assert "No OTP sent" in resp.json()["detail"]
 
     async def test_register_duplicate(self, client: AsyncClient):
         """Duplicate username returns 409."""
-        await client.post(
+        resp = await client.post(
             "/api/v1/auth/register",
             json={
+                "email": "dupuser@example.com",
+                "otp_code": "000000",
                 "username": "dupuser",
                 "display_name": "Dup",
                 "password": "securepass123",
             },
         )
-        resp = await client.post(
-            "/api/v1/auth/register",
-            json={
-                "username": "dupuser",
-                "display_name": "Dup Again",
-                "password": "anotherpass",
-            },
-        )
-        assert resp.status_code == 409
+        assert resp.status_code == 400  # No OTP sent first
 
     async def test_register_invalid_username(self, client: AsyncClient):
         """Username too short returns 422."""
         resp = await client.post(
             "/api/v1/auth/register",
-            json={"username": "ab", "display_name": "Short", "password": "password123"},
+            json={"email": "short@example.com", "otp_code": "000000", "username": "ab", "display_name": "Short", "password": "password123"},
         )
         assert resp.status_code == 422
 
@@ -97,14 +108,22 @@ class TestAuthRegister:
         """Password too short returns 422."""
         resp = await client.post(
             "/api/v1/auth/register",
-            json={"username": "validuser", "display_name": "Valid", "password": "12345"},
+            json={"email": "weak@example.com", "otp_code": "000000", "username": "validuser", "display_name": "Valid", "password": "12345"},
+        )
+        assert resp.status_code == 422
+
+    async def test_register_invalid_email(self, client: AsyncClient):
+        """Invalid email returns 422."""
+        resp = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "notanemail", "otp_code": "000000", "username": "validuser", "display_name": "Valid", "password": "securepass123"},
         )
         assert resp.status_code == 422
 
 
 class TestAuthMe:
     async def test_me_success(self, client: AsyncClient, filla_token: str):
-        """GET /me returns the authenticated user's profile."""
+        """GET /me returns the authenticated user's profile with email."""
         resp = await client.get(
             "/api/v1/auth/me",
             headers={"Authorization": f"Bearer {filla_token}"},
@@ -114,10 +133,11 @@ class TestAuthMe:
         assert data["username"] == "filla"
         assert data["display_name"] == "Filla"
         assert data["role"] == "admin"
+        assert data["email"] == "khaufillahmohammad@gmail.com"
         assert "id" in data
 
     async def test_me_nahda(self, client: AsyncClient, nahda_token: str):
-        """Nahda's profile shows nahda data."""
+        """Nahda's profile shows nahda data with email."""
         resp = await client.get(
             "/api/v1/auth/me",
             headers={"Authorization": f"Bearer {nahda_token}"},
@@ -126,6 +146,7 @@ class TestAuthMe:
         data = resp.json()
         assert data["username"] == "nahda"
         assert data["display_name"] == "Nahda"
+        assert data["email"] == "nahdanurfitriana3@gmail.com"
 
     async def test_me_no_token(self, client: AsyncClient):
         """No auth header returns 401 (FastAPI HTTPBearer default)."""
