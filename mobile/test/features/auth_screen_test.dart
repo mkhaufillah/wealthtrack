@@ -144,14 +144,15 @@ void main() {
   group('RegisterScreen Eye Icon', () {
     testWidgets('shows visibility icon on password fields', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      expect(find.byIcon(Icons.visibility_off_outlined), findsNWidgets(2));
+      // Only the password field has an eye icon now (confirm password no longer has one)
+      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
     });
 
-    testWidgets('toggles all password visibility', (tester) async {
+    testWidgets('toggles password visibility', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      await tester.tap(find.byIcon(Icons.visibility_off_outlined).first);
+      await tester.tap(find.byIcon(Icons.visibility_off_outlined));
       await tester.pump();
-      expect(find.byIcon(Icons.visibility_outlined), findsNWidgets(2));
+      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
     });
   });
 }

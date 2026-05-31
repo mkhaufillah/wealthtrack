@@ -21,6 +21,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _obscurePassword = true;
   bool _otpSent = false;
   bool _sendingOtp = false;
+  bool _registering = false;
 
   @override
   void dispose() {
@@ -60,25 +61,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_otpSent) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Send OTP first')),
-      );
-      return;
-    }
-    ref.read(authProvider.notifier).register(
+    setState(() => _registering = true);
+    await ref.read(authProvider.notifier).register(
       _emailCtrl.text.trim(),
       _otpCtrl.text.trim(),
       _usernameCtrl.text.trim(),
       _displayNameCtrl.text.trim(),
       _passwordCtrl.text,
     );
+    if (mounted) {
+      setState(() => _registering = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final isLoading = authState.status == AuthStatus.loading;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -91,7 +89,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // ── Email ──
                 TextFormField(
+                  key: const ValueKey('email'),
                   controller: _emailCtrl,
                   decoration: const InputDecoration(
                       labelText: 'Email',
@@ -99,30 +99,39 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) =>
                       v != null && v.contains('@') ? null : 'Valid email required',
-                  enabled: !isLoading && !_otpSent,
+                  enabled: !_otpSent,
                 ),
                 const SizedBox(height: 16),
+
+                // ── Username ──
                 TextFormField(
+                  key: const ValueKey('username'),
                   controller: _usernameCtrl,
                   decoration: const InputDecoration(
                       labelText: 'Username',
                       prefixIcon: Icon(Icons.person_outline)),
                   validator: (v) =>
                       v != null && v.trim().length >= 3 ? null : 'Min 3 characters',
-                  enabled: !isLoading,
+                  enabled: !_registering,
                 ),
                 const SizedBox(height: 16),
+
+                // ── Display Name ──
                 TextFormField(
+                  key: const ValueKey('displayName'),
                   controller: _displayNameCtrl,
                   decoration: const InputDecoration(
                       labelText: 'Display Name',
                       prefixIcon: Icon(Icons.badge_outlined)),
                   validator: (v) =>
                       v != null && v.trim().isNotEmpty ? null : 'Display name is required',
-                  enabled: !isLoading,
+                  enabled: !_registering,
                 ),
                 const SizedBox(height: 16),
+
+                // ── Password ──
                 TextFormField(
+                  key: const ValueKey('password'),
                   controller: _passwordCtrl,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
@@ -140,28 +149,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   validator: (v) =>
                       v != null && v.length >= 6 ? null : 'Min 6 characters',
-                  enabled: !isLoading,
+                  enabled: !_registering,
                 ),
                 const SizedBox(height: 16),
+
+                // ── Confirm Password ──
                 TextFormField(
+                  key: const ValueKey('confirmPassword'),
                   controller: _confirmPwCtrl,
                   obscureText: _obscurePassword,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Confirm Password',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                      ),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
-                    ),
+                    prefixIcon: Icon(Icons.lock_outline),
                   ),
                   validator: (v) =>
                       v != null && v == _passwordCtrl.text ? null : 'Passwords do not match',
-                  enabled: !isLoading,
+                  enabled: !_registering,
                 ),
                 const SizedBox(height: 16),
 
@@ -184,6 +187,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 if (_otpSent) ...[
                   TextFormField(
+                    key: const ValueKey('otpCode'),
                     controller: _otpCtrl,
                     decoration: const InputDecoration(
                         labelText: 'OTP Code',
@@ -193,7 +197,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     maxLength: 6,
                     validator: (v) =>
                         v != null && v.length == 6 ? null : 'Enter 6-digit OTP',
-                    enabled: !isLoading,
+                    enabled: !_registering,
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -205,11 +209,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           color: AppColors.highlight, fontSize: 13)),
                 ],
                 const SizedBox(height: 24),
+
+                // ── Register Button ──
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: (_otpSent && !isLoading) ? _register : null,
-                    child: isLoading
+                    onPressed: (_otpSent && !_registering) ? _register : null,
+                    child: _registering
                         ? const SizedBox(
                             width: 20,
                             height: 20,
@@ -219,8 +225,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // ── Login Link ──
                 TextButton(
-                  onPressed: isLoading ? null : () => context.pop(),
+                  onPressed: _registering ? null : () => context.pop(),
                   child: const Text('Already have an account? Login'),
                 ),
               ],
