@@ -47,6 +47,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       });
       _scrollToBottom();
       if (_messages.any((m) => m.status == 'processing')) {
+        _isLoading = true;
         _startPolling();
       }
     } catch (e) {
@@ -95,6 +96,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       if (!_messages.any((m) => m.status == 'processing')) {
         _pollTimer?.cancel();
         _pollTimer = null;
+        _isLoading = false;
       }
     } catch (_) {}
   }
@@ -139,7 +141,6 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       setState(() {
         _messages[_messages.length - 2] = _ChatMessage(id: userMsgId, text: text, isUser: true, status: 'complete');
         _messages.last = _ChatMessage(id: aiMsgId, text: '', isUser: false, status: 'processing');
-        _isLoading = false;
       });
 
       await _chatStorage.addMessage('user', text);
@@ -277,6 +278,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                   Expanded(
                     child: TextField(
                       controller: _msgCtrl,
+                      enabled: !_isLoading,
                       decoration: InputDecoration(
                         hintText: 'Ask about your finances...',
                         filled: true,

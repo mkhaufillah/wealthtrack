@@ -12,6 +12,9 @@ from pathlib import Path
 from datetime import datetime
 from PIL import Image
 
+# System-wide semaphore: max 2 concurrent Vision API calls across all users
+_ocr_semaphore = asyncio.Semaphore(2)
+
 from app.core.config import settings
 from app.core.security import get_current_user
 from app.database import get_db
@@ -239,6 +242,15 @@ async def process_ocr_and_save(
     """Process OCR image and auto-save transaction. Returns immediately."""
     _check_rate_limit(current_user["id"])
 
+    # Per-user queue: reject if user already has a processing job
+    cursor = await db.execute(
+        "SELECT COUNT(*) as count FROM ocr_jobs WHERE user_id = ? AND status = 'processing'",
+        (current_user["id"],),
+    )
+    row = await cursor.fetchone()
+    if row["count"] > 0:
+        raise HTTPException(status_code=429, detail="You already have an OCR job being processed. Please wait for it to complete.")
+
     if not file.content_type:
         raise HTTPException(status_code=400, detail="Could not detect file type")
 
@@ -294,32 +306,32 @@ async def process_ocr_and_save(
                 prompt = SYSTEM_PROMPT.format(categories=categories_str)
 
                 # Vision API call with retry (5 attempts, jittered exponential backoff for 429)
-                import asyncio as _asyncio
                 import random as _random
                 vision_resp = None
-                for attempt in range(5):
-                    async with httpx.AsyncClient(timeout=60) as client:
-                        vision_resp = await client.post(
-                            "https://opencode.ai/zen/go/v1/chat/completions",
-                            headers={"Authorization": f"Bearer {settings.OPENCODE_GO_API_KEY}", "Content-Type": "application/json"},
-                            json={
-                                "model": "kimi-k2.5",
-                                "messages": [
-                                    {"role": "system", "content": prompt},
-                                    {"role": "user", "content": [
-                                        {"type": "image_url", "image_url": {"url": data_url}},
-                                        {"type": "text", "text": "Extract transaction data from this image."},
-                                    ]},
-                                ],
-                                "max_tokens": 4096,
-                            },
-                        )
-                    if vision_resp.status_code == 429 and attempt < 4:
-                        base_wait = 2 ** attempt  # 1, 2, 4, 8s
-                        jitter = _random.uniform(0.5, 1.5)
-                        await _asyncio.sleep(base_wait * jitter)
-                        continue
-                    break
+                async with _ocr_semaphore:
+                    for attempt in range(5):
+                        async with httpx.AsyncClient(timeout=60) as client:
+                            vision_resp = await client.post(
+                                "https://opencode.ai/zen/go/v1/chat/completions",
+                                headers={"Authorization": f"Bearer {settings.OPENCODE_GO_API_KEY}", "Content-Type": "application/json"},
+                                json={
+                                    "model": "kimi-k2.5",
+                                    "messages": [
+                                        {"role": "system", "content": prompt},
+                                        {"role": "user", "content": [
+                                            {"type": "image_url", "image_url": {"url": data_url}},
+                                            {"type": "text", "text": "Extract transaction data from this image."},
+                                        ]},
+                                    ],
+                                    "max_tokens": 4096,
+                                },
+                            )
+                        if vision_resp.status_code == 429 and attempt < 4:
+                            base_wait = 2 ** attempt  # 1, 2, 4, 8s
+                            jitter = _random.uniform(0.5, 1.5)
+                            await asyncio.sleep(base_wait * jitter)
+                            continue
+                        break
 
                 if vision_resp.status_code != 200:
                     raise Exception(f"Vision API error: {vision_resp.status_code}")
