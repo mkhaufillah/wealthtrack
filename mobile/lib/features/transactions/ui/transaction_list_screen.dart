@@ -41,6 +41,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
 
   void _showSortSheet() {
     final currentSort = ref.read(transactionListProvider).sortBy;
+    ref.read(isCategoryFilterSheetOpenProvider.notifier).state = true;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -82,7 +83,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           ),
         );
       },
-    );
+    ).whenComplete(() {
+      ref.read(isCategoryFilterSheetOpenProvider.notifier).state = false;
+    });
   }
 
   void _showCategoryFilterSheet() {

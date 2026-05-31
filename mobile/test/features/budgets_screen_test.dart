@@ -144,9 +144,11 @@ void main() {
       expect(find.text('Daily Shopping'), findsOneWidget);
     });
 
-    testWidgets('shows FAB to add budget', (tester) async {
+    testWidgets('shows FABs for suggestions and add budget', (tester) async {
       await tester.pumpWidget(buildBudgetsApp());
       expect(find.byIcon(Icons.add), findsOneWidget);
+      // auto_awesome appears in both FAB and empty state button
+      expect(find.byIcon(Icons.auto_awesome), findsAtLeast(1));
     });
 
     testWidgets('shows month picker with navigation arrows', (tester) async {

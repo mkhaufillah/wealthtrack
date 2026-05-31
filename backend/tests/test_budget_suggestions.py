@@ -53,3 +53,27 @@ class TestBudgetSuggestions:
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         assert resp.status_code == 422
+
+    async def test_marks_existing_budgets(self, client: AsyncClient, filla_token: str):
+        """Budget suggestions should mark categories that already have a budget."""
+        # Create a budget first
+        resp = await client.post(
+            "/api/v1/budgets",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"month": "2026-05", "category_id": 1, "amount": 1000000},
+        )
+        assert resp.status_code == 201
+
+        # Get suggestions
+        resp = await client.get(
+            "/api/v1/budgets/suggestions?month=2026-05",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["items"]) > 0
+        food = [i for i in data["items"] if i["category_id"] == 1]
+        if food:
+            # Category 1 (Food) should be marked as having a budget
+            assert food[0]["has_budget"] is True
+            assert food[0]["existing_amount"] == 1000000
