@@ -64,7 +64,7 @@ scripts/               # DB init & seed scripts
 - **Categories** — CRUD (admin), English display name (`name_en`) in every response, keyword mapping for Hermes OCR classification
 - **Summaries** — daily, monthly, household (combined across members), current-month shorthand, cycle-aware date ranges, per-category income breakdown
 - **Household** — shared household with invite codes, multi-user transaction listing & summaries
-- **Budgets** — CRUD with upsert, monthly budget vs actual spending summary, cycle-aware actuals, per-row cycle_on, non-budget expense awareness
+- **Budgets** — CRUD with upsert, monthly budget vs actual spending summary, cycle-aware actuals, per-row cycle_on, non-budget expense awareness, **AI-powered budget suggestions from historical spending**, **budget health forecasting with mid-cycle projections**
 - **Transfer Balance** — create paired send/transfer transactions between household members
 - **Reports** — monthly summary cards, category breakdown, daily snapshot, household split
 - **Export** — yearly Excel (.xlsx) export with 12 monthly sheets
@@ -77,7 +77,7 @@ scripts/               # DB init & seed scripts
 - **Dashboard** — balance card (income/expense) with cycle range label, AI Financial Advisor card, savings & emergency fund widget, recent transactions list
 - **Transactions** — list with pull-to-refresh, add/edit/delete transaction with category picker & amount field, search by description, filter by type & category, sort by date/amount/name, paginated browsing
 - **Reports** — interactive charts (pie, bar, line) using fl_chart, monthly summary cards, category breakdown, daily snapshot, household split, savings rate, daily average
-- **Budgets** — monthly budget tracking with progress bars and color coding, exhausted message on overspent categories, non-budget expense awareness ("Outside Budget" section)
+- **Budgets** — monthly budget tracking with progress bars and color coding, exhausted message on overspent categories, non-budget expense awareness ("Outside Budget" section), **budget suggestion review sheet with accept/decline per category**
 - **AI Advisor** — chat-like interface with streaming responses and web search
 - **Transfer Balance** — send money to household members directly from the app
 - **Dark Mode** — full dark theme support with system preference detection

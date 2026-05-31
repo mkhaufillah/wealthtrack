@@ -329,12 +329,11 @@ Divider:     #E8E8E8    — Light border
 
 **Bottom Navigation (after login):**
 ```
-Tab 1: 📊 Dashboard  ← default
-Tab 2: 📋 Transactions
+Tab 0: 📊 Dashboard  ← default
+Tab 1: 📋 Transactions
+Tab 2: 💰 Budgets
 Tab 3: 📈 Reports
-Tab 4: 💰 Budgets
-Tab 5: 🤖 AI Advisor
-Tab 6: 👤 Profile
+Tab 4: 👤 Profile
 ```
 
 ## 4. Code Architecture
@@ -410,11 +409,14 @@ mobile/lib/
 │   │   ├── data/
 │   │   │   └── budget_repository.dart
 │   │   ├── models/
-│   │   │   └── budget_model.dart
+│   │   │   └── budget_model.dart          # BudgetModel, BudgetSummaryItem,
+│   │   │                                    BudgetSuggestion, BudgetSuggestionResponse
 │   │   ├── providers/
-│   │   │   └── budget_provider.dart
+│   │   │   ├── budget_provider.dart
+│   │   │   └── budget_suggestion_provider.dart
 │   │   └── ui/
-│   │       └── budgets_screen.dart     # Monthly budgets with progress bars
+│   │       ├── budgets_screen.dart         # Monthly budgets with progress bars
+│   │       └── budget_suggestion_sheet.dart # Review sheet with accept/decline
 │   │
 │   ├── ai/
 │   │   ├── data/

@@ -1319,9 +1319,9 @@ Expected: 200 with projection data
 
 | Phase | Tasks | Est. Time |
 |-------|-------|-----------|
-| A | Suggestions API (schema + util + endpoint + tests) | ~2h |
-| B | Flutter suggestion UI (model + provider + sheet + wiring) | ~2h |
-| C | AI Advisor health context (projection + prompt update) | ~1h |
-| D | Health forecast endpoint (schema + endpoint + tests) | ~1h |
-| E | Docs + deploy | ~30m |
-| **Total** | **14 tasks** | **~6.5h** |
+| A | ✅ Suggestions API (schema + util + endpoint + tests) | ~2h |
+| B | ✅ Flutter suggestion UI (model + provider + sheet + wiring) | ~2h |
+| C | ✅ AI Advisor health context (projection + prompt update) | ~1h |
+| D | ✅ Health forecast endpoint (schema + endpoint + tests) | ~1h |
+| E | ✅ Docs + deploy | ~30m |
+| **Total** | **14 tasks** ✅ **Completed** | **~6.5h** |
