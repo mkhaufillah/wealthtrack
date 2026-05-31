@@ -83,9 +83,10 @@ void main() {
       expect(find.text('Register'), findsAtLeast(1));
     });
 
-    testWidgets('shows four input fields', (tester) async {
+    testWidgets('shows five input fields', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      expect(find.byType(TextFormField), findsNWidgets(4));
+      // Email, username, display_name, password, confirm_password
+      expect(find.byType(TextFormField), findsNWidgets(5));
     });
 
     testWidgets('shows Register button and Login link', (tester) async {
@@ -94,13 +95,23 @@ void main() {
       expect(find.text('Already have an account? Login'), findsOneWidget);
     });
 
-    testWidgets('validates username length', (tester) async {
+    testWidgets('validates form fields', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
+
+      // First fill email and send OTP
+      await tester.enterText(find.byType(TextFormField).at(0), 'test@example.com');
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Send OTP'));
+      await tester.pumpAndSettle();
+
+      // Now OTP is sent, OTP field appears (6th TextFormField)
+      // Leave other fields empty and tap Register
       await tester.tap(find.widgetWithText(ElevatedButton, 'Register'));
       await tester.pumpAndSettle();
+
       expect(find.text('Min 3 characters'), findsOneWidget);
       expect(find.text('Display name is required'), findsOneWidget);
       expect(find.text('Min 6 characters'), findsOneWidget);
+      expect(find.text('Valid email required'), findsNothing); // email already filled
     });
   });
 
