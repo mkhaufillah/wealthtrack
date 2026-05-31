@@ -73,15 +73,37 @@ CREATE TABLE IF NOT EXISTS users (
     display_name  TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     role          TEXT NOT NULL DEFAULT 'user',
+    email         TEXT DEFAULT '',
+    cycle_start_day INTEGER NOT NULL DEFAULT 1,
     created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 ```
 
+Partial unique index on email (ignores empty strings):
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email != '';
+```
+
 Seed data:
-| id | username | display_name |
-|----|----------|-------------|
-| 1 | filla | Filla |
-| 2 | nahda | Nahda |
+| id | username | display_name | email |
+|----|----------|-------------|-------|
+| 1 | filla | Filla | khaufillahmohammad@gmail.com |
+| 2 | nahda | Nahda | nahdanurfitriana3@gmail.com |
+
+### `email_verifications`
+
+```sql
+CREATE TABLE IF NOT EXISTS email_verifications (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    email      TEXT NOT NULL,
+    code       TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    verified   INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+```
+
+Used for registration OTP flow. OTPs expire after 10 minutes. Each email can have multiple entries (latest one is checked).
 
 ## Modified Table — `transactions`
 

@@ -16,24 +16,70 @@
 
 ## Authentication
 
-### POST `/api/v1/auth/register`
+### POST `/api/v1/auth/send-otp`
 
-Register a new user.
+Send a 6-digit OTP code to the given email for registration. Rate limited to 3/minute.
 
 ```json
 // Request
 {
-  "username": "filla",
-  "display_name": "Filla",
+  "email": "newuser@example.com"
+}
+
+// Response 200
+{
+  "message": "OTP sent to email"
+}
+
+// Error 500 — SMTP not configured
+{
+  "detail": "Failed to send email: SMTP not configured. Set SMTP_USERNAME and SMTP_PASSWORD in .env"
+}
+```
+
+### POST `/api/v1/auth/register`
+
+Register a new user with email verification. Requires a valid OTP from `/auth/send-otp` first.
+
+```json
+// Request
+{
+  "email": "newuser@example.com",
+  "otp_code": "482917",
+  "username": "newuser",
+  "display_name": "New User",
   "password": "supersecret"
 }
 
 // Response 201
 {
-  "id": 1,
-  "username": "filla",
-  "display_name": "Filla",
-  "created_at": "2026-05-26T10:00:00.000Z"
+  "id": 3,
+  "username": "newuser",
+  "display_name": "New User",
+  "email": "newuser@example.com",
+  "role": "user",
+  "cycle_start_day": 1,
+  "created_at": "2026-05-31T10:00:00.000Z"
+}
+
+// Error 400 — No OTP sent
+{
+  "detail": "No OTP sent to this email. Request one via /auth/send-otp first"
+}
+
+// Error 400 — Wrong OTP
+{
+  "detail": "Invalid OTP code"
+}
+
+// Error 400 — OTP expired
+{
+  "detail": "OTP has expired. Request a new one"
+}
+
+// Error 409 — Email taken
+{
+  "detail": "Email already registered"
 }
 ```
 
@@ -66,18 +112,23 @@ Returns current user info. Requires Bearer token.
   "id": 1,
   "username": "filla",
   "display_name": "Filla",
-  "role": "user"
+  "email": "khaufillahmohammad@gmail.com",
+  "role": "admin",
+  "cycle_start_day": 25,
+  "created_at": "2026-05-26T17:15:01.077Z"
 }
 ```
 
 ### PUT `/api/v1/auth/me`
 
-Update current user's display name. Requires Bearer token.
+Update current user's display name, cycle start day, and/or email. Requires Bearer token.
 
 ```json
-// Request
+// Request — all fields optional
 {
-  "display_name": "Filla Baru"
+  "display_name": "Filla Baru",
+  "cycle_start_day": 10,
+  "email": "baru@gmail.com"
 }
 
 // Response 200
@@ -85,8 +136,15 @@ Update current user's display name. Requires Bearer token.
   "id": 1,
   "username": "filla",
   "display_name": "Filla Baru",
+  "email": "baru@gmail.com",
   "role": "admin",
+  "cycle_start_day": 10,
   "created_at": "2026-05-26T17:15:01.077Z"
+}
+
+// Error 409 — email taken
+{
+  "detail": "Email already in use"
 }
 ```
 

@@ -59,7 +59,7 @@ scripts/               # DB init & seed scripts
 ## Features
 
 ### Backend API
-- **Auth** — register, login (JWT 30-day), profile update, password change, account delete, cycle start day
+- **Auth** — register (email + OTP), login (JWT 30-day), profile update (display name, cycle day, email), password change, account delete
 - **Transactions** — CRUD with pagination, filtering by type/date/category, sorting, change owner
 - **Categories** — CRUD (admin), English display name (`name_en`) in every response, keyword mapping for Hermes OCR classification
 - **Summaries** — daily, monthly, household (combined across members), current-month shorthand, cycle-aware date ranges, per-category income breakdown

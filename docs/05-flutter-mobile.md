@@ -614,7 +614,27 @@ suffixIcon: IconButton(
 
 **Affected screens:** LoginScreen, RegisterScreen, ProfileScreen (change password bottom sheet).
 
-### 9.2 Change Password Error Handling
+### 9.2 Email Registration / OTP Flow (v0.4.1)
+
+Register flow now uses two-step email verification:
+
+1. User fills: email, username, display name, password, confirm password
+2. Tap **"Send OTP"** → POST `/auth/send-otp` → 6-digit code sent via SMTP
+3. OTP TextFormField appears (6 digits, numeric keyboard)
+4. Tap **"Register"** → POST `/auth/register` with `email` + `otp_code` → account created + auto-login
+
+**UI states:**
+- "Send OTP" button hides after successful OTP send
+- "Register" button disabled until OTP is sent
+- Loading spinner on buttons during API calls
+
+**AuthNotifier methods:**
+```dart
+sendOtp(email)     → POST /auth/send-otp
+register(email, otpCode, username, displayName, password) → POST /auth/register
+```
+
+### 9.3 Change Password Error Handling
 
 The `/auth/password` endpoint returns **400 (Bad Request)** — not 401 — when the current password is incorrect.
 
@@ -622,7 +642,7 @@ The `/auth/password` endpoint returns **400 (Bad Request)** — not 401 — when
 
 **API client interceptor logic:** Only clears token on 401 to protect against expired/invalid sessions. 400 errors are passed through to the UI without side effects.
 
-### 9.3 Home Dashboard Auto-Refresh
+### 9.4 Home Dashboard Auto-Refresh
 
 After adding a transaction, the home dashboard reloads automatically.
 

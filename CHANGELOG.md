@@ -1,6 +1,30 @@
 # Changelog
 
-## v0.4.0 — AI Budgeting (2026-05-31)
+## v0.4.1 — Email Registration & OTP Verification (2026-05-31)
+
+### Features
+- **Email Registration** — Register now requires a valid email address. User enters email → receives 6-digit OTP via SMTP → enters OTP to complete registration.
+- **Email in Profile** — `/auth/me` now returns `email` field. Profile screen displays email below username.
+- **Seed Emails** — Filla: `khaufillahmohammad@gmail.com`, Nahda: `nahdanurfitriana3@gmail.com`.
+- **Update Email** — `PUT /auth/me` supports updating email (with duplicate check).
+
+### API Changes
+- New `POST /api/v1/auth/send-otp` — send OTP code to email (rate limit: 3/min)
+- `POST /api/v1/auth/register` — now requires `email` + `otp_code` + `username` + `display_name` + `password`
+- `GET /api/v1/auth/me` — response includes `email`
+- `PUT /api/v1/auth/me` — accepts optional `email` field
+
+### Infrastructure
+- **SMTP** — Configurable via `SMTP_HOST/PORT/USERNAME/PASSWORD` env vars. Gmail App Password integration.
+- **Migration** — `email TEXT` column added to `users`, `email_verifications` table created, unique partial index on email.
+- `email-validator` added to requirements.
+
+### Tests
+- 189 backend tests passing (new: send-otp success, invalid email, register without OTP, email in /me).
+- 248 Flutter tests passing (fixed mock signatures, updated register screen tests for email/OTP flow).
+
+### Docs
+- CHANGELOG, README, database schema, backend API, Flutter docs synced with new email feature.
 
 ### Features
 - **Budget Suggestions API** — `GET /budgets/suggestions` analyzes last 3-12 billing cycles of historical spending and recommends budget amounts per expense category. Suggestion = historical average rounded up to nearest Rp10k (min Rp10k). Detects existing budgets and warns if total suggested exceeds income.
