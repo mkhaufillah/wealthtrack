@@ -15,6 +15,9 @@ OCR (Optical Character Recognition) extracts structured transaction data from re
 | **Image source** | Camera (take photo) or Gallery (pick existing) |
 | **Vision model** | `kimi-k2.5` via OpenCode Go API |
 | **Rate limit** | 10 scans per day per user (in-memory) |
+| **Per-user queue** | Max 1 active job per user — subsequent uploads return 429 |
+| **System semaphore** | Max 2 concurrent Vision API calls across all users (`asyncio.Semaphore(2)`) |
+| **Retry** | 5 attempts with jittered exponential backoff (1s×jitter → 8s×jitter, random 0.5-1.5) |
 | **Image max size** | 10 MB input (auto-compressed to ~300 KB JPEG) |
 
 ---
@@ -169,7 +172,9 @@ On successful scan, form fields are auto-filled:
 | API key missing | 500: "OCR not configured" |
 | Vision API timeout | 504: "Vision API timed out" |
 | Vision API error | 502: "Vision API error: {status}" |
-| Rate limit exceeded | 429: "OCR rate limit: max 10/day" |
+| Rate limit exceeded (10/day) | 429: "OCR rate limit: max 10/day" |
+| Per-user queue busy | 429: "You already have an OCR job being processed..." |
+| System semaphore full | Internal queue — retries automatically when slot opens |
 | Non-receipt image | `raw_text` populated with AI description, structured fields remain null |
 | Malformed JSON from API | `raw_text` populated with raw response text |
 

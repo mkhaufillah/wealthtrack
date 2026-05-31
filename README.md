@@ -68,8 +68,8 @@ scripts/               # DB init & seed scripts
 - **Transfer Balance** — create paired send/transfer transactions between household members
 - **Reports** — monthly summary cards, category breakdown, daily snapshot, household split
 - **Export** — yearly Excel (.xlsx) export with 12 monthly sheets
-- **OCR / Smart Input** — receipt image upload processed via Kimi K2.6 vision AI
-- **AI Advisor** — personalized financial advice using DeepSeek Flash V4 with Brave Search, cycle-aware context
+- **OCR / Smart Input** — receipt image upload processed via Kimi K2.5 vision AI, per-user queue (1 active job), system-wide semaphore (max 2 concurrent), image auto-compression (1200px/JPEG q85), 10/day rate limit, 5 retry with jittered backoff
+- **AI Advisor** — personalized financial advice using DeepSeek Flash V4 with Brave Search, cycle-aware context, input locked while processing (prevents double-send cost)
 - **Health** — lightweight health check endpoint
 
 ### Mobile (Flutter)

@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.4.3 — OCR Queue, AI Advisor Abuse Protection & Stability (2026-05-31)
+
+### Features
+- **OCR Per-User Queue** — Each user can only have 1 active OCR job at a time. Attempting to upload another invoice while one is processing returns 429. Prevents user-level spam.
+- **OCR System Semaphore** — `asyncio.Semaphore(2)` limits concurrent Vision API calls across all users. Prevents rate limit bursts on OpenCode Go.
+- **AI Advisor Abuse Protection** — Text field and send button are disabled while AI is still processing a response. Re-enabled only when response completes or errors. Prevents double-send cost.
+
+### Fixes
+- **Delete OCR Transaction** — Changed from `UPDATE ocr_jobs SET transaction_id = NULL` to `DELETE FROM ocr_jobs WHERE transaction_id = ?`. Cleaner data cleanup.
+- **Delete Account** — Added `DELETE FROM ocr_jobs WHERE user_id = ?` to prevent FK constraint errors on account deletion.
+- **OCR 429 Retry** — Increased retry attempts from 3→5 with jittered exponential backoff (1s×jitter → 8s×jitter, random 0.5-1.5x). Spreads retry timing to avoid thundering herd.
+- **AI Advisor Auto-Scroll** — Added delayed backup scroll (200ms) after post-frame callback to handle late MarkdownBody layout. Scroll now reaches bottom 100% of the time.
+- **OCR Reload on Any Completion** — Changed from reloading only when all jobs complete (`next == 0`) to reloading when ANY job finishes (`next < previous`). Transaction list and dashboard refresh incrementally.
+- **OCR Immediate Badge** — OCR pending count loads immediately on screen init instead of waiting for the first 5-second poll tick. Add transaction screen also triggers a load before navigation.
+
+### API Changes
+- `POST /api/v1/ocr/process-and-save` — Returns 429 if user already has a processing OCR job
+- `POST /api/v1/ocr/process` — No change (uses separate endpoint)
+
+### Performance
+- OCR Vision API calls reduced from burst-N to max 2 concurrent system-wide via `asyncio.Semaphore(2)`
+
+### Tests
+- 189 backend tests passing
+- 250 Flutter tests passing
+
+### Docs
+- CHANGELOG, README, OCR scanner doc synced with new protections.
+
+---
+
 ## v0.4.2 — CI Notifications & Workflow Cleanup (2026-05-31)
 
 ### Infrastructure
