@@ -236,7 +236,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 140),
       itemCount: items.length + 1 + extraCount,
       itemBuilder: (_, i) {
         if (i == 0) {
