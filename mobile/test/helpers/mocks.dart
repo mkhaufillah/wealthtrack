@@ -100,18 +100,18 @@ class MockAuthRepository extends AuthRepository {
 
   @override
   Future<UserModel> register(
-      String username, String displayName, String password) async {
-    return UserModel(id: 1, username: username, displayName: displayName, role: 'user');
+      String email, String otpCode, String username, String displayName, String password) async {
+    return UserModel(id: 1, username: username, displayName: displayName, role: 'user', email: email);
   }
 
   @override
   Future<UserModel> getMe() async {
-    return UserModel(id: 1, username: 'mock', displayName: 'Mock', role: 'user');
+    return UserModel(id: 1, username: 'mock', displayName: 'Mock', role: 'user', email: 'mock@test.com');
   }
 
   @override
-  Future<UserModel> updateProfile(String displayName, {int? cycleStartDay}) async {
-    return UserModel(id: 1, username: 'mock', displayName: displayName, role: 'user', cycleStartDay: cycleStartDay ?? 1);
+  Future<UserModel> updateProfile(String displayName, {int? cycleStartDay, String? email}) async {
+    return UserModel(id: 1, username: 'mock', displayName: displayName, role: 'user', cycleStartDay: cycleStartDay ?? 1, email: email ?? '');
   }
 
   @override
