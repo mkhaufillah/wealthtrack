@@ -118,8 +118,17 @@ jobs:
             exit 1
           fi
 
-      - name: Upload APK to GitHub Release
+      - name: Upload release APK
+        id: upload-artifact
         continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: wealthtrack-release
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 1
+
+      - name: Upload APK to GitHub Release (fallback — quota habis)
+        if: steps.upload-artifact.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
