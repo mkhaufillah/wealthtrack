@@ -15,7 +15,16 @@
 - New `GET /api/v1/budgets/health?month=`
 
 ### Tests
-- 184 total backend tests passing (3 new health tests, 6 new suggestion tests).
+- 186 total backend tests passing (2 new: budget health projection + has_budget flag).
+- 17 new mobile provider tests for budget suggestion (load, toggleAccept, toggleSelectAll, applySelected).
+- 250 total mobile tests passing.
+
+### Fixes
+- **Transactions sort sheet** — FAB now hides when sort sheet is open (same pattern as category filter), shows again on dismiss.
+- **Budgets screen dual FAB** — Increase bottom padding 80→140 for clearance with 2 FABs. Home "View All" button now uses `context.go` to navigate to bottom nav tab instead of pushing a new page.
+
+### Docs
+- README, backend API docs, Flutter mobile docs, and plan all synced with full v0.4.0 scope.
 
 ## v0.3.3 — OCR Performance Optimization (2026-05-31)
 
