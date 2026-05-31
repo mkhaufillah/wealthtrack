@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -21,6 +22,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   bool _isLoading = false;
   bool _useAdvancedModel = false;
   bool _loaded = false;
+  Timer? _pollTimer;
 
   @override
   void initState() {
@@ -29,77 +31,142 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   }
 
   Future<void> _loadHistory() async {
-    await _chatStorage.load();
+    try {
+      final api = ref.read(apiClientProvider);
+      final res = await api.get('/ai/chat/messages');
+      final messages = (res.data as List<dynamic>).map((m) => _ChatMessage(
+        id: m['id'] as int,
+        text: m['content'] as String? ?? '',
+        isUser: m['role'] == 'user',
+        status: m['status'] as String? ?? 'complete',
+      )).toList();
+      if (!mounted) return;
+      setState(() {
+        _messages.addAll(messages);
+        _loaded = true;
+      });
+      _scrollToBottom();
+      if (_messages.any((m) => m.status == 'processing')) {
+        _startPolling();
+      }
+    } catch (e) {
+      // Fallback to local storage
+      await _chatStorage.load();
+      if (!mounted) return;
+      setState(() {
+        _messages.addAll(
+          _chatStorage.messages.map((m) => _ChatMessage(
+            text: m.content, isUser: m.role == 'user', status: 'complete')),
+        );
+        _loaded = true;
+      });
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) => _pollMessages());
+  }
+
+  Future<void> _pollMessages() async {
     if (!mounted) return;
-    setState(() {
-      _messages.addAll(
-        _chatStorage.messages.map((m) => _ChatMessage(text: m.content, isUser: m.role == 'user')),
-      );
-      _loaded = true;
-    });
-    _scrollToBottom();
+    try {
+      final api = ref.read(apiClientProvider);
+      final res = await api.get('/ai/chat/messages');
+      final serverMessages = (res.data as List<dynamic>).map((m) => ({
+        'id': m['id'] as int,
+        'content': m['content'] as String? ?? '',
+        'role': m['role'] as String? ?? '',
+        'status': m['status'] as String? ?? '',
+      })).toList();
+
+      setState(() {
+        for (final sm in serverMessages) {
+          final idx = _messages.indexWhere((m) => m.id == sm['id']);
+          if (idx != -1) {
+            _messages[idx].text = sm['content'] as String;
+            _messages[idx].status = sm['status'] as String;
+          }
+        }
+      });
+      _scrollToBottom();
+
+      if (!_messages.any((m) => m.status == 'processing')) {
+        _pollTimer?.cancel();
+        _pollTimer = null;
+      }
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _send() async {
+  Future<void> _send({int? retryParentId}) async {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty || _isLoading) return;
 
     _msgCtrl.clear();
+    final tempId = DateTime.now().millisecondsSinceEpoch;
+
     setState(() {
-      _messages.add(_ChatMessage(text: text, isUser: true));
+      _messages.add(_ChatMessage(id: tempId, text: text, isUser: true, status: 'complete'));
       _isLoading = true;
-      // Placeholder AI message — will be updated as tokens arrive
-      _messages.add(_ChatMessage(text: 'typing...', isUser: false));
+      _messages.add(_ChatMessage(id: tempId + 1, text: '', isUser: false, status: 'processing'));
     });
     _scrollToBottom();
-
-    // Save user message locally
-    await _chatStorage.addMessage('user', text);
 
     try {
       final api = ref.read(apiClientProvider);
       final history = _chatStorage.getLastExchanges(10);
 
-      final tokenStream = api.streamPost('/ai/advise/stream', data: {
+      final res = await api.post('/ai/chat', data: {
         'question': text,
         'model': _useAdvancedModel ? 'opus' : 'flash',
         'history': history,
+        if (retryParentId != null) 'retry_parent_id': retryParentId,
       });
 
-      final buffer = StringBuffer();
-      await for (final token in tokenStream) {
-        buffer.write(token);
-        setState(() {
-          _messages.last.text = buffer.toString();
-        });
-        _scrollToBottom();
-      }
+      final data = res.data as Map<String, dynamic>;
+      final userMsgId = data['user_message_id'] as int;
+      final aiMsgId = data['ai_message_id'] as int;
 
-      final fullAnswer = buffer.toString();
-      final displayText = fullAnswer.isNotEmpty ? fullAnswer : 'No response';
       setState(() {
-        _messages.last.text = displayText;
+        _messages[_messages.length - 2] = _ChatMessage(id: userMsgId, text: text, isUser: true, status: 'complete');
+        _messages.last = _ChatMessage(id: aiMsgId, text: '', isUser: false, status: 'processing');
         _isLoading = false;
       });
-      await _chatStorage.addMessage('assistant', displayText);
+
+      await _chatStorage.addMessage('user', text);
+      _startPolling();
     } catch (e) {
       setState(() {
-        _messages.removeLast(); // remove placeholder
+        _messages.removeLast();
         _messages.add(_ChatMessage(
-          text: '⚠️ Error: ${e.toString().replaceAll('Exception: ', '')}',
+          id: tempId + 2,
+          text: '',
           isUser: false,
+          status: 'error',
         ));
         _isLoading = false;
       });
     }
     _scrollToBottom();
+  }
+
+  Future<void> _retry(_ChatMessage failedMsg) async {
+    final userIdx = _messages.lastIndexWhere((m) => m.isUser && m.id < failedMsg.id);
+    if (userIdx == -1) return;
+    final userMsg = _messages[userIdx];
+    final originalId = userMsg.id;
+    setState(() => _messages.removeWhere((m) => m.id == failedMsg.id));
+    _msgCtrl.text = userMsg.text;
+    await _send(retryParentId: originalId);
+    _msgCtrl.clear();
   }
 
   void _scrollToBottom() {
@@ -123,7 +190,6 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       appBar: AppBar(
         title: const Text('AI Financial Advisor'),
         actions: [
-          // Advanced model toggle — only for admin users
           if (ref.watch(authProvider).user?.role == 'admin')
             Padding(
               padding: EdgeInsets.only(right: _messages.isNotEmpty ? 0 : 12),
@@ -168,7 +234,6 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       ),
       body: Column(
         children: [
-          // Disclaimer
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -178,7 +243,6 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
               style: TextStyle(fontSize: 11, color: AppColors.warning),
             ),
           ),
-          // Messages
           Expanded(
             child: _messages.isEmpty && !_loaded
                 ? const Center(child: CircularProgressIndicator())
@@ -188,12 +252,9 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                         controller: _scrollCtrl,
                         padding: const EdgeInsets.all(16),
                         itemCount: _messages.length,
-                        itemBuilder: (_, i) {
-                          return _buildMessage(_messages[i]);
-                        },
+                        itemBuilder: (_, i) => _buildMessage(_messages[i]),
                       ),
           ),
-          // Input
           Container(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             color: AppColors.surface,
@@ -225,7 +286,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                     backgroundColor: _isLoading ? AppColors.textSecondary : AppColors.accent,
                     child: IconButton(
                       icon: const Icon(Icons.send, color: Colors.white, size: 18),
-                      onPressed: _isLoading ? null : _send,
+                      onPressed: _isLoading ? null : () => _send(),
                     ),
                   ),
                 ],
@@ -273,20 +334,48 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
         ),
         child: msg.isUser
             ? Text(msg.text, style: const TextStyle(color: Colors.white, fontSize: 14))
-            : MarkdownBody(
-                data: msg.text,
-                styleSheet: MarkdownStyleSheet(
-                  p: TextStyle(fontSize: 14, color: AppColors.textPrimary),
-                  strong: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
+            : msg.status == 'processing' && msg.text.isEmpty
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(width: 8),
+                      Text('Thinking...', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                    ],
+                  )
+                : msg.status == 'error'
+                    ? GestureDetector(
+                        onTap: () => _retry(msg),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline, size: 16, color: AppColors.error),
+                            const SizedBox(width: 6),
+                            Text('Failed — tap to retry',
+                                style: TextStyle(fontSize: 13, color: AppColors.error)),
+                          ],
+                        ),
+                      )
+                    : MarkdownBody(
+                        data: msg.text,
+                        styleSheet: MarkdownStyleSheet(
+                          p: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                          strong: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
       ),
     );
   }
 }
 
 class _ChatMessage {
+  final int id;
   String text;
   final bool isUser;
-  _ChatMessage({required this.text, required this.isUser});
+  String status;
+
+  _ChatMessage({required this.id, required this.text, required this.isUser, this.status = 'complete'});
 }
