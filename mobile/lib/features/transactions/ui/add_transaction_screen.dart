@@ -125,62 +125,49 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       final picked = await picker.pickImage(source: source, imageQuality: 70, maxWidth: 1920);
       if (picked == null) return;
 
-      setState(() => _isScanning = true);
       final api = ref.read(apiClientProvider);
-      final res = await api.uploadFile('/ocr/process', picked.path);
-      final data = res.data as Map<String, dynamic>;
+      await api.uploadFile('/ocr/process-and-save', picked.path);
 
-      if (data.containsKey('amount') && data['amount'] != null) {
-        _amountCtrl.text = data['amount'].toString();
-      }
-      if (data.containsKey('description') && data['description'] != null && (data['description'] as String).isNotEmpty) {
-        _descCtrl.text = data['description'] as String;
-      }
-      if (data.containsKey('date') && data['date'] != null && (data['date'] as String).isNotEmpty) {
-        final parsed = DateTime.tryParse(data['date'] as String);
-        if (parsed != null) setState(() => _selectedDate = parsed);
-      }
-      if (data.containsKey('type') && data['type'] == 'income') {
-        _toggleType(false);
-      }
-      // Auto-select category from OCR
-      if (data.containsKey('category_name') && data['category_name'] != null && (data['category_name'] as String).isNotEmpty) {
-        final catName = data['category_name'] as String;
-        final cats = _isExpense ? _expenseCategories : _incomeCategories;
-        final match = cats.where((c) => c.name == catName);
-        if (match.isNotEmpty) {
-          _selectedCategoryId = match.first.id;
-        } else {
-          // Fallback: find "Lainnya" category matching current type
-          final fallback = cats.where((c) => c.name == 'Lainnya');
-          if (fallback.isNotEmpty) {
-            _selectedCategoryId = fallback.first.id;
-          }
-        }
-      }
-      // Auto-fill note from OCR
-      if (data.containsKey('note') && data['note'] != null && (data['note'] as String).isNotEmpty) {
-        _noteCtrl.text = data['note'] as String;
-      }
-      setState(() => _isScanning = false);
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
+      // Show processing popup, then navigate to transactions page
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              const Text('Receipt scanned — review fields then save'),
+              const SizedBox(
+                width: 20, height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 12),
+              const Text('Processing'),
             ],
           ),
-          backgroundColor: AppColors.success,
+          content: const Text(
+            'Your receipt is being processed in the background. '
+            'The transaction will appear shortly.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                context.go('/transactions');
+              },
+              child: const Text('OK'),
+            ),
+          ],
         ),
       );
     } catch (e) {
-      setState(() => _isScanning = false);
       if (!mounted) return;
-      _showError('OCR failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('OCR failed: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
