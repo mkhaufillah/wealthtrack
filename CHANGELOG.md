@@ -1,18 +1,21 @@
 # Changelog
 
-## v0.4.0 — AI Budgeting, Phase A (2026-05-31)
+## v0.4.0 — AI Budgeting (2026-05-31)
 
 ### Features
 - **Budget Suggestions API** — `GET /budgets/suggestions` analyzes last 3-12 billing cycles of historical spending and recommends budget amounts per expense category. Suggestion = historical average rounded up to nearest Rp10k (min Rp10k). Detects existing budgets and warns if total suggested exceeds income.
 - **Budget Health API** — `GET /budgets/health` returns mid-cycle projections: daily spending rate, projected end-of-cycle total, and per-category health status (healthy/warning/at_risk/exhausted).
 - **Budget AI Utils** — `app/utils/budget_ai.py` with reusable `get_historical_spending()` and `get_projection()` functions.
+- **Flutter: AI Suggestions sheet** — Bottom sheet showing suggested budgets per category with accept/decline checkbox, Select All/Clear, and "Apply N Budgets" button. Accessible from FAB and empty state on budgets screen.
+- **AI Advisor: Budget Health context** — Advisor prompt enhanced with budget health projection data: days elapsed, cycle progress %, per-category health status (✅ Aman/⚠️ Hati-hati/🔴 Berisiko/❌ Habis), and projected overrun alerts. Analysis guidelines updated to recommend using projection data.
+- **AI Advisor: Enhanced CARA MENGANALISIS** — Point 1 updated to explicitly use mid-cycle projection data for over-budget warnings.
 
 ### API Changes
 - New `GET /api/v1/budgets/suggestions?month=&num_cycles=`
 - New `GET /api/v1/budgets/health?month=`
 
 ### Tests
-- 6 test cases for suggestions endpoint, 181 total backend tests passing.
+- 184 total backend tests passing (3 new health tests, 6 new suggestion tests).
 
 ## v0.3.3 — OCR Performance Optimization (2026-05-31)
 
