@@ -114,11 +114,27 @@ jobs:
           fi
 
       - name: Upload release APK
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: wealthtrack-release
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 1
+
+      - name: Upload APK to GitHub Release (fallback)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          TAG="ci-build-${GITHUB_SHA::7}"
+          gh release create "$TAG" "$APK_PATH" \
+            --title "CI Build ${GITHUB_SHA::7}" \
+            --notes "Auto-built from commit ${GITHUB_SHA}" \
+            --target "$GITHUB_SHA" \
+            --latest=false \
+            --prerelease 2>/dev/null || \
+          gh release upload "$TAG" "$APK_PATH" --clobber 2>/dev/null || true
 
       - name: Telegram notification — success
         if: success()
