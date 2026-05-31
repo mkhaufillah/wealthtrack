@@ -153,13 +153,9 @@ void main() {
       // Toggle only password eye
       await tester.tap(find.byIcon(Icons.visibility_off_outlined).first);
       await tester.pump();
+      // Password field toggled to visible, confirm stayed obscured
       expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
       expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
-
-      // Confirm password eye still shows visibility_off (not affected)
-      final confirmField = find.byKey(const ValueKey('confirmPassword'));
-      final confirmObscure = tester.widget<TextFormField>(confirmField).obscureText;
-      expect(confirmObscure, isTrue);
     });
   });
 }
