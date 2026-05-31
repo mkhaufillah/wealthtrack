@@ -656,7 +656,7 @@ async def ai_chat(
     ai_msg_id = cursor.lastrowid
     await db.commit()
 
-    # 4. Start background task
+    # 4. Start background task — streams tokens progressively to DB
     async def _process_ai():
         try:
             from app.database import get_db_bg
@@ -668,11 +668,25 @@ async def ai_chat(
                     current_user,
                     bg_db,
                 )
-                answer = await _call_model(messages=messages, model=req.model)
+                full_content = ""
+                last_flush = ""
+                async for token in _call_model_stream(messages=messages, model=req.model):
+                    if token.startswith("[ERROR:"):
+                        raise Exception(token[7:-1])
+                    full_content += token
+                    # Flush to DB every ~100 chars (~every few tokens)
+                    if len(full_content) - len(last_flush) >= 100:
+                        await bg_db.execute(
+                            "UPDATE ai_messages SET content = ? WHERE id = ?",
+                            (full_content, ai_msg_id),
+                        )
+                        await bg_db.commit()
+                        last_flush = full_content
 
+                # Final flush
                 await bg_db.execute(
                     "UPDATE ai_messages SET content = ?, status = 'complete' WHERE id = ?",
-                    (answer, ai_msg_id),
+                    (full_content, ai_msg_id),
                 )
                 await bg_db.commit()
             finally:

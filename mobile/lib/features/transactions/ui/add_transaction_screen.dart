@@ -130,36 +130,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
       if (!mounted) return;
 
-      // Show processing popup, then navigate to transactions page
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: Row(
-            children: [
-              const SizedBox(
-                width: 20, height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              const SizedBox(width: 12),
-              const Text('Processing'),
-            ],
-          ),
-          content: const Text(
-            'Your receipt is being processed in the background. '
-            'The transaction will appear shortly.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                context.go('/transactions');
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      // Navigate to transactions page immediately — banner shows processing status
+      context.go('/transactions');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

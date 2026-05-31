@@ -293,27 +293,36 @@ async def process_ocr_and_save(
                 categories_str = await _load_categories(bg_db)
                 prompt = SYSTEM_PROMPT.format(categories=categories_str)
 
-                async with httpx.AsyncClient(timeout=60) as client:
-                    resp = await client.post(
-                        "https://opencode.ai/zen/go/v1/chat/completions",
-                        headers={"Authorization": f"Bearer {settings.OPENCODE_GO_API_KEY}", "Content-Type": "application/json"},
-                        json={
-                            "model": "kimi-k2.5",
-                            "messages": [
-                                {"role": "system", "content": prompt},
-                                {"role": "user", "content": [
-                                    {"type": "image_url", "image_url": {"url": data_url}},
-                                    {"type": "text", "text": "Extract transaction data from this image."},
-                                ]},
-                            ],
-                            "max_tokens": 4096,
-                        },
-                    )
+                # Vision API call with retry (3 attempts, exponential backoff for 429)
+                import asyncio as _asyncio
+                vision_resp = None
+                for attempt in range(3):
+                    async with httpx.AsyncClient(timeout=60) as client:
+                        vision_resp = await client.post(
+                            "https://opencode.ai/zen/go/v1/chat/completions",
+                            headers={"Authorization": f"Bearer {settings.OPENCODE_GO_API_KEY}", "Content-Type": "application/json"},
+                            json={
+                                "model": "kimi-k2.5",
+                                "messages": [
+                                    {"role": "system", "content": prompt},
+                                    {"role": "user", "content": [
+                                        {"type": "image_url", "image_url": {"url": data_url}},
+                                        {"type": "text", "text": "Extract transaction data from this image."},
+                                    ]},
+                                ],
+                                "max_tokens": 4096,
+                            },
+                        )
+                    if vision_resp.status_code == 429 and attempt < 2:
+                        wait = 2 ** (attempt + 1)  # 2s, then 4s
+                        await _asyncio.sleep(wait)
+                        continue
+                    break
 
-                if resp.status_code != 200:
-                    raise Exception(f"Vision API error: {resp.status_code}")
+                if vision_resp.status_code != 200:
+                    raise Exception(f"Vision API error: {vision_resp.status_code}")
 
-                content = resp.json()["choices"][0]["message"]["content"].strip()
+                content = vision_resp.json()["choices"][0]["message"]["content"].strip()
                 content = re.sub(r"^```(?:json)?\s*", "", content)
                 content = re.sub(r"\s*```$", "", content)
                 parsed = json.loads(content)
