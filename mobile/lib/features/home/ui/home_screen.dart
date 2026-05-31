@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../providers/dashboard_provider.dart';
@@ -8,6 +9,7 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../features/ocr/providers/ocr_provider.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/recent_transactions.dart';
 
@@ -20,6 +22,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _savingsBalance = 0;
   int _emergencyBalance = 0;
+  Timer? _ocrPollTimer;
 
   String _formatDate(String iso) {
     try {
@@ -35,6 +38,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     Future.microtask(() => ref.read(dashboardProvider.notifier).load());
     Future.microtask(() => _loadAllTimeBalances());
+    _startOcrPolling();
+  }
+
+  void _startOcrPolling() {
+    _ocrPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      ref.read(ocrPendingCountProvider.notifier).load();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ocrPollTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadAllTimeBalances() async {
@@ -69,10 +85,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dashboardProvider);
+    final ocrCount = ref.watch(ocrPendingCountProvider);
 
     // Reload dashboard when homeRefreshProvider is incremented
     ref.listen<int>(homeRefreshProvider, (prev, next) {
       if (prev != next) ref.read(dashboardProvider.notifier).load();
+    });
+
+    // Auto-refresh when OCR pending drops to 0
+    ref.listen<int>(ocrPendingCountProvider, (previous, next) {
+      if (previous != null && previous > 0 && next == 0) {
+        ref.read(dashboardProvider.notifier).load();
+      }
     });
 
     return Scaffold(
@@ -87,6 +111,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 : ListView(
                     padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
                     children: [
+                      // OCR processing banner
+                      if (ocrCount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                const SizedBox(
+                                  width: 14, height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  ocrCount == 1
+                                      ? '⏳ 1 transaction being processed...'
+                                      : '⏳ $ocrCount transactions being processed...',
+                                  style: TextStyle(fontSize: 13, color: AppColors.warning),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       BalanceCard(
                         balance: state.balance,
                         income: state.totalIncome,

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/empty_state.dart';
+import '../../../features/ocr/providers/ocr_provider.dart';
 import '../providers/transaction_provider.dart';
 import 'widgets/transaction_tile.dart';
 
@@ -17,15 +19,24 @@ class TransactionListScreen extends ConsumerStatefulWidget {
 class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
+  Timer? _ocrPollTimer;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(transactionListProvider.notifier).load());
+    _startOcrPolling();
+  }
+
+  void _startOcrPolling() {
+    _ocrPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      ref.read(ocrPendingCountProvider.notifier).load();
+    });
   }
 
   @override
   void dispose() {
+    _ocrPollTimer?.cancel();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -350,7 +361,15 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(transactionListProvider);
     final notifier = ref.read(transactionListProvider.notifier);
+    final ocrCount = ref.watch(ocrPendingCountProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Auto-refresh when OCR pending drops to 0
+    ref.listen<int>(ocrPendingCountProvider, (previous, next) {
+      if (previous != null && previous > 0 && next == 0) {
+        ref.read(transactionListProvider.notifier).load();
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -374,6 +393,29 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       ),
       body: Column(
         children: [
+          // OCR processing banner
+          if (ocrCount > 0)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              color: AppColors.warning.withOpacity(0.1),
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 14, height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    ocrCount == 1
+                        ? '⏳ 1 transaction being processed...'
+                        : '⏳ $ocrCount transactions being processed...',
+                    style: TextStyle(fontSize: 13, color: AppColors.warning),
+                  ),
+                ],
+              ),
+            ),
+
           // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
