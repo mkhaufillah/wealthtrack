@@ -50,23 +50,22 @@ void main() {
         expect(result, isA<NetworkException>());
       });
 
-      test('returns ApiException with error detail from response', () {
+      test('maps unrecognized backend error to generic message', () {
         final dioError = DioException(
           requestOptions: RequestOptions(path: '/test'),
           response: Response(
             statusCode: 422,
-            data: {'detail': 'Validation failed'},
+            data: {'detail': 'Unknown validation error'},
             requestOptions: RequestOptions(path: '/test'),
           ),
         );
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
         final apiExc = result as ApiException;
-        expect(apiExc.message, 'Validation failed');
-        expect(apiExc.statusCode, 422);
+        expect(apiExc.message, 'Something went wrong. Please try again.');
       });
 
-      test('returns ApiException with status code for non-detailed error', () {
+      test('returns generic message for 500', () {
         final dioError = DioException(
           requestOptions: RequestOptions(path: '/test'),
           response: Response(
@@ -79,20 +78,47 @@ void main() {
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
         final apiExc = result as ApiException;
-        expect(apiExc.message, 'Internal Server Error');
-        expect(apiExc.statusCode, 500);
+        expect(apiExc.message, 'Something went wrong. Please try again.');
       });
 
       test('returns generic ApiException for unknown error types', () {
         final result = client.handleError('Some random string');
         expect(result, isA<ApiException>());
         final apiExc = result as ApiException;
-        expect(apiExc.message, 'Unexpected error occurred');
+        expect(apiExc.message, 'Something went wrong. Please try again.');
       });
 
       test('returns ApiException for non-Dio Exception', () {
         final result = client.handleError(FormatException('bad format'));
         expect(result, isA<ApiException>());
+      });
+
+      test('maps known error messages to friendly text', () {
+        final dioError = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          response: Response(
+            statusCode: 400,
+            data: {'detail': 'Invalid email or password'},
+            requestOptions: RequestOptions(path: '/test'),
+          ),
+        );
+        final result = client.handleError(dioError);
+        expect(result, isA<ApiException>());
+        expect((result as ApiException).message, 'Email or password is incorrect.');
+      });
+
+      test('returns generic message for empty detail', () {
+        final dioError = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          response: Response(
+            statusCode: 500,
+            data: {},
+            requestOptions: RequestOptions(path: '/test'),
+          ),
+        );
+        final result = client.handleError(dioError);
+        expect(result, isA<ApiException>());
+        expect((result as ApiException).message, 'Something went wrong. Please try again.');
       });
     });
 

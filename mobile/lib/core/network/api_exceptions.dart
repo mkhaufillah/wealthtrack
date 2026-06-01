@@ -4,16 +4,13 @@ class ApiException implements Exception {
   ApiException(this.message, {this.statusCode});
 
   @override
-  String toString() {
-    if (statusCode != null) return 'ApiException($statusCode): $message';
-    return 'ApiException: $message';
-  }
+  String toString() => message;
 }
 
 class UnauthorizedException extends ApiException {
-  UnauthorizedException() : super('Unauthorized', statusCode: 401);
+  UnauthorizedException() : super('Session expired. Please login again.', statusCode: 401);
 }
 
 class NetworkException extends ApiException {
-  NetworkException() : super('Network error — check your connection');
+  NetworkException() : super('No internet connection. Please check and try again.');
 }

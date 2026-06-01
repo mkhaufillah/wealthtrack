@@ -9,19 +9,14 @@ void main() {
       expect(exc.statusCode, 404);
     });
 
-    test('toString includes status code when provided', () {
-      final exc = ApiException('Not found', statusCode: 404);
-      expect(exc.toString(), 'ApiException(404): Not found');
+    test('toString returns just the message', () {
+      final exc = ApiException('Email or password is incorrect.', statusCode: 401);
+      expect(exc.toString(), 'Email or password is incorrect.');
     });
 
-    test('toString omits status code when null', () {
-      final exc = ApiException('Generic error');
-      expect(exc.toString(), 'ApiException: Generic error');
-    });
-
-    test('toString with zero status code', () {
-      final exc = ApiException('Unknown', statusCode: 0);
-      expect(exc.toString(), 'ApiException(0): Unknown');
+    test('toString without status code', () {
+      final exc = ApiException('Something went wrong. Please try again.');
+      expect(exc.toString(), 'Something went wrong. Please try again.');
     });
 
     test('is an Exception', () {
@@ -42,12 +37,12 @@ void main() {
       final exc = UnauthorizedException();
       expect(exc, isA<ApiException>());
       expect(exc.statusCode, 401);
-      expect(exc.message, 'Unauthorized');
+      expect(exc.message, 'Session expired. Please login again.');
     });
 
-    test('toString shows 401 status', () {
+    test('toString returns friendly message', () {
       final exc = UnauthorizedException();
-      expect(exc.toString(), 'ApiException(401): Unauthorized');
+      expect(exc.toString(), 'Session expired. Please login again.');
     });
 
     test('can be thrown and caught as ApiException', () {
@@ -63,12 +58,12 @@ void main() {
       final exc = NetworkException();
       expect(exc, isA<ApiException>());
       expect(exc.statusCode, isNull);
-      expect(exc.message, 'Network error — check your connection');
+      expect(exc.message, 'No internet connection. Please check and try again.');
     });
 
-    test('toString omits status code', () {
+    test('toString returns friendly message', () {
       final exc = NetworkException();
-      expect(exc.toString(), 'ApiException: Network error — check your connection');
+      expect(exc.toString(), 'No internet connection. Please check and try again.');
     });
 
     test('can be thrown and caught', () {

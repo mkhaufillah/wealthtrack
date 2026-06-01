@@ -5,6 +5,34 @@ import '../constants.dart';
 import '../storage/secure_storage.dart';
 import 'api_exceptions.dart';
 
+/// Maps raw backend error strings to user-friendly messages.
+/// Unknown/unmatched errors fall back to a generic "Something went wrong."
+const _friendlyErrors = <String, String>{
+  'invalid email or password': 'Email or password is incorrect.',
+  'email already registered': 'This email is already registered.',
+  'account not found': 'Account not found.',
+  'user not found': 'Account not found.',
+  'invalid token': 'Session expired. Please login again.',
+  'could not determine amount or category': 'Something went wrong. Please try again.',
+  'ocr rate limit': 'Please wait before uploading another receipt.',
+  'you already have an ocr job': 'Please wait for the current receipt to finish processing.',
+  'vision api error': 'Something went wrong. Please try again.',
+  'vision api timed out': 'Something went wrong. Please try again.',
+  'image too large': 'Image is too large. Max 10 MB.',
+  'unsupported image format': 'Unsupported image format. Use JPG or PNG.',
+};
+
+/// Returns a user-friendly message for a given error string.
+String _friendly(String raw) {
+  final lower = raw.toLowerCase();
+  for (final entry in _friendlyErrors.entries) {
+    if (lower.contains(entry.key)) {
+      return entry.value;
+    }
+  }
+  return 'Something went wrong. Please try again.';
+}
+
 class ApiClient {
   late final Dio _dio;
   final SecureStorage _storage;
@@ -111,15 +139,41 @@ class ApiClient {
 
   Exception handleError(dynamic error) {
     if (error is ApiException) return error;
+
     if (error is DioException) {
       if (error.response?.statusCode == 401) return UnauthorizedException();
       if (error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.receiveTimeout) {
         return NetworkException();
       }
-      final msg = error.response?.data?['detail']?.toString() ?? error.message ?? 'Unexpected error';
-      return ApiException(msg, statusCode: error.response?.statusCode);
+
+      // Extract message from backend response
+      final detail = error.response?.data;
+      String rawMsg;
+      if (detail is Map && detail.containsKey('detail')) {
+        final d = detail['detail'];
+        if (d is List) {
+          // FastAPI 422 validation error — extract first message
+          rawMsg = d.isNotEmpty ? (d[0]['msg']?.toString() ?? '') : '';
+        } else {
+          rawMsg = d.toString();
+        }
+      } else {
+        rawMsg = error.message ?? '';
+      }
+
+      if (rawMsg.isEmpty) {
+        return ApiException('Something went wrong. Please try again.');
+      }
+
+      // Rate limit (429)
+      if (error.response?.statusCode == 429) {
+        return ApiException('Too many requests. Please wait a moment.');
+      }
+
+      return ApiException(_friendly(rawMsg));
     }
-    return ApiException('Unexpected error occurred');
+
+    return ApiException('Something went wrong. Please try again.');
   }
 }
