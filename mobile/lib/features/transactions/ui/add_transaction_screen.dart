@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:dio/dio.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../home/providers/dashboard_provider.dart';
@@ -139,15 +138,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       context.go('/transactions');
     } catch (e) {
       if (!mounted) return;
-      String message;
-      if (e is DioException && e.response?.statusCode == 429) {
-        message = '⏳ Still processing the previous invoice. Please wait.';
-      } else {
-        message = 'OCR failed: $e';
-      }
+      final errMsg = ref.read(apiClientProvider).handleError(e).toString();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(message),
+          content: Text(errMsg),
           backgroundColor: AppColors.highlight,
         ),
       );
