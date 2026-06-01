@@ -201,8 +201,9 @@ The Home and Transactions screens show a sticky error banner (`ocr_provider.dart
 
 ### Dismiss Behavior
 
-- **In-memory fingerprint:** When dismissed, the error text is fingerprinted and suppressed on subsequent polls (every 5s). A different error message WILL still show up.
-- **Persistent across app restart:** Dismissed fingerprint is saved to `SecureStorage` (`key: 'ocr_dismissed_error'`). App restart retains the dismissal. A new error text (different from stored fingerprint) clears the stored value and displays the new error.
+- **Job ID fingerprinting:** Each OCR job has a unique ID. When dismissed, the `failed_job_id` is fingerprinted (not the error text). This naturally differentiates old vs new failures — a new OCR job that fails with the same error text WILL still show because it has a different job ID.
+- **Persistent across app restart:** Dismissed `failed_job_id` is saved to `SecureStorage` (`key: 'ocr_dismissed_job_id'`). App restart retains the dismissal.
+- **New scan clears error display:** When user starts a new OCR scan, the visible error banner is cleared immediately (`clearError()`), but the dismissed job ID fingerprint is NOT reset. The old error stays suppressed while the new job is processing.
 - **Backend expiry:** The backend only returns `has_failure: true` for failed jobs created within the last 60 seconds (`created_at > datetime('now', '-60 seconds')`). After 60 seconds, the error banner naturally stops appearing.
 
 ### Error Text
