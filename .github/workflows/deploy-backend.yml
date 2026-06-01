@@ -36,6 +36,10 @@ jobs:
           pip install -q -r requirements.txt
           pip install -q pytest pytest-asyncio httpx
 
+      - name: Setup environment
+        run: |
+          python3 -c "import secrets; f=open('.env','w'); f.write(f'SECRET_KEY={secrets.token_hex(32)}\nDEBUG=True\nACCESS_TOKEN_EXPIRE_DAYS=30\n')"
+
       - name: Run tests
         run: pytest tests/ -v
 
