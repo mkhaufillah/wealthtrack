@@ -418,8 +418,12 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
   Widget _buildBudgetCard(BudgetSummaryItem item) {
     final isOverBudget = item.remaining <= 0;
-    final isWarning = item.percentage >= 70 && item.percentage < 100;
-    final isHealthy = item.percentage < 70;
+
+    // Recalculate from raw ints to avoid backend rounding (99.999% → 100.0)
+    final _pct = item.budgetAmount > 0
+        ? item.actualSpent / item.budgetAmount * 100
+        : 0.0;
+    final isWarning = _pct >= 70 && _pct < 100;
 
     Color barColor;
     if (isOverBudget) {
@@ -514,7 +518,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(
-                value: item.percentage / 100,
+                value: (_pct / 100).clamp(0.0, 1.0),
                 minHeight: 10,
                 backgroundColor: AppColors.divider,
                 valueColor: AlwaysStoppedAnimation<Color>(barColor),
@@ -524,7 +528,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             Row(
               children: [
                 Text(
-                  '${item.percentage.toStringAsFixed(0)}%',
+                  '${_pct.floor()}%',
                   style: TextStyle(fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: isOverBudget ? AppColors.highlight : AppColors.textSecondary,
