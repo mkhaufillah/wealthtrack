@@ -528,7 +528,12 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             Row(
               children: [
                 Text(
-                  '${_pct.floor()}%',
+                  () {
+                    final d = (_pct * 10).floor() / 10;
+                    return d == d.roundToDouble()
+                        ? '${d.toInt()}%'
+                        : '${d.toStringAsFixed(1)}%';
+                  }(),
                   style: TextStyle(fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: isOverBudget ? AppColors.highlight : AppColors.textSecondary,
