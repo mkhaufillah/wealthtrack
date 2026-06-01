@@ -5,7 +5,9 @@
 ### Fixes
 - **Budget Remaining Logic** — Changed over-budget detection from `percentage >= 100` to `remaining <= 0`. Three display states now: "Over by X" (remaining < 0), "Budget exhausted" (remaining == 0), "X remaining" (remaining > 0). Fixes: budget exhausted shown when actually Rp1.000 over; negative "Over by -10.000" shown when actually Rp10.000 remaining.
 - **Percentage Display** — Recalculated locally from raw `actualSpent`/`budgetAmount` ints to avoid backend floating-point rounding (99.999 → 100.0). Display floors at 1 decimal (98.8727 → 98.8%).
-- **OCR Error Banner Dismiss Persistence** — Dismissed fingerprint now saved to `SecureStorage`. Previously in-memory only — app kill would lose dismissal state and error reappeared on next poll. Now persists across app restarts; new error text clears the stored fingerprint.
+- **OCR Error Dismiss — Job ID Fingerprinting** — Changed from error-text-based fingerprint to `failed_job_id` from the server. Previously, dismissing with fingerprint-by-text meant all future failures (same "OCR failed..." text) were also suppressed — even from new scan attempts. Now each OCR job has a unique ID: dismissing job 5 only suppresses job 5; job 6's failure shows regardless of same error text.
+- **OCR Error Banner on New Scan** — `clearError()` replaces `resetDismissed()`. On new scan, the visible error banner clears immediately but the dismissed job ID fingerprint stays intact. Old error stays suppressed while new job processes. Fixes: old error reappearing "below loading overlay" on `/transactions` after starting a new scan.
+- **OCR Error Banner Dismiss Persistence** — Dismissed `failed_job_id` saved to `SecureStorage` (was error text). Survives app restart.
 - **OCR Error Messages Unified** — All three error paths (Vision API error, JSON parse error, generic exception) now use: `'OCR failed. Please try again with a clearer photo.'`. No more raw technical messages.
 - **OCR AddTransaction Error** — Now uses centralized `handleError` instead of inline catch with raw message.
 
@@ -19,14 +21,14 @@
 - **Tap Budget Card to Filter** — Tapping a budget card navigates to Transactions tab with category filter pre-applied.
 
 ### API Changes
-- None. All changes are frontend-only or backend-error-message-only.
+- `GET /api/v1/ocr/pending-count` — Response now includes `failed_job_id` (nullable integer) for fingerprint-based error dismissal.
 
 ### Tests
 - Backend tests: unchanged (still passing)
-- Flutter tests: 253+ passing (updated API client and exception tests for new error mapping)
+- Flutter tests: 253+ passing
 
 ### Docs
-- CHANGELOG, Flutter mobile docs, OCR scanner doc synced with budget logic, error handling, and dismiss persistence.
+- CHANGELOG, Flutter mobile docs (section 13 budget display, section 15 error handling), OCR scanner doc (error banner, job ID fingerprinting) synced.
 
 ---
 
