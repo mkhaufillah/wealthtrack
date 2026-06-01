@@ -127,6 +127,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       if (picked == null) return;
 
       final api = ref.read(apiClientProvider);
+
+      // Clear any previously dismissed OCR error so new failures show up
+      ref.read(ocrPendingCountProvider.notifier).resetDismissed();
+
       await api.uploadFile('/ocr/process-and-save', picked.path);
 
       if (!mounted) return;

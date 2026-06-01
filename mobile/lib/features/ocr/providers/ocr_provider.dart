@@ -72,4 +72,10 @@ class OcrPendingCountNotifier extends StateNotifier<OcrState> {
       state = OcrState(pendingCount: state.pendingCount);
     }
   }
+
+  /// Clear dismissed fingerprint so a new OCR attempt shows errors again.
+  Future<void> resetDismissed() async {
+    _dismissedFingerprint = null;
+    await _storage.saveSecure('ocr_dismissed_error', '');
+  }
 }
