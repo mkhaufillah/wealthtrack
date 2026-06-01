@@ -35,7 +35,7 @@ Widget buildTxListApp({
     overrides: [
       ocrPendingCountProvider.overrideWithProvider(
         StateNotifierProvider<OcrPendingCountNotifier, OcrState>((ref) {
-          return OcrPendingCountNotifier(mockApi);
+          return OcrPendingCountNotifier(mockApi, MockSecureStorage());
         }),
       ),
       transactionListProvider.overrideWithProvider(
