@@ -37,8 +37,6 @@ class TestBudgetHealth:
         assert resp.status_code == 201
 
         # Create an expense transaction for health category
-        from datetime import date
-        today = date.today()
         resp = await client.post(
             "/api/v1/transactions",
             headers={"Authorization": f"Bearer {filla_token}"},
@@ -47,7 +45,7 @@ class TestBudgetHealth:
                 "type": "expense",
                 "amount": 100000,
                 "description": "Test health expense",
-                "date": today.isoformat(),
+                "date": "2026-05-15",
             },
         )
         assert resp.status_code == 201
