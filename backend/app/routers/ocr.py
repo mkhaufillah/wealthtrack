@@ -289,6 +289,15 @@ async def process_ocr_and_save(
 
             bg_db = await get_db_bg()
             try:
+                # ⚠️ SIMULATED ERROR: always fails for testing error banner
+                err_msg = (
+                    "Gagal memproses struk. Penyebab: gambar buram atau "
+                    "tidak ada informasi transaksi yang jelas. "
+                    "Coba foto ulang dengan pencahayaan cukup dan pastikan "
+                    "nominal serta tanggal terlihat."
+                )
+                raise Exception(err_msg)
+
                 # Read and compress
                 raw_bytes = open(img_path, "rb").read()
                 img = Image.open(BytesIO(raw_bytes))
