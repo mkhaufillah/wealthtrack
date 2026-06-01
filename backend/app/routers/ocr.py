@@ -289,15 +289,6 @@ async def process_ocr_and_save(
 
             bg_db = await get_db_bg()
             try:
-                # ⚠️ SIMULATED ERROR: always fails for testing error banner
-                err_msg = (
-                    "Gagal memproses struk. Penyebab: gambar buram atau "
-                    "tidak ada informasi transaksi yang jelas. "
-                    "Coba foto ulang dengan pencahayaan cukup dan pastikan "
-                    "nominal serta tanggal terlihat."
-                )
-                raise Exception(err_msg)
-
                 # Read and compress
                 raw_bytes = open(img_path, "rb").read()
                 img = Image.open(BytesIO(raw_bytes))
@@ -387,22 +378,21 @@ async def process_ocr_and_save(
                     )
                 else:
                     await bg_db.execute(
-                        "UPDATE ocr_jobs SET status = 'failed', error = 'Could not determine amount or category' WHERE id = ?",
+                        "UPDATE ocr_jobs SET status = 'failed', error = 'OCR failed. Please try again with a clearer photo.' WHERE id = ?",
                         (job_id,),
                     )
 
                 await bg_db.commit()
             except json.JSONDecodeError:
                 await bg_db.execute(
-                    "UPDATE ocr_jobs SET status = 'failed', error = 'Invalid JSON from vision API' WHERE id = ?",
+                    "UPDATE ocr_jobs SET status = 'failed', error = 'OCR failed. Please try again with a clearer photo.' WHERE id = ?",
                     (job_id,),
                 )
                 await bg_db.commit()
-            except Exception as e:
-                err_msg = str(e)
+            except Exception:
                 await bg_db.execute(
-                    "UPDATE ocr_jobs SET status = 'failed', error = ? WHERE id = ?",
-                    (err_msg, job_id),
+                    "UPDATE ocr_jobs SET status = 'failed', error = 'OCR failed. Please try again with a clearer photo.' WHERE id = ?",
+                    (job_id,),
                 )
                 await bg_db.commit()
             finally:
