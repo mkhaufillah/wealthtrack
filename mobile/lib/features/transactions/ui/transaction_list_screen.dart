@@ -11,7 +11,8 @@ import '../providers/transaction_provider.dart';
 import 'widgets/transaction_tile.dart';
 
 class TransactionListScreen extends ConsumerStatefulWidget {
-  const TransactionListScreen({super.key});
+  final int? preSelectedCategoryId;
+  const TransactionListScreen({super.key, this.preSelectedCategoryId});
   @override
   ConsumerState<TransactionListScreen> createState() => _TransactionListScreenState();
 }
@@ -24,7 +25,14 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(transactionListProvider.notifier).load());
+    Future.microtask(() {
+      final notifier = ref.read(transactionListProvider.notifier);
+      if (widget.preSelectedCategoryId != null) {
+        notifier.setCategoryFilter([widget.preSelectedCategoryId!]);
+      } else {
+        notifier.load();
+      }
+    });
     _startOcrPolling();
     // Immediate OCR check, no wait for first poll tick
     Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());

@@ -65,7 +65,7 @@ final overBudgetItem = BudgetSummaryItem(
   budgetAmount: 1000000,
   actualSpent: 1200000,
   percentage: 120.0,
-  remaining: 0,
+  remaining: -200000,
   cycleOn: 1,
 );
 

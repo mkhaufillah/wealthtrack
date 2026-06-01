@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
@@ -416,7 +417,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 
   Widget _buildBudgetCard(BudgetSummaryItem item) {
-    final isOverBudget = item.percentage >= 100;
+    final isOverBudget = item.remaining <= 0;
     final isWarning = item.percentage >= 70 && item.percentage < 100;
     final isHealthy = item.percentage < 70;
 
@@ -429,15 +430,17 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       barColor = AppColors.success;
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return GestureDetector(
+      onTap: () => context.go('/transactions', extra: item.categoryId),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
               children: [
                 Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 10),
@@ -529,10 +532,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 ),
                 const Spacer(),
                 Text(
-                  item.remaining <= 0 && item.percentage == 100
-                      ? 'Budget exhausted'
-                      : isOverBudget
-                          ? 'Over by ${formatCurrency(item.actualSpent - item.budgetAmount)}'
+                  item.remaining < 0
+                      ? 'Over by ${formatCurrency(-item.remaining)}'
+                      : item.remaining == 0
+                          ? 'Budget exhausted'
                           : '${formatCurrency(item.remaining)} remaining',
                   style: TextStyle(
                     fontSize: 12,
@@ -544,6 +547,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

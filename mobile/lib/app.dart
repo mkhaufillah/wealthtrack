@@ -44,7 +44,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
           GoRoute(
             path: '/transactions',
-            builder: (_, __) => const TransactionListScreen(),
+            builder: (_, state) => TransactionListScreen(
+              preSelectedCategoryId: state.extra is int ? state.extra as int : null,
+            ),
           ),
           GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
           GoRoute(path: '/budgets', builder: (_, __) => const BudgetsScreen()),
