@@ -233,6 +233,7 @@ class OcrPendingCount(BaseModel):
     count: int
     error: Optional[str] = None
     has_failure: bool = False
+    failed_job_id: Optional[int] = None
 
 
 @router.post("/process-and-save", response_model=OcrAutoSaveResult)
@@ -420,12 +421,12 @@ async def ocr_pending_count(
 
     # Check for recent failures (last 60 seconds) to surface error to user
     cursor = await db.execute(
-        "SELECT error FROM ocr_jobs WHERE user_id = ? AND status = 'failed' AND created_at > datetime('now', '-60 seconds') ORDER BY created_at DESC LIMIT 1",
+        "SELECT id, error FROM ocr_jobs WHERE user_id = ? AND status = 'failed' AND created_at > datetime('now', '-60 seconds') ORDER BY created_at DESC LIMIT 1",
         (current_user["id"],),
     )
     failed_row = await cursor.fetchone()
 
     if failed_row and failed_row["error"]:
-        return OcrPendingCount(count=processing_count, error=failed_row["error"], has_failure=True)
+        return OcrPendingCount(count=processing_count, error=failed_row["error"], has_failure=True, failed_job_id=failed_row["id"])
 
     return OcrPendingCount(count=processing_count)

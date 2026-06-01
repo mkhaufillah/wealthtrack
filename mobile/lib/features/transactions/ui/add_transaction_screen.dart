@@ -128,8 +128,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
       final api = ref.read(apiClientProvider);
 
-      // Clear any previously dismissed OCR error so new failures show up
-      ref.read(ocrPendingCountProvider.notifier).resetDismissed();
+      // Clear any visible error banner immediately — user doesn't need to see
+      // the old failure while the new scan is in progress.
+      ref.read(ocrPendingCountProvider.notifier).clearError();
 
       await api.uploadFile('/ocr/process-and-save', picked.path);
 
