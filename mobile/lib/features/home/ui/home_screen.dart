@@ -86,7 +86,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dashboardProvider);
-    final ocrCount = ref.watch(ocrPendingCountProvider);
+    final ocrState = ref.watch(ocrPendingCountProvider);
 
     // Reload dashboard when homeRefreshProvider is incremented
     ref.listen<int>(homeRefreshProvider, (prev, next) {
@@ -94,8 +94,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
 
     // Auto-refresh when OCR pending drops to 0
-    ref.listen<int>(ocrPendingCountProvider, (previous, next) {
-      if (previous != null && next < previous) {
+    ref.listen<OcrState>(ocrPendingCountProvider, (previous, next) {
+      if (previous != null && next.pendingCount < previous.pendingCount) {
         ref.read(dashboardProvider.notifier).load();
       }
     });
@@ -113,7 +113,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
                     children: [
                       // OCR processing banner
-                      if (ocrCount > 0)
+                      if (ocrState.pendingCount > 0)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Container(
@@ -130,10 +130,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  ocrCount == 1
+                                  ocrState.pendingCount == 1
                                       ? '⏳ 1 transaction being processed...'
-                                      : '⏳ $ocrCount transactions being processed...',
+                                      : '⏳ ${ocrState.pendingCount} transactions being processed...',
                                   style: TextStyle(fontSize: 13, color: AppColors.warning),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      // OCR error banner
+                      if (ocrState.hasFailure)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.highlight.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    ocrState.error ?? 'OCR processing failed',
+                                    style: TextStyle(fontSize: 13, color: AppColors.highlight),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () => ref.read(ocrPendingCountProvider.notifier).dismissError(),
+                                  child: Icon(Icons.close, size: 16, color: AppColors.textSecondary),
                                 ),
                               ],
                             ),

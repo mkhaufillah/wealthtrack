@@ -371,12 +371,12 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(transactionListProvider);
     final notifier = ref.read(transactionListProvider.notifier);
-    final ocrCount = ref.watch(ocrPendingCountProvider);
+    final ocrState = ref.watch(ocrPendingCountProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Auto-refresh when OCR pending drops to 0
-    ref.listen<int>(ocrPendingCountProvider, (previous, next) {
-      if (previous != null && next < previous) {
+    ref.listen<OcrState>(ocrPendingCountProvider, (previous, next) {
+      if (previous != null && next.pendingCount < previous.pendingCount) {
         ref.read(transactionListProvider.notifier).load();
       }
     });
@@ -404,7 +404,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       body: Column(
         children: [
           // OCR processing banner
-          if (ocrCount > 0)
+          if (ocrState.pendingCount > 0)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -417,10 +417,33 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    ocrCount == 1
+                    ocrState.pendingCount == 1
                         ? '⏳ 1 transaction being processed...'
-                        : '⏳ $ocrCount transactions being processed...',
+                        : '⏳ ${ocrState.pendingCount} transactions being processed...',
                     style: TextStyle(fontSize: 13, color: AppColors.warning),
+                  ),
+                ],
+              ),
+            ),
+          // OCR error banner
+          if (ocrState.hasFailure)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              color: AppColors.highlight.withOpacity(0.1),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      ocrState.error ?? 'OCR processing failed',
+                      style: TextStyle(fontSize: 13, color: AppColors.highlight),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => ref.read(ocrPendingCountProvider.notifier).dismissError(),
+                    child: Icon(Icons.close, size: 16, color: AppColors.textSecondary),
                   ),
                 ],
               ),
