@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.4.4 — Budget Display Fixes, Error Humanization & OCR Dismiss Persistence (2026-06-02)
+
+### Fixes
+- **Budget Remaining Logic** — Changed over-budget detection from `percentage >= 100` to `remaining <= 0`. Three display states now: "Over by X" (remaining < 0), "Budget exhausted" (remaining == 0), "X remaining" (remaining > 0). Fixes: budget exhausted shown when actually Rp1.000 over; negative "Over by -10.000" shown when actually Rp10.000 remaining.
+- **Percentage Display** — Recalculated locally from raw `actualSpent`/`budgetAmount` ints to avoid backend floating-point rounding (99.999 → 100.0). Display floors at 1 decimal (98.8727 → 98.8%).
+- **OCR Error Banner Dismiss Persistence** — Dismissed fingerprint now saved to `SecureStorage`. Previously in-memory only — app kill would lose dismissal state and error reappeared on next poll. Now persists across app restarts; new error text clears the stored fingerprint.
+- **OCR Error Messages Unified** — All three error paths (Vision API error, JSON parse error, generic exception) now use: `'OCR failed. Please try again with a clearer photo.'`. No more raw technical messages.
+- **OCR AddTransaction Error** — Now uses centralized `handleError` instead of inline catch with raw message.
+
+### Features
+- **Human-Readable Error Messages** — `ApiException.toString()` returns just the message (no prefix). `handleError` maps all backend errors to friendly English:
+  - Login/register errors → clear actionable text
+  - Network/timeout → "No internet connection. Please check and try again."
+  - 401 → "Session expired. Please login again."
+  - 429 → "Too many requests. Please wait a moment."
+  - Unrecognized → "Something went wrong. Please try again."
+- **Tap Budget Card to Filter** — Tapping a budget card navigates to Transactions tab with category filter pre-applied.
+
+### API Changes
+- None. All changes are frontend-only or backend-error-message-only.
+
+### Tests
+- Backend tests: unchanged (still passing)
+- Flutter tests: 253+ passing (updated API client and exception tests for new error mapping)
+
+### Docs
+- CHANGELOG, Flutter mobile docs, OCR scanner doc synced with budget logic, error handling, and dismiss persistence.
+
+---
+
 ## v0.4.3 — OCR Queue, AI Advisor Abuse Protection & Stability (2026-05-31)
 
 ### Features

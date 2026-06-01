@@ -774,9 +774,28 @@ Displayed in a dedicated card below the AI Financial Advisor card with:
 - Emergency Funds balance (green if non-negative)
 - Silently fails on network error — the rest of the dashboard continues working
 
-## 13. Budget Exhausted Message
+## 13. Budget Display Logic
 
-When a budget category's `percentage >= 100`, the budget screen shows an "exhausted" label (`budgets_screen.dart`). The remaining text shows 0 and the progress bar is fully red. The backend returns `category_name_en` for all budget summary items to support this display.
+The budget screen (`budgets_screen.dart`) shows each budget category with a progress bar, percentage, and remaining/over label.
+
+### Remaining Display
+Backend returns `remaining = budget_amount - actual_spent` (raw, no clamp). Flutter uses this field directly:
+- `remaining > 0` → `"RpX.XXX remaining"` (green text)
+- `remaining == 0` → `"Budget exhausted"` (red text)
+- `remaining < 0` → `"Over by RpX.XXX"` using `formatCurrency(-remaining)` (red text)
+
+Over-budget detection uses `remaining <= 0` (not `percentage >= 100`), avoiding floating-point rounding errors.
+
+### Percentage Display
+Percentage is recalculated locally from raw `actualSpent`/`budgetAmount` integers to prevent backend floating-point rounding (99.999 → 100.0). Display uses `floor()` at 1 decimal place (98.8727 → 98.8%).
+
+### Progress Bar
+- Green (#2ECC71) when percentage < 70
+- Amber (#F39C12) when 70 ≤ percentage < 100
+- Red (#E94560) when percentage ≥ 100 (over budget)
+
+### Tap Behavior
+Tapping a budget card navigates to the Transactions tab (`/transactions`) with the budget's category filter pre-applied via `queryParams: {'category_id': item.categoryId}`.
 
 ## 14. Reports — Savings Rate & Daily Average
 
@@ -798,3 +817,47 @@ The reports screen (`_buildExtraStats` in `reports_screen.dart`) shows two addit
 
 ### incomeCategories in MonthlyReport
 The `MonthlyReport` model now includes `incomeCategories` (`List<CategoryBreakdown>`) alongside the existing `categories` (expense). Parsed from the new `income_categories` field in the monthly summary API response.
+
+## 15. Centralized Error Handling
+
+Errors are handled centrally in `ApiClient.handleError()` (`api_client.dart`). All providers and screens route exceptions through this method — no inline Dio catch blocks.
+
+### Error Mapping
+
+| Backend / Error Type | User-Friendly Message |
+|---|---|
+| Login wrong password | "Username or password is incorrect. Please check and try again." |
+| Email already registered | "Email is already registered. Please use a different email or login." |
+| Network / timeout | "No internet connection. Please check and try again." |
+| 401 Unauthorized | "Session expired. Please login again." |
+| 429 Rate limit | "Too many requests. Please wait a moment." |
+| OCR backend errors | "Something went wrong. Please try again." |
+| Unrecognized / server 5xx | "Something went wrong. Please try again." |
+
+### Implementation
+
+`ApiException` (and subclasses `UnauthorizedException`, `NetworkException`) use `toString()` that returns just the message — no technical prefixes like `"ApiException(XXX):"`.
+
+```dart
+// api_client.dart — simplified
+Exception handleError(dynamic e) {
+  if (e is DioException) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.connectionError:
+        return NetworkException('No internet connection. Please check and try again.');
+      case DioExceptionType.badResponse:
+        final status = e.response?.statusCode;
+        final detail = _extractDetail(e.response);
+        if (status == 401) return UnauthorizedException('Session expired. Please login again.');
+        if (status == 429) return ApiException('Too many requests. Please wait a moment.');
+        // Map known backend error messages to friendly text
+        return ApiException(_mapToFriendly(detail));
+      default:
+        return ApiException('Something went wrong. Please try again.');
+    }
+  }
+  return ApiException('Something went wrong. Please try again.');
+}
+```

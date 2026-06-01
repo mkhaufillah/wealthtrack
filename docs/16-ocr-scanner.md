@@ -188,3 +188,23 @@ On successful scan, form fields are auto-filled:
 | `mobile/lib/features/transactions/ui/add_transaction_screen.dart` | Camera/gallery integration, loading overlay, form population |
 | `backend/tests/test_ocr.py` | 11 test cases covering auth, validation, parsing, errors, rate limiting |
 | `mobile/test/features/add_transaction_ocr_test.dart` | Flutter widget tests for scan bottom sheet UI |
+
+---
+
+## Background Processing Error Banner
+
+When OCR auto-save is used (`POST /api/v1/ocr/process-and-save`), errors are not thrown inline — instead, the backend stores the failure status and the Flutter app polls for status via `GET /api/v1/ocr/pending-count`.
+
+### Error Display
+
+The Home and Transactions screens show a sticky error banner (`ocr_provider.dart`) when a background OCR job fails. The banner persists until the user explicitly dismisses it by tapping the close (×) button.
+
+### Dismiss Behavior
+
+- **In-memory fingerprint:** When dismissed, the error text is fingerprinted and suppressed on subsequent polls (every 5s). A different error message WILL still show up.
+- **Persistent across app restart:** Dismissed fingerprint is saved to `SecureStorage` (`key: 'ocr_dismissed_error'`). App restart retains the dismissal. A new error text (different from stored fingerprint) clears the stored value and displays the new error.
+- **Backend expiry:** The backend only returns `has_failure: true` for failed jobs created within the last 60 seconds (`created_at > datetime('now', '-60 seconds')`). After 60 seconds, the error banner naturally stops appearing.
+
+### Error Text
+
+All background OCR errors use a unified message: `'OCR failed. Please try again with a clearer photo.'` — no raw technical messages (Vision API errors, JSON parse errors, etc.) are exposed to the user.
