@@ -33,7 +33,7 @@
 
 ## v0.5.0 — SQLite → PostgreSQL Migration (2026-06-03)
 
-**Backend database migrated from SQLite to PostgreSQL.**
+**Backend database migrated from SQLite to PostgreSQL.** SQLite file preserved at `~/.keuangan/finance.db` as read-only backup.
 
 ### Added
 - **Redis 8.8.0** — In-memory data store for rate limiting, OCR queue, and AI response caching.
@@ -45,13 +45,8 @@
 
 ### Breaking Changes
 - **Database driver** — `aiosqlite` replaced with `asyncpg`. All raw SQL queries rewritten for PostgreSQL (`$1` placeholders, `LEFT()` instead of `substr()`, `TO_CHAR()` instead of `strftime()`, `RETURNING id` instead of `lastrowid`).
-- **Config** — New `DATABASE_URL` env var (`postgresql://user:pass@host:5432/wealthtrack`). Legacy `DB_PATH` retained for reference.
+- **Config** — New `DATABASE_URL` env var (`postgresql://user:***@host:5432/wealthtrack`). Removed legacy `DB_PATH`.
 - **Dependencies** — `aiosqlite` removed from `requirements.txt`, `asyncpg>=0.29.0` added.
-
-### Migration Tooling
-- **`backend/scripts/export_to_postgres.py`** — Standalone Python script that reads SQLite data and outputs a pure PostgreSQL SQL dump. Zero SQLite dependency in the output. Use for VPS migration: `psql -U wealthtrack -d wealthtrack -f postgres_migration.sql`.
-- **PostgreSQL migration applied** — All 9 tables migrated: users (2), categories (22), transactions (50), budgets (18), households (1), household_members (2), ocr_jobs (16), ai_messages (16), email_verifications (10). Sequences reset.
-- **SQLite file preserved** — `~/.keuangan/finance.db` kept as backup, not deleted.
 
 ### Architecture
 - **`database.py`** — New `CursorWrapper` wraps asyncpg connections with backward-compatible cursor interface. Auto-converts `?`→`$1..$N` placeholders, appends `RETURNING id` to INSERTs, handles composite-PK tables gracefully (household_members).
@@ -64,11 +59,6 @@
 
 ### Tests
 - **Test suite migrated** — `conftest.py` rewritten for asyncpg. Fresh PostgreSQL test database (`wealthtrack_test`) per function. 189 tests passing.
-- **`test_households.py`** — Removed `aiosqlite` imports, `await db.commit()` calls, switched to `$1` placeholders.
-
-### Docs
-- Architecture, schema, and deployment docs updated for PostgreSQL.
-- PostgreSQL migration guide added.
 
 ---
 

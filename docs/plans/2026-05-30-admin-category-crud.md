@@ -116,7 +116,8 @@ for cat_name, data in CATEGORY_BACKFILL.items():
 
 **Verify:**
 ```bash
-python3 -c "import sqlite3; conn=sqlite3.connect('/home/filla/.keuangan/finance.db'); print([dict(r) for r in conn.execute('SELECT name, name_en, keywords FROM categories').fetchall()])"
+# Check categories via API
+curl -s -H "Authorization: Bearer YOUR_TOKEN" https://wealthtrack.filla.id/api/v1/categories | python3 -m json.tool
 ```
 
 ---

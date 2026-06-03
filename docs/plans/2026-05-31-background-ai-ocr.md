@@ -183,17 +183,15 @@ git commit -m "feat(api): add POST /ai/chat async endpoint"
 Add at the end of `database.py`:
 
 ```python
-async def get_db_bg() -> aiosqlite.Connection:
-    """Create a standalone async DB connection for background tasks.
+async def get_db_bg() -> asyncpg.Connection:
+    """Create a standalone DB connection for background tasks.
     
     Unlike get_db() (which is request-scoped and auto-closes),
     this returns an unbounded connection that the caller must close explicitly.
     """
-    db = await aiosqlite.connect(settings.DB_PATH)
-    db.row_factory = aiosqlite.Row
-    await db.execute("PRAGMA journal_mode=WAL")
-    await db.execute("PRAGMA foreign_keys=ON")
-    return db
+    pool = await get_pool()
+    conn = await pool.acquire()
+    return conn
 ```
 
 **Step 2: Commit**
@@ -651,7 +649,7 @@ async def process_ocr_and_save(
     # Save image to disk
     import os
     from datetime import datetime
-    ocr_dir = Path(settings.DB_PATH).parent / "ocr_images"
+    ocr_dir = Path(settings.OCR_IMAGE_DIR) / "invoices"
     ocr_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     ext = Path(file.filename or "receipt.jpg").suffix or ".jpg"

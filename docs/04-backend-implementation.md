@@ -2,7 +2,7 @@
 
 **See also:** [Project Overview](01-project-overview.md) · [Database Schema](02-database-schema.md) · [Backend API](03-backend-api.md) · [P4 Plan](08-p4-plan.md)
 
-> ⚠️ **Historical reference.** This guide was written during the SQLite era (aiosqlite). The current backend uses **PostgreSQL + asyncpg** and **Meilisearch** for full-text search. The actual source files in `backend/` are the authoritative reference — code examples here may lag behind the latest features (e.g., Meilisearch integration, Redis rate limiter).
+> ⚠️ **Historical reference.** This guide covers the original backend build process. The source files in `backend/` are the authoritative reference — code examples here may lag behind the latest features (e.g., Meilisearch integration, Redis rate limiter).
 
 This doc is designed for an AI agent (Claude Code, Codex, etc.) to execute sequentially.
 
@@ -11,7 +11,7 @@ This doc is designed for an AI agent (Claude Code, Codex, etc.) to execute seque
 - Python 3.11+ installed
 - `uv` installed (preferred over pip)
 - VPS running Linux (proven)
-- Existing DB at `~/.keuangan/finance.db` with 27 transactions
+- PostgreSQL 18+ with `wealthtrack` database created
 
 ## Step 1: Create Python Virtual Environment
 
@@ -55,9 +55,7 @@ source .venv/bin/activate
 uv pip install -r backend/requirements.txt
 ```
 
-## Step 3: Database Path & Config
-
-**DB stays at `~/.keuangan/finance.db`** — do not create a new one.
+## Step 3: Database Config
 
 `backend/app/core/config.py`
 
@@ -76,8 +74,8 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     DEBUG: bool = True
 
-    # === PAKAI DB YANG SUDAH ADA ===
-    DB_PATH: str = str(Path.home() / ".keuangan" / "finance.db")
+    # PostgreSQL connection
+    DATABASE_URL: str = "postgresql://wealthtrack:***@localhost:5432/wealthtrack"
 
     SECRET_KEY: str = "change-me-in-production-use-env"  # override via .env
     ALGORITHM: str = "HS256"
@@ -108,12 +106,12 @@ if settings.SECRET_KEY == "change-me-in-production-use-env":
     )
 ```
 
-## Step 4: Migration Script (Run ONCE)
+## Step 4: Database Initialization
 
-Before starting FastAPI, run the migration to set up PostgreSQL tables.
-Migration is now automatic via asyncpg pool initialization in `main.py`.
+Before starting FastAPI, ensure PostgreSQL is running and the `wealthtrack` database exists.
+Schema creation is handled automatically via asyncpg pool initialization in `main.py` — tables are created with `IF NOT EXISTS` on first connection.
 
-> **Note:** The old `backend/app/migrate_db.py` (SQLite migration) has been removed.
+> **Note:** The old `backend/app/migrate_db.py` has been removed.
 > All schema management is handled directly via asyncpg.
 
 <!-- end migration script removal -->

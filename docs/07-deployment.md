@@ -46,7 +46,6 @@
 
 | Aspect | Before (old doc) | After (update) |
 |-------|-------------------|-------------------|
-| DB path | `~/.hermes/data/wealthtrack.db` | `~/.keuangan/finance.db` (existing) |
 | FastAPI bind | `0.0.0.0:8080` | `127.0.0.1:8080` (localhost only) |
 | Public exposure | Port 8080 directly | Nginx reverse proxy via 443 |
 | Domain | — | `wealthtrack.filla.id` |
@@ -227,7 +226,7 @@ The CI deploy workflow (`deploy-backend.yml`) auto-generates `backend/.env` if i
 | `OPENCODE_GO_API_KEY` | API key for OpenCode Go (AI Advisor, OCR) | `""` (read from ~/.hermes/.env fallback) |
 | `OPENROUTER_API_KEY` | API key for OpenRouter (premium Claude model) | `""` (optional) |
 | `BRAVE_SEARCH_API_KEY` | API key for Brave Search (real-time web data for AI Advisor) | `""` (read from ~/.hermes/.env fallback) |
-| `DB_PATH` | Override default database path | `~/.keuangan/finance.db` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://wealthtrack:***@localhost:5432/wealthtrack` |
 
 ## Step 5: Redis + Meilisearch Services
 
@@ -313,26 +312,7 @@ sudo systemctl reload nginx
 curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/health
 ```
 
-## Step 8: Backup (Legacy SQLite)
-
-```bash
-#!/bin/bash
-# ~/dev/wealthtrack/scripts/backup.sh
-BACKUP_DIR=~/wealthtrack-backups
-mkdir -p "$BACKUP_DIR"
-cp ~/.keuangan/finance.db "$BACKUP_DIR/finance-$(date +%Y%m%d-%H%M%S).db"
-# Keep last 30 days
-ls -t "$BACKUP_DIR"/*.db | tail -n +31 | xargs rm -f 2>/dev/null
-echo "Backup done: $(ls -lh "$BACKUP_DIR"/*.db | tail -1)"
-```
-
-Cron:
-
-```bash
-0 2 * * * ~/dev/wealthtrack/scripts/backup.sh
-```
-
-## Step 9: CI/CD Pipeline
+## Step 8: CI/CD Pipeline
 
 ### Workflows
 
@@ -364,7 +344,7 @@ Both workflows send build/deploy results to **Forum Anak Intern → topic #🤖-
 - Retention: **1 day** — artifacts auto-expire within 24 hours.
 - Free quota: ~500MB. At ~27MB/run, this allows ~18 runs before cleanup cycles kick in.
 
-## Step 10: Monitoring
+## Step 9: Monitoring
 
 ```bash
 # Check service status

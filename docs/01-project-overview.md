@@ -68,7 +68,6 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 **PostgreSQL is the single source of truth.** Connection via asyncpg pool.
 
 - FastAPI — reads/writes via asyncpg pool (request-scoped connections)
-- SQLite backup (`~/.keuangan/finance.db`) — preserved but no longer used at runtime
 - Flutter — reads/writes via FastAPI API
 - Existing data (27 transactions) remains safe, no data migration needed
 

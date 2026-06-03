@@ -2,8 +2,7 @@
 
 **See also:** [Project Overview](01-project-overview.md) · [Backend API](03-backend-api.md) · [Backend Implementation](04-backend-implementation.md) · [P4 Plan](08-p4-plan.md)
 
-> ⚠️ **v0.5.0+** App now runs on **PostgreSQL** via asyncpg pool + **Redis 8.8** for rate limiting/queue/cache.
-> Legacy SQLite (`~/.keuangan/finance.db`) preserved as backup only.
+> ⚠️ **v0.5.0+** App runs on **PostgreSQL** via asyncpg pool + **Redis 8.8** for rate limiting/queue/cache.
 > This doc documents the current PostgreSQL schema.
 
 ## Database
@@ -13,7 +12,6 @@
 | Engine | PostgreSQL 18 |
 | Connection | asyncpg pool (`DATABASE_URL` env var) |
 | Pool | min 2, max 10 connections |
-| Legacy backup | `~/.keuangan/finance.db` (SQLite, read-only) |
 | Cache / Queue | **Redis 8.8.0** — rate limiting, OCR queue, AI cache |
 
 ## Configuration
@@ -146,62 +144,7 @@ ALTER TABLE transactions ADD COLUMN note TEXT DEFAULT '';
 - FastAPI can read all data, old + new
 - Cron keeps running without changes
 
-## Migration (PostgreSQL)
-
-The database is created from scratch via:
-
-```bash
-cd ~/dev/wealthtrack
-python backend/scripts/export_to_postgres.py   # reads SQLite, writes postgres_migration.sql
-PGPASSWORD=wealthtrack123 psql -U wealthtrack -d wealthtrack -h localhost -f postgres_migration.sql
-```
-
-For **new VPS deployment** (no SQLite available):
-
-```sql
--- Run the schema section from postgres_migration.sql
--- Then restore from a pg_dump backup
-```
-
-## Legacy migration (original SQLite → WealthTrack)
-
-The old `migrate_db.py` has been **removed** in v0.5.0. Migration is now handled automatically via asyncpg pool initialization in `main.py`. The original script handled:
-
-- Creating users, budgets, households, ocr_jobs, ai_messages tables
-- Adding columns to existing SQLite transactions table
-- Seeding default users and categories
-- Backfilling English names and keywords
-        conn.execute(
-            "INSERT OR IGNORE INTO users (id, username, display_name, password_hash, role) VALUES (?, ?, ?, ?, ?)",
-            (uid, uname, dname, pw_hash, role)
-        )
-
-    # 3. Add new columns to transactions (safe: checks existence first)
-    cursor = conn.execute("PRAGMA table_info(transactions)")
-    existing_cols = [row[1] for row in cursor.fetchall()]
-
-    if 'user_id' not in existing_cols:
-        conn.execute("ALTER TABLE transactions ADD COLUMN user_id INTEGER REFERENCES users(id)")
-    if 'date' not in existing_cols:
-        conn.execute("ALTER TABLE transactions ADD COLUMN date TEXT")
-    if 'note' not in existing_cols:
-        conn.execute("ALTER TABLE transactions ADD COLUMN note TEXT DEFAULT ''")
-
-    # 4. Backfill: set user_id = 1 (filla) for old transactions
-    conn.execute("UPDATE transactions SET user_id = 1 WHERE user_id IS NULL")
-
-    # 5. Backfill: set date = created_at for old transactions that have NULL date
-    conn.execute("UPDATE transactions SET date = substr(created_at, 1, 10) WHERE date IS NULL AND created_at IS NOT NULL")
-
-    conn.commit()
-    conn.close()
-    print("Migration complete.")
-
-if __name__ == "__main__":
-    migrate()
-```
-
-## Schema Diagram (after migration)
+## Schema Diagram
 
 ```
 ┌──────────────┐       ┌───────────────────────────────────┐       ┌──────────────┐
@@ -216,9 +159,9 @@ if __name__ == "__main__":
 └──────────────┘       │ description                       │       │ sort_order   │
                        │ source       ('manual','api',etc) │       └──────────────┘
                        │ image_path   (invoice photo)      │
-                       │ user_id      (NEW)                │       ┌──────────────┐
-                       │ date         (NEW: YYYY-MM-DD)    │       │   budgets    │
-                       │ note         (NEW: optional)      │       ├──────────────┤
+                       │ user_id                           │       ┌──────────────┐
+                       │ date         (YYYY-MM-DD)         │       │   budgets    │
+                       │ note         (optional)           │       ├──────────────┤
                        │ created_at   (timestamp)          │       │ user_id (FK)  │──► users
                        └───────────────────────────────────┘       │ month        │
                                                                    │ category_id  │
@@ -229,13 +172,13 @@ if __name__ == "__main__":
 
 ## Amount Format
 
-All amounts stored as REAL (float, integer in IDR) — compatible with `finance_db.py`.
+All amounts stored as REAL (float, integer in IDR).
 No decimals. Display formatting is done in Flutter / Hermes output.
 
 ## Backup
 
-Due to this single file: backup = copy file.
+The database is backed up via `pg_dump`. For automated backups, set up a cron job:
 
 ```bash
-cp ~/.keuangan/finance.db ~/wealthtrack-backups/finance-$(date +%Y%m%d).db
+pg_dump -U wealthtrack -d wealthtrack > ~/wealthtrack-backups/wealthtrack-$(date +%Y%m%d-%H%M%S).sql
 ```

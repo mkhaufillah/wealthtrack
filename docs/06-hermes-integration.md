@@ -8,10 +8,10 @@ Hermes is already integrated with WealthTrack automatically. No changes needed.
 
 | Component | Function | Database |
 |----------|----------|----------|
-| Cron "Daily Finance Summary" | Daily report at 8 PM WIB | `~/.keuangan/finance.db` (via finance_db.py) |
-| Skill "financial-tracker" | Record transactions from chat | `~/.keuangan/finance.db` (via finance_db.py) |
+| Cron "Daily Finance Summary" | Daily report at 8 PM WIB | PostgreSQL (via pool) |
+| Skill "financial-tracker" | Record transactions from chat | PostgreSQL (via pool) |
 
-Both use `finance_db.py` which is **backward compatible** — columns `user_id`, `date`, `note` were added via migration without breaking existing functionality.
+Both use `database.py` which connects via asyncpg pool.
 
 ## Brave Search Integration
 
@@ -44,7 +44,7 @@ Two special categories named "Transfer" were added for the transfer balance feat
 | 16 | Transfer | expense | 🔄 |
 | 17 | Transfer | income | 🔄 |
 
-These are auto-created by the backend at startup via `POST /api/v1/transactions/transfer`. The `finance_db.py` script used by Hermes cron/skill is backward compatible — it only inserts into columns it knows about and ignores unknown columns.
+These are auto-created by the backend at startup via `POST /api/v1/transactions/transfer`.
 
 ## Test: Cron Works
 
@@ -100,5 +100,5 @@ Migration is automatic — no manual migration step needed.
 
 ## Summary
 
-**Zero changes required.** Hermes cron and skill continue using `finance_db.py` → `~/.keuangan/finance.db`. WealthTrack FastAPI uses the same database. Everything is compatible.
+**Zero changes required.** Hermes cron and skill connect to PostgreSQL via the asyncpg pool — same database as FastAPI. Everything is compatible.
 
