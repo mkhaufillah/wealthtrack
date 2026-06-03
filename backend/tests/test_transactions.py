@@ -58,6 +58,53 @@ class TestListTransactions:
         resp = await client.get("/api/v1/categories")
         assert resp.status_code == 401
 
+    async def test_search_by_description(self, client: AsyncClient, filla_token: str):
+        """Search via ?q= returns matching transactions (LIKE fallback in tests)."""
+        resp = await client.get(
+            "/api/v1/transactions?q=Gaji",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["meta"]["total"] >= 1
+        for t in data["data"]:
+            assert "Gaji" in t["description"] or "gaji" in t["description"].lower()
+
+    async def test_search_no_match(self, client: AsyncClient, filla_token: str):
+        """Search with no match returns empty result."""
+        resp = await client.get(
+            "/api/v1/transactions?q=zzzznotexist",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["meta"]["total"] == 0
+        assert data["data"] == []
+
+    async def test_search_with_type_filter(self, client: AsyncClient, filla_token: str):
+        """Search + type filter work together."""
+        resp = await client.get(
+            "/api/v1/transactions?q=Gaji&type=income",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        for t in resp.json()["data"]:
+            assert t["type"] == "income"
+
+    async def test_search_with_category_and_date(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Search + category_id + date range."""
+        # Seed data has "Gaji" in category 7 with date in 2026
+        resp = await client.get(
+            "/api/v1/transactions?q=Gaji&category_id=7&date_from=2026-01-01&date_to=2026-12-31",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        for t in data["data"]:
+            assert t["category"]["id"] == 7
+
 
 class TestCreateTransaction:
     async def test_create_expense(self, client: AsyncClient, filla_token: str):

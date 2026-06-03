@@ -4,6 +4,12 @@ from typing import Optional
 
 from app.database import get_db
 from app.core.security import get_current_user
+from app.core.meilisearch import (
+    index_document,
+    delete_document,
+    search_descriptions,
+    get_total_count as meili_total_count,
+)
 from app.schemas.transaction import TransactionCreate, TransactionUpdate, PaginatedTransactions, PaginationMeta, TransferOwnerIn, TransferRequest, TransferResponse
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
@@ -125,8 +131,159 @@ async def list_transactions(
     db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    user_id = current_user["id"]
+
+    # ── If search query provided, use Meilisearch ──
+    if q and q.strip():
+        q = q.strip()
+
+        # Build Meilisearch filters
+        meili_filters: list[str] = [f"user_id = {user_id}"]
+        if type:
+            meili_filters.append(f'type = "{type}"')
+        if category_ids:
+            ids = [int(x.strip()) for x in category_ids.split(",") if x.strip().isdigit()]
+            if ids:
+                meili_filters.append(f"category_id IN [{', '.join(str(i) for i in ids)}]")
+        elif category_id:
+            meili_filters.append(f"category_id = {category_id}")
+        if date_from:
+            meili_filters.append(f'date >= "{date_from}"')
+        if date_to:
+            meili_filters.append(f'date <= "{date_to}"')
+
+        # Map sort to Meilisearch format
+        sort_map = {
+            "date": ["date:asc"],
+            "-date": ["date:desc"],
+            "amount": ["amount:asc"],
+            "-amount": ["amount:desc"],
+            "name": ["description:asc"],
+            "-name": ["description:desc"],
+        }
+        meili_sort = sort_map.get(sort)
+
+        offset = (page - 1) * per_page
+
+        # Get total count and matching IDs from Meilisearch
+        try:
+            total = await meili_total_count(q, meili_filters or None)
+            matching_ids = await search_descriptions(
+                q,
+                filters=meili_filters or None,
+                sort=meili_sort,
+                offset=offset,
+                limit=per_page,
+            )
+        except Exception:
+            # Meilisearch unavailable — fall back to SQL LIKE
+            where = ["t.user_id = ?"]
+            params_fallback: list = [user_id]
+            if type:
+                where.append("t.type = ?")
+                params_fallback.append(type)
+            if category_ids:
+                ids_fb = [int(x.strip()) for x in category_ids.split(",") if x.strip().isdigit()]
+                if ids_fb:
+                    placeholders_fb = ",".join("?" for _ in ids_fb)
+                    where.append(f"t.category_id IN ({placeholders_fb})")
+                    params_fallback.extend(ids_fb)
+            elif category_id:
+                where.append("t.category_id = ?")
+                params_fallback.append(category_id)
+            if date_from:
+                where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?")
+                params_fallback.append(date_from)
+            if date_to:
+                where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?")
+                params_fallback.append(date_to)
+            where.append("t.description LIKE ?")
+            params_fallback.append(f"%{q}%")
+
+            order_map_fallback = {
+                "date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) ASC",
+                "-date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC",
+                "amount": "t.amount ASC",
+                "-amount": "t.amount DESC",
+                "name": "t.description ASC",
+                "-name": "t.description DESC",
+            }
+            order_fb = order_map_fallback.get(sort, "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC")
+
+            cursor = await db.execute(
+                f"SELECT COUNT(*) FROM transactions t WHERE {' AND '.join(where)}", params_fallback
+            )
+            total = (await cursor.fetchone())[0]
+
+            cursor = await db.execute(
+                f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
+                           t.description, t.note, t.date, t.user_id, t.created_at,
+                           c.name AS cat_name, c.icon AS cat_icon,
+                           c.name_en AS cat_name_en,
+                           u.display_name AS user_display_name
+                    FROM transactions t
+                    LEFT JOIN categories c ON t.category_id = c.id
+                    LEFT JOIN users u ON t.user_id = u.id
+                    WHERE {' AND '.join(where)}
+                    ORDER BY {order_fb}
+                    LIMIT ? OFFSET ?""",
+                params_fallback + [per_page, offset],
+            )
+            rows = await cursor.fetchall()
+            data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "") for r in rows]
+
+            return PaginatedTransactions(
+                data=data,
+                meta=PaginationMeta(
+                    page=page,
+                    per_page=per_page,
+                    total=total,
+                    total_pages=max(1, (total + per_page - 1) // per_page),
+                ),
+            )
+
+        if not matching_ids:
+            return PaginatedTransactions(
+                data=[],
+                meta=PaginationMeta(
+                    page=page, per_page=per_page, total=0, total_pages=0
+                ),
+            )
+
+        # Fetch from PostgreSQL with the matching IDs (preserve Meilisearch order)
+        id_placeholders = ",".join(str(i) for i in matching_ids)
+        order_clause = (
+            f"array_position(ARRAY[{id_placeholders}]::int[], t.id)"
+        )  # Preserve Meilisearch relevance order
+
+        cursor = await db.execute(
+            f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
+                       t.description, t.note, t.date, t.user_id, t.created_at,
+                       c.name AS cat_name, c.icon AS cat_icon,
+                       c.name_en AS cat_name_en,
+                       u.display_name AS user_display_name
+                FROM transactions t
+                LEFT JOIN categories c ON t.category_id = c.id
+                LEFT JOIN users u ON t.user_id = u.id
+                WHERE t.id IN ({id_placeholders})
+                ORDER BY {order_clause}""",
+        )
+        rows = await cursor.fetchall()
+        data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "") for r in rows]
+
+        return PaginatedTransactions(
+            data=data,
+            meta=PaginationMeta(
+                page=page,
+                per_page=per_page,
+                total=total,
+                total_pages=max(1, (total + per_page - 1) // per_page),
+            ),
+        )
+
+    # ── No search query — use SQL as before ──
     where = ["t.user_id = ?"]
-    params: list = [current_user["id"]]
+    params: list = [user_id]
     if type:
         where.append("t.type = ?")
         params.append(type)
@@ -139,10 +296,6 @@ async def list_transactions(
     if date_to:
         where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?")
         params.append(date_to)
-
-    if q:
-        where.append("t.description LIKE ?")
-        params.append(f"%{q}%")
 
     if category_ids:
         ids = [int(x.strip()) for x in category_ids.split(",") if x.strip().isdigit()]
@@ -232,6 +385,13 @@ async def create_transaction(
     row = await cursor.fetchone()
     # Fetch display_name from users table
     u = await (await db.execute("SELECT display_name FROM users WHERE id = ?", (current_user["id"],))).fetchone()
+
+    # Index in Meilisearch
+    try:
+        await index_document(dict(row))
+    except Exception:
+        pass  # search failure shouldn't block the response
+
     return _format_txn(row, cat["name"], cat["icon"], cat["name_en"] or "", u["display_name"] if u else "")
 
 
@@ -305,6 +465,13 @@ async def update_transaction(
             "SELECT id, name, name_en, icon FROM categories WHERE id = ?", (row["category_id"],)
         )
     ).fetchone()
+
+    # Index in Meilisearch
+    try:
+        await index_document(dict(row))
+    except Exception:
+        pass
+
     return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", c["name_en"] if c else "")
 
 
@@ -380,6 +547,13 @@ async def transfer_owner(
             (row["category_id"],),
         )
     ).fetchone()
+
+    # Index in Meilisearch (user_id changed)
+    try:
+        await index_document(dict(row))
+    except Exception:
+        pass
+
     return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", c["name_en"] if c else "")
 
 
@@ -517,6 +691,13 @@ async def transfer_balance(
         )
         inc_row = await cursor.fetchone()
 
+        # Index both in Meilisearch
+        try:
+            await index_document(dict(exp_row))
+            await index_document(dict(inc_row))
+        except Exception:
+            pass
+
         results.append({
             "sender_expense": _format_txn(exp_row, expense_cat_name, expense_cat_icon,
                                           expense_cat_name_en,
@@ -553,3 +734,9 @@ async def delete_transaction(
         )
     await db.execute("DELETE FROM transactions WHERE id = ?", (txn_id,))
     # auto-committed
+
+    # Remove from Meilisearch
+    try:
+        await delete_document(txn_id)
+    except Exception:
+        pass

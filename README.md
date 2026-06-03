@@ -5,18 +5,20 @@
 
 Personal finance tracker for **Filla & Nahda** — manage household expenses, income, and budgets together.
 
-**Stack:** FastAPI + PostgreSQL + Flutter (Android) + Hermes Agent
+**Stack:** FastAPI + PostgreSQL + Redis + Meilisearch + Flutter (Android) + Hermes Agent
 
 ## Architecture
 
 ```
-FastAPI ◄────── PostgreSQL ◄────── Flutter Mobile
-Hermes ──────► SQLite (legacy backup)
-(cron/chat)                      │
-                                 └── JWT Auth
-```
-
-Single PostgreSQL database. No Firebase, no sync complexity.
+FastAPI ◄────── PostgreSQL (data)
+  │                     ▲
+  │                     │
+  ├──► Meilisearch ─────┘ (full-text search — description)
+  │       (search & return IDs → SQL fetches full rows)
+  │
+  └──► Redis (rate limiter, OCR queue health)
+Hermes ──────► PostgreSQL
+(cron/chat)
 
 ## Quick Start
 
@@ -61,7 +63,7 @@ scripts/               # DB init & seed scripts
 
 ### Backend API
 - **Auth** — register (email + OTP), login (JWT 30-day), profile update (display name, cycle day, email), password change, account delete
-- **Transactions** — CRUD with pagination, filtering by type/date/category, sorting, change owner
+- **Transactions** — CRUD with pagination, filtering by type/date/category, full-text search (Meilisearch), sorting, change owner
 - **Categories** — CRUD (admin), English display name (`name_en`) in every response, keyword mapping for Hermes OCR classification
 - **Summaries** — daily, monthly, household (combined across members), current-month shorthand, cycle-aware date ranges, per-category income breakdown
 - **Household** — shared household with invite codes, multi-user transaction listing & summaries

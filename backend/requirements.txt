@@ -23,5 +23,8 @@ Pillow>=10.0.0
 # Redis
 redis>=5.0
 
+# Meilisearch
+meilisearch>=0.30.0
+
 # Email validation
 email-validator>=2.1.0

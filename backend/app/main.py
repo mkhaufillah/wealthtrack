@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.limiter import limiter
 from app.database import init_pool, close_pool
 from app.core.redis import init_redis, close_redis
+from app.core.meilisearch import init_meilisearch, close_meilisearch
 from app.routers import auth, categories, transactions, summaries, health, households, exports, budgets, ocr, ai_advisor
 
 
@@ -20,9 +21,11 @@ from app.routers import auth, categories, transactions, summaries, health, house
 async def lifespan(app: FastAPI):
     await init_pool()
     await init_redis()
+    await init_meilisearch()
     yield
     await close_pool()
     await close_redis()
+    close_meilisearch()
 
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifespan)

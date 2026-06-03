@@ -23,7 +23,11 @@ class Settings(BaseSettings):
     DB_PATH: str = str(Path.home() / ".keuangan" / "finance.db")
 
     # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = "redis://localhost:***@wealthtrack.filla.id"
+
+    # Meilisearch
+    MEILISEARCH_URL: str = "http://localhost:7700"
+    MEILISEARCH_MASTER_KEY: str = "8a1a5d9b1947d92bce7037faa299e5b16738f961813b4a9b1f32e12ac60df520"
 
     SECRET_KEY: str = "change-me-in-production-use-env"
     ALGORITHM: str = "HS256"

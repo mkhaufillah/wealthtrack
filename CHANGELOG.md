@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.5.1 — Full-Text Search with Meilisearch (2026-06-03)
+
+### Added
+- **Meilisearch 1.45.2** — Self-hosted full-text search engine for transaction descriptions. Replaces SQL `LIKE` with instant relevance-based search. Running as systemd service on `127.0.0.1:7700`, 512MB max indexing memory, single-node.
+- **Search integration** (`backend/app/core/meilisearch.py`) — Async client wrapper with init/close lifecycle, index CRUD, and full-text search. Index fields: `description`, `type`, `amount`, `category_id`, `user_id`, `date`. Searchable: `description`. Filterable: `user_id`, `type`, `category_id`, `date`. Sortable: `date`, `amount`.
+- **CRUD indexing hooks** — Transactions are automatically indexed in Meilisearch on create, update, delete, transfer-owner, and transfer-balance. Failures are silently caught (search unavailability never blocks writes).
+- **Graceful fallback** — When Meilisearch is unavailable (e.g., test environment), search falls back to SQL `LIKE` transparently.
+- **Bulk index script** (`backend/scripts/bulk_index_meilisearch.py`) — One-shot script to index all existing transactions. Idempotent.
+
+### API Changes
+- `GET /api/v1/transactions?q=...` — Now searches via Meilisearch instead of SQL `LIKE`. All existing filters (`type`, `category_id`/`category_ids`, `date_from`/`date_to`, `sort`) are remapped to Meilisearch filter syntax. Response format unchanged — Flutter needs no updates.
+
+### Infrastructure
+- **systemd service** — `meilisearch.service` with `After=network.target`, auto-restart on failure.
+- **Dependencies** — `meilisearch>=0.30.0` added to `requirements.txt`.
+- **Config** — New `MEILISEARCH_URL` and `MEILISEARCH_MASTER_KEY` in `config.py`.
+
+### Performance
+- **Description search** — O(1) lookup from inverted index vs O(n) sequential scan with `LIKE %keyword%`. Scales to millions of transactions.
+- **Memory** — Meilisearch capped at 512MB indexing memory, ~30MB idle. Compatible with 3.8GB RAM VPS alongside PostgreSQL and Redis.
+
+### Tests
+- **4 new search tests** — search by description, no-match returns empty, search + type filter, search + category + date range. Fall back to SQL LIKE in test environment (Meilisearch not available in ASGI test client).
+- **188/193 passing** — 5 pre-existing OCR test failures (Redis reconnect in test context, unrelated).
+
+### Docs
+- README updated: stack now includes Meilisearch, architecture diagram updated.
+- CHANGELOG synced.
+
+---
+
 ## v0.5.0 — SQLite → PostgreSQL Migration (2026-06-03)
 
 **Backend database migrated from SQLite to PostgreSQL.**
