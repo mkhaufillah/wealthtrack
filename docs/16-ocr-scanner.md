@@ -55,7 +55,7 @@ OCR (Optical Character Recognition) extracts structured transaction data from re
    - Resized to max **1200px** on the longest side (LANCZOS)
    - Converted to **JPEG quality 85** (RGB, discards alpha)
    - Output size: ~200–500 KB (down from up to 10 MB)
-7. Backend loads categories from SQLite → injects them into the vision AI prompt
+7. Backend loads categories from PostgreSQL → injects them into the vision AI prompt
 8. Vision AI (`kimi-k2.5`) processes the image → returns structured JSON
 9. Response fields populate the form: amount, description, date, type, category, note
 10. User reviews and edits before saving
@@ -93,7 +93,7 @@ IMAGE_MAGIC = {
 
 #### Category Validation from Database
 
-Categories are loaded from SQLite and injected into the vision AI prompt as valid options:
+Categories are loaded from PostgreSQL and injected into the vision AI prompt as valid options:
 ```python
 Kategori Expense: Makanan & Minuman, Transportasi & Bensin, ...
 Kategori Income: Gaji, Freelance, ...

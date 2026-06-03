@@ -18,7 +18,7 @@ Default categories (is_default=1) also cannot be edited or deleted. This include
 ## Architecture
 
 ```
-[Flutter Admin Screen] ──POST/PUT──▶ [FastAPI /categories] ──▶ [SQLite categories]
+[Flutter Admin Screen] ──POST/PUT──▶ [FastAPI /categories] ──▶ [PostgreSQL categories]
                                           │                           │
                                           ▼                           ▼
                                      [Hermes cron] ◄──── reads keywords from DB

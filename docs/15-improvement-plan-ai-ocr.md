@@ -314,7 +314,7 @@ if (_isScanning) {
 | # | Description | Prio | Effort | Layer |
 |---|-------------|------|--------|-------|
 | 3.1 | **JWT should include `role`** — Required by 1.1, also useful for future RBAC features. | **P0** (blocker) | ~20 min | Backend |
-| 3.2 | **Rate limiting should use persistent store** — Both OCR (in-memory dict) and AI (in-memory via limiter) lose data on restart. Consider Redis or SQLite-backed. | **P3** | ~2 hr | Backend |
+| 3.2 | **Rate limiting should use persistent store** — Both OCR (in-memory dict) and AI (in-memory via limiter) lose data on restart. Consider Redis or PostgreSQL-backed. | **P3** | ~2 hr | Backend |
 
 ---
 
@@ -340,7 +340,7 @@ if (_isScanning) {
 
 ### Extended in Phase 1 — OCR Improvements
 ```
-2.13  Category validated from SQLite (not AI hallucination)    ✅
+2.13  Category validated from PostgreSQL (not AI hallucination)    ✅
 2.14  Add `note` field to OCR result                           ✅
 2.15  Type-category matching enforcement via prompt             ✅
 2.16  Loading indicator already exists — documented            ✅

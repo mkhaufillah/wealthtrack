@@ -279,7 +279,7 @@ sudo systemctl reload nginx
 curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/health
 ```
 
-## Step 7: Backup SQLite
+## Step 7: Backup (Legacy SQLite)
 
 ```bash
 #!/bin/bash

@@ -57,7 +57,7 @@ POST /api/v1/transactions/transfer
 @router.post("/transfer", response_model=TransferResponse, status_code=201)
 async def transfer_balance(
     req: TransferRequest,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
 ```

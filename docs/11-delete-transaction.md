@@ -151,7 +151,7 @@ The `DELETE /api/v1/transactions/{id}` endpoint was already implemented:
 @router.delete("/{txn_id}", status_code=204)
 async def delete_transaction(
     txn_id: int,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(

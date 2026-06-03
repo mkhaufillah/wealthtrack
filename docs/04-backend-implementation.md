@@ -26,7 +26,7 @@ source .venv/bin/activate
 ```
 fastapi>=0.115.0
 uvicorn[standard]>=0.34.0
-aiosqlite>=0.20.0
+asyncpg>=0.29.0
 pydantic>=2.10.0
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
@@ -114,7 +114,7 @@ Safe to re-run — checks column existence before ALTER TABLE.
 Run ONCE before starting FastAPI server.
 """
 
-import sqlite3
+# import sqlite3 (legacy — see migrate_db.py)
 import os
 from pathlib import Path
 from passlib.context import CryptContext
@@ -219,16 +219,16 @@ uv run python -m backend.app.migrate_db
 
 ```python
 import aiosqlite
-import sqlite3
+# import sqlite3 (legacy — see migrate_db.py)
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from app.core.config import settings
 
 async def get_db():
-    """Dependency: yields aiosqlite connection with WAL mode."""
-    db = await aiosqlite.connect(settings.DB_PATH)
-    db.row_factory = aiosqlite.Row
+    """Dependency: yields asyncpg CursorWrapper."""
+    # See app/database.py for asyncpg CursorWrapper
+    # CursorWrapper handles row access
     await db.execute("PRAGMA journal_mode=WAL;")
     await db.execute("PRAGMA foreign_keys=ON;")
     await db.execute("PRAGMA busy_timeout=5000;")
@@ -239,7 +239,7 @@ async def get_db():
 
 def get_sync_db():
     """Synchronous connection for migration / seed scripts."""
-    conn = sqlite3.connect(settings.DB_PATH)
+    # conn = sqlite3.connect(settings.DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA foreign_keys=ON;")

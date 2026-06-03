@@ -76,7 +76,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 ├── backend/                    # FastAPI backend
 │   ├── app/
 │   │   ├── main.py            # App entry point, middleware
-│   │   ├── database.py        # SQLite connection, WAL mode
+│   │   ├── database.py        # asyncpg pool + CursorWrapper
 │   │   ├── core/
 │   │   │   ├── config.py      # Settings, env vars
 │   │   │   └── security.py    # JWT auth logic
@@ -116,30 +116,30 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 
 | Method | Who | How | DB |
 |--------|-----|-----|----|
-| Chat message | User → Hermes | Hermes agent writes via Python script | SQLite |
-| Cron scheduled | DailyReport | Python script reads SQLite, generates summary | SQLite (read) |
-| Mobile app | Filla/Nahda | Flutter → HTTP POST → FastAPI → SQLite | SQLite (via API) |
+| Chat message | User → Hermes | Hermes agent writes via Python script | PostgreSQL |
+| Cron scheduled | DailyReport | Python script reads PostgreSQL, generates summary | PostgreSQL (read) |
+| Mobile app | Filla/Nahda | Flutter → HTTP POST → FastAPI → PostgreSQL | PostgreSQL (via API) |
 
 ### Read Path
 
 | Method | Who | Data Source |
 |--------|-----|-------------|
-| Chat "recap" | User via Hermes | SQLite (direct) |
-| Cron summary | Scheduled | SQLite (direct) |
+| Chat "recap" | User via Hermes | PostgreSQL (via pool) |
+| Cron summary | Scheduled | PostgreSQL (via pool) |
 | Mobile dashboard | Flutter | FastAPI REST API (HTTP GET) |
 
 ## Phase Plan
 
 | Phase | Scope | Goal |
 |-------|-------|------|
-| P1 — Core Backend | SQLite schema, FastAPI CRUD, JWT auth, init script | API ready, testable via Swagger |
+| P1 — Core Backend | PostgreSQL schema, FastAPI CRUD, JWT auth, init script | API ready, testable via Swagger |
 | P2 — Hermes Integration | Update existing cron script, input from chat | Daily summary works with new DB |
 | P3 — Flutter MVP | Login, dashboard, add transaction, list transactions | Mobile usable for daily tracking |
 || [P4 — Polish (Revised)](08-p4-plan.md) | Charts, budgets, export, OCR, AI advisor, change owner | Feature-complete for daily use |
 
 ## Key Design Decisions
 
-1. **No ORM** — raw SQL with aiosqlite. Simple schema, no need for migration hell.
+1. **No ORM** — raw SQL with asyncpg. Simple schema, no need for migration hell.
 2. **WAL mode** — `PRAGMA journal_mode=WAL;` for concurrent reads + writes.
 3. **JWT auth** — simple, stateless. Token stored in Flutter Secure Storage.
 4. **SQLite as single source** — no sync, no conflict resolution needed.

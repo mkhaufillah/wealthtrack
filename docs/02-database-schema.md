@@ -2,24 +2,28 @@
 
 **See also:** [Project Overview](01-project-overview.md) · [Backend API](03-backend-api.md) · [Backend Implementation](04-backend-implementation.md) · [P4 Plan](08-p4-plan.md)
 
+> ⚠️ **v0.5.0+** App now runs on **PostgreSQL** via asyncpg pool.
+> Legacy SQLite (`~/.keuangan/finance.db`) preserved as backup only.
+> This doc documents the current PostgreSQL schema.
 
+## Database
 
-## Database File
-
-**Path:** `~/.keuangan/finance.db` (existing database, 24KB, 27 transactions)
-
-> Uses the existing database from the `financial-tracker` skill. All existing data remains safe.
-> Cron and `financial-tracker` skill remain fully compatible — no changes needed.
+| Item | Value |
+|------|-------|
+| Engine | PostgreSQL 16 |
+| Connection | asyncpg pool (`DATABASE_URL` env var) |
+| Pool | min 2, max 10 connections |
+| Legacy backup | `~/.keuangan/finance.db` (SQLite, read-only) |
 
 ## Configuration
 
-```sql
-PRAGMA journal_mode = WAL;          -- concurrent reads + writes
-PRAGMA foreign_keys = ON;           -- enforce FK constraints
-PRAGMA busy_timeout = 5000;         -- wait 5s before giving up on lock
-```
+No PRAGMA needed — PostgreSQL uses its own config via `postgresql.conf`.
 
-## Existing Tables (untouched)
+Key settings applied by the driver:
+- `application_name=wealthtrack`
+- `statement_cache_size=100`
+
+## Tables
 
 ### `categories` — unchanged
 
@@ -141,38 +145,31 @@ ALTER TABLE transactions ADD COLUMN note TEXT DEFAULT '';
 - FastAPI can read all data, old + new
 - Cron keeps running without changes
 
-## Migration Script
+## Migration (PostgreSQL)
 
-Run once after WealthTrack deployment. Safe to run multiple times (checks column existence).
+The database is created from scratch via:
 
-```python
-import sqlite3
-import os
+```bash
+cd ~/dev/wealthtrack
+python backend/scripts/export_to_postgres.py   # reads SQLite, writes postgres_migration.sql
+PGPASSWORD=wealthtrack123 psql -U wealthtrack -d wealthtrack -h localhost -f postgres_migration.sql
+```
 
-DB_PATH = os.path.expanduser("~/.keuangan/finance.db")
+For **new VPS deployment** (no SQLite available):
 
-def migrate():
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("PRAGMA foreign_keys=OFF;")  # allow ALTER during migration
+```sql
+-- Run the schema section from postgres_migration.sql
+-- Then restore from a pg_dump backup
+```
 
-    # 1. Create users table
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            display_name TEXT NOT NULL,
-            password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user',
-            created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-        );
-    """)
+## Legacy migration (original SQLite → WealthTrack)
 
-    # 2. Seed default users
-    users = [
-        (1, 'filla', 'Filla', '$2b$12$LJ3m4ys3Lk0TSwHCpNqrPOkODhBIjs5y7Kwe5mCpMOABsERy7aEJa', 'admin'),
-        (2, 'nahda', 'Nahda', '$2b$12$LJ3m4ys3Lk0TSwHCpNqrPOkODhBIjs5y7Kwe5mCpMOABsERy7aEJa', 'user'),
-    ]
-    for uid, uname, dname, pw_hash, role in users:
+The old `backend/app/migrate_db.py` was kept for reference but no longer needed at runtime. It handled:
+
+- Creating users, budgets, households, ocr_jobs, ai_messages tables
+- Adding columns to existing SQLite transactions table
+- Seeding default users and categories
+- Backfilling English names and keywords
         conn.execute(
             "INSERT OR IGNORE INTO users (id, username, display_name, password_hash, role) VALUES (?, ?, ?, ?, ?)",
             (uid, uname, dname, pw_hash, role)
