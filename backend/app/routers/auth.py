@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-import aiosqlite
+import asyncpg
 
 from app.database import get_db
 from app.core.security import (
@@ -30,7 +30,7 @@ OTP_EXPIRE_MINUTES = 10
 
 @router.post("/send-otp", status_code=200)
 @limiter.limit("3/minute")
-async def send_otp(request: Request, data: SendOtpIn, db: aiosqlite.Connection = Depends(get_db)):
+async def send_otp(request: Request, data: SendOtpIn, db: asyncpg.Connection = Depends(get_db)):
     """Send an OTP code to the given email for registration."""
     otp = generate_otp()
     expires_at = (
@@ -41,7 +41,7 @@ async def send_otp(request: Request, data: SendOtpIn, db: aiosqlite.Connection =
         "INSERT INTO email_verifications (email, code, expires_at) VALUES (?, ?, ?)",
         (data.email, otp, expires_at),
     )
-    await db.commit()
+    # auto-committed
 
     try:
         send_otp_email(data.email, otp)
@@ -53,7 +53,7 @@ async def send_otp(request: Request, data: SendOtpIn, db: aiosqlite.Connection =
 
 @router.post("/register", status_code=201)
 @limiter.limit("5/minute")
-async def register(request: Request, data: UserRegister, db: aiosqlite.Connection = Depends(get_db)):
+async def register(request: Request, data: UserRegister, db: asyncpg.Connection = Depends(get_db)):
     cursor = await db.execute("SELECT id FROM users WHERE username = ?", (data.username,))
     if await cursor.fetchone():
         raise HTTPException(status_code=409, detail="Username already exists")
@@ -96,7 +96,7 @@ async def register(request: Request, data: UserRegister, db: aiosqlite.Connectio
         "INSERT INTO users (username, display_name, password_hash, email) VALUES (?, ?, ?, ?)",
         (data.username, data.display_name, pw_hash, data.email),
     )
-    await db.commit()
+    # auto-committed
 
     cursor = await db.execute(
         "SELECT id, username, display_name, email, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
@@ -110,7 +110,7 @@ async def register(request: Request, data: UserRegister, db: aiosqlite.Connectio
 
 @router.post("/login")
 @limiter.limit("10/minute")
-async def login(request: Request, data: UserLogin, db: aiosqlite.Connection = Depends(get_db)):
+async def login(request: Request, data: UserLogin, db: asyncpg.Connection = Depends(get_db)):
     cursor = await db.execute(
         "SELECT id, username, password_hash, role FROM users WHERE username = ?", (data.username,)
     )
@@ -127,7 +127,7 @@ async def login(request: Request, data: UserLogin, db: aiosqlite.Connection = De
 @router.get("/me")
 async def me(
     current_user: dict = Depends(get_current_user),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
 ):
     cursor = await db.execute(
         "SELECT id, username, display_name, email, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
@@ -143,7 +143,7 @@ async def me(
 async def update_profile(
     data: UpdateProfileIn,
     current_user: dict = Depends(get_current_user),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
 ):
     updates = {}
     if data.display_name is not None:
@@ -168,7 +168,7 @@ async def update_profile(
         f"UPDATE users SET {set_clause} WHERE id = ?",
         list(updates.values()) + [current_user["id"]],
     )
-    await db.commit()
+    # auto-committed
 
     cursor = await db.execute(
         "SELECT id, username, display_name, email, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
@@ -186,7 +186,7 @@ async def change_password(
     request: Request,
     data: ChangePasswordIn,
     current_user: dict = Depends(get_current_user),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
 ):
     cursor = await db.execute(
         "SELECT password_hash FROM users WHERE id = ?",
@@ -204,7 +204,7 @@ async def change_password(
         "UPDATE users SET password_hash = ? WHERE id = ?",
         (new_hash, current_user["id"]),
     )
-    await db.commit()
+    # auto-committed
 
     return MessageOut(message="Password updated successfully")
 
@@ -212,7 +212,7 @@ async def change_password(
 @router.delete("/me", status_code=204)
 async def delete_account(
     current_user: dict = Depends(get_current_user),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
 ):
     # Delete all members of households owned by this user (cascade)
     await db.execute(
@@ -231,7 +231,7 @@ async def delete_account(
     )
     # Delete OCR jobs owned by this user
     cursor = await db.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='ocr_jobs'"
+        "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='ocr_jobs'"
     )
     if await cursor.fetchone():
         await db.execute(
@@ -253,5 +253,5 @@ async def delete_account(
         "DELETE FROM users WHERE id = ?",
         (current_user["id"],),
     )
-    await db.commit()
+    # auto-committed
     return None

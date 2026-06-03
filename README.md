@@ -5,17 +5,18 @@
 
 Personal finance tracker for **Filla & Nahda** — manage household expenses, income, and budgets together.
 
-**Stack:** FastAPI + SQLite + Flutter (Android) + Hermes Agent
+**Stack:** FastAPI + PostgreSQL + Flutter (Android) + Hermes Agent
 
 ## Architecture
 
 ```
-Hermes ──────► SQLite ◄────── FastAPI ◄────── Flutter Mobile
+FastAPI ◄────── PostgreSQL ◄────── Flutter Mobile
+Hermes ──────► SQLite (legacy backup)
 (cron/chat)                      │
                                  └── JWT Auth
 ```
 
-Single SQLite database. No Firebase, no Postgres, no sync complexity.
+Single PostgreSQL database. No Firebase, no sync complexity.
 
 ## Quick Start
 

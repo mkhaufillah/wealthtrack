@@ -45,12 +45,12 @@ class TestListTransactions:
 
     async def test_date_filter(self, client: AsyncClient, filla_token: str):
         """date_from and date_to filters work."""
+        # Use broad date range to cover seed data (which uses relative dates)
         resp = await client.get(
-            "/api/v1/transactions?date_from=2026-05-20&date_to=2026-05-28",
+            "/api/v1/transactions?date_from=2026-01-01&date_to=2027-01-01",
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         assert resp.status_code == 200
-        # Seed data uses "today" as reference, should have entries in late May
         assert resp.json()["meta"]["total"] > 0
 
     async def test_requires_auth(self, client: AsyncClient):

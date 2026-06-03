@@ -1,7 +1,7 @@
 """Health check endpoint — used by monitoring / load balancer."""
 
 from fastapi import APIRouter, Depends
-import aiosqlite
+import asyncpg
 
 from app.database import get_db
 
@@ -9,7 +9,7 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
-async def health_check(db: aiosqlite.Connection = Depends(get_db)):
+async def health_check(db: asyncpg.Connection = Depends(get_db)):
     """Return API & DB health status."""
     try:
         cursor = await db.execute("SELECT 1")

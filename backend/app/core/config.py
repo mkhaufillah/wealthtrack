@@ -16,7 +16,10 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     DEBUG: bool = True
 
-    # Existing DB — compatible with financial-tracker skill
+    # PostgreSQL — primary database
+    DATABASE_URL: str = "postgresql://wealthtrack:wealthtrack123@localhost:5432/wealthtrack"
+
+    # Legacy SQLite path — kept for reference, no longer used
     DB_PATH: str = str(Path.home() / ".keuangan" / "finance.db")
 
     SECRET_KEY: str = "change-me-in-production-use-env"

@@ -279,7 +279,7 @@ async def process_ocr_and_save(
         (current_user["id"], img_filename),
     )
     job_id = cursor.lastrowid
-    await db.commit()
+    # auto-committed
 
     # Background: process and save transaction
     ocr_dir_str = str(ocr_dir)
@@ -374,7 +374,7 @@ async def process_ocr_and_save(
                     )
                     txn_id = cursor.lastrowid
                     await bg_db.execute(
-                        "UPDATE ocr_jobs SET status = 'completed', transaction_id = ?, completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?",
+                        "UPDATE ocr_jobs SET status = 'completed', transaction_id = ?, completed_at = TO_CHAR(NOW(), 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') WHERE id = ?",
                         (txn_id, job_id),
                     )
                 else:
@@ -382,20 +382,16 @@ async def process_ocr_and_save(
                         "UPDATE ocr_jobs SET status = 'failed', error = 'OCR failed. Please try again with a clearer photo.' WHERE id = ?",
                         (job_id,),
                     )
-
-                await bg_db.commit()
             except json.JSONDecodeError:
                 await bg_db.execute(
                     "UPDATE ocr_jobs SET status = 'failed', error = 'OCR failed. Please try again with a clearer photo.' WHERE id = ?",
                     (job_id,),
                 )
-                await bg_db.commit()
             except Exception:
                 await bg_db.execute(
                     "UPDATE ocr_jobs SET status = 'failed', error = 'OCR failed. Please try again with a clearer photo.' WHERE id = ?",
                     (job_id,),
                 )
-                await bg_db.commit()
             finally:
                 await bg_db.close()
         except Exception as bg_err:
@@ -421,7 +417,7 @@ async def ocr_pending_count(
 
     # Check for recent failures (last 60 seconds) to surface error to user
     cursor = await db.execute(
-        "SELECT id, error FROM ocr_jobs WHERE user_id = ? AND status = 'failed' AND created_at > datetime('now', '-60 seconds') ORDER BY created_at DESC LIMIT 1",
+        "SELECT id, error FROM ocr_jobs WHERE user_id = ? AND status = 'failed' AND created_at > NOW() - INTERVAL '60 seconds' ORDER BY created_at DESC LIMIT 1",
         (current_user["id"],),
     )
     failed_row = await cursor.fetchone()

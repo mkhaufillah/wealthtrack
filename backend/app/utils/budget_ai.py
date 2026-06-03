@@ -30,8 +30,8 @@ async def get_historical_spending(
 
     # Build conditions for each cycle
     or_conditions = " OR ".join(
-        "(COALESCE(t.date, substr(t.created_at,1,10)) >= ? AND "
-        "COALESCE(t.date, substr(t.created_at,1,10)) <= ?)"
+        "(COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ? AND "
+        "COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?)"
         for _ in range(num_cycles)
     )
     params = []
@@ -45,14 +45,14 @@ async def get_historical_spending(
                    c.icon AS category_icon,
                    CAST(COALESCE(AVG(t.amount), 0) AS INTEGER) AS avg_amount,
                    CAST(COALESCE(MAX(t.amount), 0) AS INTEGER) AS max_amount,
-                   COUNT(DISTINCT strftime('%%Y-%%m', COALESCE(t.date, substr(t.created_at,1,10))))
+                   COUNT(DISTINCT LEFT(COALESCE(t.date, LEFT(t.created_at::text, 10)), 7))
                        AS months_with_data
             FROM transactions t
             LEFT JOIN categories c ON t.category_id = c.id
             WHERE t.user_id = ?
               AND t.type = 'expense'
               AND ({or_conditions})
-            GROUP BY t.category_id
+            GROUP BY t.category_id, c.name, c.name_en, c.icon
             ORDER BY avg_amount DESC""",
         (user_id, *params),
     )
@@ -103,9 +103,9 @@ async def get_projection(
            LEFT JOIN categories c ON b.category_id = c.id
            LEFT JOIN transactions t ON t.category_id = b.category_id
                AND t.user_id = b.user_id
-               AND COALESCE(t.date, substr(t.created_at,1,10)) BETWEEN ? AND ?
+               AND COALESCE(t.date, LEFT(t.created_at::text, 10)) BETWEEN ? AND ?
            WHERE b.month = ? AND b.user_id = ?
-           GROUP BY b.category_id""",
+           GROUP BY b.category_id, b.category_name, b.budget_amount, c.icon, c.name_en""",
         (d_from, d_to, d_from_date.strftime("%Y-%m"), user_id),
     )
     rows = await cursor.fetchall()

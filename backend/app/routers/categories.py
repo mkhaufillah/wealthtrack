@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
-import aiosqlite
+import asyncpg
 import json
 from typing import Optional
 
@@ -22,7 +22,7 @@ def _format_category(row) -> dict:
 @router.get("", response_model=list[CategoryOut])
 async def list_categories(
     type: Optional[str] = Query(None, pattern="^(expense|income)$"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     if type:
@@ -43,7 +43,7 @@ async def list_categories(
 async def create_category(
     request: Request,
     data: CategoryCreate,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     if current_user["role"] != "admin":
@@ -65,7 +65,7 @@ async def create_category(
            VALUES (?, ?, ?, ?, ?, ?)""",
         (data.name, data.name_en, data.type, data.icon, keywords_json, data.sort_order),
     )
-    await db.commit()
+    # auto-committed
 
     cursor = await db.execute(
         "SELECT id, name, name_en, type, icon, is_default, keywords FROM categories WHERE id = ?",
@@ -80,7 +80,7 @@ async def update_category(
     request: Request,
     category_id: int,
     data: CategoryUpdate,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     if current_user["role"] != "admin":
@@ -127,7 +127,7 @@ async def update_category(
         f"UPDATE categories SET {set_clause} WHERE id = ?",
         list(updates.values()) + [category_id],
     )
-    await db.commit()
+    # auto-committed
 
     cursor = await db.execute(
         "SELECT id, name, name_en, type, icon, is_default, keywords FROM categories WHERE id = ?",

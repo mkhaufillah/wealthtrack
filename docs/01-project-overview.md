@@ -32,7 +32,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 │                    VPS (self-hosted)                  │
 │                                                       │
 │  ┌──────────┐    ┌─────────────┐    ┌─────────────┐   │
-│  │  Hermes  │    │  FastAPI    │    │   SQLite    │   │
+│  │  Hermes  │    │  FastAPI    │    │  PostgreSQL │   │
 │  │ (cron +  │───►│ (port 8080) │───►│ finance.db  │   │
 │  │  agent)  │    │             │    │             │   │
 │  └──────────┘    └──────┬──────┘    └─────────────┘   │
@@ -54,7 +54,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 
 | Layer | Tech | Reason |
 |-------|------|--------|
-| Database | SQLite (via aiosqlite) — `~/.keuangan/finance.db` | Zero maintenance, 1-file backup, uses existing DB |
+| Database | PostgreSQL (via asyncpg) — `DATABASE_URL` env var | Production-ready, connection pooling, strict schema |
 | Backend | FastAPI (Python) | Async, auto-docs, lightweight |
 | Mobile | Flutter | Cross-platform, one codebase |
 | Auth | JWT (simple username/password) | Self-contained, no Firebase dependency |
@@ -62,10 +62,10 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 
 ## Single Source of Truth
 
-**SQLite is the single source of truth.** Uses the existing `~/.keuangan/finance.db`.
+**PostgreSQL is the single source of truth.** Connection via asyncpg pool.
 
-- Hermes (cron/skill financial-tracker) — direct to SQLite, **no changes needed**
-- FastAPI — reads/writes the **same** SQLite
+- FastAPI — reads/writes via asyncpg pool (request-scoped connections)
+- SQLite backup (`~/.keuangan/finance.db`) — preserved but no longer used at runtime
 - Flutter — reads/writes via FastAPI API
 - Existing data (27 transactions) remains safe, no data migration needed
 

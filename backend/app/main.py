@@ -7,11 +7,22 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
 
+from contextlib import asynccontextmanager
+
 from app.core.config import settings
 from app.core.limiter import limiter
+from app.database import init_pool, close_pool
 from app.routers import auth, categories, transactions, summaries, health, households, exports, budgets, ocr, ai_advisor
 
-app = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_pool()
+    yield
+    await close_pool()
+
+
+app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifespan)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

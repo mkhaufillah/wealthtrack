@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-import aiosqlite
+import asyncpg
 from typing import Optional
 
 from app.database import get_db
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/budgets", tags=["budgets"])
 @router.get("", response_model=list[BudgetResponse])
 async def list_budgets(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -44,7 +44,7 @@ async def list_budgets(
 @router.post("", status_code=201, response_model=BudgetResponse)
 async def create_or_update_budget(
     data: BudgetCreate,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     # Validate category exists
@@ -79,7 +79,7 @@ async def create_or_update_budget(
             "UPDATE budgets SET budget_amount = ?, category_name = ?, cycle_on = ? WHERE id = ?",
             (data.amount, cat["name"], cycle_on, existing["id"]),
         )
-        await db.commit()
+    # auto-committed
         budget_id = existing["id"]
     else:
         cycle_on = explicit_cycle if explicit_cycle is not None else user_cycle
@@ -88,7 +88,7 @@ async def create_or_update_budget(
                VALUES (?, ?, ?, ?, ?, ?)""",
             (current_user["id"], data.month, data.category_id, cat["name"], data.amount, cycle_on),
         )
-        await db.commit()
+    # auto-committed
         budget_id = cursor.lastrowid
         if budget_id is None:
             raise HTTPException(status_code=500, detail="Failed to create budget")
@@ -107,7 +107,7 @@ async def create_or_update_budget(
 @router.delete("/{budget_id}", status_code=204)
 async def delete_budget(
     budget_id: int,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -117,7 +117,7 @@ async def delete_budget(
     if not await cursor.fetchone():
         raise HTTPException(status_code=404, detail="Budget not found")
     await db.execute("DELETE FROM budgets WHERE id = ?", (budget_id,))
-    await db.commit()
+    # auto-committed
 
 
 @router.get("/summary", response_model=BudgetSummaryResponse)
@@ -126,7 +126,7 @@ async def budget_summary(
     use_cycle: bool = Query(False, description="Use user's billing cycle for actuals date range"),
     d_from_override: Optional[str] = Query(None, description="Override date_from for non-budget expense query"),
     d_to_override: Optional[str] = Query(None, description="Override date_to for non-budget expense query"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Budgets vs actual spending for a given month.
@@ -173,8 +173,8 @@ async def budget_summary(
             """SELECT COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual_spent
                FROM transactions t
                WHERE t.category_id = ? AND t.user_id = ?
-                 AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-                 AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?""",
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?""",
             (r["category_id"], current_user["id"], d_from_str, d_to_str),
         )
         row = await cur.fetchone()
@@ -234,10 +234,10 @@ async def budget_summary(
                 LEFT JOIN categories c ON t.category_id = c.id
                 WHERE t.user_id = ?
                   AND t.type = 'expense'
-                  AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-                  AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+                  AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                  AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
                   AND t.category_id NOT IN ({placeholders})
-                GROUP BY t.category_id
+                GROUP BY t.category_id, c.name, c.icon, c.name_en
                 ORDER BY total DESC""",
             (current_user["id"], uncat_d_from, uncat_d_to, *budgeted_cat_ids),
         )
@@ -259,9 +259,9 @@ async def budget_summary(
                LEFT JOIN categories c ON t.category_id = c.id
                WHERE t.user_id = ?
                  AND t.type = 'expense'
-                 AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-                 AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-               GROUP BY t.category_id
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
+               GROUP BY t.category_id, c.name, c.icon, c.name_en
                ORDER BY total DESC""",
             (current_user["id"], uncat_d_from, uncat_d_to),
         )
@@ -281,7 +281,7 @@ async def budget_summary(
 async def budget_suggestions(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
     num_cycles: int = Query(3, ge=1, le=12),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Analyze historical spending and suggest budget amounts per category."""
@@ -345,7 +345,7 @@ async def budget_suggestions(
     cursor = await db.execute(
         """SELECT COALESCE(SUM(amount), 0) FROM transactions
            WHERE user_id = ? AND type = 'income'
-             AND COALESCE(date, substr(created_at,1,10)) BETWEEN ? AND ?""",
+             AND COALESCE(date, LEFT(created_at::text, 10)) BETWEEN ? AND ?""",
         (current_user["id"], d_from.isoformat(), d_to.isoformat()),
     )
     row = await cursor.fetchone()
@@ -369,7 +369,7 @@ async def budget_suggestions(
 @router.get("/health", response_model=BudgetHealthResponse)
 async def budget_health(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Get budget health forecast — projected end-of-cycle spending vs budget."""

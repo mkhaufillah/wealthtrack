@@ -171,7 +171,7 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
     cursor = await db.execute(
         f"""SELECT type, COALESCE(SUM(amount), 0) as total
            FROM transactions WHERE user_id IN ({placeholders})
-             AND COALESCE(date, substr(created_at,1,10)) BETWEEN ? AND ?
+             AND COALESCE(date, LEFT(created_at::text, 10)) BETWEEN ? AND ?
            GROUP BY type""",
         (*member_ids, d_from, d_to),
     )
@@ -195,7 +195,7 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
            FROM transactions t
            JOIN users u ON t.user_id = u.id
            WHERE t.user_id IN ({placeholders})
-             AND COALESCE(t.date, substr(t.created_at,1,10)) BETWEEN ? AND ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) BETWEEN ? AND ?
            ORDER BY t.date DESC""",
         (*member_ids, d_from, d_to),
     )
@@ -282,7 +282,7 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         cursor = await db.execute(
             f"""SELECT type, COALESCE(SUM(amount), 0) as total
                FROM transactions WHERE user_id IN ({placeholders})
-                 AND COALESCE(date, substr(created_at,1,10)) BETWEEN ? AND ?
+                 AND COALESCE(date, LEFT(created_at::text, 10)) BETWEEN ? AND ?
                GROUP BY type""",
             (*member_ids, c_from_s, c_to_s),
         )
@@ -303,7 +303,7 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
            FROM budgets b
            LEFT JOIN transactions t ON t.category_id = b.category_id
                AND t.user_id = b.user_id
-               AND COALESCE(t.date, substr(t.created_at,1,10)) BETWEEN ? AND ?
+               AND COALESCE(t.date, LEFT(t.created_at::text, 10)) BETWEEN ? AND ?
            WHERE b.month = ? AND b.user_id = ?
            GROUP BY b.category_name, b.budget_amount""",
         (d_from, d_to, d_from_date.strftime("%Y-%m"), user_id),
@@ -638,7 +638,7 @@ async def ai_chat(
         (current_user["id"], req.question, req.model),
     )
     user_msg_id = cursor.lastrowid
-    await db.commit()
+    # auto-committed
 
     # 2. If retry: mark old AI messages with this parent as 'error:hidden'
     if req.retry_parent_id:
@@ -646,7 +646,7 @@ async def ai_chat(
             "UPDATE ai_messages SET status = 'error:hidden' WHERE parent_message_id = ? AND role = 'assistant'",
             (req.retry_parent_id,),
         )
-        await db.commit()
+    # auto-committed
 
     # 3. Save processing placeholder for AI, linked to user message via parent_message_id
     cursor = await db.execute(
@@ -654,7 +654,7 @@ async def ai_chat(
         (current_user["id"], req.model, user_msg_id),
     )
     ai_msg_id = cursor.lastrowid
-    await db.commit()
+    # auto-committed
 
     # 4. Start background task — streams tokens progressively to DB
     async def _process_ai():
@@ -680,15 +680,13 @@ async def ai_chat(
                             "UPDATE ai_messages SET content = ? WHERE id = ?",
                             (full_content, ai_msg_id),
                         )
-                        await bg_db.commit()
                         last_flush = full_content
 
-                # Final flush
-                await bg_db.execute(
-                    "UPDATE ai_messages SET content = ?, status = 'complete' WHERE id = ?",
-                    (full_content, ai_msg_id),
-                )
-                await bg_db.commit()
+                    # Final flush
+                    await bg_db.execute(
+                        "UPDATE ai_messages SET content = ?, status = 'complete' WHERE id = ?",
+                        (full_content, ai_msg_id),
+                    )
             finally:
                 await bg_db.close()
         except Exception as e:
@@ -700,7 +698,6 @@ async def ai_chat(
                     "UPDATE ai_messages SET content = ?, status = 'error' WHERE id = ?",
                     (f"Error: {e}", ai_msg_id),
                 )
-                await bg_db.commit()
                 await bg_db.close()
             except Exception:
                 pass

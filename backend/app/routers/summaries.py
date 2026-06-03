@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-import aiosqlite
+import asyncpg
 
 from app.database import get_db
 from app.core.security import get_current_user
@@ -19,7 +19,7 @@ def _parse_date_iso(s: str) -> date:
         return datetime.fromisoformat(s).date()
 
 
-async def _get_cycle_start_day(db: aiosqlite.Connection, user_id: int) -> int:
+async def _get_cycle_start_day(db: asyncpg.Connection, user_id: int) -> int:
     cursor = await db.execute(
         "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
         (user_id,),
@@ -32,7 +32,7 @@ async def _get_cycle_start_day(db: aiosqlite.Connection, user_id: int) -> int:
 async def daily_summary(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     today = date.today().isoformat()
@@ -43,8 +43,8 @@ async def daily_summary(
         """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
            FROM transactions t
            WHERE t.user_id = ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
            GROUP BY t.type""",
         (current_user["id"], d_from, d_to),
     )
@@ -62,8 +62,8 @@ async def daily_summary(
            FROM transactions t
            JOIN categories c ON t.category_id = c.id
            WHERE t.user_id = ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
              AND t.type = 'expense'
            GROUP BY c.id ORDER BY total DESC""",
         (current_user["id"], d_from, d_to),
@@ -92,9 +92,9 @@ async def daily_summary(
            FROM transactions t
            JOIN users u ON t.user_id = u.id
            WHERE t.user_id = ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-           GROUP BY t.user_id""",
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
+           GROUP BY t.user_id, u.display_name""",
         (current_user["id"], d_from, d_to),
     )
     by_user = await cursor.fetchall()
@@ -123,7 +123,7 @@ async def daily_summary(
 async def household_summary(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Household-wide summary across members of the current user's household."""
@@ -144,8 +144,8 @@ async def household_summary(
             """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
                FROM transactions t
                WHERE t.user_id = ?
-                 AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-                 AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
                GROUP BY t.type""",
             (current_user["id"], d_from, d_to),
         )
@@ -185,8 +185,8 @@ async def household_summary(
         """SELECT t.type, CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) as total, COUNT(*) as count
            FROM transactions t
            JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
-           WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+           WHERE COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
            GROUP BY t.type""",
         (household_id, d_from, d_to),
     )
@@ -204,8 +204,8 @@ async def household_summary(
            FROM transactions t
            JOIN categories c ON t.category_id = c.id
            JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
-           WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+           WHERE COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
              AND t.type = 'expense'
            GROUP BY c.id ORDER BY total DESC""",
         (household_id, d_from, d_to),
@@ -234,10 +234,10 @@ async def household_summary(
            FROM household_members hm
            JOIN users u ON hm.user_id = u.id
            LEFT JOIN transactions t ON t.user_id = hm.user_id
-               AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-               AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+               AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+               AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
            WHERE hm.household_id = ?
-           GROUP BY hm.user_id ORDER BY total_expense DESC""",
+           GROUP BY hm.user_id, u.display_name ORDER BY total_expense DESC""",
         (d_from, d_to, household_id),
     )
     by_user = await cursor.fetchall()
@@ -269,7 +269,7 @@ async def monthly_summary(
     month_to: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
     d_from_override: Optional[str] = Query(None, description="Explicit date_from (YYYY-MM-DD) for cycle support"),
     d_to_override: Optional[str] = Query(None, description="Explicit date_to (YYYY-MM-DD) for cycle support"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Monthly summary for a given month (YYYY-MM). Default: current month.
@@ -298,7 +298,7 @@ async def monthly_summary(
                                 d_from_override=d_from_parsed, d_to_override=d_to_parsed)
 
 
-async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_user: dict,
+async def _single_month(m: str, today: date, db: asyncpg.Connection, current_user: dict,
                          d_from_override: Optional[date] = None,
                          d_to_override: Optional[date] = None) -> dict:
     """Monthly summary for a single month (YYYY-MM).
@@ -322,8 +322,8 @@ async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_u
         """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
            FROM transactions t
            WHERE t.user_id = ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
            GROUP BY t.type""",
         (current_user["id"], d_from, d_to),
     )
@@ -340,8 +340,8 @@ async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_u
         """SELECT c.id, c.name, c.icon, c.name_en AS category_name_en, SUM(t.amount) as total, COUNT(*) as count
            FROM transactions t JOIN categories c ON t.category_id = c.id
            WHERE t.user_id = ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
              AND t.type = 'expense'
            GROUP BY c.id ORDER BY total DESC""",
         (current_user["id"], d_from, d_to),
@@ -361,8 +361,8 @@ async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_u
         """SELECT c.id, c.name, c.icon, c.name_en AS category_name_en, SUM(t.amount) as total, COUNT(*) as count
            FROM transactions t JOIN categories c ON t.category_id = c.id
            WHERE t.user_id = ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
              AND t.type = 'income'
            GROUP BY c.id ORDER BY total DESC""",
         (current_user["id"], d_from, d_to),
@@ -379,14 +379,14 @@ async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_u
         })
 
     cursor = await db.execute(
-        """SELECT COALESCE(t.date, substr(t.created_at,1,10)) as date,
+        """SELECT COALESCE(t.date, LEFT(t.created_at::text, 10)) as date,
                   CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS INTEGER) as expense,
                   CAST(COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) AS INTEGER) as income
            FROM transactions t
            WHERE t.user_id = ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-           GROUP BY date ORDER BY date""",
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
+           GROUP BY 1 ORDER BY 1""",
         (current_user["id"], d_from, d_to),
     )
     daily_snapshot = [dict(r) for r in await cursor.fetchall()]
@@ -402,7 +402,7 @@ async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_u
     }
 
 
-async def _monthly_range(m_from: str, m_to: str, db: aiosqlite.Connection, current_user: dict) -> list:
+async def _monthly_range(m_from: str, m_to: str, db: asyncpg.Connection, current_user: dict) -> list:
     """Multi-month summary range. Returns list of {month, income, expense, balance}."""
     import calendar
 
@@ -428,8 +428,8 @@ async def _monthly_range(m_from: str, m_to: str, db: aiosqlite.Connection, curre
             """SELECT t.type, COALESCE(SUM(t.amount), 0) as total
                FROM transactions t
                WHERE t.user_id = ?
-                 AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-                 AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
                GROUP BY t.type""",
             (current_user["id"], d_from, d_to),
         )
@@ -456,7 +456,7 @@ async def _monthly_range(m_from: str, m_to: str, db: aiosqlite.Connection, curre
 async def current_month_summary(
     use_cycle: bool = Query(False, description="Use user's billing cycle instead of calendar month"),
     ref_date: Optional[str] = Query(None, description="Reference date (YYYY-MM-DD). Defaults to server today."),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Shorthand — monthly summary for the current cycle or month."""
@@ -477,7 +477,7 @@ async def current_month_summary(
 @router.get("/cycle-info")
 async def cycle_info(
     ref_date_str: Optional[str] = Query(None, alias="date", description="Reference date (YYYY-MM-DD). Defaults to today."),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Return the billing cycle date range for a given reference date."""
@@ -493,7 +493,7 @@ async def cycle_info(
 
 @router.get("/all-time-category-balance")
 async def all_time_category_balance(
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Returns all-time balance for Savings & Investment and Emergency Funds.

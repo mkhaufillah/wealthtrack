@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-import aiosqlite
+import asyncpg
 from typing import Optional
 
 from app.database import get_db
@@ -42,7 +42,7 @@ async def list_household_transactions(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Get transactions of all household members."""
@@ -61,19 +61,19 @@ async def list_household_transactions(
         where.append("t.type = ?")
         params.append(type)
     if date_from:
-        where.append("COALESCE(t.date, substr(t.created_at,1,10)) >= ?")
+        where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?")
         params.append(date_from)
     if date_to:
-        where.append("COALESCE(t.date, substr(t.created_at,1,10)) <= ?")
+        where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?")
         params.append(date_to)
 
     order_map = {
-        "date": "COALESCE(t.date, substr(t.created_at,1,10)) ASC",
-        "-date": "COALESCE(t.date, substr(t.created_at,1,10)) DESC",
+        "date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) ASC",
+        "-date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC",
         "amount": "t.amount ASC",
         "-amount": "t.amount DESC",
     }
-    order = order_map.get(sort, "COALESCE(t.date, substr(t.created_at,1,10)) DESC")
+    order = order_map.get(sort, "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC")
 
     join_clause = "FROM transactions t JOIN household_members hm2 ON hm2.user_id = t.user_id"
 
@@ -122,7 +122,7 @@ async def list_transactions(
     sort: str = Query("-date", pattern="^(date|-date|amount|-amount|name|-name)$"),
     q: Optional[str] = Query(None, description="Search by description"),
     category_ids: Optional[str] = Query(None, description="Comma-separated category IDs"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     where = ["t.user_id = ?"]
@@ -134,10 +134,10 @@ async def list_transactions(
         where.append("t.category_id = ?")
         params.append(category_id)
     if date_from:
-        where.append("COALESCE(t.date, substr(t.created_at,1,10)) >= ?")
+        where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?")
         params.append(date_from)
     if date_to:
-        where.append("COALESCE(t.date, substr(t.created_at,1,10)) <= ?")
+        where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?")
         params.append(date_to)
 
     if q:
@@ -152,14 +152,14 @@ async def list_transactions(
             params.extend(ids)
 
     order_map = {
-        "date": "COALESCE(t.date, substr(t.created_at,1,10)) ASC",
-        "-date": "COALESCE(t.date, substr(t.created_at,1,10)) DESC",
+        "date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) ASC",
+        "-date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC",
         "amount": "t.amount ASC",
         "-amount": "t.amount DESC",
         "name": "t.description ASC",
         "-name": "t.description DESC",
     }
-    order = order_map.get(sort, "COALESCE(t.date, substr(t.created_at,1,10)) DESC")
+    order = order_map.get(sort, "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC")
 
     cursor = await db.execute(
         f"SELECT COUNT(*) FROM transactions t WHERE {' AND '.join(where)}", params
@@ -199,7 +199,7 @@ async def list_transactions(
 @router.post("", status_code=201)
 async def create_transaction(
     data: TransactionCreate,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -224,7 +224,7 @@ async def create_transaction(
             data.date,
         ),
     )
-    await db.commit()
+    # auto-committed
     new_id = cursor.lastrowid
     cursor = await db.execute(
         "SELECT id, type, amount, category_id, category_name, description, note, date, user_id, created_at FROM transactions WHERE id = ?", (new_id,)
@@ -238,7 +238,7 @@ async def create_transaction(
 @router.get("/{txn_id}")
 async def get_transaction(
     txn_id: int,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -260,7 +260,7 @@ async def get_transaction(
 async def update_transaction(
     txn_id: int,
     data: TransactionUpdate,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -294,7 +294,7 @@ async def update_transaction(
         f"UPDATE transactions SET {set_clause} WHERE id = ?",
         list(updates.values()) + [txn_id],
     )
-    await db.commit()
+    # auto-committed
 
     cursor = await db.execute(
         "SELECT t.id, t.type, t.amount, t.category_id, t.category_name, t.description, t.note, t.date, t.user_id, t.created_at, u.display_name AS user_display_name FROM transactions t LEFT JOIN users u ON t.user_id = u.id WHERE t.id = ?", (txn_id,)
@@ -312,7 +312,7 @@ async def update_transaction(
 async def transfer_owner(
     txn_id: int,
     data: TransferOwnerIn,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Transfer transaction ownership to another household member."""
@@ -361,7 +361,7 @@ async def transfer_owner(
         "UPDATE transactions SET user_id = ? WHERE id = ?",
         (data.user_id, txn_id),
     )
-    await db.commit()
+    # auto-committed
 
     # 5. Return updated transaction
     cursor = await db.execute(
@@ -386,7 +386,7 @@ async def transfer_owner(
 @router.post("/transfer", response_model=TransferResponse, status_code=201)
 async def transfer_balance(
     req: TransferRequest,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Transfer balance to household members. Creates paired expense/income transactions."""
@@ -525,15 +525,14 @@ async def transfer_balance(
                                             income_cat_name_en,
                                             inc_row["user_display_name"] or ""),
         })
-
-    await db.commit()
+    # auto-committed
     return {"transactions": results}
 
 
 @router.delete("/{txn_id}", status_code=204)
 async def delete_transaction(
     txn_id: int,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -545,7 +544,7 @@ async def delete_transaction(
 
     # Delete associated OCR jobs before deleting transaction
     cursor = await db.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='ocr_jobs'"
+        "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='ocr_jobs'"
     )
     if await cursor.fetchone():
         await db.execute(
@@ -553,4 +552,4 @@ async def delete_transaction(
             (txn_id,),
         )
     await db.execute("DELETE FROM transactions WHERE id = ?", (txn_id,))
-    await db.commit()
+    # auto-committed

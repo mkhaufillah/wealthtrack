@@ -1,33 +1,31 @@
 """Tests for /api/v1/households endpoints."""
 
-import aiosqlite
 from httpx import AsyncClient
 from app.core.security import create_access_token, hash_password
+from app.database import CursorWrapper
 
 
-async def _create_user(db: aiosqlite.Connection, username: str, display_name: str) -> tuple[int, str]:
+async def _create_user(db: CursorWrapper, username: str, display_name: str) -> tuple[int, str]:
     """Insert a user directly into the DB and return (user_id, token)."""
     pw_hash = hash_password("password123")
     cursor = await db.execute(
-        "INSERT INTO users (username, display_name, password_hash, role) VALUES (?, ?, ?, 'user')",
+        "INSERT INTO users (username, display_name, password_hash, role) VALUES ($1, $2, $3, 'user')",
         (username, display_name, pw_hash),
     )
-    await db.commit()
     uid = cursor.lastrowid
     token = create_access_token(user_id=uid, username=username)
     return uid, token
 
 
-async def _cleanup_user(db: aiosqlite.Connection, user_id: int, household_id: int | None = None):
+async def _cleanup_user(db: CursorWrapper, user_id: int, household_id: int | None = None):
     """Remove a user and all their related records. Optionally remove a household."""
     if household_id:
-        await db.execute("DELETE FROM household_members WHERE household_id = ?", (household_id,))
-        await db.execute("DELETE FROM households WHERE id = ?", (household_id,))
-    await db.execute("DELETE FROM household_members WHERE user_id = ?", (user_id,))
-    await db.execute("DELETE FROM budgets WHERE user_id = ?", (user_id,))
-    await db.execute("DELETE FROM transactions WHERE user_id = ?", (user_id,))
-    await db.execute("DELETE FROM users WHERE id = ?", (user_id,))
-    await db.commit()
+        await db.execute("DELETE FROM household_members WHERE household_id = $1", (household_id,))
+        await db.execute("DELETE FROM households WHERE id = $1", (household_id,))
+    await db.execute("DELETE FROM household_members WHERE user_id = $1", (user_id,))
+    await db.execute("DELETE FROM budgets WHERE user_id = $1", (user_id,))
+    await db.execute("DELETE FROM transactions WHERE user_id = $1", (user_id,))
+    await db.execute("DELETE FROM users WHERE id = $1", (user_id,))
 
 
 class TestCreateHousehold:
@@ -50,7 +48,7 @@ class TestCreateHousehold:
         assert "Already in a household" in resp.json()["detail"]
 
     async def test_user_not_in_household_creates_one(
-        self, client: AsyncClient, db: aiosqlite.Connection
+        self, client: AsyncClient, db: CursorWrapper
     ):
         """A user not in any household can create one → 201."""
         uid, token = await _create_user(db, "newuser", "New User")
@@ -91,7 +89,7 @@ class TestJoinHousehold:
         assert "Already in a household" in resp.json()["detail"]
 
     async def test_second_user_joins_via_invite_code(
-        self, client: AsyncClient, db: aiosqlite.Connection
+        self, client: AsyncClient, db: CursorWrapper
     ):
         """A new user not in a household can join via invite code → 200."""
         # Create admin and a household
@@ -131,7 +129,7 @@ class TestJoinHousehold:
         await _cleanup_user(db, joiner_id)
         await _cleanup_user(db, admin_id, household_id=household_id)
 
-    async def test_join_invalid_code(self, client: AsyncClient, db: aiosqlite.Connection):
+    async def test_join_invalid_code(self, client: AsyncClient, db: CursorWrapper):
         """A user not in a household joining with invalid code → 404."""
         uid, token = await _create_user(db, "invalidjoiner", "InvalidJoiner")
 
@@ -186,7 +184,7 @@ class TestGetMyHousehold:
         )
         assert resp.status_code == 404
 
-    async def test_me_not_in_household(self, client: AsyncClient, db: aiosqlite.Connection):
+    async def test_me_not_in_household(self, client: AsyncClient, db: CursorWrapper):
         """User not in a household gets 404."""
         uid, token = await _create_user(db, "solouser", "Solo User")
 
@@ -217,7 +215,7 @@ class TestInviteCode:
         resp = await client.get("/api/v1/households/invite-code")
         assert resp.status_code == 401
 
-    async def test_invite_code_not_member(self, client: AsyncClient, db: aiosqlite.Connection):
+    async def test_invite_code_not_member(self, client: AsyncClient, db: CursorWrapper):
         """User not in a household cannot view invite code."""
         uid, token = await _create_user(db, "nocodeuser", "No Code User")
 

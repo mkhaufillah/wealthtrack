@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
-import aiosqlite
+import asyncpg
 import io
 from typing import Optional
 from calendar import monthrange, month_abbr
@@ -11,7 +11,7 @@ from app.core.security import get_current_user
 router = APIRouter(prefix="/exports", tags=["exports"])
 
 
-async def _year_transactions(year: int, user_id: int, db: aiosqlite.Connection) -> dict[int, list]:
+async def _year_transactions(year: int, user_id: int, db: asyncpg.Connection) -> dict[int, list]:
     """Fetch all transactions for a given year, grouped by month."""
     cursor = await db.execute(
         """SELECT t.id, t.type, t.amount, t.category_name, t.description, t.note,
@@ -19,9 +19,9 @@ async def _year_transactions(year: int, user_id: int, db: aiosqlite.Connection) 
            FROM transactions t
            LEFT JOIN users u ON t.user_id = u.id
            WHERE t.user_id = ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-           ORDER BY COALESCE(t.date, substr(t.created_at,1,10)) ASC""",
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
+           ORDER BY COALESCE(t.date, LEFT(t.created_at::text, 10)) ASC""",
         (user_id, f"{year}-01-01", f"{year}-12-31"),
     )
     rows = await cursor.fetchall()
@@ -37,7 +37,7 @@ async def _year_transactions(year: int, user_id: int, db: aiosqlite.Connection) 
 @router.get("/yearly")
 async def export_yearly(
     year: int = Query(..., ge=2020, le=2100),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Export all transactions for a given year as .xlsx.
