@@ -2,6 +2,8 @@
 
 **See also:** [Project Overview](01-project-overview.md) · [Database Schema](02-database-schema.md) · [Backend API](03-backend-api.md) · [P4 Plan](08-p4-plan.md)
 
+> ⚠️ **Historical reference.** This guide was written during the SQLite era (aiosqlite). The current backend uses **PostgreSQL + asyncpg** and **Meilisearch** for full-text search. The actual source files in `backend/` are the authoritative reference — code examples here may lag behind the latest features (e.g., Meilisearch integration, Redis rate limiter).
+
 This doc is designed for an AI agent (Claude Code, Codex, etc.) to execute sequentially.
 
 ## Prerequisites
@@ -405,7 +407,7 @@ async def list_transactions(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     where = ["t.user_id = ?"]
@@ -467,7 +469,7 @@ async def list_transactions(
 @router.post("", status_code=201)
 async def create_transaction(
     data: TransactionCreate,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute("SELECT id, name FROM categories WHERE id = ?", (data.category_id,))
@@ -489,7 +491,7 @@ async def create_transaction(
 @router.get("/{txn_id}")
 async def get_transaction(
     txn_id: int,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -507,7 +509,7 @@ async def get_transaction(
 async def update_transaction(
     txn_id: int,
     data: TransactionUpdate,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -550,7 +552,7 @@ async def update_transaction(
 @router.delete("/{txn_id}", status_code=204)
 async def delete_transaction(
     txn_id: int,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -573,7 +575,7 @@ async def list_household_transactions(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     # Get user's household
@@ -636,7 +638,7 @@ async def list_household_transactions(
 
 ```python
 from fastapi import APIRouter, Depends, Query
-import aiosqlite
+import asyncpg
 from datetime import date
 from typing import Optional
 
@@ -649,7 +651,7 @@ router = APIRouter(prefix="/summaries", tags=["summaries"])
 async def daily_summary(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     today = date.today().isoformat()
@@ -703,7 +705,7 @@ async def daily_summary(
 async def household_summary(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Household-wide summary across ALL users. Requires authentication."""

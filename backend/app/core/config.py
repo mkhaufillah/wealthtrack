@@ -17,17 +17,17 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # PostgreSQL — primary database
-    DATABASE_URL: str = "postgresql://wealthtrack:wealthtrack123@localhost:5432/wealthtrack"
-
-    # Legacy SQLite path — kept for reference, no longer used
-    DB_PATH: str = str(Path.home() / ".keuangan" / "finance.db")
+    DATABASE_URL: str = "postgresql://wealthtrack:***@localhost:5432/wealthtrack"
 
     # Redis
-    REDIS_URL: str = "redis://localhost:***@wealthtrack.filla.id"
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     # Meilisearch
     MEILISEARCH_URL: str = "http://localhost:7700"
     MEILISEARCH_MASTER_KEY: str = "8a1a5d9b1947d92bce7037faa299e5b16738f961813b4a9b1f32e12ac60df520"
+
+    # OCR image storage directory
+    OCR_IMAGE_DIR: str = str(Path.home() / ".keuangan" / "ocr_images")
 
     SECRET_KEY: str = "change-me-in-production-use-env"
     ALGORITHM: str = "HS256"

@@ -258,7 +258,7 @@ async def process_ocr_and_save(
     _validate_image(file.content_type, raw)
 
     # Save image to disk
-    ocr_dir = Path(settings.DB_PATH).parent / "ocr_images"
+    ocr_dir = Path(settings.OCR_IMAGE_DIR)
     ocr_dir.mkdir(exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     ext = Path(file.filename or "receipt.jpg").suffix or ".jpg"
