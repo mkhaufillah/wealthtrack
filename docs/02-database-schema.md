@@ -10,7 +10,7 @@
 
 | Item | Value |
 |------|-------|
-| Engine | PostgreSQL 16 |
+| Engine | PostgreSQL 18 |
 | Connection | asyncpg pool (`DATABASE_URL` env var) |
 | Pool | min 2, max 10 connections |
 | Legacy backup | `~/.keuangan/finance.db` (SQLite, read-only) |
