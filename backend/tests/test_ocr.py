@@ -222,8 +222,10 @@ class TestProcessOcr:
         """After 10 OCR calls, the 11th returns 429."""
         import app.routers.ocr as ocr_module
 
-        # Reset rate limiter for this user
-        ocr_module._user_ocr_counts.clear()
+        # Reset rate limiter for this user in Redis
+        from app.core.redis import get_redis
+        r = await get_redis()
+        await r.delete("ratelimit:ocr:1")
 
         saved = _install_ocr_mock(monkeypatch)
         try:
