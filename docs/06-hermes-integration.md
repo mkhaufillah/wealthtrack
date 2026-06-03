@@ -95,11 +95,8 @@ print(f'Should match finance_db.py output — same database.')
 python3 ~/.hermes/scripts/daily_finance_report.py
 ```
 
-**Skill error:** Make sure migration has been run:
-```bash
-cd ~/dev/wealthtrack && .venv/bin/python -m backend.app.migrate_db
-```
-Migration is safe to re-run — only adds columns if they don't exist.
+**Skill error:** Ensure PostgreSQL is running and `DATABASE_URL` is set in `backend/.env`.
+Migration is automatic — no manual migration step needed.
 
 ## Summary
 

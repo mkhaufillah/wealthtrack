@@ -25,7 +25,7 @@ Single PostgreSQL database. No Firebase, no sync complexity.
 uv venv
 source .venv/bin/activate
 uv pip install -r backend/requirements.txt
-uv run python -m backend.app.migrate_db       # Create tables & seed users
+uv run python -m backend.app.database    # DB pool initialized automatically
 uvicorn app.main:app --reload   # Run dev server
 
 # At http://localhost:8080/docs

@@ -89,19 +89,10 @@ else
 fi
 
 # ════════════════════════════════════════════════════
-# 4. Run Migration
+# 4. Start Service
 # ════════════════════════════════════════════════════
 echo ""
-echo "[4/7] Running database migration..."
-source .venv/bin/activate
-uv run python -m backend.app.migrate_db
-echo "  ✓ migration complete"
-
-# ════════════════════════════════════════════════════
-# 5. Start Service
-# ════════════════════════════════════════════════════
-echo ""
-echo "[5/7] Starting WealthTrack service..."
+echo "[4/7] Starting WealthTrack service..."
 if service_running wealthtrack; then
     echo "  ✓ wealthtrack service already running — restarting..."
     sudo systemctl restart wealthtrack
@@ -115,7 +106,7 @@ sudo systemctl status wealthtrack --no-pager
 # 6. Firewall
 # ════════════════════════════════════════════════════
 echo ""
-echo "[6/7] Configuring UFW firewall..."
+echo "[5/7] Configuring UFW firewall..."
 for port in 80 443; do
     if sudo ufw status | grep -q "$port/tcp"; then
         echo "  ✓ port $port already allowed — skipping"

@@ -10,7 +10,7 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
 def _format_txn(row, cat_name="", cat_icon="", cat_name_en="", display_name=""):
-    # sqlite3.Row doesn't support .get() — convert to dict for safe access
+    # Convert asyncpg Record to dict for safe access
     r = dict(row)
     return {
         "id": r["id"],

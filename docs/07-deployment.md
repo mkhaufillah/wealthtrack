@@ -237,8 +237,8 @@ source .venv/bin/activate
 # 3. Install/update deps
 uv pip install -r backend/requirements.txt
 
-# 4. Run migration (once only, or when schema changes)
-uv run python -m backend.app.migrate_db
+# 4. Migration is automatic (PostgreSQL)
+#    Schema managed via asyncpg — no migration script needed
 
 # 5. Restart service
 sudo systemctl restart wealthtrack
@@ -266,9 +266,7 @@ cd ~/dev/wealthtrack && git pull
 source .venv/bin/activate
 uv pip install -r backend/requirements.txt
 
-# Run migration if schema changed (safe to run every time)
-uv run python -m backend.app.migrate_db
-
+# Migration is automatic — no migration script needed
 # Restart service
 sudo systemctl restart wealthtrack
 

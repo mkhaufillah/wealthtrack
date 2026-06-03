@@ -164,7 +164,7 @@ For **new VPS deployment** (no SQLite available):
 
 ## Legacy migration (original SQLite → WealthTrack)
 
-The old `backend/app/migrate_db.py` was kept for reference but no longer needed at runtime. It handled:
+The old `migrate_db.py` has been **removed** in v0.5.0. Migration is now handled automatically via asyncpg pool initialization in `main.py`. The original script handled:
 
 - Creating users, budgets, households, ocr_jobs, ai_messages tables
 - Adding columns to existing SQLite transactions table
