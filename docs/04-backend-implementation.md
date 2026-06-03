@@ -38,6 +38,12 @@ pytest>=8.0.0
 pytest-asyncio>=0.24.0
 httpx>=0.28.0
 openpyxl>=3.1.0
+
+# — v0.5.0 additions —
+redis>=5.0
+
+# — v0.5.1 additions —
+meilisearch>=0.30.0
 ```
 
 Install:

@@ -18,25 +18,28 @@
                           |        │                                                      │
                           |        ▼                                                      │
                           |  FastAPI :8080 (localhost only)                               │
-                          |        │                                                      │
-                          |        ▼                                                      │
-                          |  ┌─────────────────┐                                          │
-                          |  │  ~/.keuangan/   │                                          │
-                          |  │  finance.db     │◄──── Hermes cron also read this          │
-                          |  └─────────────────┘                                          │
+                          |     │          ▲                  ▲                           │
+                          |     │          │                  │                           │
+                          |     ▼          │                  │                           │
+                          |  ┌─────────────────┐   ┌──────────────┐   ┌──────────────┐   │
+                          |  │   PostgreSQL    │   │  Meilisearch │   │   Redis      │   │
+                          |  │  :5432          │   │  :7700       │   │  :6379       │   │
+                          |  │  wealthtrack    │   │  transactions│   │  rate limit, │   │
+                          |  │  database       │   │  index       │   │  OCR queue   │   │
+                          |  └─────────────────┘   └──────────────┘   └──────────────┘   │
                           |                                                               │
                           |  ┌─────────────────────────────────────┐                      │
                           |  │  Hermes Agent (same VPS)            │                      │
-                          |  │  ├── cron: daily_finance_report.py  │──► SQLite (legacy) │
-                          |  │  ├── skill: financial-tracker       │──► SQLite (legacy) │
-                          |  │  └── chat: add_transaction.py       │──► SQLite (legacy) │
+                          |  │  ├── cron: daily_finance_report.py  │──► PostgreSQL        │
+                          |  │  ├── skill: financial-tracker       │──► PostgreSQL        │
+                          |  │  └── chat: add_transaction.py       │──► PostgreSQL        │
                           |  └─────────────────────────────────────┘                      │
                           |  ┌─────────────────────────────────────┐                      │
                           |  │  Flutter Mobile (via internet)      │                      │
                           |  │  ──► https://wealthtrack.filla.id   │──► Nginx ──► FastAPI │
                           |  └─────────────────────────────────────┘                      │
                           |                                                               │
-  	                      └───────────────────────────────────────────────────────────────┘
+                          └───────────────────────────────────────────────────────────────┘
 ```
 
 ## Key Differences from Standard Setup
@@ -57,7 +60,8 @@ Config file is at `deploy/wealthtrack.service`:
 ```ini
 [Unit]
 Description=WealthTrack API
-After=network.target
+After=network.target postgresql.service redis.service meilisearch.service
+Wants=redis.service meilisearch.service
 
 [Service]
 Type=simple
@@ -225,7 +229,35 @@ The CI deploy workflow (`deploy-backend.yml`) auto-generates `backend/.env` if i
 | `BRAVE_SEARCH_API_KEY` | API key for Brave Search (real-time web data for AI Advisor) | `""` (read from ~/.hermes/.env fallback) |
 | `DB_PATH` | Override default database path | `~/.keuangan/finance.db` |
 
-## Step 5: Deploy Flow (Initial)
+## Step 5: Redis + Meilisearch Services
+
+### Redis 8.8.0
+
+```bash
+# Compiled from source, installed as systemd service
+sudo systemctl enable --now redis
+```
+
+Runs on `127.0.0.1:6379`. Used for rate limiting, OCR queue state, and health monitoring.
+
+### Meilisearch 1.45.2
+
+```bash
+# Binary installed at /usr/local/bin/meilisearch
+# Service: /etc/systemd/system/meilisearch.service
+sudo systemctl enable --now meilisearch
+```
+
+Runs on `127.0.0.1:7700`. Used for full-text search on transaction descriptions.
+Configured with master key, 512MB max indexing memory, no analytics.
+
+### Verify all services
+
+```bash
+sudo systemctl status postgresql redis meilisearch wealthtrack --no-pager
+```
+
+## Step 6: Deploy Flow (Initial)
 
 ```bash
 # 1. Pull repo
@@ -254,12 +286,11 @@ TOKEN=$(curl -s -X POST https://wealthtrack.filla.id/api/v1/auth/login \
   -d '{"username":"filla","password":"password123"}' | \
   python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
-curl -s -H "Authorization: Bearer $TOKEN" \
+curl -s -H "Authorization: Bearer *** \
   https://wealthtrack.filla.id/api/v1/categories | python3 -m json.tool
 ```
-```
 
-## Step 6: Deploy Flow (Updates)
+## Step 7: Deploy Flow (Updates)
 
 ```bash
 cd ~/dev/wealthtrack && git pull
@@ -267,7 +298,12 @@ source .venv/bin/activate
 uv pip install -r backend/requirements.txt
 
 # Migration is automatic — no migration script needed
-# Restart service
+
+# If new search features added, re-index transactions to Meilisearch:
+# python3 -m scripts.bulk_index_meilisearch
+
+# Restart services (order matters: Redis + Meilisearch first, then WealthTrack)
+sudo systemctl restart redis meilisearch
 sudo systemctl restart wealthtrack
 
 # Reload nginx if config changed
@@ -277,7 +313,7 @@ sudo systemctl reload nginx
 curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/health
 ```
 
-## Step 7: Backup (Legacy SQLite)
+## Step 8: Backup (Legacy SQLite)
 
 ```bash
 #!/bin/bash
@@ -296,7 +332,7 @@ Cron:
 0 2 * * * ~/dev/wealthtrack/scripts/backup.sh
 ```
 
-## Step 8: CI/CD Pipeline
+## Step 9: CI/CD Pipeline
 
 ### Workflows
 
@@ -328,7 +364,7 @@ Both workflows send build/deploy results to **Forum Anak Intern → topic #🤖-
 - Retention: **1 day** — artifacts auto-expire within 24 hours.
 - Free quota: ~500MB. At ~27MB/run, this allows ~18 runs before cleanup cycles kick in.
 
-## Step 9: Monitoring
+## Step 10: Monitoring
 
 ```bash
 # Check service status
@@ -337,11 +373,17 @@ sudo systemctl status wealthtrack
 # Check logs
 journalctl -u wealthtrack -n 50 --no-pager
 
+# Check Redis
+redis-cli ping  # should return PONG
+
+# Check Meilisearch
+curl -s http://localhost:7700/health  # should return {"status":"available"}
+
 # Check nginx
 sudo nginx -t
 sudo systemctl status nginx
 
-# HTTP endpoint health check
+# HTTP endpoint health check (includes Redis + Meilisearch status)
 curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/auth/login
 ```
 
@@ -359,6 +401,9 @@ class AppConstants {
 ## Deployment Checklist
 
 - [ ] DNS `wealthtrack.filla.id` → VPS IP (`2.27.165.124`)
+- [ ] PostgreSQL running
+- [ ] Redis running (`redis-cli ping` → PONG)
+- [ ] Meilisearch running (`curl localhost:7700/health` → available)
 - [ ] FastAPI systemd service running
 - [ ] DB migration already ran
 - [ ] Nginx config installed

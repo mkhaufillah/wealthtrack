@@ -300,7 +300,7 @@ List transactions with pagination and filters.
 | `type` | str | — | Filter: 'expense' or 'income' |
 | `category_id` | int | — | Filter by single category |
 | `category_ids` | str | — | Filter by multiple categories (comma-separated IDs) |
-| `q` | str | — | Search by description (LIKE) |
+| `q` | str | — | Search by description (full-text via Meilisearch) |
 | `date_from` | str | — | Start date 'YYYY-MM-DD' |
 | `date_to` | str | — | End date 'YYYY-MM-DD' |
 | `sort` | str | '-date' | Sort field: 'date', '-date', 'amount', '-amount', 'name', '-name' |

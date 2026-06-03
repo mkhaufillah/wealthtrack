@@ -33,21 +33,22 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 │                                                       │
 │  ┌──────────┐    ┌─────────────┐    ┌─────────────┐   │
 │  │  Hermes  │    │  FastAPI    │    │  PostgreSQL │   │
-│  │ (cron +  │───►│ (port 8080) │───►│ finance.db  │   │
-│  │  agent)  │    │             │    │             │   │
-│  └──────────┘    └──────┬──────┘    └─────────────┘   │
-│                         │                             │
-│                    HTTP/JSON                          │
-│                         │                             │
-└─────────────────────────┼─────────────────────────────┘
-                          │
-                          ▼
-                  ┌──────────────┐
-                  │    Flutter   │
-                  │    Mobile    │
-                  │  (Android +  │
-                  │   iOS later) │
-                  └──────────────┘
+│  │ (cron +  │───►│ (port 8080) │───►│             │   │
+│  │  agent)  │    │             │    └─────────────┘   │
+│  └──────────┘    └──────┬──────┘          ▲           │
+│                         │                 │           │
+│                    HTTP/JSON           search IDs     │
+│                         │                 │           │
+│                         ▼          ┌─────────────┐   │
+│                  ┌──────────────┐   │ Meilisearch │   │
+│                  │    Flutter   │   │ (full-text) │   │
+│                  │    Mobile    │   └─────────────┘   │
+│                  │  (Android +  │   ┌─────────────┐   │
+│                  │   iOS later) │   │ Redis 8.8   │   │
+│                  └──────────────┘   │ (limiter +  │   │
+│                                     │  OCR queue) │   │
+│                                     └─────────────┘   │
+└───────────────────────────────────────────────────────┘
 ```
 
 ## Tech Stack
@@ -55,6 +56,8 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 | Layer | Tech | Reason |
 |-------|------|--------|
 | Database | PostgreSQL (via asyncpg) — `DATABASE_URL` env var | Production-ready, connection pooling, strict schema |
+| Full-Text Search | Meilisearch 1.45.2 (self-hosted) | Instant relevance-based search, replaces SQL LIKE, ~30MB idle |
+| Rate Limiting / Queue | Redis 8.8.0 (self-hosted) | Sliding window rate limiter, OCR queue state |
 | Backend | FastAPI (Python) | Async, auto-docs, lightweight |
 | Mobile | Flutter | Cross-platform, one codebase |
 | Auth | JWT (simple username/password) | Self-contained, no Firebase dependency |
@@ -79,7 +82,10 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 │   │   ├── database.py        # asyncpg pool + CursorWrapper
 │   │   ├── core/
 │   │   │   ├── config.py      # Settings, env vars
-│   │   │   └── security.py    # JWT auth logic
+│   │   │   ├── security.py    # JWT auth logic
+│   │   │   ├── redis.py       # Redis connection manager
+│   │   │   ├── rate_limiter.py# Sliding window rate limiter
+│   │   │   └── meilisearch.py # Meilisearch async client wrapper
 │   │   ├── models/
 │   │   │   ├── user.py        # SQLAlchemy-style models (raw SQL)
 │   │   │   ├── transaction.py
@@ -144,3 +150,5 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 3. **JWT auth** — simple, stateless. Token stored in Flutter Secure Storage.
 4. **PostgreSQL as single source** — no sync, no conflict resolution needed.
 5. **Hermes talks directly to DB** — not through FastAPI. It's co-located on the same VPS.
+6. **Meilisearch for full-text search** — description search uses inverted index, not SQL LIKE. Scale to millions of transactions without performance degradation. Meilisearch returns matched IDs → PostgreSQL fetches full rows with JOINs.
+7. **Redis for ephemeral state** — rate limiting and OCR queue state stored in Redis, not in PostgreSQL or in-memory. Survives server restarts.
