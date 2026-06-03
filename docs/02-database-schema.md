@@ -2,7 +2,7 @@
 
 **See also:** [Project Overview](01-project-overview.md) · [Backend API](03-backend-api.md) · [Backend Implementation](04-backend-implementation.md) · [P4 Plan](08-p4-plan.md)
 
-> ⚠️ **v0.5.0+** App now runs on **PostgreSQL** via asyncpg pool.
+> ⚠️ **v0.5.0+** App now runs on **PostgreSQL** via asyncpg pool + **Redis 8.8** for rate limiting/queue/cache.
 > Legacy SQLite (`~/.keuangan/finance.db`) preserved as backup only.
 > This doc documents the current PostgreSQL schema.
 
@@ -14,6 +14,7 @@
 | Connection | asyncpg pool (`DATABASE_URL` env var) |
 | Pool | min 2, max 10 connections |
 | Legacy backup | `~/.keuangan/finance.db` (SQLite, read-only) |
+| Cache / Queue | **Redis 8.8.0** — rate limiting, OCR queue, AI cache |
 
 ## Configuration
 

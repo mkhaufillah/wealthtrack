@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Legacy SQLite path — kept for reference, no longer used
     DB_PATH: str = str(Path.home() / ".keuangan" / "finance.db")
 
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
+
     SECRET_KEY: str = "change-me-in-production-use-env"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_DAYS: int = 30

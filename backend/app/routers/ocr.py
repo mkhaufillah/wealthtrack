@@ -17,14 +17,12 @@ _ocr_semaphore = asyncio.Semaphore(2)
 
 from app.core.config import settings
 from app.core.security import get_current_user
+from app.core.rate_limiter import check_rate_limit
 from app.database import get_db
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
 
-# ── Rate limit: max 10 OCR calls per user (stored in-memory per server)
-#    Sufficient for personal use; a proper Redis-backed solution can replace later.
-import time
-_user_ocr_counts: dict[int, list[float]] = {}
+# ── Rate limit: max 10 OCR calls per user (Redis sliding window, persisted)
 
 # ── Allowed image MIME types (raster only — SVG/vector not supported)
 ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
@@ -37,16 +35,14 @@ IMAGE_MAGIC: dict[bytes, str] = {
 }
 
 
-def _check_rate_limit(user_id: int):
-    now = time.time()
-    day_ago = now - 86400
-    if user_id not in _user_ocr_counts:
-        _user_ocr_counts[user_id] = []
-    # Prune old entries
-    _user_ocr_counts[user_id] = [t for t in _user_ocr_counts[user_id] if t > day_ago]
-    if len(_user_ocr_counts[user_id]) >= 10:
-        raise HTTPException(status_code=429, detail="OCR rate limit: max 10/day")
-    _user_ocr_counts[user_id].append(now)
+async def _check_rate_limit(user_id: int):
+    """Redis sliding window: max 10 OCR scans per user per day."""
+    await check_rate_limit(
+        key=f"ocr:user_{user_id}",
+        max_requests=10,
+        window_sec=86400,
+        error_message="OCR rate limit: max 10/day",
+    )
 
 
 def _validate_image(mime: str, raw_bytes: bytes) -> None:
@@ -127,8 +123,7 @@ async def process_ocr(
     current_user: dict = Depends(get_current_user),
 ):
     """Process an image through vision AI to extract transaction data."""
-    _check_rate_limit(current_user["id"])
-
+    await _check_rate_limit(current_user["id"])
     if not file.content_type:
         raise HTTPException(status_code=400, detail="Could not detect file type")
 
@@ -243,8 +238,7 @@ async def process_ocr_and_save(
     current_user: dict = Depends(get_current_user),
 ):
     """Process OCR image and auto-save transaction. Returns immediately."""
-    _check_rate_limit(current_user["id"])
-
+    await _check_rate_limit(current_user["id"])
     # Per-user queue: reject if user already has a processing job
     cursor = await db.execute(
         "SELECT COUNT(*) as count FROM ocr_jobs WHERE user_id = ? AND status = 'processing'",

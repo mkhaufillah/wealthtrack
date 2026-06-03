@@ -12,14 +12,17 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.limiter import limiter
 from app.database import init_pool, close_pool
+from app.core.redis import init_redis, close_redis
 from app.routers import auth, categories, transactions, summaries, health, households, exports, budgets, ocr, ai_advisor
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_pool()
+    await init_redis()
     yield
     await close_pool()
+    await close_redis()
 
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifespan)

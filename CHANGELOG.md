@@ -4,6 +4,14 @@
 
 **Backend database migrated from SQLite to PostgreSQL.**
 
+### Added
+- **Redis 8.8.0** — In-memory data store for rate limiting, OCR queue, and AI response caching.
+- **Redis-backed rate limiter** (`backend/app/core/rate_limiter.py`) — Sliding window via sorted sets, replaces OCR's in-memory `_check_rate_limit`. Persists across server restarts.
+- **Redis connection manager** (`backend/app/core/redis.py`) — Singleton async pool, initialized in `main.py` lifespan.
+- **Health check** — `/health` now reports Redis connectivity status (`"redis": "connected" | "unreachable"`).
+- **Systemd dependency** — `wealthtrack.service` now `After=redis.service` + `Wants=redis.service`.
+- **Deploy** — `deploy/deploy.sh` installs Redis service.
+
 ### Breaking Changes
 - **Database driver** — `aiosqlite` replaced with `asyncpg`. All raw SQL queries rewritten for PostgreSQL (`$1` placeholders, `LEFT()` instead of `substr()`, `TO_CHAR()` instead of `strftime()`, `RETURNING id` instead of `lastrowid`).
 - **Config** — New `DATABASE_URL` env var (`postgresql://user:pass@host:5432/wealthtrack`). Legacy `DB_PATH` retained for reference.
