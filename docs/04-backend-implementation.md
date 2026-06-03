@@ -218,32 +218,27 @@ uv run python -m backend.app.migrate_db
 `backend/app/database.py`
 
 ```python
-import aiosqlite
-# import sqlite3 (legacy — see migrate_db.py)
+import asyncpg
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from app.core.config import settings
 
-async def get_db():
-    """Dependency: yields asyncpg CursorWrapper."""
-    # See app/database.py for asyncpg CursorWrapper
-    # CursorWrapper handles row access
-    await db.execute("PRAGMA journal_mode=WAL;")
-    await db.execute("PRAGMA foreign_keys=ON;")
-    await db.execute("PRAGMA busy_timeout=5000;")
-    try:
-        yield db
-    finally:
-        await db.close()
+pool: asyncpg.Pool | None = None
 
-def get_sync_db():
-    """Synchronous connection for migration / seed scripts."""
-    # conn = sqlite3.connect(settings.DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA foreign_keys=ON;")
-    return conn
+async def get_pool() -> asyncpg.Pool:
+    global pool
+    if pool is None:
+        pool = await asyncpg.create_pool(
+            settings.DATABASE_URL, min_size=2, max_size=10
+        )
+    return pool
+
+async def get_db():
+    """Dependency: yields asyncpg connection from pool."""
+    p = await get_pool()
+    async with p.acquire() as conn:
+        yield conn
 ```
 
 ## Step 6: Security Module
@@ -392,7 +387,7 @@ class CategoryOut(BaseModel):
 
 ```python
 from fastapi import APIRouter, Depends, HTTPException, status
-import aiosqlite
+import asyncpg
 
 from app.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token, get_current_user
@@ -402,45 +397,42 @@ from app.core.config import settings
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", status_code=201)
-async def register(data: UserRegister, db: aiosqlite.Connection = Depends(get_db)):
-    cursor = await db.execute("SELECT id FROM users WHERE username = ?", (data.username,))
-    if await cursor.fetchone():
+async def register(data: UserRegister, db: asyncpg.Connection = Depends(get_db)):
+    row = await db.fetchrow("SELECT id FROM users WHERE username = $1", data.username)
+    if row:
         raise HTTPException(status_code=409, detail="Username already exists")
     pw_hash = hash_password(data.password)
-    cursor = await db.execute(
-        "INSERT INTO users (username, display_name, password_hash) VALUES (?, ?, ?)",
-        (data.username, data.display_name, pw_hash),
+    user_id = await db.fetchval(
+        "INSERT INTO users (username, display_name, password_hash) VALUES ($1, $2, $3) RETURNING id",
+        data.username, data.display_name, pw_hash,
     )
-    await db.commit()
-    return {"id": cursor.lastrowid, "username": data.username, "display_name": data.display_name}
+    return {"id": user_id, "username": data.username, "display_name": data.display_name}
 
 @router.post("/login")
-async def login(data: UserLogin, db: aiosqlite.Connection = Depends(get_db)):
-    cursor = await db.execute("SELECT * FROM users WHERE username = ?", (data.username,))
-    user = await cursor.fetchone()
-    if not user or not verify_password(data.password, user["password_hash"]):
+async def login(data: UserLogin, db: asyncpg.Connection = Depends(get_db)):
+    row = await db.fetchrow("SELECT * FROM users WHERE username = $1", data.username)
+    if not row or not verify_password(data.password, row["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    token = create_access_token(user["id"], user["username"])
+    token = create_access_token(row["id"], row["username"])
     return TokenOut(
         access_token=token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_DAYS * 86400,
     )
 
 @router.get("/me")
-async def me(current_user: dict = Depends(get_current_user), db: aiosqlite.Connection = Depends(get_db)):
-    cursor = await db.execute(
-        "SELECT id, username, display_name, role, created_at FROM users WHERE id = ?",
-        (current_user["id"],),
+async def me(current_user: dict = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
+    row = await db.fetchrow(
+        "SELECT id, username, display_name, role, created_at FROM users WHERE id = $1",
+        current_user["id"],
     )
-    user = await cursor.fetchone()
-    return dict(user)
+    return dict(row)
 ```
 
 `backend/app/routers/categories.py`
 
 ```python
 from fastapi import APIRouter, Depends, Query
-import aiosqlite
+import asyncpg
 from typing import Optional
 
 from app.database import get_db
@@ -451,16 +443,15 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 @router.get("")
 async def list_categories(
     type: Optional[str] = Query(None, pattern="^(expense|income)$"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     if type:
-        cursor = await db.execute(
-            "SELECT * FROM categories WHERE type = ? ORDER BY sort_order", (type,)
+        rows = await db.fetch(
+            "SELECT * FROM categories WHERE type = $1 ORDER BY sort_order", type
         )
     else:
-        cursor = await db.execute("SELECT * FROM categories ORDER BY type, sort_order")
-    rows = await cursor.fetchall()
+        rows = await db.fetch("SELECT * FROM categories ORDER BY type, sort_order")
     return [dict(r) for r in rows]
 ```
 
@@ -468,7 +459,7 @@ async def list_categories(
 
 ```python
 from fastapi import APIRouter, Depends, HTTPException, Query
-import aiosqlite
+import asyncpg
 from typing import Optional
 
 from app.database import get_db
@@ -479,7 +470,7 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
 def _format_txn(row, cat_name="", cat_icon="", display_name=""):
-    # sqlite3.Row doesn't support .get() — convert to dict for safe access
+    # PostgreSQL row is already dict-like — no conversion needed
     r = dict(row)
     return {
         "id": r["id"],
@@ -1237,16 +1228,16 @@ async def advise_stream(data: AdviseRequest, db=Depends(get_db), user=Depends(ge
 
 ```python
 from fastapi import APIRouter, Depends
-import aiosqlite
+import asyncpg
 
 from app.database import get_db
 
 router = APIRouter(prefix="/health", tags=["health"])
 
 @router.get("")
-async def health_check(db: aiosqlite.Connection = Depends(get_db)):
+async def health_check(db: asyncpg.Connection = Depends(get_db)):
     try:
-        await db.execute("SELECT 1")
+        await db.fetchval("SELECT 1")
         return {"status": "healthy"}
     except Exception:
         return {"status": "degraded"}
@@ -1406,7 +1397,7 @@ async def health_check(db):
     # or {"status": "degraded", "database": "unreachable"}
 ```
 
-The endpoint pings the SQLite database and reports connectivity status. No authentication required — designed for external monitoring tools.
+The endpoint pings the PostgreSQL database and reports connectivity status. No authentication required — designed for external monitoring tools.
 
 ### CORS
 

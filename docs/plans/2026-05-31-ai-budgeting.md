@@ -6,7 +6,7 @@
 
 **Architecture:** Backend (FastAPI) — new `/budgets/suggestions` endpoint + projection logic. Flutter — suggestion review bottom sheet with accept/decline per category. AI Advisor — enhanced prompt with budget health and projected overrun analysis.
 
-**Tech Stack:** Python/FastAPI, Flutter/Dart, SQLite (existing), same structure as existing budget features.
+**Tech Stack:** Python/FastAPI, Flutter/Dart, PostgreSQL (existing), same structure as existing budget features.
 
 ---
 

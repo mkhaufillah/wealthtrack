@@ -140,7 +140,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 ## Key Design Decisions
 
 1. **No ORM** — raw SQL with asyncpg. Simple schema, no need for migration hell.
-2. **WAL mode** — `PRAGMA journal_mode=WAL;` for concurrent reads + writes.
+2. **PostgreSQL connection pooling** — asyncpg pool for concurrent reads + writes.
 3. **JWT auth** — simple, stateless. Token stored in Flutter Secure Storage.
-4. **SQLite as single source** — no sync, no conflict resolution needed.
+4. **PostgreSQL as single source** — no sync, no conflict resolution needed.
 5. **Hermes talks directly to DB** — not through FastAPI. It's co-located on the same VPS.

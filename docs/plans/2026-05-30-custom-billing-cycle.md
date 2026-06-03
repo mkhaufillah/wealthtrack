@@ -11,7 +11,7 @@
 - Flutter profile screen: add cycle start day picker (1–28)
 - Cron household script: read user's cycle from DB
 
-**Tech Stack:** FastAPI (backend), aiosqlite, Flutter + Riverpod (mobile)
+**Tech Stack:** FastAPI (backend), asyncpg (PostgreSQL), Flutter + Riverpod (mobile)
 
 ---
 

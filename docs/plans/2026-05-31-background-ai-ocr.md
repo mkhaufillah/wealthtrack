@@ -6,7 +6,7 @@
 
 **Architecture:** Both features use the same pattern: backend persists the result (chat message or OCR transaction) asynchronously while Flutter polls for status and shows appropriate UI. Two new DB tables (`ai_messages`, `ocr_jobs`). Background LLM processing via `asyncio.create_task`.
 
-**Tech Stack:** FastAPI + SQLite (existing), Flutter/Dart + Riverpod (existing), Kimi K2.5 / DeepSeek Flash (existing AI models).
+**Tech Stack:** FastAPI + PostgreSQL (existing), Flutter/Dart + Riverpod (existing), Kimi K2.5 / DeepSeek Flash (existing AI models).
 
 ---
 

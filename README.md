@@ -92,7 +92,7 @@ scripts/               # DB init & seed scripts
 
 ## Status
 
-- [x] P1 — Core Backend (FastAPI + SQLite + Auth) ✅
+- [x] P1 — Core Backend (FastAPI + PostgreSQL + Auth) ✅
 - [x] P2 — Hermes Integration (cron + chat input) ✅
 - [x] P3 — Flutter Mobile MVP ✅
 - [x] P4 — Charts, Budgets, Export, OCR, AI Advisor, Change Owner ✅

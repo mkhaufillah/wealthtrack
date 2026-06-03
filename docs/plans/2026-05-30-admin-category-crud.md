@@ -6,7 +6,7 @@
 
 **Architecture:** New DB columns on `categories` table (`name_en`, `keywords`). Backend adds POST + PUT endpoints with admin role guard. Hermes `classify_transaction()` reads keywords from DB instead of hardcoded dicts. Flutter replaces `category_translator.dart` with direct `name_en` field from API. New admin screen for managing categories.
 
-**Tech Stack:** FastAPI + SQLite + Flutter + Hermes (Python)
+**Tech Stack:** FastAPI + PostgreSQL + Flutter + Hermes (Python)
 
 **Principle:** CREATE + EDIT only, **no DELETE.** Categories referenced by transactions/budgets cannot be safely removed. Soft-deactivate if needed later.
 
