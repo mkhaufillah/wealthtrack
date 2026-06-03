@@ -722,3 +722,16 @@ async def get_chat_messages(
     )
     rows = await cursor.fetchall()
     return [dict(row) for row in rows]
+
+
+@router.delete("/chat/messages", status_code=204)
+async def delete_chat_messages(
+    request: Request,
+    db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete all AI chat messages for the current user."""
+    await db.execute(
+        "DELETE FROM ai_messages WHERE user_id = ?",
+        (current_user["id"],),
+    )

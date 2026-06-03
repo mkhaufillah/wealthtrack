@@ -10,6 +10,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  WEALTHTRACK_TEST_DATABASE_URL: postgresql://wealthtrack_test:wealthtrack_test123@localhost:5433/wealthtrack_test
 
 concurrency:
   group: deploy-backend-${{ github.ref }}
@@ -21,6 +22,21 @@ jobs:
     defaults:
       run:
         working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: wealthtrack_test
+          POSTGRES_PASSWORD: wealthtrack_test123
+          POSTGRES_DB: wealthtrack_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v6
@@ -36,12 +52,10 @@ jobs:
           pip install -q -r requirements.txt
           pip install -q pytest pytest-asyncio httpx
 
-      - name: Setup environment
-        run: |
-          python3 -c "import secrets; f=open('.env','w'); f.write(f'SECRET_KEY={secrets.token_hex(32)}\nDEBUG=True\nACCESS_TOKEN_EXPIRE_DAYS=30\n')"
-
       - name: Run tests
-        run: pytest tests/ -v
+        run: pytest tests/ -v --tb=short
+        env:
+          WEALTHTRACK_TEST_DATABASE_URL: ${{ env.WEALTHTRACK_TEST_DATABASE_URL }}
 
   deploy:
     needs: test
@@ -65,16 +79,13 @@ jobs:
 
             echo "→ Ensuring backend/.env exists..."
             if [ ! -f backend/.env ]; then
-              python3 -c "import secrets; f=open('backend/.env','w'); f.write(f'SECRET_KEY={secrets.token_hex(32)}\nDEBUG=True\nACCESS_TOKEN_EXPIRE_DAYS=30\n')"
-              echo "  ✅ Generated backend/.env with random SECRET_KEY"
+              python3 -c "import secrets; f=open('backend/.env','w'); f.write(f'SECRET_KEY={secrets.token_hex(32)}\nDEBUG=True\nACCESS_TOKEN_EXPIRE_DAYS=30\nDATABASE_URL=postgresql://wealthtrack:wealthtrack123@localhost:5432/wealthtrack\n')"
+              echo "  ✅ Generated backend/.env"
             fi
 
             echo "→ Activating venv & installing deps..."
             source .venv/bin/activate
             /home/filla/.local/bin/uv pip install -q -r backend/requirements.txt
-
-            echo "→ Running database migration..."
-            /home/filla/.local/bin/uv run python -m backend.app.migrate_db
 
             echo "→ Restarting service..."
             sudo systemctl restart wealthtrack

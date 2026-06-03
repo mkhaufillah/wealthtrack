@@ -192,6 +192,12 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   }
 
   Future<void> _clearChat() async {
+    final api = ref.read(apiClientProvider);
+    try {
+      await api.delete('/ai/chat/messages');
+    } catch (_) {
+      // ignore — local clear still happens
+    }
     await _chatStorage.clear();
     setState(() => _messages.clear());
   }
