@@ -158,6 +158,140 @@ async def init_pool():
         max_size=10,
         command_timeout=30,
     )
+    # Auto-create schema on first connection (idempotent)
+    assert pool is not None
+    async with pool.acquire() as conn:
+        await _init_schema(conn)
+
+
+SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    display_name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
+    email TEXT DEFAULT '',
+    cycle_start_day INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email != '';
+
+CREATE TABLE IF NOT EXISTS email_verifications (
+    id SERIAL PRIMARY KEY,
+    email TEXT NOT NULL,
+    code TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    verified INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email);
+
+CREATE TABLE IF NOT EXISTS categories (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
+    icon TEXT DEFAULT '',
+    is_default INTEGER DEFAULT 0,
+    sort_order INTEGER DEFAULT 0,
+    name_en TEXT DEFAULT '',
+    keywords TEXT DEFAULT '[]'
+);
+
+CREATE TABLE IF NOT EXISTS transactions (
+    id SERIAL PRIMARY KEY,
+    type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
+    amount INTEGER NOT NULL,
+    category_id INTEGER REFERENCES categories(id),
+    category_name TEXT DEFAULT '',
+    description TEXT DEFAULT '',
+    source TEXT DEFAULT 'manual',
+    image_path TEXT DEFAULT '',
+    created_at TEXT DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    user_id INTEGER REFERENCES users(id),
+    date TEXT,
+    note TEXT DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(COALESCE(date, LEFT(created_at, 10)));
+CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions(user_id, date DESC NULLS LAST);
+
+CREATE TABLE IF NOT EXISTS budgets (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    month TEXT NOT NULL,
+    category_id INTEGER NOT NULL,
+    category_name TEXT NOT NULL,
+    budget_amount INTEGER NOT NULL,
+    cycle_on INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(user_id, month, category_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_budgets_user_month ON budgets(user_id, month);
+
+CREATE TABLE IF NOT EXISTS households (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    invite_code TEXT NOT NULL UNIQUE,
+    created_by INTEGER NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE TABLE IF NOT EXISTS household_members (
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    household_id INTEGER NOT NULL REFERENCES households(id),
+    role TEXT NOT NULL DEFAULT 'member',
+    joined_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    PRIMARY KEY (user_id, household_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_household_members_user ON household_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_household_members_household ON household_members(household_id);
+
+CREATE TABLE IF NOT EXISTS ocr_jobs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    image_filename TEXT,
+    status TEXT NOT NULL DEFAULT 'processing' CHECK(status IN ('processing', 'completed', 'failed')),
+    transaction_id INTEGER REFERENCES transactions(id),
+    error TEXT,
+    raw_text TEXT,
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    completed_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_ocr_jobs_user_status ON ocr_jobs(user_id, status);
+
+CREATE TABLE IF NOT EXISTS ai_messages (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+    content TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'processing' CHECK(status IN ('processing', 'complete', 'error', 'error:hidden')),
+    model TEXT NOT NULL DEFAULT 'flash',
+    parent_message_id INTEGER REFERENCES ai_messages(id),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_messages_user ON ai_messages(user_id, created_at);
+"""
+
+
+async def _init_schema(conn):
+    """Create tables and indexes if they don't exist. Idempotent."""
+    # Split by semicolons and execute each statement
+    for statement in SCHEMA_SQL.split(';'):
+        stmt = statement.strip()
+        if stmt and not stmt.startswith('--'):
+            try:
+                await conn.execute(stmt)
+            except Exception as e:
+                print(f"Schema init warning (non-fatal): {e}")
+
 
 
 async def close_pool():
