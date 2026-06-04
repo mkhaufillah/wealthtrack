@@ -132,6 +132,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       // the old failure while the new scan is in progress.
       ref.read(ocrPendingCountProvider.notifier).clearError();
 
+      setState(() => _isScanning = true);
       await api.uploadFile('/ocr/process-and-save', picked.path);
 
       if (!mounted) return;
@@ -143,6 +144,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       context.go('/transactions');
     } catch (e) {
       if (!mounted) return;
+      setState(() => _isScanning = false);
       final errMsg = ref.read(apiClientProvider).handleError(e).toString();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
