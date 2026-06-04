@@ -186,7 +186,7 @@ async def _create_test_db():
         day_offset = len(DEFAULT_TRANSACTIONS) - i
         await conn.execute(
             "INSERT INTO transactions (id, type, amount, category_id, category_name, description, note, date, user_id, created_at) "
-            "VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE - MAKE_INTERVAL(days => $8), 1, NOW())",
+            "VALUES ($1, $2, $3, $4, $5, $6, $7, (CURRENT_DATE - MAKE_INTERVAL(days => $8))::date, 1, NOW())",
             t[0], t[1], t[2], t[3], t[4], t[5], t[6], day_offset,
         )
     await conn.execute(
