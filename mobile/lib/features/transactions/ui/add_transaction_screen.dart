@@ -122,13 +122,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     if (source == null || !mounted) return;
 
     try {
-      setState(() => _isScanning = true);
       final picker = ImagePicker();
       final picked = await picker.pickImage(source: source, imageQuality: 70, maxWidth: 1920);
-      if (picked == null) {
-        setState(() => _isScanning = false);
-        return;
-      }
+      if (picked == null) return;
 
       final api = ref.read(apiClientProvider);
 
@@ -136,6 +132,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       // the old failure while the new scan is in progress.
       ref.read(ocrPendingCountProvider.notifier).clearError();
 
+      setState(() => _isScanning = true);
       await api.uploadFile('/ocr/process-and-save', picked.path);
 
       if (!mounted) return;
