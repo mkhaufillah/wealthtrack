@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.5.2 — Auto-Create Schema & Index Optimization (2026-06-03)
+
+### Infrastructure
+- **Auto schema init** — `init_pool()` now auto-creates all tables and indexes with `IF NOT EXISTS`. Fresh VPS deployment needs zero manual SQL — schema is ready on first app startup.
+- **New indexes** — `idx_transactions_user_date` (user_id, date DESC) for the most common transaction list query pattern; `idx_email_verifications_email` for OTP lookup.
+
+### Database
+- **`database.py`** — Added `SCHEMA_SQL` constant with full DDL for all 9 tables + 20 indexes. `_init_schema()` runs idempotently on pool initialization.
+
+### Docs
+- Database schema, deployment, and project overview docs synced with auto-schema flow.
+
+---
+
 ## v0.5.1 — Full-Text Search with Meilisearch (2026-06-03)
 
 ### Added
@@ -31,9 +45,9 @@
 
 ---
 
-## v0.5.0 — SQLite → PostgreSQL Migration (2026-06-03)
+## v0.5.0 — PostgreSQL + Redis Infrastructure (2026-06-03)
 
-**Backend database migrated from SQLite to PostgreSQL.** SQLite file preserved at `~/.keuangan/finance.db` as read-only backup.
+**Production database migrated to PostgreSQL.** SQLite backup preserved at `~/.keuangan/finance.db`.
 
 ### Added
 - **Redis 8.8.0** — In-memory data store for rate limiting, OCR queue, and AI response caching.
@@ -44,9 +58,9 @@
 - **Deploy** — `deploy/deploy.sh` installs Redis service.
 
 ### Breaking Changes
-- **Database driver** — `aiosqlite` replaced with `asyncpg`. All raw SQL queries rewritten for PostgreSQL (`$1` placeholders, `LEFT()` instead of `substr()`, `TO_CHAR()` instead of `strftime()`, `RETURNING id` instead of `lastrowid`).
-- **Config** — New `DATABASE_URL` env var (`postgresql://user:***@host:5432/wealthtrack`). Removed legacy `DB_PATH`.
-- **Dependencies** — `aiosqlite` removed from `requirements.txt`, `asyncpg>=0.29.0` added.
+- **Database driver** — Changed to `asyncpg`. Raw SQL queries use PostgreSQL syntax (`$1` placeholders, `LEFT()` / `TO_CHAR()` / `RETURNING id`).
+- **Config** — New `DATABASE_URL` env var (`postgresql://user:***@host:5432/wealthtrack`). Legacy `DB_PATH` removed.
+- **Dependencies** — `aiosqlite` removed, `asyncpg>=0.29.0` added.
 
 ### Architecture
 - **`database.py`** — New `CursorWrapper` wraps asyncpg connections with backward-compatible cursor interface. Auto-converts `?`→`$1..$N` placeholders, appends `RETURNING id` to INSERTs, handles composite-PK tables gracefully (household_members).
@@ -54,7 +68,7 @@
 - **Connection pool** — `asyncpg.create_pool` (min 2, max 10) with request-scoped connections.
 
 ### Bug Fixes (PostgreSQL strictness)
-- **GROUP BY strictness** — 6 queries fixed where PostgreSQL requires all non-aggregate columns in GROUP BY (summaries, budgets, budget_ai). SQLite was lenient about this.
+- **GROUP BY strictness** — 6 queries fixed where PostgreSQL requires all non-aggregate columns in GROUP BY (summaries, budgets, budget_ai). 
 - **GROUP BY alias ambiguity** — `GROUP BY date` resolved to `GROUP BY 1` when `date` is both a table column and a column alias.
 
 ### Tests

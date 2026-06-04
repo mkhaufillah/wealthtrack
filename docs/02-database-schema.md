@@ -2,7 +2,7 @@
 
 **See also:** [Project Overview](01-project-overview.md) · [Backend API](03-backend-api.md) · [Backend Implementation](04-backend-implementation.md) · [P4 Plan](08-p4-plan.md)
 
-> ⚠️ **v0.5.0+** App runs on **PostgreSQL** via asyncpg pool + **Redis 8.8** for rate limiting/queue/cache.
+> ⚠️ **v0.5.2+** Schema is auto-created on app startup — no manual SQL needed.
 > This doc documents the current PostgreSQL schema.
 
 ## Database

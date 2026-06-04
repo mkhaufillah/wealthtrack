@@ -248,7 +248,7 @@ At the end of the file (before any existing trailing code), add:
 async def budget_suggestions(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
     num_cycles: int = Query(3, ge=1, le=12),
-    db: aiosqlite.Connection = Depends(get_db),
+    db = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Analyze historical spending and suggest budget amounts per category."""
@@ -1114,7 +1114,7 @@ class BudgetHealthResponse(BaseModel):
 @router.get("/health", response_model=BudgetHealthResponse)
 async def budget_health(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Get budget health forecast — projected end-of-cycle spending vs budget."""

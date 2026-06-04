@@ -275,7 +275,7 @@ async def test_monthly_accepts_cycle_param(self, client: AsyncClient, filla_toke
 In `summaries.py`, add a helper:
 
 ```python
-async def _get_cycle_start_day(db: aiosqlite.Connection, user_id: int) -> int:
+async def _get_cycle_start_day(db, user_id: int) -> int:
     cursor = await db.execute(
         "SELECT COALESCE(cycle_start_day, 1) as cycle_start_day FROM users WHERE id = ?",
         (user_id,),
@@ -289,7 +289,7 @@ async def _get_cycle_start_day(db: aiosqlite.Connection, user_id: int) -> int:
 Replace the hardcoded d_from/d_to with cycle-aware logic:
 
 ```python
-async def _single_month(m: str, today: date, db: aiosqlite.Connection, current_user: dict,
+async def _single_month(m: str, today: date, db, current_user: dict,"
                          use_cycle: bool = False) -> dict:
     if use_cycle:
         cycle_start = await _get_cycle_start_day(db, current_user["id"])
@@ -335,7 +335,7 @@ Also update `daily` and `household` endpoints similarly.
 ```python
 @router.get("/cycle-info")
 async def cycle_info(
-    db: aiosqlite.Connection = Depends(get_db),
+    db = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Return the current cycle date range."""

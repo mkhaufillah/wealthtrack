@@ -86,7 +86,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 │   │   │   ├── rate_limiter.py# Sliding window rate limiter
 │   │   │   └── meilisearch.py # Meilisearch async client wrapper
 │   │   ├── models/
-│   │   │   ├── user.py        # SQLAlchemy-style models (raw SQL)
+│   │   │   ├── user.py        # Raw SQL query helpers
 │   │   │   ├── transaction.py
 │   │   │   ├── category.py
 │   │   │   └── budget.py

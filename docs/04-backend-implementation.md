@@ -112,7 +112,7 @@ Before starting FastAPI, ensure PostgreSQL is running and the `wealthtrack` data
 Schema creation is handled automatically via asyncpg pool initialization in `main.py` — tables are created with `IF NOT EXISTS` on first connection.
 
 > **Note:** The old `backend/app/migrate_db.py` has been removed.
-> All schema management is handled directly via asyncpg.
+> All schema management is handled automatically via `_init_schema()` in `database.py` — tables and indexes are created with `IF NOT EXISTS` on pool initialization.
 
 <!-- end migration script removal -->
 

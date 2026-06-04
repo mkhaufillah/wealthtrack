@@ -175,7 +175,7 @@ class CategoryOut(BaseModel):
 async def create_category(
     request: Request,
     data: CategoryCreate,
-    db: aiosqlite.Connection = Depends(get_db),
+    db = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     if current_user["role"] != "admin":
@@ -225,7 +225,7 @@ async def update_category(
     request: Request,
     category_id: int,
     data: CategoryUpdate,
-    db: aiosqlite.Connection = Depends(get_db),
+    db = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     if current_user["role"] != "admin":

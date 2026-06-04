@@ -268,8 +268,8 @@ source .venv/bin/activate
 # 3. Install/update deps
 uv pip install -r backend/requirements.txt
 
-# 4. Migration is automatic (PostgreSQL)
-#    Schema managed via asyncpg — no migration script needed
+# 4. Schema is auto-created on startup (database.py _init_schema)
+#    No manual migration needed — tables + indexes created with IF NOT EXISTS
 
 # 5. Restart service
 sudo systemctl restart wealthtrack
@@ -296,7 +296,7 @@ cd ~/dev/wealthtrack && git pull
 source .venv/bin/activate
 uv pip install -r backend/requirements.txt
 
-# Migration is automatic — no migration script needed
+# Migration is automatic via _init_schema on startup
 
 # If new search features added, re-index transactions to Meilisearch:
 # python3 -m scripts.bulk_index_meilisearch
