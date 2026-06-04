@@ -663,6 +663,12 @@ async def ai_chat(
 
             bg_db = await get_db_bg()
             try:
+                # Immediate feedback before context building
+                await bg_db.execute(
+                    "UPDATE ai_messages SET content = ? WHERE id = ?",
+                    ("Mengumpulkan data keuangan...", ai_msg_id),
+                )
+
                 messages = await _build_messages(
                     AdviseRequest(question=req.question, model=req.model, history=req.history),
                     current_user,
@@ -682,11 +688,11 @@ async def ai_chat(
                         )
                         last_flush = full_content
 
-                    # Final flush
-                    await bg_db.execute(
-                        "UPDATE ai_messages SET content = ?, status = 'complete' WHERE id = ?",
-                        (full_content, ai_msg_id),
-                    )
+                # Final flush — outside the for loop
+                await bg_db.execute(
+                    "UPDATE ai_messages SET content = ?, status = 'complete' WHERE id = ?",
+                    (full_content, ai_msg_id),
+                )
             finally:
                 await bg_db.close()
         except Exception as e:
