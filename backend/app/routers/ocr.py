@@ -411,7 +411,7 @@ async def ocr_pending_count(
 
     # Check for recent failures (last 60 seconds) to surface error to user
     cursor = await db.execute(
-        "SELECT id, error FROM ocr_jobs WHERE user_id = ? AND status = 'failed' AND created_at > NOW() - INTERVAL '60 seconds' ORDER BY created_at DESC LIMIT 1",
+        "SELECT id, error FROM ocr_jobs WHERE user_id = ? AND status = 'failed' AND created_at::timestamp > NOW() - INTERVAL '60 seconds' ORDER BY created_at DESC LIMIT 1",
         (current_user["id"],),
     )
     failed_row = await cursor.fetchone()
