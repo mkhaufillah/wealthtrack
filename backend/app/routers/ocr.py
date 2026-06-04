@@ -22,7 +22,7 @@ from app.database import get_db
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
 
-# ── Rate limit: max 10 OCR calls per user (Redis sliding window, persisted)
+# ── Rate limit: max 30 OCR calls per user (Redis sliding window, persisted)
 
 # ── Allowed image MIME types (raster only — SVG/vector not supported)
 ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
@@ -36,12 +36,12 @@ IMAGE_MAGIC: dict[bytes, str] = {
 
 
 async def _check_rate_limit(user_id: int):
-    """Redis sliding window: max 10 OCR scans per user per day."""
+    """Redis sliding window: max 30 OCR scans per user per day."""
     await check_rate_limit(
         key=f"ocr:user_{user_id}",
-        max_requests=10,
+        max_requests=30,
         window_sec=86400,
-        error_message="OCR rate limit: max 10/day",
+        error_message="OCR rate limit: max 30/day",
     )
 
 
