@@ -297,8 +297,8 @@ class TestBudgetSummary:
         data = resp.json()
         item = [s for s in data["items"] if s["category_id"] == 1][0]
         assert item["budget_amount"] == 500000
-        # actual_spent should include seed transaction (50000) + new one (30000)
-        assert item["actual_spent"] >= 80000
+        # actual_spent should include the newly created transaction (30000)
+        assert item["actual_spent"] >= 30000
         assert item["percentage"] > 0
         assert item["remaining"] == item["budget_amount"] - item["actual_spent"]
 

@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
-import asyncpg
 import json
 from typing import Optional
 
-from app.database import get_db
+from app.database import get_db, CursorWrapper
 from app.core.security import get_current_user
 from app.core.limiter import limiter
 from app.schemas.category import CategoryOut, CategoryCreate, CategoryUpdate
@@ -22,7 +21,7 @@ def _format_category(row) -> dict:
 @router.get("", response_model=list[CategoryOut])
 async def list_categories(
     type: Optional[str] = Query(None, pattern="^(expense|income)$"),
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     if type:
@@ -43,7 +42,7 @@ async def list_categories(
 async def create_category(
     request: Request,
     data: CategoryCreate,
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     if current_user["role"] != "admin":
@@ -80,7 +79,7 @@ async def update_category(
     request: Request,
     category_id: int,
     data: CategoryUpdate,
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     if current_user["role"] != "admin":

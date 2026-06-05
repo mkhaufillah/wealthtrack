@@ -1,17 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
-import asyncpg
 import io
 from typing import Optional
 from calendar import monthrange, month_abbr
 
-from app.database import get_db
+from app.database import get_db, CursorWrapper
 from app.core.security import get_current_user
 
 router = APIRouter(prefix="/exports", tags=["exports"])
 
 
-async def _year_transactions(year: int, user_id: int, db: asyncpg.Connection) -> dict[int, list]:
+async def _year_transactions(year: int, user_id: int, db : CursorWrapper) -> dict[int, list]:
     """Fetch all transactions for a given year, grouped by month."""
     cursor = await db.execute(
         """SELECT t.id, t.type, t.amount, t.category_name, t.description, t.note,
@@ -37,7 +36,7 @@ async def _year_transactions(year: int, user_id: int, db: asyncpg.Connection) ->
 @router.get("/yearly")
 async def export_yearly(
     year: int = Query(..., ge=2020, le=2100),
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Export all transactions for a given year as .xlsx.

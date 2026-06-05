@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-import asyncpg
 from typing import Optional
 
-from app.database import get_db
+from app.database import get_db, CursorWrapper
 from app.core.security import get_current_user
 from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetSummaryItem, BudgetSummaryResponse, UnbudgetedExpense, BudgetSuggestion, BudgetSuggestionResponse, BudgetHealthResponse
 from app.utils.cycle import get_cycle_range_for_month
@@ -13,7 +12,7 @@ router = APIRouter(prefix="/budgets", tags=["budgets"])
 @router.get("", response_model=list[BudgetResponse])
 async def list_budgets(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -44,7 +43,7 @@ async def list_budgets(
 @router.post("", status_code=201, response_model=BudgetResponse)
 async def create_or_update_budget(
     data: BudgetCreate,
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     # Validate category exists
@@ -107,7 +106,7 @@ async def create_or_update_budget(
 @router.delete("/{budget_id}", status_code=204)
 async def delete_budget(
     budget_id: int,
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -126,7 +125,7 @@ async def budget_summary(
     use_cycle: bool = Query(False, description="Use user's billing cycle for actuals date range"),
     d_from_override: Optional[str] = Query(None, description="Override date_from for non-budget expense query"),
     d_to_override: Optional[str] = Query(None, description="Override date_to for non-budget expense query"),
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Budgets vs actual spending for a given month.
@@ -155,44 +154,84 @@ async def budget_summary(
     rows = await cursor.fetchall()
 
     results = []
-    for r in rows:
-        budget_amount = r["budget_amount"]
-        cycle_on = r["cycle_on"]
+    
+    if not use_cycle:
+        # ── Optimized path (calendar month) — single query ──
+        d_from_str = f"{month}-01"
+        import calendar as _cal
+        y, mo = map(int, month.split("-"))
+        last_day = _cal.monthrange(y, mo)[1]
+        d_to_str = f"{month}-{last_day:02d}"
+        
+        budget_ids = [r["id"] for r in rows]
+        cat_ids = [r["category_id"] for r in rows]
+        
+        if budget_ids:
+            cat_placeholders = ",".join("?" for _ in cat_ids)
+            cur = await db.execute(
+                f"""SELECT t.category_id,
+                           CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS INTEGER) AS actual_spent
+                    FROM transactions t
+                    WHERE t.user_id = ?
+                      AND t.category_id IN ({cat_placeholders})
+                      AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                      AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
+                    GROUP BY t.category_id""",
+                (current_user["id"], *cat_ids, d_from_str, d_to_str),
+            )
+            actual_rows = await cur.fetchall()
+            actual_map = {r["category_id"]: r["actual_spent"] for r in actual_rows}
+        
+        for r in rows:
+            actual_spent = actual_map.get(r["category_id"], 0)
+            budget_amount = r["budget_amount"]
+            percentage = (actual_spent / budget_amount * 100) if budget_amount > 0 else 0
+            results.append(BudgetSummaryItem(
+                id=r["id"],
+                category_id=r["category_id"],
+                category_name=r["category_name"],
+                category_name_en=r["category_name_en"] or "",
+                category_icon=r["category_icon"] or "📦",
+                budget_amount=budget_amount,
+                actual_spent=actual_spent,
+                percentage=round(percentage, 1),
+                remaining=budget_amount - actual_spent,
+                cycle_on=r["cycle_on"],
+            ))
+    else:
+        # ── Cycle-aware path — per-budget query (each may have different cycle_on) ──
+        for r in rows:
+            budget_amount = r["budget_amount"]
+            cycle_on = r["cycle_on"]
 
-        # Compute date range from this budget's own cycle_on
-        if use_cycle:
             d_from, d_to = get_cycle_range_for_month(month, cycle_on)
             d_from_str = d_from.isoformat()
             d_to_str = d_to.isoformat()
-        else:
-            d_from_str = f"{month}-01"
-            d_to_str = f"{month}-31"
 
-        # Query actual spending for this specific category + cycle range
-        cur = await db.execute(
-            """SELECT COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual_spent
-               FROM transactions t
-               WHERE t.category_id = ? AND t.user_id = ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?""",
-            (r["category_id"], current_user["id"], d_from_str, d_to_str),
-        )
-        row = await cur.fetchone()
-        actual_spent = row[0] if row is not None else 0
+            cur = await db.execute(
+                """SELECT COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual_spent
+                   FROM transactions t
+                   WHERE t.category_id = ? AND t.user_id = ?
+                     AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                     AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?""",
+                (r["category_id"], current_user["id"], d_from_str, d_to_str),
+            )
+            row = await cur.fetchone()
+            actual_spent = row[0] if row is not None else 0
 
-        percentage = (actual_spent / budget_amount * 100) if budget_amount > 0 else 0
-        results.append(BudgetSummaryItem(
-            id=r["id"],
-            category_id=r["category_id"],
-            category_name=r["category_name"],
-            category_name_en=r["category_name_en"] or "",
-            category_icon=r["category_icon"] or "📦",
-            budget_amount=budget_amount,
-            actual_spent=actual_spent,
-            percentage=round(percentage, 1),
-            remaining=budget_amount - actual_spent,
-            cycle_on=cycle_on,
-        ))
+            percentage = (actual_spent / budget_amount * 100) if budget_amount > 0 else 0
+            results.append(BudgetSummaryItem(
+                id=r["id"],
+                category_id=r["category_id"],
+                category_name=r["category_name"],
+                category_name_en=r["category_name_en"] or "",
+                category_icon=r["category_icon"] or "📦",
+                budget_amount=budget_amount,
+                actual_spent=actual_spent,
+                percentage=round(percentage, 1),
+                remaining=budget_amount - actual_spent,
+                cycle_on=cycle_on,
+            ))
 
     # ── Unbudgeted expenses ──
     # Determine overall date range for non-budget expense query
@@ -281,7 +320,7 @@ async def budget_summary(
 async def budget_suggestions(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
     num_cycles: int = Query(3, ge=1, le=12),
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Analyze historical spending and suggest budget amounts per category."""
@@ -369,7 +408,7 @@ async def budget_suggestions(
 @router.get("/health", response_model=BudgetHealthResponse)
 async def budget_health(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Get budget health forecast — projected end-of-cycle spending vs budget."""

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 import asyncpg
 
-from app.database import get_db
+from app.database import get_db, CursorWrapper
 from app.core.security import (
     hash_password,
     verify_password,
@@ -30,7 +30,7 @@ OTP_EXPIRE_MINUTES = 10
 
 @router.post("/send-otp", status_code=200)
 @limiter.limit("3/minute")
-async def send_otp(request: Request, data: SendOtpIn, db: asyncpg.Connection = Depends(get_db)):
+async def send_otp(request: Request, data: SendOtpIn, db: CursorWrapper = Depends(get_db)):
     """Send an OTP code to the given email for registration."""
     otp = generate_otp()
     expires_at = (
@@ -53,7 +53,7 @@ async def send_otp(request: Request, data: SendOtpIn, db: asyncpg.Connection = D
 
 @router.post("/register", status_code=201)
 @limiter.limit("5/minute")
-async def register(request: Request, data: UserRegister, db: asyncpg.Connection = Depends(get_db)):
+async def register(request: Request, data: UserRegister, db: CursorWrapper = Depends(get_db)):
     cursor = await db.execute("SELECT id FROM users WHERE username = ?", (data.username,))
     if await cursor.fetchone():
         raise HTTPException(status_code=409, detail="Username already exists")
@@ -110,7 +110,7 @@ async def register(request: Request, data: UserRegister, db: asyncpg.Connection 
 
 @router.post("/login")
 @limiter.limit("10/minute")
-async def login(request: Request, data: UserLogin, db: asyncpg.Connection = Depends(get_db)):
+async def login(request: Request, data: UserLogin, db: CursorWrapper = Depends(get_db)):
     cursor = await db.execute(
         "SELECT id, username, password_hash, role FROM users WHERE username = ?", (data.username,)
     )
@@ -127,7 +127,7 @@ async def login(request: Request, data: UserLogin, db: asyncpg.Connection = Depe
 @router.get("/me")
 async def me(
     current_user: dict = Depends(get_current_user),
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
 ):
     cursor = await db.execute(
         "SELECT id, username, display_name, email, role, COALESCE(cycle_start_day, 1) as cycle_start_day, created_at FROM users WHERE id = ?",
@@ -143,7 +143,7 @@ async def me(
 async def update_profile(
     data: UpdateProfileIn,
     current_user: dict = Depends(get_current_user),
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
 ):
     updates = {}
     if data.display_name is not None:
@@ -186,7 +186,7 @@ async def change_password(
     request: Request,
     data: ChangePasswordIn,
     current_user: dict = Depends(get_current_user),
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
 ):
     cursor = await db.execute(
         "SELECT password_hash FROM users WHERE id = ?",
@@ -212,7 +212,7 @@ async def change_password(
 @router.delete("/me", status_code=204)
 async def delete_account(
     current_user: dict = Depends(get_current_user),
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
 ):
     # Delete all members of households owned by this user (cascade)
     await db.execute(
@@ -229,15 +229,11 @@ async def delete_account(
         "DELETE FROM households WHERE created_by = ?",
         (current_user["id"],),
     )
-    # Delete OCR jobs owned by this user
-    cursor = await db.execute(
-        "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='ocr_jobs'"
+    # Delete OCR jobs owned by this user (table always exists in production)
+    await db.execute(
+        "DELETE FROM ocr_jobs WHERE user_id = ?",
+        (current_user["id"],),
     )
-    if await cursor.fetchone():
-        await db.execute(
-            "DELETE FROM ocr_jobs WHERE user_id = ?",
-            (current_user["id"],),
-        )
     # Delete all transactions owned by this user
     await db.execute(
         "DELETE FROM transactions WHERE user_id = ?",

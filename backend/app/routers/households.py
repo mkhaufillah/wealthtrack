@@ -2,9 +2,8 @@ import secrets
 import string
 
 from fastapi import APIRouter, Depends, HTTPException
-import asyncpg
 
-from app.database import get_db
+from app.database import get_db, CursorWrapper
 from app.core.security import get_current_user
 from app.schemas.household import (
     CreateHouseholdIn,
@@ -24,7 +23,7 @@ def _generate_invite_code(length: int = 8) -> str:
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
-async def _ensure_not_in_household(db: asyncpg.Connection, user_id: int):
+async def _ensure_not_in_household(db : CursorWrapper, user_id: int):
     """Raise 409 if user is already in a household."""
     cursor = await db.execute(
         "SELECT household_id FROM household_members WHERE user_id = ?",
@@ -34,7 +33,7 @@ async def _ensure_not_in_household(db: asyncpg.Connection, user_id: int):
         raise HTTPException(status_code=409, detail="Already in a household")
 
 
-async def _get_household_for_user(db: asyncpg.Connection, user_id: int) -> dict:
+async def _get_household_for_user(db : CursorWrapper, user_id: int) -> dict:
     """Get the household the user belongs to, or raise 404."""
     cursor = await db.execute(
         """SELECT h.id, h.name, h.invite_code, h.created_by, h.created_at
@@ -52,7 +51,7 @@ async def _get_household_for_user(db: asyncpg.Connection, user_id: int) -> dict:
 @router.post("", status_code=201)
 async def create_household(
     data: CreateHouseholdIn,
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Create a new household. User becomes admin. Generates unique invite code."""
@@ -93,7 +92,7 @@ async def create_household(
 @router.post("/join")
 async def join_household(
     data: JoinHouseholdIn,
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Join an existing household using invite code."""
@@ -118,7 +117,7 @@ async def join_household(
 
 @router.get("/me")
 async def get_my_household(
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> HouseholdDetailOut:
     """Get the current user's household details and members."""
@@ -157,7 +156,7 @@ async def get_my_household(
 
 @router.get("/invite-code")
 async def get_invite_code(
-    db: asyncpg.Connection = Depends(get_db),
+    db : CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> InviteCodeOut:
     """Get the invite code for the current user's household."""

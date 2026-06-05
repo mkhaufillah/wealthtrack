@@ -1,15 +1,14 @@
 """Health check endpoint — used by monitoring / load balancer."""
 from fastapi import APIRouter, Depends
-import asyncpg
 
-from app.database import get_db
+from app.database import get_db, CursorWrapper
 from app.core.redis import get_redis
 
 router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
-async def health_check(db: asyncpg.Connection = Depends(get_db)):
+async def health_check(db : CursorWrapper = Depends(get_db)):
     """Return API, DB & Redis health status."""
     try:
         cursor = await db.execute("SELECT 1")

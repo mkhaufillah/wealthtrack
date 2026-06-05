@@ -83,11 +83,8 @@ jobs:
           source .venv/bin/activate
           uv pip install -q -r backend/requirements.txt
 
-      - name: Restart service
-        env:
-          SUDO_PW: ${{ secrets.SUDO_PASSWORD }}
-        run: |
-          echo "$SUDO_PW" | sudo -S systemctl restart wealthtrack
+      - name: Restart service (NOPASSWD sudo)
+        run: sudo systemctl restart wealthtrack
 
       - name: Health check
         run: |

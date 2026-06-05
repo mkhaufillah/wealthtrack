@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 import asyncpg
 from typing import Optional
 
-from app.database import get_db
+from app.database import get_db, CursorWrapper
 from app.core.security import get_current_user
 from app.core.meilisearch import (
     index_document,
@@ -48,7 +48,7 @@ async def list_household_transactions(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Get transactions of all household members."""
@@ -128,7 +128,7 @@ async def list_transactions(
     sort: str = Query("-date", pattern="^(date|-date|amount|-amount|name|-name)$"),
     q: Optional[str] = Query(None, description="Search by description"),
     category_ids: Optional[str] = Query(None, description="Comma-separated category IDs"),
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     user_id = current_user["id"]
@@ -352,7 +352,7 @@ async def list_transactions(
 @router.post("", status_code=201)
 async def create_transaction(
     data: TransactionCreate,
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -398,7 +398,7 @@ async def create_transaction(
 @router.get("/{txn_id}")
 async def get_transaction(
     txn_id: int,
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -420,7 +420,7 @@ async def get_transaction(
 async def update_transaction(
     txn_id: int,
     data: TransactionUpdate,
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(
@@ -479,7 +479,7 @@ async def update_transaction(
 async def transfer_owner(
     txn_id: int,
     data: TransferOwnerIn,
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Transfer transaction ownership to another household member."""
@@ -560,7 +560,7 @@ async def transfer_owner(
 @router.post("/transfer", response_model=TransferResponse, status_code=201)
 async def transfer_balance(
     req: TransferRequest,
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Transfer balance to household members. Creates paired expense/income transactions."""
@@ -713,7 +713,7 @@ async def transfer_balance(
 @router.delete("/{txn_id}", status_code=204)
 async def delete_transaction(
     txn_id: int,
-    db: asyncpg.Connection = Depends(get_db),
+    db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     cursor = await db.execute(

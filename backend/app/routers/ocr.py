@@ -18,7 +18,7 @@ _ocr_semaphore = asyncio.Semaphore(2)
 from app.core.config import settings
 from app.core.security import get_current_user
 from app.core.rate_limiter import check_rate_limit
-from app.database import get_db
+from app.database import get_db, CursorWrapper
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
 
@@ -184,8 +184,14 @@ async def process_ocr(
                 },
             )
 
-        if resp.status_code != 200:
-            raise HTTPException(status_code=502, detail=f"Vision API error: {resp.status_code}")
+        if resp.status_code == 429:
+            raise HTTPException(status_code=429, detail="Vision API rate limit exceeded. Please wait and try again.")
+        elif resp.status_code == 401:
+            raise HTTPException(status_code=502, detail="OCR service unauthorized — check API key configuration")
+        elif resp.status_code == 503:
+            raise HTTPException(status_code=502, detail="OCR service temporarily unavailable. Please try again later.")
+        elif resp.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Vision API error: HTTP {resp.status_code}")
 
         body = resp.json()
         content = body["choices"][0]["message"]["content"].strip()
@@ -330,8 +336,12 @@ async def process_ocr_and_save(
                             continue
                         break
 
-                if vision_resp.status_code != 200:
-                    raise Exception(f"Vision API error: {vision_resp.status_code}")
+                if vision_resp.status_code == 429:
+                    raise Exception(f"Vision API rate limit (attempt {attempt + 1}/5)")
+                elif vision_resp.status_code == 401:
+                    raise Exception("Vision API unauthorized — check API key")
+                elif vision_resp.status_code != 200:
+                    raise Exception(f"Vision API error: HTTP {vision_resp.status_code} (attempt {attempt + 1}/5)")
 
                 content = vision_resp.json()["choices"][0]["message"]["content"].strip()
                 content = re.sub(r"^```(?:json)?\s*", "", content)

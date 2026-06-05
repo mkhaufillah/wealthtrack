@@ -7,7 +7,7 @@ import json
 import asyncio
 from datetime import datetime, timezone, timedelta
 
-from app.database import get_db
+from app.database import get_db, CursorWrapper
 from app.core.config import settings
 from app.core.security import get_current_user
 from app.core.limiter import limiter
@@ -430,6 +430,8 @@ async def _resolve_model(model: str) -> tuple[str, str, str]:
         "opus": "anthropic/claude-opus-4.7",
     }
     resolved = model_map.get(model, model)
+    
+    # Default: OpenCode Go
     api_url = "https://opencode.ai/zen/go/v1/chat/completions"
     api_key = settings.OPENCODE_GO_API_KEY
 
@@ -438,6 +440,7 @@ async def _resolve_model(model: str) -> tuple[str, str, str]:
             api_key = settings.OPENROUTER_API_KEY
             api_url = "https://openrouter.ai/api/v1/chat/completions"
         else:
+            # No OpenRouter key — fallback to flash via OpenCode
             resolved = "deepseek-v4-flash"
     return resolved, api_url, api_key
 
