@@ -249,16 +249,6 @@ hermes ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart wealthtrack
 
 No other `sudo` commands are available to the runner without a password. The secret `SUDO_PASSWORD` no longer exists in GitHub.
 
-### Previous SSH Secrets — All Removed
-
-The following GitHub secrets were deleted as part of the migration:
-- ❌ `VPS_HOST`
-- ❌ `VPS_USER`
-- ❌ `VPS_SSH_KEY`
-- ❌ `SUDO_PASSWORD`
-- ❌ `TELEGRAM_CHAT_ID` (now hardcoded in workflow)
-- ❌ `TELEGRAM_TOPIC_ID` (now hardcoded in workflow)
-
 ### Remaining Secrets (5 total)
 
 | Secret | Purpose |
@@ -344,6 +334,5 @@ curl -s https://wealthtrack.filla.id/api/v1/health | python3 -m json.tool
 - [x] Firewall: 80+443 open
 - [x] Self-hosted runner registered and online
 - [x] NOPASSWD sudo configured (systemctl restart wealthtrack only)
-- [x] GitHub secrets cleaned (SSH secrets removed)
 - [x] Telegram notifications working (start + result)
 - [x] Backup cron installed
