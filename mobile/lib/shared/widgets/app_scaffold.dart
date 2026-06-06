@@ -10,9 +10,10 @@ class MainShell extends ConsumerWidget {
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/transactions')) return 1;
-    if (location.startsWith('/budgets')) return 2;
-    if (location.startsWith('/reports')) return 3;
-    if (location.startsWith('/profile')) return 4;
+    if (location.startsWith('/debt')) return 2;
+    if (location.startsWith('/budgets')) return 3;
+    if (location.startsWith('/reports')) return 4;
+    if (location.startsWith('/profile')) return 5;
     return 0;
   }
 
@@ -28,14 +29,16 @@ class MainShell extends ConsumerWidget {
           switch (i) {
             case 0: context.go('/home');
             case 1: context.go('/transactions');
-            case 2: context.go('/budgets');
-            case 3: context.go('/reports');
-            case 4: context.go('/profile');
+            case 2: context.go('/debt');
+            case 3: context.go('/budgets');
+            case 4: context.go('/reports');
+            case 5: context.go('/profile');
           }
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.receipt_outlined), activeIcon: Icon(Icons.receipt), label: 'Transactions'),
+          BottomNavigationBarItem(icon: Icon(Icons.account_balance_outlined), activeIcon: Icon(Icons.account_balance), label: 'Debt'),
           BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Budgets'),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart), label: 'Reports'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
