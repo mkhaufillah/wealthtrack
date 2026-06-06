@@ -8,7 +8,7 @@ import json
 import asyncio
 from datetime import datetime, timezone, timedelta
 
-from app.database import get_db, CursorWrapper
+from app.database import get_db, CursorWrapper, background_tasks
 from app.core.config import settings
 from app.core.security import get_current_user
 from app.core.limiter import limiter
@@ -714,7 +714,9 @@ async def ai_chat(
             except Exception as db_err:
                 logger.warning("Failed to update AI message error status: %s", db_err)
 
-    asyncio.create_task(_process_ai())
+    task = asyncio.create_task(_process_ai())
+    background_tasks.add(task)
+    task.add_done_callback(background_tasks.discard)
 
     return ChatResponse(user_message_id=user_msg_id, ai_message_id=ai_msg_id)
 

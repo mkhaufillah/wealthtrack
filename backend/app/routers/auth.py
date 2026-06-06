@@ -214,40 +214,40 @@ async def delete_account(
     current_user: dict = Depends(get_current_user),
     db: CursorWrapper = Depends(get_db),
 ):
-    # Delete all members of households owned by this user (cascade)
-    await db.execute(
-        "DELETE FROM household_members WHERE household_id IN (SELECT id FROM households WHERE created_by = ?)",
-        (current_user["id"],),
-    )
-    # Delete household membership for this user
-    await db.execute(
-        "DELETE FROM household_members WHERE user_id = ?",
-        (current_user["id"],),
-    )
-    # Delete households owned by this user
-    await db.execute(
-        "DELETE FROM households WHERE created_by = ?",
-        (current_user["id"],),
-    )
-    # Delete OCR jobs owned by this user (table always exists in production)
-    await db.execute(
-        "DELETE FROM ocr_jobs WHERE user_id = ?",
-        (current_user["id"],),
-    )
-    # Delete all transactions owned by this user
-    await db.execute(
-        "DELETE FROM transactions WHERE user_id = ?",
-        (current_user["id"],),
-    )
-    # Delete all budgets owned by this user
-    await db.execute(
-        "DELETE FROM budgets WHERE user_id = ?",
-        (current_user["id"],),
-    )
-    # Delete the user
-    await db.execute(
-        "DELETE FROM users WHERE id = ?",
-        (current_user["id"],),
-    )
-    # auto-committed
+    async with db.transaction():
+        # Delete all members of households owned by this user (cascade)
+        await db.execute(
+            "DELETE FROM household_members WHERE household_id IN (SELECT id FROM households WHERE created_by = ?)",
+            (current_user["id"],),
+        )
+        # Delete household membership for this user
+        await db.execute(
+            "DELETE FROM household_members WHERE user_id = ?",
+            (current_user["id"],),
+        )
+        # Delete households owned by this user
+        await db.execute(
+            "DELETE FROM households WHERE created_by = ?",
+            (current_user["id"],),
+        )
+        # Delete OCR jobs owned by this user (table always exists in production)
+        await db.execute(
+            "DELETE FROM ocr_jobs WHERE user_id = ?",
+            (current_user["id"],),
+        )
+        # Delete all transactions owned by this user
+        await db.execute(
+            "DELETE FROM transactions WHERE user_id = ?",
+            (current_user["id"],),
+        )
+        # Delete all budgets owned by this user
+        await db.execute(
+            "DELETE FROM budgets WHERE user_id = ?",
+            (current_user["id"],),
+        )
+        # Delete the user
+        await db.execute(
+            "DELETE FROM users WHERE id = ?",
+            (current_user["id"],),
+        )
     return None

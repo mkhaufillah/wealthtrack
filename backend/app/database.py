@@ -6,11 +6,17 @@ for backward compatibility with the existing codebase patterns.
 """
 
 import re
+import asyncio
 import asyncpg
+
+from contextlib import asynccontextmanager
 
 from app.core.config import settings
 
 pool: asyncpg.Pool | None = None
+
+# ── Global background task tracking for clean shutdown ──────────────
+background_tasks: set[asyncio.Task] = set()
 
 
 class CursorWrapper:
@@ -140,6 +146,21 @@ class CursorWrapper:
             await self._pool.release(self._conn)
         else:
             await self._conn.close()
+
+    @asynccontextmanager
+    async def transaction(self):
+        """Context manager for atomic multi-statement transactions.
+
+        Usage:
+            async with db.transaction():
+                await db.execute(...)
+                await db.execute(...)
+
+        All statements inside the block run in a single PostgreSQL
+        transaction — if any fails, all changes are rolled back.
+        """
+        async with self._conn.transaction():
+            yield
 
     # ── Delegate other attrs to underlying connection ──────────
 

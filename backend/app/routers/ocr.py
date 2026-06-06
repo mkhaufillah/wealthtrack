@@ -19,7 +19,7 @@ _ocr_semaphore = asyncio.Semaphore(2)
 from app.core.config import settings
 from app.core.security import get_current_user
 from app.core.rate_limiter import check_rate_limit
-from app.database import get_db, CursorWrapper
+from app.database import get_db, CursorWrapper, background_tasks
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
 
@@ -406,7 +406,9 @@ async def process_ocr_and_save(
             import logging
             logging.getLogger("wealthtrack.ocr").exception("OCR background task crashed: %s", bg_err)
 
-    asyncio.create_task(_process())
+    task = asyncio.create_task(_process())
+    background_tasks.add(task)
+    task.add_done_callback(background_tasks.discard)
 
     return OcrAutoSaveResult(job_id=job_id, status="processing")
 
