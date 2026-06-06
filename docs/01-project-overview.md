@@ -60,7 +60,7 @@ Current version: **v0.5.3** — CI/CD migration, security hardening, 15 code fix
 | Mobile | Flutter | Cross-platform, one codebase |
 | Auth | JWT (username/password + email OTP) | Self-contained, no Firebase dependency |
 | Server | VPS — 2.27.165.90 (Ubuntu 22.04) | Already running, no extra cost |
-| CI/CD | GitHub Actions + Self-Hosted Runner | Cloud tests + VPS deploy without SSH |
+| CI/CD | GitHub Actions + Self-Hosted Runner | All workflows on self-hosted runner (test, deploy, APK build) |
 
 ## Single Source of Truth
 
