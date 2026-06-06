@@ -11,7 +11,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  WEALTHTRACK_TEST_DATABASE_URL: postgresql://wealthtrack_test:wealthtrack_test123@localhost:5433/wealthtrack_test
+  WEALTHTRACK_TEST_DATABASE_URL: postgresql://wealthtrack_test:***@localhost:5433/wealthtrack_test
   TG_CHAT_ID: "-1003997003114"
   TG_TOPIC_ID: "3"
 
@@ -20,7 +20,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── Pre-cleanup: kill stale containers before test services start ──
+  cleanup:
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: 🧹 Cleanup stale test containers
+        run: |
+          echo "→ Removing any leftover containers on test ports..."
+          docker rm -f $(docker ps -a -q --filter "publish=5433") 2>/dev/null || true
+          docker rm -f $(docker ps -a -q --filter "publish=6380") 2>/dev/null || true
+          echo "✅ Cleanup done"
+
   test:
+    needs: cleanup
     runs-on: [self-hosted, linux]
     defaults:
       run:
@@ -53,13 +65,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: 🧹 Cleanup stale containers
-        run: |
-          echo "→ Removing any leftover containers on test ports..."
-          docker rm -f $(docker ps -a -q --filter "publish=5433") 2>/dev/null || true
-          docker rm -f $(docker ps -a -q --filter "publish=6380") 2>/dev/null || true
-          echo "✅ Cleanup done"
-
       - name: 🚀 Notify — CI started
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
@@ -83,7 +88,7 @@ jobs:
         run: pytest tests/ -v --tb=short
         env:
           WEALTHTRACK_TEST_DATABASE_URL: ${{ env.WEALTHTRACK_TEST_DATABASE_URL }}
-          REDIS_URL: redis://localhost:6380/0
+          REDIS_URL: redis://localhost:***@v6
 
       - name: ❌ Notify — tests failed
         if: failure()
