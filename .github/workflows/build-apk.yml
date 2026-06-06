@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     defaults:
       run:
         working-directory: mobile
@@ -169,3 +169,12 @@ jobs:
             -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
             -d parse_mode="HTML" \
             -d text="<b>❌ WealthTrack APK</b>%0ABuild APK <code>${GITHUB_SHA::7}</code> gagal!%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Lihat logs</a>"
+
+      - name: 🧹 Cleanup build artifacts
+        if: always()
+        run: |
+          echo "Cleaning up APK build artifacts..."
+          rm -rf build/
+          rm -rf .dart_tool/
+          rm -rf .packages .flutter-plugins .flutter-plugins-dependencies
+          echo "✅ Cleanup done — $(df -h . | tail -1 | awk '{print $4}') free"

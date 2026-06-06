@@ -6,6 +6,7 @@ Cleans up old data:
   1. OCR image files older than 7 days in ~/ocr_images/
   2. OCR job history older than 7 days (excluding jobs referenced by transactions)
   3. AI chat messages older than 30 days
+  4. Docker dangling images/containers (from CI test services)
 
 Usage:
     python cleanup_weekly.py          # Dry-run: SELECT only, no DELETE
@@ -254,6 +255,15 @@ async def main():
         print(f"❌  Database error: {e}")
         sys.exit(1)
 
+
+    # ── 4. Docker cleanup ──
+    print("── Docker Cleanup ──")
+    rc = os.system("docker system prune -f --filter 'until=24h' 2>/dev/null")
+    if rc == 0:
+        print("  ✅ Docker dangling images/containers pruned.")
+    else:
+        print("  ⚠  Docker cleanup skipped (Docker not available or error).")
+    print()
     print("─" * 40)
     if dry_run:
         print("✅  Dry-run complete. No data was modified.")
