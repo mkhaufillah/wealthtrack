@@ -28,11 +28,16 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.microtask(() async {
+        // Step 1: fetch cycle day FIRST so _maxMonth can use the real value
+        await _loadCycleInfo();
+        // Step 2: now nav has the real userCycleDay
         final nav = ref.read(budgetNavigationProvider);
         final maxMonth = _maxMonth(nav.userCycleDay);
         ref.read(budgetNavigationProvider.notifier).state =
             nav.copyWith(currentMonth: maxMonth);
-        await _loadCycleInfo();  // fetch cycle info with the correct month
+        // Step 3: re-fetch cycle info with the corrected month
+        await _loadCycleInfo();
+        // Step 4: load budget data
         _load();
       });
     });
@@ -87,9 +92,9 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
   String get _monthParam => DateFormat('yyyy-MM').format(ref.read(budgetNavigationProvider).currentMonth);
 
-  void _load() {
+  Future<void> _load() {
     final nav = ref.read(budgetNavigationProvider);
-    ref.read(budgetProvider.notifier).load(_monthParam,
+    return ref.read(budgetProvider.notifier).load(_monthParam,
         dateFrom: nav.cycleDateFrom, dateTo: nav.cycleDateTo);
   }
 
@@ -125,7 +130,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
           _buildMonthPicker(nav),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => ref.read(budgetProvider.notifier).load(_monthParam),
+              onRefresh: _load,
               child: state.isLoading && state.items.isEmpty
                   ? const ShimmerLoading(itemCount: 4, itemHeight: 160)
                   : state.error != null && state.items.isEmpty
