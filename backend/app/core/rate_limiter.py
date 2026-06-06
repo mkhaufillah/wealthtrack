@@ -1,4 +1,6 @@
-"""Redis-backed rate limiter — replaces slowapi and custom in-memory OCR limiter.
+"""Redis-backed rate limiter — atomic sliding window via Lua script.
+
+Replaces slowapi and custom in-memory OCR limiter.
 
 Usage:
 
@@ -16,6 +18,28 @@ import time
 from fastapi import HTTPException
 from app.core.redis import get_redis
 
+# Lua script: atomic sliding window check-and-add.
+# Returns {allowed: 1/0, current_count: int}.
+_SLIDING_WINDOW_LUA = """
+local key = KEYS[1]
+local max = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+local window_start = now - window
+
+redis.call('zremrangebyscore', key, 0, window_start)
+local count = redis.call('zcard', key)
+
+if count >= max then
+    return {0, count}
+end
+
+redis.call('zadd', key, now, tostring(now))
+local new_count = count + 1
+redis.call('expire', key, window * 2)
+return {1, new_count}
+"""
+
 
 async def check_rate_limit(
     key: str,
@@ -23,10 +47,12 @@ async def check_rate_limit(
     window_sec: int = 60,
     error_message: str | None = None,
 ) -> None:
-    """Sliding window rate limit check via Redis sorted set.
+    """Sliding window rate limit check via Redis Lua script.
 
-    Raises 429 if limit exceeded. Idempotent — call at the start of any
-    endpoint that needs rate limiting.
+    Atomic check-and-add prevents TOCTOU race conditions where two
+    concurrent requests could both pass the guard before either appends.
+
+    Raises 429 if limit exceeded.
 
     Args:
         key: Unique key (e.g. ``ocr:user_42``, ``ai:user_42``).
@@ -36,21 +62,18 @@ async def check_rate_limit(
     """
     redis = await get_redis()
     now = time.time()
-    window_start = now - window_sec
     redis_key = f"ratelimit:{key}"
 
-    # Remove old entries outside the window
-    await redis.zremrangebyscore(redis_key, 0, window_start)
+    result = await redis.eval(
+        _SLIDING_WINDOW_LUA,
+        keys=[redis_key],
+        args=[max_requests, window_sec, now],
+    )
 
-    # Count current entries in window
-    count = await redis.zcard(redis_key)
+    allowed, current_count = result  # [1, count] or [0, count]
 
-    if count >= max_requests:
+    if not allowed:
         raise HTTPException(
             status_code=429,
             detail=error_message or f"Rate limit exceeded: {max_requests}/{window_sec}s",
         )
-
-    # Add current request timestamp and set TTL
-    await redis.zadd(redis_key, {str(now): now})
-    await redis.expire(redis_key, window_sec * 2)  # Cleanup after 2x window

@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exceptions.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../data/auth_repository.dart';
@@ -56,9 +57,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isAuthenticated: true,
       );
     } catch (e) {
-      developer.log('ERROR: $e');
-      await _storage.clearToken();
-      state = const AuthState(status: AuthStatus.unauthenticated);
+      developer.log('checkAuth error: $e');
+      final handled = _api.handleError(e);
+      if (handled is UnauthorizedException) {
+        // Token expired or invalid — clean logout
+        await _storage.clearToken();
+        state = const AuthState(status: AuthStatus.unauthenticated);
+      } else {
+        // Network / server error — keep token, show retry state
+        state = state.copyWith(
+          status: AuthStatus.error,
+          error: handled.toString(),
+        );
+      }
     }
   }
 
