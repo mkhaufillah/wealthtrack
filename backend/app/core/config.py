@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://wealthtrack:***@localhost:5432/wealthtrack"
 
     # Redis
-    REDIS_URL: str = "redis://localhost:***@localhost:6379/0"
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     # JWT
     SECRET_KEY: str = "change-me-in-production-use-env"
