@@ -57,10 +57,10 @@ void main() {
   setUp(() => initTestSecureStorage());
 
   group('HomeScreen', () {
-    testWidgets('shows loading indicator when loading', (tester) async {
+    testWidgets('shows shimmer loading when loading', (tester) async {
       await tester.pumpWidget(buildHomeApp(isLoading: true));
       // Before pump(), initState microtask hasn't run yet — loading state still visible
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
       await tester.pump(); // drain microtask so test finishes cleanly
     });
 

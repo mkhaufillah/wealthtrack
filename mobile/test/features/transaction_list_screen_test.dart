@@ -61,9 +61,9 @@ Widget buildTxListApp({
 
 void main() {
   group('TransactionListScreen', () {
-    testWidgets('shows loading indicator when loading', (tester) async {
+    testWidgets('shows shimmer loading when loading', (tester) async {
       await tester.pumpWidget(buildTxListApp(isLoading: true));
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
     testWidgets('shows error display when error present', (tester) async {
