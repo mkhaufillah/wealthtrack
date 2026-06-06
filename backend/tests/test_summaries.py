@@ -9,7 +9,7 @@ class TestDailySummary:
     async def test_daily_returns_data(self, client: AsyncClient, filla_token: str):
         """GET /summaries/daily returns income, expense, balance."""
         resp = await client.get(
-            "/api/v1/summaries/daily?date_from=2026-05-01&date_to=2026-05-31",
+            "/api/v1/summaries/daily?date_from=2026-01-01&date_to=2026-12-31",
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         assert resp.status_code == 200
@@ -210,7 +210,7 @@ class TestHouseholdSummary:
     async def test_household_returns_data(self, client: AsyncClient, filla_token: str):
         """GET /summaries/household returns combined household data."""
         resp = await client.get(
-            "/api/v1/summaries/household?date_from=2026-05-01&date_to=2026-05-31",
+            "/api/v1/summaries/household?date_from=2026-01-01&date_to=2026-12-31",
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         assert resp.status_code == 200
@@ -225,7 +225,7 @@ class TestHouseholdSummary:
     async def test_household_shows_all_users(self, client: AsyncClient, nahda_token: str):
         """Household summary includes all users, not just the requester."""
         resp = await client.get(
-            "/api/v1/summaries/household?date_from=2026-05-01&date_to=2026-05-31",
+            "/api/v1/summaries/household?date_from=2026-01-01&date_to=2026-12-31",
             headers={"Authorization": f"Bearer {nahda_token}"},
         )
         assert resp.status_code == 200
