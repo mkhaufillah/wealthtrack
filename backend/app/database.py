@@ -299,6 +299,93 @@ CREATE TABLE IF NOT EXISTS ai_messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ai_messages_user ON ai_messages(user_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_user_type_date ON transactions(user_id, type, COALESCE(date, LEFT(created_at, 10)));
+CREATE INDEX IF NOT EXISTS idx_transactions_user_cat_date ON transactions(user_id, category_id, COALESCE(date, LEFT(created_at, 10)) DESC);
+CREATE INDEX IF NOT EXISTS idx_ocr_jobs_user_created ON ocr_jobs(user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS kpr_simulations (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    name TEXT NOT NULL DEFAULT 'KPR Simulation',
+    property_price INTEGER NOT NULL DEFAULT 0,
+    down_payment INTEGER NOT NULL DEFAULT 0,
+    total_loan INTEGER NOT NULL DEFAULT 0,
+    tenor_months INTEGER NOT NULL DEFAULT 120,
+    interest_type TEXT NOT NULL DEFAULT 'fixed' CHECK(interest_type IN ('fixed', 'floating', 'graduated', 'mix')),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_kpr_simulations_user ON kpr_simulations(user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS kpr_rate_periods (
+    id SERIAL PRIMARY KEY,
+    simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
+    period_start INTEGER NOT NULL,
+    period_end INTEGER NOT NULL,
+    interest_rate NUMERIC(6,4) NOT NULL,
+    rate_type TEXT NOT NULL DEFAULT 'fixed' CHECK(rate_type IN ('fixed', 'floating')),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_kpr_rate_periods_sim ON kpr_rate_periods(simulation_id);
+
+CREATE TABLE IF NOT EXISTS kpr_monthly_schedules (
+    id SERIAL PRIMARY KEY,
+    simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
+    month_number INTEGER NOT NULL,
+    payment INTEGER NOT NULL,
+    principal INTEGER NOT NULL,
+    interest INTEGER NOT NULL,
+    remaining_balance INTEGER NOT NULL,
+    rate_type TEXT NOT NULL,
+    interest_rate NUMERIC(6,4) NOT NULL,
+    UNIQUE(simulation_id, month_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_kpr_schedules_sim ON kpr_monthly_schedules(simulation_id);
+
+CREATE TABLE IF NOT EXISTS credit_cards (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    name TEXT NOT NULL,
+    card_number_last4 TEXT DEFAULT '',
+    billing_date INTEGER NOT NULL DEFAULT 1,
+    due_date INTEGER NOT NULL DEFAULT 15,
+    credit_limit INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_credit_cards_user ON credit_cards(user_id);
+
+CREATE TABLE IF NOT EXISTS credit_card_transactions (
+    id SERIAL PRIMARY KEY,
+    card_id INTEGER NOT NULL REFERENCES credit_cards(id) ON DELETE CASCADE,
+    description TEXT NOT NULL DEFAULT '',
+    amount INTEGER NOT NULL,
+    category_id INTEGER REFERENCES categories(id),
+    transaction_date TEXT NOT NULL,
+    is_installment INTEGER NOT NULL DEFAULT 0,
+    installment_id INTEGER REFERENCES credit_card_installments(id),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_cc_transactions_card ON credit_card_transactions(card_id);
+CREATE INDEX IF NOT EXISTS idx_cc_transactions_date ON credit_card_transactions(transaction_date DESC);
+
+CREATE TABLE IF NOT EXISTS credit_card_installments (
+    id SERIAL PRIMARY KEY,
+    card_id INTEGER NOT NULL REFERENCES credit_cards(id) ON DELETE CASCADE,
+    description TEXT NOT NULL DEFAULT '',
+    total_amount INTEGER NOT NULL,
+    monthly_amount INTEGER NOT NULL,
+    total_months INTEGER NOT NULL,
+    remaining_months INTEGER NOT NULL,
+    start_month TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_cc_installments_card ON credit_card_installments(card_id);
 """
 
 

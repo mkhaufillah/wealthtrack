@@ -16,6 +16,13 @@ import 'features/reports/ui/reports_screen.dart';
 import 'features/budgets/ui/budgets_screen.dart';
 import 'features/ai/ui/ai_advisor_screen.dart';
 import 'features/categories/ui/category_management_screen.dart';
+import 'features/debt/ui/debt_home_screen.dart';
+import 'features/debt/kpr/ui/kpr_list_screen.dart';
+import 'features/debt/kpr/ui/kpr_form_screen.dart';
+import 'features/debt/kpr/ui/kpr_detail_screen.dart';
+import 'features/debt/credit_card/ui/credit_card_list_screen.dart';
+import 'features/debt/credit_card/ui/credit_card_form_screen.dart';
+import 'features/debt/credit_card/ui/credit_card_detail_screen.dart';
 import 'shared/providers/theme_provider.dart';
 import 'shared/widgets/app_scaffold.dart';
 
@@ -47,6 +54,44 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, state) => TransactionListScreen(
               preSelectedCategoryId: state.extra is int ? state.extra as int : null,
             ),
+          ),
+          GoRoute(
+            path: '/debt',
+            builder: (_, __) => const DebtHomeScreen(),
+            routes: [
+              GoRoute(
+                path: 'kpr',
+                builder: (_, __) => const KPRListScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (_, __) => const KPRFormScreen(),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, state) => KPRDetailScreen(
+                      simulationId: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'credit-cards',
+                builder: (_, __) => const CreditCardListScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (_, __) => const CreditCardFormScreen(),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, state) => CreditCardDetailScreen(
+                      cardId: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
           GoRoute(path: '/budgets', builder: (_, __) => const BudgetsScreen()),
