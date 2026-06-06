@@ -65,7 +65,7 @@ void main() {
 
   setUp(() {
     initTestSecureStorage();
-    notifier = BudgetSuggestionNotifier(MockBudgetRepo());
+    notifier = BudgetSuggestionNotifier(MockBudgetRepo(), MockApiClient());
   });
 
   group('initial state', () {
@@ -93,7 +93,7 @@ void main() {
     });
 
     test('sets error on failure', () async {
-      final failingNotifier = BudgetSuggestionNotifier(FailingMockBudgetRepo());
+      final failingNotifier = BudgetSuggestionNotifier(FailingMockBudgetRepo(), MockApiClient());
       await failingNotifier.load('2026-05');
       expect(failingNotifier.state.isLoading, false);
       expect(failingNotifier.state.error, isNotNull);
