@@ -4,6 +4,7 @@
 
 WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expenses, income, budgets, and generates periodic summaries.
 
+Current version: **v0.5.3** — CI/CD migration, security hardening, 15 code fixes.
 
 ## Related Documents
 
@@ -12,7 +13,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 - [Backend Implementation](04-backend-implementation.md) — step-by-step build guide
 - [Flutter Mobile](05-flutter-mobile.md) — mobile app design & architecture
 - [Hermes Integration](06-hermes-integration.md) — connecting Hermes cron & skill
-- [Deployment](07-deployment.md) — VPS setup, nginx, CI/CD
+- [Deployment](07-deployment.md) — VPS setup, nginx, CI/CD, self-hosted runner
 - [P4 Plan](08-p4-plan.md) — updated feature roadmap: charts, budgets, export, OCR, AI advisor, change owner
 - [Dark Mode](09-dark-mode.md) — dark theme implementation for Flutter
 - [Edit Transaction](10-edit-transaction.md) — edit flow & UI states
@@ -24,44 +25,42 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 - [OCR Scanner](16-ocr-scanner.md) — receipt scanning with vision AI
 - [Admin Category CRUD](17-admin-category-crud.md) — category management for admin
 
-
 ## Architecture
 
 ```
-┌───────────────────────────────────────────────────────┐
-│                    VPS (self-hosted)                  │
-│                                                       │
-│  ┌──────────┐    ┌─────────────┐    ┌─────────────┐   │
-│  │  Hermes  │    │  FastAPI    │    │  PostgreSQL │   │
-│  │ (cron +  │───►│ (port 8080) │───►│             │   │
-│  │  agent)  │    │             │    └─────────────┘   │
-│  └──────────┘    └──────┬──────┘          ▲           │
-│                         │                 │           │
-│                    HTTP/JSON           search IDs     │
-│                         │                 │           │
-│                         ▼          ┌─────────────┐   │
-│                  ┌──────────────┐   │ Meilisearch │   │
-│                  │    Flutter   │   │ (full-text) │   │
-│                  │    Mobile    │   └─────────────┘   │
-│                  │  (Android +  │   ┌─────────────┐   │
-│                  │   iOS later) │   │ Redis 8.8   │   │
-│                  └──────────────┘   │ (limiter +  │   │
-│                                     │  OCR queue) │   │
-│                                     └─────────────┘   │
-└───────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    VPS — 2.27.165.90 (self-hosted)                      │
+│                                                                         │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────┐ │
+│  │  Nginx       │──►│  FastAPI     │──►│  PostgreSQL  │   │  Redis   │ │
+│  │  :443 (SSL)  │   │  :8080       │   │  :5432       │   │  :6379   │ │
+│  │  wealthtrack │   │  (localhost) │   │  (localhost  │   │  (auth)  │ │
+│  │  .filla.id   │   └──────┬───────┘   │   only)      │   └──────────┘ │
+│  └──────────────┘          │            └──────────────┘                │
+│                            │                        ┌──────────────┐   │
+│                       HTTP/JSON                     │ Meilisearch  │   │
+│                            │                        │ :7700 (FT)   │   │
+│                            ▼                        └──────────────┘   │
+│                     ┌──────────────┐                                   │
+│                     │   Flutter    │    ┌─────────────────────────┐    │
+│                     │   Mobile     │    │ GitHub Actions Runner   │    │
+│                     │  (Android)   │    │ (self-hosted, systemd)  │    │
+│                     └──────────────┘    └─────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Tech Stack
 
 | Layer | Tech | Reason |
 |-------|------|--------|
-| Database | PostgreSQL (via asyncpg) — `DATABASE_URL` env var | Production-ready, connection pooling, strict schema |
+| Database | PostgreSQL 18 (via asyncpg) | Production-ready, connection pooling, strict schema |
 | Full-Text Search | Meilisearch 1.45.2 (self-hosted) | Instant relevance-based search, replaces SQL LIKE, ~30MB idle |
-| Rate Limiting / Queue | Redis 8.8.0 (self-hosted) | Sliding window rate limiter, OCR queue state |
-| Backend | FastAPI (Python) | Async, auto-docs, lightweight |
+| Rate Limiting / Queue | Redis 8.8.0 (self-hosted, with auth) | Sliding window rate limiter, OCR queue state, AI cache |
+| Backend | FastAPI (Python 3.11) | Async, auto-docs, lightweight |
 | Mobile | Flutter | Cross-platform, one codebase |
-| Auth | JWT (simple username/password) | Self-contained, no Firebase dependency |
-| Server | Existing VPS self-hosted | Already running, no extra cost |
+| Auth | JWT (username/password + email OTP) | Self-contained, no Firebase dependency |
+| Server | VPS — 2.27.165.90 (Ubuntu 22.04) | Already running, no extra cost |
+| CI/CD | GitHub Actions + Self-Hosted Runner | Cloud tests + VPS deploy without SSH |
 
 ## Single Source of Truth
 
@@ -69,7 +68,7 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 
 - FastAPI — reads/writes via asyncpg pool (request-scoped connections)
 - Flutter — reads/writes via FastAPI API
-- Existing data (27 transactions) remains safe, no data migration needed
+- Hermes cron — reads/writes directly to PostgreSQL (same VPS, no API needed)
 
 ## Project Structure
 
@@ -77,41 +76,28 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 ~/dev/wealthtrack/
 ├── backend/                    # FastAPI backend
 │   ├── app/
-│   │   ├── main.py            # App entry point, middleware
-│   │   ├── database.py        # asyncpg pool + CursorWrapper
+│   │   ├── main.py            # App entry point, lifespan, middleware
+│   │   ├── database.py        # asyncpg pool + CursorWrapper + auto-schema init
 │   │   ├── core/
-│   │   │   ├── config.py      # Settings, env vars
+│   │   │   ├── config.py      # Settings, env vars (CORS, Redis auth, etc.)
 │   │   │   ├── security.py    # JWT auth logic
 │   │   │   ├── redis.py       # Redis connection manager
-│   │   │   ├── rate_limiter.py# Sliding window rate limiter
+│   │   │   ├── rate_limiter.py# Redis-backed sliding window rate limiter
 │   │   │   └── meilisearch.py # Meilisearch async client wrapper
-│   │   ├── models/
-│   │   │   ├── user.py        # Raw SQL query helpers
-│   │   │   ├── transaction.py
-│   │   │   ├── category.py
-│   │   │   └── budget.py
-│   │   ├── schemas/
-│   │   │   ├── user.py        # Pydantic models for API
-│   │   │   ├── transaction.py
-│   │   │   ├── category.py
-│   │   │   └── budget.py
-│   │   └── routers/
-│   │       ├── auth.py        # Login, register
-│   │       ├── transactions.py
-│   │       ├── categories.py
-│   │       ├── budgets.py
-│   │       └── summaries.py   # Dashboard & report endpoints
-│   │       ├── households.py  # Household management & invite codes
-│   │       ├── exports.py     # Yearly Excel export
-│   │       ├── ocr.py         # Receipt OCR processing
-│   │       ├── ai_advisor.py  # AI financial advisor
-│   │       └── health.py      # Health check endpoint
-│   │   ├── services/
-│   │   │   └── web_search.py  # Brave Search for AI Advisor
+│   │   ├── models/             # Raw SQL query helpers
+│   │   ├── schemas/            # Pydantic models for API
+│   │   ├── routers/            # Auth, transactions, categories, budgets,
+│   │   │                       # summaries, households, exports, OCR,
+│   │   │                       # AI advisor, health, admin categories
+│   │   ├── services/           # OCR processing, web search, AI logic
 │   │   ├── requirements.txt
-│   │   └── run.sh             # Start script
-├── mobile/                     # Flutter project (initialized separately)
+│   │   └── run.sh
+│   ├── scripts/                # Bulk indexing, CI setup
+│   └── tests/                  # 193 tests (pytest-asyncio)
+├── mobile/                     # Flutter project
 ├── docs/                       # Planning docs (this directory)
+├── deploy/                     # Systemd service, nginx config, deploy script
+├── .github/workflows/          # CI/CD pipelines
 └── README.md
 ```
 
@@ -135,19 +121,21 @@ WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expens
 
 ## Phase Plan
 
-| Phase | Scope | Goal |
-|-------|-------|------|
-| P1 — Core Backend | PostgreSQL schema, FastAPI CRUD, JWT auth, init script | API ready, testable via Swagger |
-| P2 — Hermes Integration | Update existing cron script, input from chat | Daily summary works with new DB |
-| P3 — Flutter MVP | Login, dashboard, add transaction, list transactions | Mobile usable for daily tracking |
-|| [P4 — Polish (Revised)](08-p4-plan.md) | Charts, budgets, export, OCR, AI advisor, change owner | Feature-complete for daily use |
+| Phase | Scope | Status |
+|-------|-------|--------|
+| P1 — Core Backend | PostgreSQL schema, FastAPI CRUD, JWT auth, init script | ✅ Done |
+| P2 — Hermes Integration | Update existing cron script, input from chat | ✅ Done |
+| P3 — Flutter MVP | Login, dashboard, add transaction, list transactions | ✅ Done |
+| P4 — Polish | Charts, budgets, export, OCR, AI advisor, change owner | ✅ Done |
+| P5 — Hardening | CI/CD self-hosted runner, CORS/Redis/DB security, Telegram v2 | ✅ Done |
 
 ## Key Design Decisions
 
 1. **No ORM** — raw SQL with asyncpg. Simple schema, no need for migration hell.
-2. **PostgreSQL connection pooling** — asyncpg pool for concurrent reads + writes.
+2. **PostgreSQL connection pooling** — asyncpg pool for concurrent reads + writes. Auto-schema init on startup.
 3. **JWT auth** — simple, stateless. Token stored in Flutter Secure Storage.
 4. **PostgreSQL as single source** — no sync, no conflict resolution needed.
 5. **Hermes talks directly to DB** — not through FastAPI. It's co-located on the same VPS.
-6. **Meilisearch for full-text search** — description search uses inverted index, not SQL LIKE. Scale to millions of transactions without performance degradation. Meilisearch returns matched IDs → PostgreSQL fetches full rows with JOINs.
-7. **Redis for ephemeral state** — rate limiting and OCR queue state stored in Redis, not in PostgreSQL or in-memory. Survives server restarts.
+6. **Meilisearch for full-text search** — inverted index, not SQL LIKE. Scales to millions of transactions.
+7. **Redis for ephemeral state** — rate limiting and OCR queue state. Password-protected.
+8. **Self-hosted CI runner** — deploys without SSH secrets. NOPASSWD sudo for systemctl only.

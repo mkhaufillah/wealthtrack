@@ -18,6 +18,7 @@
 | P3 | **Budgets** | 2-3 hr | Categories + transactions (ready) | ✅ Done |
 | P4 | **OCR / Smart Input** | 3-4 hr | OpenCode Go API key | ✅ Done |
 | P5 | **AI Financial Advisor** | 2-3 hr | OpenCode Go API key | ✅ Done |
+| P6 | **CI/CD Hardening** | — | See deployment docs | ✅ Done — self-hosted runner, NOPASSWD sudo, Telegram v2 |
 | — | **Transfer Balance** | 1 hr | Household members (ready) | ✅ Done — see [03-backend-api.md](03-backend-api.md) |
 
 **Dropped:** Categories CRUD — static is sufficient.
@@ -234,23 +235,39 @@ Sertakan disclaimer jika perlu.
 
 ---
 
-## Environment Variables (.env additions)
+## Environment Variables (.env — current production)
 
 ```bash
-# Existing
-SECRET_KEY=...
-DEBUG=True
+# JWT
+SECRET_KEY=...                              # Random 32-byte hex
+DEBUG=False
 ACCESS_TOKEN_EXPIRE_DAYS=30
-CORS_ORIGINS=["*"]
 
-# New — OCR & AI Advisor (REQUIRED)
-OPENCODE_GO_API_KEY=sk-...           # Copy from Hermes .env
+# CORS — restricted (no wildcard)
+CORS_ORIGINS=["https://wealthtrack.filla.id","http://localhost:8080","null"]
 
-# New — AI Advisor (optional — premium model via OpenRouter)
-OPENROUTER_API_KEY=sk-or-...         # For Claude Opus (user id=1 only)
+# Database
+DATABASE_URL=postgresql://wealthtrack:***@localhost:5432/wealthtrack
+REDIS_URL=redis://:<password>@localhost:6379/0
 
-# New — AI Advisor (optional — web search)
-BRAVE_SEARCH_API_KEY=...              # Brave Search for real-time data
+# Search
+MEILISEARCH_URL=http://localhost:7700
+MEILISEARCH_MASTER_KEY=...                   # Random 32-char
+
+# OCR & AI Advisor (REQUIRED — AI features)
+OPENCODE_GO_API_KEY=sk-...                  # Copy from Hermes .env
+
+# AI Advisor — optional premium model
+OPENROUTER_API_KEY=sk-or-...                # For Claude Opus (user id=1 only)
+
+# AI Advisor — optional web search
+BRAVE_SEARCH_API_KEY=...                     # Brave Search for real-time data
+
+# SMTP — email OTP
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=...                           # Gmail App Password
+SMTP_PASSWORD=...
 ```
 
 ---

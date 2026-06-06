@@ -2,13 +2,13 @@
 
 **See also:** [Backend Implementation](04-backend-implementation.md) · [Backend API](03-backend-api.md) · [Flutter Mobile](05-flutter-mobile.md) · [P4 Plan](08-p4-plan.md)
 
-
+> **⚠️ v0.5.3 update:** Deployment is now fully automated via self-hosted GitHub Actions runner. SSH-based deployment has been replaced. This doc reflects the current state.
 
 ## Architecture on VPS
 
 ```
                           ┌───────────────────────────────────────────────────────────────┐
-                          │              VPS (Ubuntu 22.04)                               │
+                          │              VPS — 2.27.165.90 (Ubuntu 22.04)                │
                           │                                                               │
   ──► wealthtrack.filla.id ──► Nginx :80 (redirect to 443)                                │
                           |    Nginx :443 (SSL)                                           │
@@ -24,16 +24,19 @@
                           |  ┌─────────────────┐   ┌──────────────┐   ┌──────────────┐   │
                           |  │   PostgreSQL    │   │  Meilisearch │   │   Redis      │   │
                           |  │  :5432          │   │  :7700       │   │  :6379       │   │
-                          |  │  wealthtrack    │   │  transactions│   │  rate limit, │   │
-                          |  │  database       │   │  index       │   │  OCR queue   │   │
+                          |  │  (localhost     │   │  (localhost) │   │  (auth req)  │   │
+                          |  │   only)         │   │              │   │              │   │
                           |  └─────────────────┘   └──────────────┘   └──────────────┘   │
                           |                                                               │
-                          |  ┌─────────────────────────────────────┐                      │
-                          |  │  Hermes Agent (same VPS)            │                      │
-                          |  │  ├── cron: daily_finance_report.py  │──► PostgreSQL        │
-                          |  │  ├── skill: financial-tracker       │──► PostgreSQL        │
-                          |  │  └── chat: add_transaction.py       │──► PostgreSQL        │
-                          |  └─────────────────────────────────────┘                      │
+                          |  ┌──────────────────────────────────────────────────────┐     │
+                          |  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps) │     │
+                          |  │  systemd service: actions.runner.wealthtrack-...     │     │
+                          |  │  Outbound connection to GitHub — no inbound ports    │     │
+                          |  │  ├── Pull → git pull                                │     │
+                          |  │  ├── Deploy → uv pip install → sudo systemctl       │     │
+                          |  │  └── Verify → health check                          │     │
+                          |  └──────────────────────────────────────────────────────┘     │
+                          |                                                               │
                           |  ┌─────────────────────────────────────┐                      │
                           |  │  Flutter Mobile (via internet)      │                      │
                           |  │  ──► https://wealthtrack.filla.id   │──► Nginx ──► FastAPI │
@@ -42,32 +45,35 @@
                           └───────────────────────────────────────────────────────────────┘
 ```
 
-## Key Differences from Standard Setup
+## Key Differences from Earlier Setup
 
-| Aspect | Before (old doc) | After (update) |
-|-------|-------------------|-------------------|
-| FastAPI bind | `0.0.0.0:8080` | `127.0.0.1:8080` (localhost only) |
-| Public exposure | Port 8080 directly | Nginx reverse proxy via 443 |
-| Domain | — | `wealthtrack.filla.id` |
-| SSH port | 22 | **2222** |
-| Firewall | Only 80 + 443 | 80 + 443 (SSH 2222 via internal VPN) |
+| Aspect | Old (before v0.5.3) | New (current) |
+|--------|---------------------|---------------|
+| Deployment method | SSH via appleboy/ssh-action (port 2222) | Self-hosted GitHub Actions runner |
+| GitHub secrets for VPS | `VPS_HOST`, `VPS_SSH_KEY`, `VPS_USER`, `SUDO_PASSWORD` | **All removed** — 0 SSH secrets |
+| sudo for systemctl | SUDO_PASSWORD passed via secret → `echo password \| sudo -S` | **NOPASSWD** — `/etc/sudoers.d/wealthtrack` allows `systemctl restart wealthtrack` |
+| Telegram notifications | Only on success/failure of deploy job | 🚀 Start + ✅/❌ Tests + ✅/❌ Deploy (4 notifications per run) |
+| CORS | `["*"]` (wildcard — allowed any origin) | `["https://wealthtrack.filla.id", "http://localhost:8080", "null"]` |
+| Redis auth | No password — open access on localhost | `requirepass` enabled in `/etc/redis/redis.conf` |
+| PostgreSQL password | Weak (`wealthtrack123`) | 32-character random alphanumeric |
+| PostgreSQL access | Tailscale network (100.64.0.0/10) allowed | `localhost` only — Tailscale removed from `pg_hba.conf` |
 
-## Step 1: Systemd Service for FastAPI
+## Systemd Service
 
-Config file is at `deploy/wealthtrack.service`:
+Config file at `deploy/wealthtrack.service`:
 
 ```ini
 [Unit]
 Description=WealthTrack API
-After=network.target postgresql.service redis.service meilisearch.service
-Wants=redis.service meilisearch.service
+After=network.target redis.service
+Wants=redis.service
 
 [Service]
 Type=simple
-User=filla
-WorkingDirectory=/home/filla/dev/wealthtrack/backend
-Environment=PATH=/home/filla/.local/bin:/home/filla/dev/wealthtrack/.venv/bin
-ExecStart=/home/filla/dev/wealthtrack/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8080
+User=hermes
+WorkingDirectory=/home/hermes/dev/wealthtrack/backend
+Environment=PATH=/home/hermes/.local/bin:/home/hermes/dev/wealthtrack/.venv/bin
+ExecStart=/home/hermes/dev/wealthtrack/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8080
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -77,8 +83,7 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
-Install and start:
-
+Install:
 ```bash
 sudo cp deploy/wealthtrack.service /etc/systemd/system/wealthtrack.service
 sudo systemctl daemon-reload
@@ -87,168 +92,94 @@ sudo systemctl start wealthtrack
 sudo systemctl status wealthtrack
 ```
 
-## Step 2: Nginx Reverse Proxy
+## Nginx Reverse Proxy
 
-### Install Nginx
-
-```bash
-sudo apt update
-sudo apt install -y nginx certbot python3-certbot-nginx
-```
-
-### Configure Virtual Host
-
-Config file is at `deploy/wealthtrack.nginx`:
+Config file at `deploy/wealthtrack.nginx`:
 
 ```nginx
 server {
     listen 80;
     server_name wealthtrack.filla.id;
-
-    # Redirect HTTP → HTTPS
-    location / {
-        return 301 https://$host$request_uri;
-    }
+    return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
     server_name wealthtrack.filla.id;
 
-    # SSL — will be filled by certbot later
     ssl_certificate /etc/letsencrypt/live/wealthtrack.filla.id/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/wealthtrack.filla.id/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
-    # Reverse proxy to FastAPI
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
-        # Increase timeouts for AI Advisor SSE streaming
         proxy_read_timeout 120s;
         proxy_connect_timeout 10s;
-
-        # Disable buffering for SSE (Server-Sent Events)
         proxy_buffering off;
         proxy_cache off;
-
-        # WebSocket support (future use)
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
     }
-
-    # Static files (optional, for frontend)
-    location /static/ {
-        alias /home/filla/dev/wealthtrack/backend/static/;
-        expires 30d;
-    }
 }
 ```
 
-Enable site:
-
+Enable:
 ```bash
 sudo cp deploy/wealthtrack.nginx /etc/nginx/sites-available/wealthtrack
 sudo ln -s /etc/nginx/sites-available/wealthtrack /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default  # optional: disable default site
-sudo nginx -t  # test config
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-## Step 3: SSL Certificate (Let's Encrypt)
-
-Run **AFTER** DNS `wealthtrack.filla.id` points to the VPS IP.
-
-> 💡 **One-command deploy:** `bash deploy/deploy.sh` — does steps 1-7 automatically (installs certbot if missing).
-> Or follow each step manually below.
+## SSL Certificate
 
 ```bash
 sudo certbot --nginx -d wealthtrack.filla.id --non-interactive --agree-tos -m khaufillahmohammad@gmail.com
 ```
 
-If DNS is not ready yet, run this later:
+Auto-renewal via systemd certbot.timer (check with `sudo systemctl status certbot.timer`).
+
+## Backing Services
+
+### PostgreSQL 18
 
 ```bash
-# Check DNS first
-dig +short A wealthtrack.filla.id
-# Should return VPS IP: 2.27.165.124
+sudo systemctl enable --now postgresql
 ```
 
-### Auto-Renewal (Certbot)
-
-SSL certificates from Let's Encrypt expire after 90 days. Certbot auto-renews via a systemd timer:
-
-```bash
-# Check the timer is active
-sudo systemctl status certbot.timer
-
-# Test renewal (dry-run)
-sudo certbot renew --dry-run
-
-# The default certbot installation creates:
-#   /etc/systemd/system/certbot.timer  — runs twice daily
-#   /etc/systemd/system/certbot.service — the renewal command
-# No manual cron needed.
-```
-
-Certbot auto-updates the nginx config on renewal — `sudo systemctl reload nginx` is handled automatically.
-
-## Step 4: Firewall
-
-```bash
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-```
-
-## Step 4.5: Environment Variables
-
-Before starting the service, **create `backend/.env`** with a random SECRET_KEY:
-
-```bash
-cd ~/dev/wealthtrack
-python3 -c "import secrets; f=open('backend/.env','w'); f.write(f'SECRET_KEY={secrets.token_hex(32)}\nDEBUG=True\nACCESS_TOKEN_EXPIRE_DAYS=30\n')"
-```
-
-The CI deploy workflow (`deploy-backend.yml`) auto-generates `backend/.env` if it doesn't exist on the server. For manual/local deployment, run the one-liner above.
-
-| Variable | Description | Default |
-|----------|------------|---------|
-| `SECRET_KEY` | JWT signing key (must be unique per deployment) | `change-me-in-production-use-env` (app warns) |
-| `DEBUG` | FastAPI debug mode | `True` |
-| `ACCESS_TOKEN_EXPIRE_DAYS` | JWT token lifetime in days | `30` |
-| `CORS_ORIGINS` | Allowed origins (JSON array) | `["http://localhost:8080", "http://127.0.0.1:8080", "https://wealthtrack.filla.id"]` |
-| `OPENCODE_GO_API_KEY` | API key for OpenCode Go (AI Advisor, OCR) | `""` (read from ~/.hermes/.env fallback) |
-| `OPENROUTER_API_KEY` | API key for OpenRouter (premium Claude model) | `""` (optional) |
-| `BRAVE_SEARCH_API_KEY` | API key for Brave Search (real-time web data for AI Advisor) | `""` (read from ~/.hermes/.env fallback) |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://wealthtrack:***@localhost:5432/wealthtrack` |
-
-## Step 5: Redis + Meilisearch Services
+- Runs on `127.0.0.1:5432`
+- Password: 32-character random (set in `.env` as `DATABASE_URL`)
+- Access restricted to localhost (`pg_hba.conf`)
+- Databases: `wealthtrack` (production), `wealthtrack_test` (CI tests)
 
 ### Redis 8.8.0
 
 ```bash
-# Compiled from source, installed as systemd service
+# Compiled from source, runs as systemd service
 sudo systemctl enable --now redis
 ```
 
-Runs on `127.0.0.1:6379`. Used for rate limiting, OCR queue state, and health monitoring.
+- Runs on `127.0.0.1:6379`
+- **`requirepass` enabled** — connection string includes password from `.env`
+- Uses: rate limiting, OCR queue state, AI response cache
 
 ### Meilisearch 1.45.2
 
 ```bash
 # Binary installed at /usr/local/bin/meilisearch
-# Service: /etc/systemd/system/meilisearch.service
 sudo systemctl enable --now meilisearch
 ```
 
-Runs on `127.0.0.1:7700`. Used for full-text search on transaction descriptions.
-Configured with master key, 512MB max indexing memory, no analytics.
+- Runs on `127.0.0.1:7700`
+- Master key in `.env`: `MEILISEARCH_MASTER_KEY`
+- 512MB max indexing memory, no analytics
 
 ### Verify all services
 
@@ -256,138 +187,159 @@ Configured with master key, 512MB max indexing memory, no analytics.
 sudo systemctl status postgresql redis meilisearch wealthtrack --no-pager
 ```
 
-## Step 6: Deploy Flow (Initial)
+## Environment Variables
 
+`backend/.env`:
+
+| Variable | Description | Current Value |
+|----------|------------|---------------|
+| `SECRET_KEY` | JWT signing key (32-byte hex) | Random per deployment |
+| `DEBUG` | FastAPI debug mode | `False` |
+| `ACCESS_TOKEN_EXPIRE_DAYS` | JWT lifetime | `30` |
+| `CORS_ORIGINS` | JSON array of allowed origins | `["https://wealthtrack.filla.id", "http://localhost:8080", "null"]` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://wealthtrack:<password>@localhost:5432/wealthtrack` |
+| `REDIS_URL` | Redis connection string | `redis://:<password>@localhost:6379/0` |
+| `OPENCODE_GO_API_KEY` | OpenCode Go API key (AI Advisor, OCR) | From `~/.hermes/.env` fallback |
+| `OPENROUTER_API_KEY` | OpenRouter API key (premium Claude) | Optional |
+| `BRAVE_SEARCH_API_KEY` | Brave Search API key (AI Advisor web search) | From `~/.hermes/.env` fallback |
+| `SMTP_HOST/PORT/USERNAME/PASSWORD` | SMTP for email OTP | Gmail App Password |
+| `MEILISEARCH_URL` | Meilisearch URL | `http://localhost:7700` |
+| `MEILISEARCH_MASTER_KEY` | Meilisearch master key | From `.env` |
+| `OCR_IMAGE_DIR` | Directory for uploaded OCR images | `~/ocr_images` |
+
+## CI/CD Pipeline
+
+### Self-Hosted Runner (wealthtrack-vps)
+
+A GitHub Actions self-hosted runner registered on the VPS, running as a systemd service. The runner communicates **outbound** to GitHub — no ports need to be open on the VPS for deployment.
+
+**Runner setup:**
 ```bash
-# 1. Pull repo
-cd ~/dev/wealthtrack && git pull
+# Download and configure runner (one-time)
+cd /home/hermes/actions-runner
+./config.sh --url https://github.com/mkhaufillah/wealthtrack --token <token>
+sudo ./svc.sh install
+sudo ./svc.sh start
 
-# 2. Activate venv
-source .venv/bin/activate
-
-# 3. Install/update deps
-uv pip install -r backend/requirements.txt
-
-# 4. Schema is auto-created on startup (database.py _init_schema)
-#    No manual migration needed — tables + indexes created with IF NOT EXISTS
-
-# 5. Restart service
-sudo systemctl restart wealthtrack
-
-# 6. Reload nginx (if config changed)
-sudo systemctl reload nginx
-
-# 7. Verifikasi
-```bash
-# Login and test API
-TOKEN=$(curl -s -X POST https://wealthtrack.filla.id/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"filla","password":"password123"}' | \
-  python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
-
-curl -s -H "Authorization: Bearer *** \
-  https://wealthtrack.filla.id/api/v1/categories | python3 -m json.tool
+# Check status
+sudo systemctl status actions.runner.wealthtrack-wealthtrack.wealthtrack-vps.service
 ```
 
-## Step 7: Deploy Flow (Updates)
+### Deploy Flow (git push → live)
 
-```bash
-cd ~/dev/wealthtrack && git pull
-source .venv/bin/activate
-uv pip install -r backend/requirements.txt
+1. **Push to `main`** triggers the `deploy-backend.yml` workflow
+2. **Test phase** (cloud runner, ubuntu-latest): runs 193 pytest tests with PostgreSQL 18 + Redis 7 service containers. Tests use `wealthtrack_test` database on port 5433.
+3. **Deploy phase** (self-hosted runner): on test success, the runner:
+   - `git pull` on the VPS
+   - `uv pip install -r backend/requirements.txt`
+   - `sudo systemctl restart wealthtrack` (NOPASSWD)
+   - HTTP health check (retries 12×, 10s apart)
+4. **Notifications**: Telegram messages at every stage (start, test result, deploy result)
 
-# Migration is automatic via _init_schema on startup
+**Workflow trigger paths:** `backend/**`, `deploy/**`, `.github/workflows/deploy-backend.yml`
 
-# If new search features added, re-index transactions to Meilisearch:
-# python3 -m scripts.bulk_index_meilisearch
+### NOPASSWD Sudo Security
 
-# Restart services (order matters: Redis + Meilisearch first, then WealthTrack)
-sudo systemctl restart redis meilisearch
-sudo systemctl restart wealthtrack
-
-# Reload nginx if config changed
-sudo systemctl reload nginx
-
-# Verify
-curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/health
+Only a **single systemd command** is allowed without password via `/etc/sudoers.d/wealthtrack`:
+```
+hermes ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart wealthtrack
 ```
 
-## Step 8: CI/CD Pipeline
+No other `sudo` commands are available to the runner without a password. The secret `SUDO_PASSWORD` no longer exists in GitHub.
 
-### Workflows
+### Previous SSH Secrets — All Removed
 
-| Workflow | Trigger | What it does |
-|----------|---------|--------------|
-| `build-apk.yml` | Push to `main` with `mobile/**` changes, or `workflow_dispatch` | Installs Flutter, runs tests, builds release APK (~27MB), uploads artifact (retained 1 day). |
-| `deploy-backend.yml` | Push to `main` with `backend/**` or `deploy/**` changes, or `workflow_dispatch` | Runs tests → deploys via SSH → restart systemd service → health check. |
+The following GitHub secrets were deleted as part of the migration:
+- ❌ `VPS_HOST`
+- ❌ `VPS_USER`
+- ❌ `VPS_SSH_KEY`
+- ❌ `SUDO_PASSWORD`
+- ❌ `TELEGRAM_CHAT_ID` (now hardcoded in workflow)
+- ❌ `TELEGRAM_TOPIC_ID` (now hardcoded in workflow)
+
+### Remaining Secrets (5 total)
+
+| Secret | Purpose |
+|--------|---------|
+| `TG_BOT_TOKEN` | Telegram bot token for CI notifications |
+| `DART` | Keystore alias for APK signing |
+| `JAVA` | Keystore password for APK signing |
+| `FLUTTER` | Key password for APK signing |
+| `OPENROUTER_API_KEY` | Optional — premium Claude model for AI Advisor |
 
 ### Telegram Notifications
 
-Both workflows send build/deploy results to **Forum Anak Intern → topic #🤖-deployment**, with:
+All notifications go to **Keluarga Super Sapi → topic Deployment** (`chat_id=-1003997003114`, `topic_id=3`).
 
-- ✅ **Success** — commit SHA short hash + link to run
-- ❌ **Failure** — commit SHA + direct link to GitHub Actions logs
+**Four notification events per deploy run:**
+1. 🚀 "CI started" — when test job begins
+2. ✅/❌ "Tests result" — immediately after test job completes
+3. ✅ "Deploy success" — after health check passes
+4. ❌ "Deploy failure" — if deploy job fails
 
-### Required Secrets
+### Flutter APK Build
 
-| Secret | Description |
-|--------|------------|
-| `TELEGRAM_BOT_TOKEN` | Bot token for CI notifications |
-| `TELEGRAM_CHAT_ID` | Telegram group ID (`-1003981338873` — Forum Anak Intern) |
-| `TELEGRAM_TOPIC_ID` | Topic ID within group (`4723` — #🤖-Deployment) |
-| `VPS_HOST` + `VPS_USER` + `VPS_SSH_KEY` | SSH access for backend deployment |
-| `KEYSTORE_BASE64` + `KEYSTORE_PASSWORD` + `KEY_ALIAS` + `KEY_PASSWORD` | APK release signing |
+Triggered by `build-apk.yml` on push to `main` with `mobile/**` changes or manual `workflow_dispatch`.
 
-### Artifact Storage
+- Builds release APK (~27MB) on ubuntu-latest cloud runner
+- Signs with uploaded keystore
+- Uploads artifact (retention: 1 day)
+- Falls back to GitHub Release if artifact storage is full
+- Telegram notification on success/failure
 
-- Only **release APK** is uploaded (no debug APK).
-- Retention: **1 day** — artifacts auto-expire within 24 hours.
-- Free quota: ~500MB. At ~27MB/run, this allows ~18 runs before cleanup cycles kick in.
+### Test Infrastructure
 
-## Step 9: Monitoring
+| Detail | Value |
+|--------|-------|
+| Test runner | ubuntu-latest (cloud) |
+| Test database | `wealthtrack_test` on PostgreSQL 18 container (port 5433) |
+| Redis for tests | `redis:7-alpine` container (port 6379, no auth) |
+| Test count | **193 tests** — all passing |
+| Env override | `WEALTHTRACK_TEST_DATABASE_URL=postgresql://wealthtrack_test:***@localhost:5433/wealthtrack_test` |
+| Concurrency | `cancel-in-progress: true` — old runs cancelled on new push |
+
+### Health Check
 
 ```bash
-# Check service status
-sudo systemctl status wealthtrack
+curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/health
+# Expected: 200
+```
 
-# Check logs
+## Monitoring
+
+```bash
+# Service logs
 journalctl -u wealthtrack -n 50 --no-pager
 
-# Check Redis
-redis-cli ping  # should return PONG
+# Redis
+redis-cli -a '<password>' ping  # → PONG
 
-# Check Meilisearch
-curl -s http://localhost:7700/health  # should return {"status":"available"}
+# Meilisearch
+curl -s http://localhost:7700/health  # → {"status":"available"}
 
-# Check nginx
+# Nginx
 sudo nginx -t
 sudo systemctl status nginx
 
-# HTTP endpoint health check (includes Redis + Meilisearch status)
-curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/auth/login
-```
+# Self-hosted runner
+sudo systemctl status actions.runner.wealthtrack-wealthtrack.wealthtrack-vps.service
 
-## Flutter App Configuration
-
-In Flutter, API base URL change to:
-
-```dart
-// lib/core/constants.dart
-class AppConstants {
-  static const String apiBaseUrl = 'https://wealthtrack.filla.id/api/v1';
-}
+# Full endpoint health check
+curl -s https://wealthtrack.filla.id/api/v1/health | python3 -m json.tool
 ```
 
 ## Deployment Checklist
 
-- [ ] DNS `wealthtrack.filla.id` → VPS IP (`2.27.165.124`)
-- [ ] PostgreSQL running
-- [ ] Redis running (`redis-cli ping` → PONG)
-- [ ] Meilisearch running (`curl localhost:7700/health` → available)
-- [ ] FastAPI systemd service running
-- [ ] DB migration already ran
-- [ ] Nginx config installed
-- [ ] SSL certificate (run certbot after DNS is ready)
-- [ ] Firewall: 80+443 open (8080 default deny via ufw)
-- [ ] Backup cron installed
-- [ ] Hermes cron `Daily Finance Summary` still running (check with `hermes cron list`)
+- [x] DNS `wealthtrack.filla.id` → VPS IP (`2.27.165.90`)
+- [x] PostgreSQL running (localhost only, password-protected)
+- [x] Redis running (`requirepass` enabled)
+- [x] Meilisearch running (`curl localhost:7700/health` → available)
+- [x] FastAPI systemd service running
+- [x] Schema auto-created on startup
+- [x] Nginx config installed, SSL active
+- [x] Firewall: 80+443 open
+- [x] Self-hosted runner registered and online
+- [x] NOPASSWD sudo configured (systemctl restart wealthtrack only)
+- [x] GitHub secrets cleaned (SSH secrets removed)
+- [x] Telegram notifications working (start + result)
+- [x] Backup cron installed

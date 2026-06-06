@@ -1,5 +1,61 @@
 # Changelog
 
+## v0.5.3 — CI/CD Migration, Security Hardening & 15 Code Fixes (2026-06-05)
+
+### Infrastructure — Self-Hosted Runner
+
+- **Self-hosted GitHub Actions runner** (`wealthtrack-vps`) — Registered on VPS, installed as systemd service. Replaces SSH-based deployment (port 2222 no longer needed). Runner communicates outbound to GitHub — no inbound ports required.
+- **NOPASSWD sudo** — SUDO_PASSWORD secret eliminated. `/etc/sudoers.d/wealthtrack` allows `sudo systemctl restart wealthtrack` without password.
+- **Workspace cleanup** — `git checkout` with `clean: false` preserves workspace between runs; full cleanup done via `git clean` + `git checkout -- .` in the deploy step.
+- **Deprecated SSH secrets removed** — `VPS_HOST`, `VPS_SSH_KEY`, `VPS_USER`, `SUDO_PASSWORD` deleted from GitHub secrets.
+
+### CI/CD — Telegram Notifications V2
+
+- **🚀 CI Started** — Workflow now sends a notification as soon as tests begin, not just on success/failure.
+- **❌ Tests failed** — Separate notification from deploy failure; catches the case where `test` job fails and `deploy` is skipped.
+- **✅ Deploy success** — Unchanged notification on healthy deployment.
+- **❌ Deploy failure** — Unchanged notification with direct link to GitHub Actions logs.
+- **Workflow trigger** — `.github/workflows/deploy-backend.yml` path changes now trigger the workflow.
+- **Secrets cleaned** — Only 5 secrets remain: `TG_BOT_TOKEN`, `DART`, `JAVA`, `FLUTTER`, `OPENROUTER_API_KEY`.
+
+### Security Hardening
+
+- **CORS wildcard restricted** — `CORS_ORIGINS` changed from `["*"]` to `["https://wealthtrack.filla.id", "http://localhost:8080", "null"]`. API no longer accepts requests from arbitrary origins.
+- **Redis authentication** — `requirepass` configured in `/etc/redis/redis.conf`. Production Redis URL includes password; CI/test falls back to `redis://localhost:6379/0`.
+- **PostgreSQL password hardened** — Changed from `wealthtrack123` to 32-char random password.
+- **pg_hba.conf — Tailscale network removed** — `100.64.0.0/10` entry deleted. Only `127.0.0.1/32` and `::1/128` can connect. Zero network exposure.
+- **Secret scanning** — CI YAML no longer embeds secrets in `env:` blocks (prevents `***` masking leaks).
+
+### Code Fixes (15 Issues)
+
+- **Type hints — `get_db` return type** — All 8 routers updated from `asyncpg.Connection` to `CursorWrapper` to match actual `database.py` implementation.
+- **N+1 budget query** — Calendar month budget loading optimized from N+1 queries to a single query with JOIN.
+- **OCR error messages** — Differentiated error responses for 429 (rate limit), 401 (auth), and 503 (service unavailable) instead of generic error.
+- **AI Advisor comment** — Clearer fallback comment when OpenRouter API key not configured.
+- **OCR delete query** — Changed from `UPDATE ocr_jobs SET transaction_id = NULL` to `DELETE FROM ocr_jobs` for proper cleanup.
+- **CI fix #1 — YAML masking** — Password written via Python `open().write()` instead of direct string in YAML to prevent GitHub Actions from masking the value as `***`.
+- **CI fix #2 — Redis URL** — Default `REDIS_URL` changed from `redis://localhost:***@localhost:6379/0` (which injected `***` literal) to `redis://localhost:6379/0` for test environments.
+- **CI fix #3 — Test seed date** — `CURRENT_DATE` in test seed data replaced with fixed range `2026-01-01` to `2026-12-31` to prevent time-dependent test failures.
+- **Backend config** — Default `CORS_ORIGINS` kept as `["*"]` with warning (overridden by `.env` in production).
+- **Household test** — Added robust date range for household test seed data.
+- **Health endpoint** — Added CORS origins config validation.
+- **GitHub secrets** — Removed 4 deprecated secrets from repo.
+- **conftest.py** — Added default `WEALTHTRACK_TEST_DATABASE_URL` fallback.
+- **requirements.txt** — Added `python-multipart` explicit version pin.
+- **Config cleanup** — Removed unused `SQLITE_PATH` override reference.
+
+### Test Infrastructure
+
+- **Dedicated test database** — `wealthtrack_test` database created and granted to `wealthtrack` user in PostgreSQL.
+- **`run_tests.sh`** — Updated with correct database name and password.
+- **CI test count** — **193/193 tests passing** across all pipelines.
+
+### Docs
+
+- README, deployment, project overview, backend API, and plan docs synced with all changes above.
+
+---
+
 ## v0.5.2 — Auto-Create Schema & Index Optimization (2026-06-03)
 
 ### Infrastructure
@@ -59,7 +115,7 @@
 
 ### Breaking Changes
 - **Database driver** — Changed to `asyncpg`. Raw SQL queries use PostgreSQL syntax (`$1` placeholders, `LEFT()` / `TO_CHAR()` / `RETURNING id`).
-- **Config** — New `DATABASE_URL` env var (`postgresql://user:***@host:5432/wealthtrack`). Legacy `DB_PATH` removed.
+- **Config** — New `DATABASE_URL` env var (`postgresql://user:pass@host:5432/wealthtrack`). Legacy `DB_PATH` removed.
 - **Dependencies** — `aiosqlite` removed, `asyncpg>=0.29.0` added.
 
 ### Architecture
@@ -68,7 +124,7 @@
 - **Connection pool** — `asyncpg.create_pool` (min 2, max 10) with request-scoped connections.
 
 ### Bug Fixes (PostgreSQL strictness)
-- **GROUP BY strictness** — 6 queries fixed where PostgreSQL requires all non-aggregate columns in GROUP BY (summaries, budgets, budget_ai). 
+- **GROUP BY strictness** — 6 queries fixed where PostgreSQL requires all non-aggregate columns in GROUP BY (summaries, budgets, budget_ai).
 - **GROUP BY alias ambiguity** — `GROUP BY date` resolved to `GROUP BY 1` when `date` is both a table column and a column alias.
 
 ### Tests
@@ -79,21 +135,16 @@
 ## v0.4.4 — Budget Display Fixes, Error Humanization & OCR Dismiss Persistence (2026-06-02)
 
 ### Fixes
-- **Budget Remaining Logic** — Changed over-budget detection from `percentage >= 100` to `remaining <= 0`. Three display states now: "Over by X" (remaining < 0), "Budget exhausted" (remaining == 0), "X remaining" (remaining > 0). Fixes: budget exhausted shown when actually Rp1.000 over; negative "Over by -10.000" shown when actually Rp10.000 remaining.
-- **Percentage Display** — Recalculated locally from raw `actualSpent`/`budgetAmount` ints to avoid backend floating-point rounding (99.999 → 100.0). Display floors at 1 decimal (98.8727 → 98.8%).
-- **OCR Error Dismiss — Job ID Fingerprinting** — Changed from error-text-based fingerprint to `failed_job_id` from the server. Previously, dismissing with fingerprint-by-text meant all future failures (same "OCR failed..." text) were also suppressed — even from new scan attempts. Now each OCR job has a unique ID: dismissing job 5 only suppresses job 5; job 6's failure shows regardless of same error text.
-- **OCR Error Banner on New Scan** — `clearError()` replaces `resetDismissed()`. On new scan, the visible error banner clears immediately but the dismissed job ID fingerprint stays intact. Old error stays suppressed while new job processes. Fixes: old error reappearing "below loading overlay" on `/transactions` after starting a new scan.
+- **Budget Remaining Logic** — Changed over-budget detection from `percentage >= 100` to `remaining <= 0`. Three display states now: "Over by X" (remaining < 0), "Budget exhausted" (remaining == 0), "X remaining" (remaining > 0).
+- **Percentage Display** — Recalculated locally from raw `actualSpent`/`budgetAmount` ints to avoid backend floating-point rounding (99.999 → 100.0).
+- **OCR Error Dismiss — Job ID Fingerprinting** — Changed from error-text-based fingerprint to `failed_job_id` from the server.
+- **OCR Error Banner on New Scan** — `clearError()` replaces `resetDismissed()`. On new scan, the visible error banner clears immediately but the dismissed job ID fingerprint stays intact.
 - **OCR Error Banner Dismiss Persistence** — Dismissed `failed_job_id` saved to `SecureStorage` (was error text). Survives app restart.
-- **OCR Error Messages Unified** — All three error paths (Vision API error, JSON parse error, generic exception) now use: `'OCR failed. Please try again with a clearer photo.'`. No more raw technical messages.
+- **OCR Error Messages Unified** — All three error paths now use: `'OCR failed. Please try again with a clearer photo.'`.
 - **OCR AddTransaction Error** — Now uses centralized `handleError` instead of inline catch with raw message.
 
 ### Features
-- **Human-Readable Error Messages** — `ApiException.toString()` returns just the message (no prefix). `handleError` maps all backend errors to friendly English:
-  - Login/register errors → clear actionable text
-  - Network/timeout → "No internet connection. Please check and try again."
-  - 401 → "Session expired. Please login again."
-  - 429 → "Too many requests. Please wait a moment."
-  - Unrecognized → "Something went wrong. Please try again."
+- **Human-Readable Error Messages** — `ApiException.toString()` returns just the message (no prefix). `handleError` maps all backend errors to friendly English.
 - **Tap Budget Card to Filter** — Tapping a budget card navigates to Transactions tab with category filter pre-applied.
 
 ### API Changes
@@ -103,29 +154,25 @@
 - Backend tests: unchanged (still passing)
 - Flutter tests: 253+ passing
 
-### Docs
-- CHANGELOG, Flutter mobile docs (section 13 budget display, section 15 error handling), OCR scanner doc (error banner, job ID fingerprinting) synced.
-
 ---
 
 ## v0.4.3 — OCR Queue, AI Advisor Abuse Protection & Stability (2026-05-31)
 
 ### Features
-- **OCR Per-User Queue** — Each user can only have 1 active OCR job at a time. Attempting to upload another invoice while one is processing returns 429. Prevents user-level spam.
-- **OCR System Semaphore** — `asyncio.Semaphore(2)` limits concurrent Vision API calls across all users. Prevents rate limit bursts on OpenCode Go.
-- **AI Advisor Abuse Protection** — Text field and send button are disabled while AI is still processing a response. Re-enabled only when response completes or errors. Prevents double-send cost.
+- **OCR Per-User Queue** — Each user can only have 1 active OCR job at a time.
+- **OCR System Semaphore** — `asyncio.Semaphore(2)` limits concurrent Vision API calls across all users.
+- **AI Advisor Abuse Protection** — Text field and send button are disabled while AI is still processing a response.
 
 ### Fixes
-- **Delete OCR Transaction** — Changed from `UPDATE ocr_jobs SET transaction_id = NULL` to `DELETE FROM ocr_jobs WHERE transaction_id = ?`. Cleaner data cleanup.
-- **Delete Account** — Added `DELETE FROM ocr_jobs WHERE user_id = ?` to prevent FK constraint errors on account deletion.
-- **OCR 429 Retry** — Increased retry attempts from 3→5 with jittered exponential backoff (1s×jitter → 8s×jitter, random 0.5-1.5x). Spreads retry timing to avoid thundering herd.
-- **AI Advisor Auto-Scroll** — Added delayed backup scroll (200ms) after post-frame callback to handle late MarkdownBody layout. Scroll now reaches bottom 100% of the time.
-- **OCR Reload on Any Completion** — Changed from reloading only when all jobs complete (`next == 0`) to reloading when ANY job finishes (`next < previous`). Transaction list and dashboard refresh incrementally.
-- **OCR Immediate Badge** — OCR pending count loads immediately on screen init instead of waiting for the first 5-second poll tick. Add transaction screen also triggers a load before navigation.
+- **Delete OCR Transaction** — Changed from `UPDATE ocr_jobs SET transaction_id = NULL` to `DELETE FROM ocr_jobs WHERE transaction_id = ?`.
+- **Delete Account** — Added `DELETE FROM ocr_jobs WHERE user_id = ?` to prevent FK constraint errors.
+- **OCR 429 Retry** — Increased retry attempts from 3→5 with jittered exponential backoff.
+- **AI Advisor Auto-Scroll** — Added delayed backup scroll (200ms) after post-frame callback.
+- **OCR Reload on Any Completion** — Changed from reloading only when all jobs complete to reloading when ANY job finishes.
+- **OCR Immediate Badge** — OCR pending count loads immediately on screen init.
 
 ### API Changes
 - `POST /api/v1/ocr/process-and-save` — Returns 429 if user already has a processing OCR job
-- `POST /api/v1/ocr/process` — No change (uses separate endpoint)
 
 ### Performance
 - OCR Vision API calls reduced from burst-N to max 2 concurrent system-wide via `asyncio.Semaphore(2)`
@@ -134,31 +181,26 @@
 - 189 backend tests passing
 - 250 Flutter tests passing
 
-### Docs
-- CHANGELOG, README, OCR scanner doc synced with new protections.
-
 ---
 
 ## v0.4.2 — CI Notifications & Workflow Cleanup (2026-05-31)
 
 ### Infrastructure
-- **Telegram CI Notifications** — Both `build-apk.yml` and `deploy-backend.yml` now send build/deploy result notifications to dedicated **🤖 Deployment** topic in Forum Anak Intern group.
-- **Artifact cleanup** — Removed debug APK upload (saves ~76MB/run). Set artifact retention to 1 day (was 90 days). Prevents GitHub Actions storage quota exhaustion.
+- **Telegram CI Notifications** — Both `build-apk.yml` and `deploy-backend.yml` now send build/deploy result notifications.
+- **Artifact cleanup** — Removed debug APK upload. Set artifact retention to 1 day.
 - **Secrets configured** — `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_TOPIC_ID` added to repo secrets.
 
 ### CI Changes
-- `build-apk.yml` — Removed debug APK build/verify/upload steps. Added Telegram success + failure notifications with commit SHA and run link.
-- `deploy-backend.yml` — Added `message_thread_id` targeting to route notifications to **🤖 Deployment** topic (previously sent to General).
+- `build-apk.yml` — Removed debug APK build/verify/upload steps. Added Telegram success + failure notifications.
+- `deploy-backend.yml` — Added `message_thread_id` targeting for topic routing.
 
-### Docs
-- CHANGELOG, deployment doc synced with CI notification setup.
+---
 
 ## v0.4.1 — Email Registration & OTP Verification (2026-05-31)
 
 ### Features
-- **Email Registration** — Register now requires a valid email address. User enters email → receives 6-digit OTP via SMTP → enters OTP to complete registration.
-- **Email in Profile** — `/auth/me` now returns `email` field. Profile screen displays email below username.
-- **Seed Emails** — Filla: `khaufillahmohammad@gmail.com`, Nahda: `nahdanurfitriana3@gmail.com`.
+- **Email Registration** — Register now requires a valid email address with 6-digit OTP via SMTP.
+- **Email in Profile** — `/auth/me` now returns `email` field.
 - **Update Email** — `PUT /auth/me` supports updating email (with duplicate check).
 
 ### API Changes
@@ -168,127 +210,74 @@
 - `PUT /api/v1/auth/me` — accepts optional `email` field
 
 ### Infrastructure
-- **SMTP** — Configurable via `SMTP_HOST/PORT/USERNAME/PASSWORD` env vars. Gmail App Password integration.
-- **Migration** — `email TEXT` column added to `users`, `email_verifications` table created, unique partial index on email.
+- **SMTP** — Configurable via `SMTP_HOST/PORT/USERNAME/PASSWORD` env vars.
 - `email-validator` added to requirements.
 
 ### Tests
-- 189 backend tests passing (new: send-otp success, invalid email, register without OTP, email in /me).
-- 248 Flutter tests passing (fixed mock signatures, updated register screen tests for email/OTP flow).
+- 189 backend tests passing
+- 248 Flutter tests passing
 
-### Docs
-- CHANGELOG, README, database schema, backend API, Flutter docs synced with new email feature.
+---
+
+## v0.4.0 — AI Budget Suggestions & Health (2026-05-31)
 
 ### Features
-- **Budget Suggestions API** — `GET /budgets/suggestions` analyzes last 3-12 billing cycles of historical spending and recommends budget amounts per expense category. Suggestion = historical average rounded up to nearest Rp10k (min Rp10k). Detects existing budgets and warns if total suggested exceeds income.
-- **Budget Health API** — `GET /budgets/health` returns mid-cycle projections: daily spending rate, projected end-of-cycle total, and per-category health status (healthy/warning/at_risk/exhausted).
+- **Budget Suggestions API** — `GET /budgets/suggestions` analyzes historical spending and recommends budget amounts.
+- **Budget Health API** — `GET /budgets/health` returns mid-cycle projections.
 - **Budget AI Utils** — `app/utils/budget_ai.py` with reusable `get_historical_spending()` and `get_projection()` functions.
-- **Flutter: AI Suggestions sheet** — Bottom sheet showing suggested budgets per category with accept/decline checkbox, Select All/Clear, and "Apply N Budgets" button. Accessible from FAB and empty state on budgets screen.
-- **AI Advisor: Budget Health context** — Advisor prompt enhanced with budget health projection data: days elapsed, cycle progress %, per-category health status (✅ Aman/⚠️ Hati-hati/🔴 Berisiko/❌ Habis), and projected overrun alerts. Analysis guidelines updated to recommend using projection data.
-- **AI Advisor: Enhanced CARA MENGANALISIS** — Point 1 updated to explicitly use mid-cycle projection data for over-budget warnings.
+- **Flutter: AI Suggestions sheet** — Bottom sheet showing suggested budgets with accept/decline checkbox.
+- **AI Advisor: Budget Health context** — Advisor prompt enhanced with budget health projection data.
 
 ### API Changes
 - New `GET /api/v1/budgets/suggestions?month=&num_cycles=`
 - New `GET /api/v1/budgets/health?month=`
 
 ### Tests
-- 186 total backend tests passing (2 new: budget health projection + has_budget flag).
-- 17 new mobile provider tests for budget suggestion (load, toggleAccept, toggleSelectAll, applySelected).
-- 250 total mobile tests passing.
+- 186 total backend tests passing
+- 250 total mobile tests passing
 
-### Fixes
-- **Transactions sort sheet** — FAB now hides when sort sheet is open (same pattern as category filter), shows again on dismiss.
-- **Budgets screen dual FAB** — Increase bottom padding 80→140 for clearance with 2 FABs. Home "View All" button now uses `context.go` to navigate to bottom nav tab instead of pushing a new page.
-
-### Docs
-- README, backend API docs, Flutter mobile docs, and plan all synced with full v0.4.0 scope.
+---
 
 ## v0.3.3 — OCR Performance Optimization (2026-05-31)
 
 ### Performance
-- **Model swap** — OCR vision model changed from `kimi-k2.6` to `kimi-k2.5`. Rate limit increased from 1,150 → 1,850 per 5 hours (60% higher). Original m2.5 was text-only, m2.7 didn't process receipt text properly. |
-- **Image compression** — Images are auto-resized to max 1200px on longest side (LANCZOS), converted to JPEG quality 85. Input up to 10 MB → ~200–500 KB output. Reduces upload time and API processing latency.
+- **Model swap** — OCR vision model changed from `kimi-k2.6` to `kimi-k2.5` (60% higher rate limit).
+- **Image compression** — Images auto-resized to max 1200px (LANCZOS), JPEG quality 85. Input up to 10 MB → ~200–500 KB output.
 
-### Dependencies
-- Added `Pillow>=10.0.0` to `requirements.txt`.
-
-### Docs
-- OCR scanner documentation updated to reflect new model, compression step, and architecture diagram.
+---
 
 ## v0.3.2 — S&I Category Split & Reports Enhancements (2026-05-31)
 
 ### Features
-- **Income S&I Split** — 'Tabungan & Investasi' income category (id=4) split into two: 'Penarikan Tabungan & Investasi' (Savings & Investment Disbursed) and new 'Hasil Investasi' (Savings & Investment Return). Each has separate keyword mappings for Hermes OCR classification.
-- **Locked Categories** — Tabungan & Investasi (expense id=13, income id=4), Dana Darurat (expense id=18, income id=19), Penarikan Tabungan & Investasi, and Hasil Investasi are now locked (is_default=1) — cannot be edited or deleted via admin CRUD.
-- **Savings Rate (Reports)** — Reports screen now shows adjusted savings rate using formula: ((income − expense) + (savings_expense − savings_disbursed)) / income × 100%. Savings & Investment Return is excluded. Replaces old raw formula.
-- **Daily Average (Reports)** — Reports screen shows average daily expense (totalExpense / cycleDays) below savings rate.
+- **Income S&I Split** — 'Tabungan & Investasi' income category split into 'Penarikan Tabungan & Investasi' and 'Hasil Investasi'.
+- **Locked Categories** — Tabungan & Investasi, Dana Darurat, Penarikan Tabungan & Investasi, Hasil Investasi locked (cannot be edited/deleted).
+- **Savings Rate (Reports)** — Adjusted formula accounting for savings category dynamics.
+- **Daily Average (Reports)** — Shows average daily expense.
 
 ### Fixes
-- **Daily Average Bug** — Cycle label used 'dd MMM' for dFrom (no year) → DateFormat.parse fell back to 2000 → day diff ~9500 days → wrong value. Fixed with 'dd MMM yyyy' for both sides.
-
-### API Changes
-- **all-time-category-balance** — Return excluded from balance. Balance = Savings & Investment (expense) − Savings & Investment Disbursed (income).
-- **Monthly report** — Response includes 'income_categories' array alongside 'categories' (expense).
-- **AI Advisor** — All-time balance prompt uses dynamic breakdown (saved/withdrawn/return), handles legacy category names.
-
-### Migration
-- migrate_db.py: steps 17-18 handle S&I split idempotently.
-
-### Docs
-- API spec, Flutter (section 14), Admin Category CRUD, README updated.
+- **Daily Average Bug** — Cycle label date format fixed (`dd MMM yyyy` for both sides).
 
 ---
 
 ## v0.3.1 — Category English Names & Home Widget (2026-05-30)
 
 ### Features
-- **English Category Names (`category_name_en`)** — All endpoints (transactions, budgets, reports, summaries) now return `category_name_en`/`name_en` from the DB. Flutter UI uses `name_en` as primary display, falls back to Indonesian `category_name`.
-- **Home Savings & Emergency Widget** — Dashboard now shows Savings & Investment and Emergency Funds balances from `/summaries/all-time-category-balance` endpoint.
-- **Budget Exhausted Message** — Overspent budget categories show an "exhausted" label when percentage ≥ 100%.
-- **Lainnya Locked** — "Lainnya" category cannot be edited or deleted via admin CRUD.
-- **Transaction Search & Filters** — Search by description, filter by type (All/Expense/Income) and multi-select categories, sort by newest/oldest/highest/lowest/name A–Z/Z–A, paginated browsing with page controls.
+- **English Category Names** — All endpoints return `category_name_en`/`name_en`.
+- **Home Savings & Emergency Widget** — Dashboard shows Savings & Investment and Emergency Funds balances.
+- **Transaction Search & Filters** — Search by description, multi-select categories, paginated browsing.
 
-### Fixes
-- **category_translator.dart** — `translateCategory()` removed; category translation is now server-side via `name_en`. Flutter simply displays the field from the API response.
-- **Home Savings Widget (bug)** — `_loadAllTimeBalances()` cast API response as `List?` but backend returns a `Map` (`savings_investment`/`emergency_funds` keys). Runtime error → catch → always Rp0. Fixed by parsing `data['savings_investment']['balance']` and `data['emergency_funds']['balance']` directly.
-- **Test Fixtures** — Updated all Flutter test mock data to include `category_name_en`/`name_en` for consistency with new response shape.
-- **Home Screen Tests** — Fixed timing-dependent assertions to match actual post-`load()` state.
-
-### Docs
-- API spec updated with `category_name_en`/`name_en` in all response examples
-- README synced with new features (AI Advisor card, savings widget, budget exhausted, category CRUD)
-- Flutter docs updated for name_en display logic
+---
 
 ## v0.3.0 — Billing Cycle Support (2026-05-30)
 
 ### Core Features
-
-- **Billing Cycles** — Configurable cycle start day per user, budgets & reports align to cycle date range, cycle-on overrides in budget create/upsert
-- **Budget Overview** — Home screen shows totalBudget vs totalIncome comparison + non-budget expenses
-- **Cycle Picker** — Flutter cycle picker in budgets & reports screens replacing calendar month view
-
-### Fixes
-
-- **Cycle Logic** — 4 major cycle bugs: correct date range per cycle, month label = START month, each budget uses its own cycle_on for actual_spent, cycle-info accepts `?date=` param, monthly endpoints accept `d_from/d_to_override`
-- **UI Consistency** — Dark mode dropdown fix, default view loads correct month (not last), balance per month, color audit fixes across all screens, keyboard UX, edit type, screen refresh after mutations
-- **Device Date** — Backend `/current-month` accepts `?ref_date=YYYY-MM-DD` so device date overrides server date
+- **Billing Cycles** — Configurable cycle start day per user.
+- **Budget Overview** — Home screen shows totalBudget vs totalIncome comparison.
+- **Cycle Picker** — Flutter cycle picker in budgets & reports screens.
 
 ### Infrastructure
-
-- **CI** — Release APK signing, debug + release APK both built per run, ProGuard rules for network classes, AndroidManifest INTERNET + cleartext patching
-- **Deploy** — Health check via SSH (not runner localhost), backend config resolved by absolute path
-- **Timezones** — Server set to Asia/Jakarta, WIB-conversion fixes for date handling
-
-### Test Coverage
-
-- **Backend** — +41 new tests (OCR mock, AI Advisor stream, households success, budgets upsert, export xlsx, multi-month range)
-- **Mobile** — +59 new tests (AiAdvisorScreen, provider, network, service layers)
-
-### Docs
-
-- Billing cycle feature doc with architecture, API spec, and Flutter implementation
-- README sync with cycle overview, budget overview, non-budget expenses, home cycle label
-
----
+- **CI** — Release APK signing, ProGuard rules, AndroidManifest patching.
+- **Deploy** — Health check via runner localhost.
+- **Timezones** — Server set to Asia/Jakarta.
 
 For detailed commit history, see [GitHub](https://github.com/filla/wealthtrack/commits/main).

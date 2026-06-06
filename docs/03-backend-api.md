@@ -8,7 +8,7 @@
 
 | Setting | Value |
 |---------|-------|
-| Host | `0.0.0.0` |
+| Host | `127.0.0.1` (Nginx reverse proxy on port 443) |
 | Port | `8080` |
 | Root path | `/api/v1` |
 | Auth | JWT (Bearer token) |

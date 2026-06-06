@@ -1,110 +1,170 @@
-# WealthTrack 💰
+# WealthTrack — Personal Finance Tracker
 
-[![Build APK](https://github.com/mkhaufillah/wealthtrack/actions/workflows/build-apk.yml/badge.svg)](https://github.com/mkhaufillah/wealthtrack/actions/workflows/build-apk.yml)
-[![Deploy Backend](https://github.com/mkhaufillah/wealthtrack/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/mkhaufillah/wealthtrack/actions/workflows/deploy-backend.yml)
-
-Personal finance tracker for **Filla & Nahda** — manage household expenses, income, and budgets together.
-
-**Stack:** FastAPI + PostgreSQL + Redis + Meilisearch + Flutter (Android) + Hermes Agent
+A personal finance tracker for **Filla & Nahda**. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Flutter + AI features.
 
 ## Architecture
 
 ```
-FastAPI ◄────── PostgreSQL (data)
-  │                     ▲
-  │                     │
-  ├──► Meilisearch ─────┘ (full-text search — description)
-  │       (search & return IDs → SQL fetches full rows)
-  │
-  └──► Redis (rate limiter, OCR queue health)
-Hermes ──────► PostgreSQL
-(cron/chat)
-
-## Quick Start
-
-```bash
-# Backend
-uv venv
-source .venv/bin/activate
-uv pip install -r backend/requirements.txt
-uv run python -m backend.app.database    # DB pool initialized automatically
-uvicorn app.main:app --reload   # Run dev server
-
-# At http://localhost:8080/docs
+┌─────────────────────────────────────────────────────────────────────┐
+│                    VPS — 2.27.165.90 (self-hosted)                  │
+│                                                                     │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────┐ │
+│  │  Nginx       │──►│  FastAPI     │──►│  PostgreSQL  │   │Redis │ │
+│  │  :443 (SSL)  │   │  :8080       │   │  :5432       │   │:6379 │ │
+│  │  wealthtrack │   │  (localhost) │   │  wealthtrack │   │(auth)│ │
+│  │  .filla.id   │   └──────┬───────┘   └──────────────┘   └──────┘ │
+│  └──────────────┘          │                                        │
+│                            │ HTTP/JSON                              │
+│                            ▼                                        │
+│                     ┌──────────────┐   ┌──────────────────────┐    │
+│                     │  Flutter     │   │  Meilisearch 1.45.2  │    │
+│                     │  Mobile      │   │  :7700 (full-text)   │    │
+│                     │  (Android)   │   └──────────────────────┘    │
+│                     └──────────────┘                                │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps)         │   │
+│  │  ├── test: ubuntu-latest (cloud) → pytest, 193 tests        │   │
+│  │  └── deploy: self-hosted → git pull → restart systemd       │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
+
+## Tech Stack
+
+| Layer | Tech | Purpose |
+|-------|------|---------|
+| Database | PostgreSQL 18 (via asyncpg) | Primary data store, strict schema |
+| Full-Text Search | Meilisearch 1.45.2 (self-hosted) | Instant relevance-based search |
+| Rate Limiting / Queue | Redis 8.8.0 (self-hosted, with auth) | Sliding window rate limiter, OCR queue |
+| Backend | FastAPI (Python 3.11) | Async, auto-docs, lightweight |
+| Mobile | Flutter (Android + iOS later) | Cross-platform, one codebase |
+| Auth | JWT (username/password + email OTP) | Self-contained, no Firebase |
+| Server | VPS self-hosted, Ubuntu 22.04 | Already running, no extra cost |
+| CI/CD | GitHub Actions + Self-Hosted Runner | Cloud tests + VPS deployment |
+| Domain | wealthtrack.filla.id | Nginx reverse proxy, Let's Encrypt SSL |
 
 ## Project Structure
 
 ```
-docs/                  # Planning docs (agent-executable)
-  ├── 01-project-overview.md
-  ├── 02-database-schema.md
-  ├── 03-backend-api.md
-  ├── 04-backend-implementation.md
-  ├── 05-flutter-mobile.md
-  ├── 06-hermes-integration.md
-  ├── 07-deployment.md
-  ├── 08-p4-plan.md
-  ├── 09-dark-mode.md
-  ├── 10-edit-transaction.md
-  ├── 11-delete-transaction.md
-  ├── 12-transfer-balance.md
-  ├── 13-ai-chat-history.md
-  ├── 14-custom-billing-cycle.md
-  ├── 15-improvement-plan-ai-ocr.md
-  ├── 16-ocr-scanner.md
-  └── 17-admin-category-crud.md
-backend/               # FastAPI application
-mobile/                # Flutter app (Android)
-scripts/               # DB init & seed scripts
+~/dev/wealthtrack/
+├── backend/                    # FastAPI backend
+│   ├── app/
+│   │   ├── main.py            # App entry point, lifespan, middleware
+│   │   ├── database.py        # asyncpg pool + CursorWrapper + auto-schema init
+│   │   ├── core/
+│   │   │   ├── config.py      # Settings, env vars
+│   │   │   ├── security.py    # JWT auth logic
+│   │   │   ├── redis.py       # Redis connection manager (with auth)
+│   │   │   ├── rate_limiter.py# Sliding window rate limiter (Redis-backed)
+│   │   │   └── meilisearch.py # Meilisearch async client wrapper
+│   │   ├── routers/           # Auth, transactions, categories, budgets,
+│   │   │                      # summaries, households, exports, OCR,
+│   │   │                      # ai_advisor, health
+│   │   ├── schemas/           # Pydantic models for API
+│   │   ├── services/          # OCR, web_search, AI logic
+│   │   ├── requirements.txt
+│   │   └── run.sh
+│   ├── scripts/
+│   │   ├── bulk_index_meilisearch.py
+│   │   └── ci_release_setup.py
+│   └── tests/                 # 193 tests (pytest + pytest-asyncio)
+├── mobile/                    # Flutter project
+├── docs/                      # Planning & reference docs
+│   ├── 01-project-overview.md
+│   ├── 02-database-schema.md
+│   ├── 03-backend-api.md
+│   ├── 04-backend-implementation.md
+│   ├── 05-flutter-mobile.md
+│   ├── 06-hermes-integration.md
+│   ├── 07-deployment.md
+│   ├── 08-p4-plan.md
+│   └── ...                    # Feature-specific docs
+├── deploy/                    # Systemd service, nginx config, deploy script
+├── .github/workflows/         # CI/CD pipelines
+└── README.md
 ```
 
-## Features
+## CI/CD Pipeline
 
-### Backend API
-- **Auth** — register (email + OTP), login (JWT 30-day), profile update (display name, cycle day, email), password change, account delete
-- **Transactions** — CRUD with pagination, filtering by type/date/category, full-text search (Meilisearch), sorting, change owner
-- **Categories** — CRUD (admin), English display name (`name_en`) in every response, keyword mapping for Hermes OCR classification
-- **Summaries** — daily, monthly, household (combined across members), current-month shorthand, cycle-aware date ranges, per-category income breakdown
-- **Household** — shared household with invite codes, multi-user transaction listing & summaries
-- **Budgets** — CRUD with upsert, monthly budget vs actual spending summary, cycle-aware actuals, per-row cycle_on, non-budget expense awareness, **AI-powered budget suggestions from historical spending**, **budget health forecasting with mid-cycle projections**
-- **Transfer Balance** — create paired send/transfer transactions between household members
-- **Reports** — monthly summary cards, category breakdown, daily snapshot, household split
-- **Export** — yearly Excel (.xlsx) export with 12 monthly sheets
-- **OCR / Smart Input** — receipt image upload processed via Kimi K2.5 vision AI, per-user queue (1 active job), system-wide semaphore (max 2 concurrent), image auto-compression (1200px/JPEG q85), 10/day rate limit, 5 retry with jittered backoff
-- **AI Advisor** — personalized financial advice using DeepSeek Flash V4 with Brave Search, cycle-aware context, input locked while processing (prevents double-send cost)
-- **Health** — lightweight health check endpoint
+### Workflows
 
-### Mobile (Flutter)
-- **Auth screens** — Login & Register with validation, password visibility toggle
-- **Dashboard** — balance card (income/expense) with cycle range label, AI Financial Advisor card, savings & emergency fund widget, recent transactions list
-- **Transactions** — list with pull-to-refresh, add/edit/delete transaction with category picker & amount field, search by description, filter by type & category, sort by date/amount/name, paginated browsing
-- **Reports** — interactive charts (pie, bar, line) using fl_chart, monthly summary cards, category breakdown, daily snapshot, household split, savings rate, daily average
-- **Budgets** — monthly budget tracking with progress bars and color coding, exhausted message on overspent categories, non-budget expense awareness ("Outside Budget" section), **budget suggestion review sheet with accept/decline per category**
-- **AI Advisor** — chat-like interface with streaming responses and web search
-- **Transfer Balance** — send money to household members directly from the app
-- **Dark Mode** — full dark theme support with system preference detection
-- **Profile** — user info display, edit profile, change password, logout
+| Workflow | Trigger | Jobs | Notifications |
+|----------|---------|------|---------------|
+| `deploy-backend.yml` | Push to `main` (backend/), workflow_dispatch | `test` on ubuntu-latest (cloud) → `deploy` on self-hosted runner | 🚀 Started → ✅/❌ Tests → ✅/❌ Deploy |
+| `build-apk.yml` | Push to `main` (mobile/), workflow_dispatch | Build APK on ubuntu-latest | ✅/❌ APK result |
 
-### Hermes Integration
-- Cron-based daily finance summary delivery to Telegram/WhatsApp
-- Expense recording via chat input
-- Invoice processing with OCR (Hermes vision API)
-- Brave Search powered AI financial advisor
+### Telegram Notifications (v2)
 
-## Status
+Every CI run sends **start + result notifications** to Keluarga Super Sapi → topic Deployment:
+- **🚀** CI started (when tests begin)
+- **✅/❌** Tests result (immediately after test job)
+- **✅** Deploy success (after health check passes)
+- **❌** Deploy failure (after deploy fails)
 
-- [x] P1 — Core Backend (FastAPI + PostgreSQL + Auth) ✅
-- [x] P2 — Hermes Integration (cron + chat input) ✅
-- [x] P3 — Flutter Mobile MVP ✅
-- [x] P4 — Charts, Budgets, Export, OCR, AI Advisor, Change Owner ✅
-- [x] P5 — AI chat history (local persistence, sliding window 10, clear on logout) ✅
+### Secrets (remaining — 5 total)
 
-## CI/CD
+| Secret | Purpose |
+|--------|---------|
+| `TG_BOT_TOKEN` | Telegram bot for CI notifications |
+| `DART` | Keystore alias for APK signing |
+| `JAVA` | Keystore password for APK signing |
+| `FLUTTER` | Key password for APK signing |
+| `OPENROUTER_API_KEY` | Optional premium Claude model for AI Advisor |
 
-| Workflow | Status | Notifications |
-|----------|--------|---------------|
-| **Build APK** | [![Build APK](https://github.com/mkhaufillah/wealthtrack/actions/workflows/build-apk.yml/badge.svg)](https://github.com/mkhaufillah/wealthtrack/actions/workflows/build-apk.yml) | ✅ / ❌ → #🤖-Deployment topic |
-| **Deploy Backend** | [![Deploy Backend](https://github.com/mkhaufillah/wealthtrack/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/mkhaufillah/wealthtrack/actions/workflows/deploy-backend.yml) | ✅ / ❌ → #🤖-Deployment topic |
+> **Note:** SSH secrets (`VPS_HOST`, `VPS_SSH_KEY`, `VPS_USER`, `SUDO_PASSWORD`) have been removed — deployment uses a self-hosted GitHub Actions runner directly on the VPS.
 
-Both workflows notify to **Forum Anak Intern → topic #🤖-Deployment** via Telegram bot. See [Deployment](docs/07-deployment.md#step-8-cicd-pipeline) for full setup.
+## Security
+
+| Layer | What's Done |
+|-------|------------|
+| **CORS** | Restricted to `wealthtrack.filla.id`, `localhost:8080` (no wildcard) |
+| **Redis** | `requirepass` enabled — not publicly accessible |
+| **PostgreSQL** | 32-character random password, only localhost connections allowed via `pg_hba.conf` |
+| **JWT** | Random SECRET_KEY per deployment (32-byte hex), 30-day expiry |
+| **CI/CD** | No SSH secrets in GitHub — NOPASSWD sudo only for `systemctl restart wealthtrack` |
+| **API** | Rate limiting (IP-based + user-based on Redis) |
+| **OCR** | Per-user queue (1 active job), system semaphore (2 concurrent), 5 OCR/day limit per user |
+| **AI Advisor** | Rate limit: 20 queries/day per user, no raw SQL in prompts |
+
+## Key Design Decisions
+
+1. **No ORM** — Raw SQL with asyncpg. Simple schema, no migration hell.
+2. **PostgreSQL connection pooling** — asyncpg pool (min 2, max 10) for concurrent reads + writes.
+3. **Auto schema init** — Tables + indexes created with `IF NOT EXISTS` on startup. Zero manual migration.
+4. **JWT auth** — Stateless. Token stored in Flutter Secure Storage.
+5. **Self-hosted runner** — Deploys on git push without SSH secrets. NOPASSWD sudo for systemctl only.
+6. **Redis with auth** — Rate limiting and OCR queue survive server restarts. No open access.
+7. **Meilisearch for full-text search** — Inverted index scales to millions of transactions.
+8. **Hermes talks directly to DB** — Not through FastAPI. Co-located on same VPS.
+
+## Phase Status
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| P1 — Core Backend | PostgreSQL schema, FastAPI CRUD, JWT auth | ✅ Done |
+| P2 — Hermes Integration | Cron scripts, chat input | ✅ Done |
+| P3 — Flutter MVP | Login, dashboard, add/list transactions | ✅ Done |
+| P4 — Polish | Charts, budgets, export, OCR, AI advisor, change owner | ✅ Done |
+| P5 — Hardening | CI/CD self-hosted runner, CORS/Redis/DB security, Telegram v2 | ✅ Done |
+
+## Deployment
+
+| Service | Status | Port | Access |
+|---------|--------|------|--------|
+| FastAPI (WealthTrack) | systemd | 127.0.0.1:8080 | Nginx reverse proxy |
+| PostgreSQL 18 | systemd | 127.0.0.1:5432 | Localhost only |
+| Redis 8.8.0 | systemd | 127.0.0.1:6379 | Password protected |
+| Meilisearch 1.45.2 | systemd | 127.0.0.1:7700 | Master key protected |
+| Nginx | systemd | 0.0.0.0:80,443 | Public (SSL via Let's Encrypt) |
+| GitHub Runner | systemd | Outbound only | Self-hosted, no inbound ports |
+
+See [Deployment Guide](docs/07-deployment.md) for full setup instructions.
+
+## API Docs
+
+- **Swagger UI:** `https://wealthtrack.filla.id/docs`
+- **ReDoc:** `https://wealthtrack.filla.id/redoc`
+- **Health:** `https://wealthtrack.filla.id/api/v1/health`
+
+See [Backend API](docs/03-backend-api.md) for full endpoint reference.

@@ -2,7 +2,15 @@
 
 **See also:** [Project Overview](01-project-overview.md) · [Database Schema](02-database-schema.md) · [Backend API](03-backend-api.md) · [P4 Plan](08-p4-plan.md)
 
-> ⚠️ **Historical reference.** This guide covers the original backend build process. The source files in `backend/` are the authoritative reference — code examples here may lag behind the latest features (e.g., Meilisearch integration, Redis rate limiter).
+> ⚠️ **Historical reference.** This guide covers the original backend build process. The source files in `backend/` are the authoritative reference — code examples here may lag behind the latest features (e.g., Meilisearch integration, Redis rate limiter, CORS restriction, Redis auth).
+>
+> **Current production changes since this guide was written:**
+> - **CORS**: Now restricted to explicit origins (no wildcard)
+> - **Redis**: `requirepass` enabled — connection includes password
+> - **PostgreSQL**: 32-char password, localhost-only access
+> - **Host binding**: `127.0.0.1:8080` (not `0.0.0.0`) — behind Nginx
+> - **CI/CD**: Self-hosted GitHub runner (no SSH secrets)
+> See [Deployment](07-deployment.md) for the authoritative current setup.
 
 This doc is designed for an AI agent (Claude Code, Codex, etc.) to execute sequentially.
 
