@@ -35,6 +35,64 @@ async def _get_card_for_user(
     return card
 
 
+# ── Next Month Projection ───────────────────────────────────────────
+
+
+@router.get("/next-month-projection")
+async def next_month_projection(
+    db: CursorWrapper = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> NextMonthProjection:
+    """Aggregate all active installments across cards for next month's projection.
+
+    For each card, sums monthly_amount of installments where remaining_months > 0,
+    grouped by card. Returns per-card breakdown plus grand total.
+    """
+    cursor = await db.execute(
+        """SELECT
+               cc.id AS card_id,
+               cc.name AS card_name,
+               COALESCE(SUM(cci.monthly_amount), 0) AS total_monthly
+           FROM credit_cards cc
+           LEFT JOIN credit_card_installments cci
+               ON cci.card_id = cc.id AND cci.remaining_months > 0
+           WHERE cc.user_id = ?
+           GROUP BY cc.id, cc.name
+           ORDER BY cc.name""",
+        (current_user["id"],),
+    )
+    rows = await cursor.fetchall()
+
+    per_card = []
+    grand_total = 0
+    total_installments = 0
+
+    for r in rows:
+        monthly = int(r["total_monthly"])
+        if monthly > 0:
+            total_installments += 1
+        grand_total += monthly
+        per_card.append({"card_id": r["card_id"], "card_name": r["card_name"], "total": monthly})
+
+    # Count distinct active installments
+    count_cursor = await db.execute(
+        """SELECT COUNT(*) AS cnt
+           FROM credit_card_installments cci
+           JOIN credit_cards cc ON cc.id = cci.card_id
+           WHERE cc.user_id = ? AND cci.remaining_months > 0""",
+        (current_user["id"],),
+    )
+    count_row = await count_cursor.fetchone()
+    if count_row:
+        total_installments = count_row["cnt"]
+
+    return NextMonthProjection(
+        total_installments=total_installments,
+        total_expected=grand_total,
+        per_card=per_card,
+    )
+
+
 # ── Credit Cards CRUD ───────────────────────────────────────────────
 
 
@@ -373,60 +431,3 @@ async def delete_installment(
         "DELETE FROM credit_card_installments WHERE id = ?", (inst_id,)
     )
 
-
-# ── Next Month Projection ───────────────────────────────────────────
-
-
-@router.get("/next-month-projection")
-async def next_month_projection(
-    db: CursorWrapper = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-) -> NextMonthProjection:
-    """Aggregate all active installments across cards for next month's projection.
-
-    For each card, sums monthly_amount of installments where remaining_months > 0,
-    grouped by card. Returns per-card breakdown plus grand total.
-    """
-    cursor = await db.execute(
-        """SELECT
-               cc.id AS card_id,
-               cc.name AS card_name,
-               COALESCE(SUM(cci.monthly_amount), 0) AS total_monthly
-           FROM credit_cards cc
-           LEFT JOIN credit_card_installments cci
-               ON cci.card_id = cc.id AND cci.remaining_months > 0
-           WHERE cc.user_id = ?
-           GROUP BY cc.id, cc.name
-           ORDER BY cc.name""",
-        (current_user["id"],),
-    )
-    rows = await cursor.fetchall()
-
-    per_card = []
-    grand_total = 0
-    total_installments = 0
-
-    for r in rows:
-        monthly = int(r["total_monthly"])
-        if monthly > 0:
-            total_installments += 1
-        grand_total += monthly
-        per_card.append({"card_id": r["card_id"], "card_name": r["card_name"], "total": monthly})
-
-    # Count distinct active installments
-    count_cursor = await db.execute(
-        """SELECT COUNT(*) AS cnt
-           FROM credit_card_installments cci
-           JOIN credit_cards cc ON cc.id = cci.card_id
-           WHERE cc.user_id = ? AND cci.remaining_months > 0""",
-        (current_user["id"],),
-    )
-    count_row = await count_cursor.fetchone()
-    if count_row:
-        total_installments = count_row["cnt"]
-
-    return NextMonthProjection(
-        total_installments=total_installments,
-        total_expected=grand_total,
-        per_card=per_card,
-    )
