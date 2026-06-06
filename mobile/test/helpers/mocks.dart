@@ -78,7 +78,7 @@ class MockApiClient extends ApiClient {
   }
 
   @override
-  Stream<String> streamPost(String path, {dynamic data}) {
+  Stream<String> streamPost(String path, {dynamic data, CancelToken? cancelToken}) {
     final controller = _streamPostControllers[path];
     if (controller != null) return controller.stream;
     return const Stream.empty();
