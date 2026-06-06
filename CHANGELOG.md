@@ -5,8 +5,13 @@
 ### Infrastructure — Self-Hosted Runner
 
 - **Self-hosted GitHub Actions runner** (`wealthtrack-vps`) — Registered on VPS, installed as systemd service. Replaces SSH-based deployment (port 2222 no longer needed). Runner communicates outbound to GitHub — no inbound ports required.
+- **All workflows migrated to self-hosted** — `deploy-backend.yml` (test + deploy) and `build-apk.yml` (Flutter APK) now run entirely on `[self-hosted, linux]`. Pre-installed Android SDK + JDK 17 + Gradle cache for fast builds.
 - **NOPASSWD sudo** — SUDO_PASSWORD secret eliminated. `/etc/sudoers.d/wealthtrack` allows `sudo systemctl restart wealthtrack` without password.
 - **Workspace cleanup** — `git checkout` with `clean: false` preserves workspace between runs; full cleanup done via `git clean` + `git checkout -- .` in the deploy step.
+- **Build artifact cleanup** — APK build auto-removes `build/` and `.dart_tool/` after every run (`always()`).
+- **Redis CI port fix** — Changed test Redis from 6379→6380 to avoid conflict with production Redis on self-hosted runner.
+- **PEP 668 fix** — Pillow install uses `--break-system-packages` for Python 3.12 compatibility on self-hosted runner.
+- **Weekly Docker cleanup** — `docker system prune -f` added to weekly cron for CI service container images.
 - **Deprecated SSH secrets removed** — `VPS_HOST`, `VPS_SSH_KEY`, `VPS_USER`, `SUDO_PASSWORD` deleted from GitHub secrets.
 
 ### CI/CD — Telegram Notifications V2

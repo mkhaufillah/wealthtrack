@@ -23,9 +23,10 @@ A personal finance tracker for **Filla & Nahda**. Tracks daily expenses, income,
 │                     └──────────────┘                                │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps)         │   │
-│  │  ├── test: ubuntu-latest (cloud) → pytest, 193 tests        │   │
-│  │  └── deploy: self-hosted → git pull → restart systemd       │   │
+│  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps)            │   │
+│  │  ├── test: pytest, 193 tests (Docker Postgres+Redis)         │   │
+│  │  ├── deploy: git pull → restart systemd                      │   │
+│  │  └── build-apk: Flutter → release APK cleanup                │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -41,7 +42,7 @@ A personal finance tracker for **Filla & Nahda**. Tracks daily expenses, income,
 | Mobile | Flutter (Android + iOS later) | Cross-platform, one codebase |
 | Auth | JWT (username/password + email OTP) | Self-contained, no Firebase |
 | Server | VPS self-hosted, Ubuntu 22.04 | Already running, no extra cost |
-| CI/CD | GitHub Actions + Self-Hosted Runner | Cloud tests + VPS deployment |
+| CI/CD | GitHub Actions + Self-Hosted Runner | All workflows on self-hosted VPS (test, deploy, build APK) |
 | Domain | wealthtrack.filla.id | Nginx reverse proxy, Let's Encrypt SSL |
 
 ## Project Structure
@@ -91,8 +92,8 @@ A personal finance tracker for **Filla & Nahda**. Tracks daily expenses, income,
 
 | Workflow | Trigger | Jobs | Notifications |
 |----------|---------|------|---------------|
-| `deploy-backend.yml` | Push to `main` (backend/), workflow_dispatch | `test` on ubuntu-latest (cloud) → `deploy` on self-hosted runner | 🚀 Started → ✅/❌ Tests → ✅/❌ Deploy |
-| `build-apk.yml` | Push to `main` (mobile/), workflow_dispatch | Build APK on ubuntu-latest | ✅/❌ APK result |
+| `deploy-backend.yml` | Push to `main` (backend/), workflow_dispatch | `test` → `deploy` (both self-hosted) | 🚀 Started → ✅/❌ Tests → ✅/❌ Deploy |
+| `build-apk.yml` | Push to `main` (mobile/), workflow_dispatch | Build APK on self-hosted runner | ✅/❌ APK result |
 
 ### Telegram Notifications (v2)
 

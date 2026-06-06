@@ -32,9 +32,10 @@
                           |  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps) │     │
                           |  │  systemd service: actions.runner.wealthtrack-...     │     │
                           |  │  Outbound connection to GitHub — no inbound ports    │     │
-                          |  │  ├── Pull → git pull                                │     │
-                          |  │  ├── Deploy → uv pip install → sudo systemctl       │     │
-                          |  │  └── Verify → health check                          │     │
+                          │  │  ├── test → pytest 193 tests (Docker Postgres+Redis)       │     │
+                          │  │  ├── deploy → git pull → uv pip install → sudo systemctl │     │
+                          │  │  ├── build-apk → Flutter release APK + cleanup            │     │
+                          │  │  └── Verify → health check                               │     │
                           |  └──────────────────────────────────────────────────────┘     │
                           |                                                               │
                           |  ┌─────────────────────────────────────┐                      │
@@ -227,8 +228,8 @@ sudo systemctl status actions.runner.wealthtrack-wealthtrack.wealthtrack-vps.ser
 
 ### Deploy Flow (git push → live)
 
-1. **Push to `main`** triggers the `deploy-backend.yml` workflow
-2. **Test phase** (cloud runner, ubuntu-latest): runs 193 pytest tests with PostgreSQL 18 + Redis 7 service containers. Tests use `wealthtrack_test` database on port 5433.
+1. **Push to `main`** triggers workflows
+2. **Test phase** (self-hosted runner): runs 193 pytest tests with PostgreSQL 18 + Redis 7 service containers (Docker). Tests use `wealthtrack_test` database on port 5433, Redis on port 6380.
 3. **Deploy phase** (self-hosted runner): on test success, the runner:
    - `git pull` on the VPS
    - `uv pip install -r backend/requirements.txt`
@@ -279,23 +280,25 @@ All notifications go to **Keluarga Super Sapi → topic Deployment** (`chat_id=-
 
 ### Flutter APK Build
 
-Triggered by `build-apk.yml` on push to `main` with `mobile/**` changes or manual `workflow_dispatch`.
+Triggered by `build-apk.yml` on push to `main` with `mobile/**` changes or manual `workflow_dispatch`. Runs on the self-hosted runner with pre-installed Android SDK + JDK 17.
 
-- Builds release APK (~27MB) on ubuntu-latest cloud runner
+- Builds release APK (~27MB) on self-hosted runner
 - Signs with uploaded keystore
 - Uploads artifact (retention: 1 day)
 - Falls back to GitHub Release if artifact storage is full
+- **Auto-cleanup**: removes `build/` and `.dart_tool/` after every run (`always()`)
 - Telegram notification on success/failure
 
 ### Test Infrastructure
 
 | Detail | Value |
 |--------|-------|
-| Test runner | ubuntu-latest (cloud) |
+| Test runner | Self-hosted runner (wealthtrack-vps) |
 | Test database | `wealthtrack_test` on PostgreSQL 18 container (port 5433) |
-| Redis for tests | `redis:7-alpine` container (port 6379, no auth) |
+| Redis for tests | `redis:7-alpine` container (port 6380, no auth) |
 | Test count | **193 tests** — all passing |
 | Env override | `WEALTHTRACK_TEST_DATABASE_URL=postgresql://wealthtrack_test:***@localhost:5433/wealthtrack_test` |
+| Docker cleanup | Weekly cron: `docker system prune -f` (`docker` dangling images) |
 | Concurrency | `cancel-in-progress: true` — old runs cancelled on new push |
 
 ### Health Check
