@@ -75,7 +75,7 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
   }
 
   Future<void> load() async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, page: 1);
     try {
       final result = await _repo.list(
         page: state.page,
