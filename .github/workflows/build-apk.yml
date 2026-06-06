@@ -11,6 +11,9 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   TG_CHAT_ID: "-1003997003114"
   TG_TOPIC_ID: "3"
+  ANDROID_HOME: /opt/android-sdk
+  ANDROID_SDK_ROOT: /opt/android-sdk
+  JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
 permissions:
   contents: write
