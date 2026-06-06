@@ -29,7 +29,7 @@ from app.core.security import create_access_token
 
 TEST_DB_URL = os.getenv(
     "WEALTHTRACK_TEST_DATABASE_URL",
-    "postgresql://wealthtrack_test:wealthtrack_test123@localhost:5432/wealthtrack_test",
+    "postgresql://wealthtrack_test:***@localhost:5432/wealthtrack_test",
 )
 
 PWD_CTX = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -59,6 +59,9 @@ DEFAULT_TRANSACTIONS = [
 ]
 
 SCHEMA_SQL = """
+DROP TABLE IF EXISTS kpr_monthly_schedules CASCADE;
+DROP TABLE IF EXISTS kpr_rate_periods CASCADE;
+DROP TABLE IF EXISTS kpr_simulations CASCADE;
 DROP TABLE IF EXISTS ai_messages CASCADE;
 DROP TABLE IF EXISTS ocr_jobs CASCADE;
 DROP TABLE IF EXISTS budgets CASCADE;
@@ -156,9 +159,42 @@ CREATE TABLE ai_messages (
     parent_message_id INTEGER REFERENCES ai_messages(id),
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
+CREATE TABLE kpr_simulations (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    name TEXT NOT NULL DEFAULT 'KPR Simulation',
+    property_price INTEGER NOT NULL DEFAULT 0,
+    down_payment INTEGER NOT NULL DEFAULT 0,
+    total_loan INTEGER NOT NULL DEFAULT 0,
+    tenor_months INTEGER NOT NULL DEFAULT 120,
+    interest_type TEXT NOT NULL DEFAULT 'fixed' CHECK(interest_type IN ('fixed', 'floating', 'graduated', 'mix')),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+CREATE TABLE kpr_rate_periods (
+    id SERIAL PRIMARY KEY,
+    simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
+    period_start INTEGER NOT NULL,
+    period_end INTEGER NOT NULL,
+    interest_rate NUMERIC(6,4) NOT NULL,
+    rate_type TEXT NOT NULL DEFAULT 'fixed' CHECK(rate_type IN ('fixed', 'floating')),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+CREATE TABLE kpr_monthly_schedules (
+    id SERIAL PRIMARY KEY,
+    simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
+    month_number INTEGER NOT NULL,
+    payment INTEGER NOT NULL,
+    principal INTEGER NOT NULL,
+    interest INTEGER NOT NULL,
+    remaining_balance INTEGER NOT NULL,
+    rate_type TEXT NOT NULL,
+    interest_rate NUMERIC(6,4) NOT NULL,
+    UNIQUE(simulation_id, month_number)
+);
 """
 
 TABLES_IN_ORDER = [
+    "kpr_monthly_schedules", "kpr_rate_periods", "kpr_simulations",
     "ai_messages", "ocr_jobs", "budgets",
     "household_members", "households", "transactions",
     "email_verifications", "categories", "users",
@@ -199,7 +235,7 @@ async def _create_test_db():
             uid, role,
         )
     # Reset sequences to prevent conflicts with auto-generated ids
-    for tbl in ["users", "categories", "transactions", "households", "budgets", "email_verifications", "ocr_jobs", "ai_messages"]:
+    for tbl in ["users", "categories", "transactions", "households", "budgets", "email_verifications", "ocr_jobs", "ai_messages", "kpr_simulations", "kpr_rate_periods", "kpr_monthly_schedules"]:
         await conn.execute(f"SELECT setval('{tbl}_id_seq', COALESCE((SELECT MAX(id) FROM {tbl}), 0) + 1, false)")
     return conn
 
