@@ -2,7 +2,7 @@
 
 **See also:** [Backend Implementation](04-backend-implementation.md) · [Backend API](03-backend-api.md) · [Flutter Mobile](05-flutter-mobile.md) · [P4 Plan](08-p4-plan.md)
 
-> **⚠️ v0.5.3 update:** Deployment is now fully automated via self-hosted GitHub Actions runner. SSH-based deployment has been replaced. This doc reflects the current state.
+> **⚠️ v0.5.4 update:** Deployment is fully automated via self-hosted GitHub Actions runner. SSH-based deployment has been replaced. This doc reflects the current state (including audit fixes from v0.5.4).
 
 ## Architecture on VPS
 
@@ -48,7 +48,7 @@
 
 ## Key Differences from Earlier Setup
 
-| Aspect | Old (before v0.5.3) | New (current) |
+| Aspect | Old (before v0.5.4) | New (current) |
 |--------|---------------------|---------------|
 | Deployment method | SSH via appleboy/ssh-action (port 2222) | Self-hosted GitHub Actions runner |
 | GitHub secrets for VPS | `VPS_HOST`, `VPS_SSH_KEY`, `VPS_USER`, `SUDO_PASSWORD` | **All removed** — 0 SSH secrets |
