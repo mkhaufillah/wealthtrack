@@ -173,6 +173,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const SizedBox(height: 24),
                       _buildAiCard(),
                       const SizedBox(height: 24),
+                      _buildDebtCard(),
+                      const SizedBox(height: 24),
                       RecentTransactions(transactions: state.recentTransactions),
                     ],
                   ),
@@ -265,6 +267,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text('Ask anything about your finances',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDebtCard() {
+    return Card(
+      color: AppColors.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.push('/debt'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.highlight.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.account_balance_outlined,
+                    color: AppColors.textPrimary, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Debt Tracker',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text('Manage KPR, credit cards & installments',
                       style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   ],
                 ),

@@ -465,6 +465,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onTap: () => context.push('/ai/advise'),
                 ),
 
+                _buildMenuItem(
+                  icon: Icons.account_balance_outlined,
+                  title: 'Debt Tracker',
+                  onTap: () => context.push('/debt'),
+                ),
+
                 if (user?.role == 'admin')
                   _buildMenuItem(
                     icon: Icons.category_outlined,

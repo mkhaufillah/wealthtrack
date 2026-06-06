@@ -4,7 +4,20 @@ set -euo pipefail
 BACKUP_DIR="${BACKUP_DIR:-/home/hermes/backups/wealthtrack}"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-DB_URL="${WEALTHTRACK_DATABASE_URL:-postgresql://wealthtrack:wealthtrack123@localhost:5432/wealthtrack}"
+
+# Source project .env untuk mendapatkan DATABASE_URL asli
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ENV_FILE="$SCRIPT_DIR/../.env"
+if [ -f "$ENV_FILE" ]; then
+  DB_URL="$(grep -oP '^DATABASE_URL=\K.*' "$ENV_FILE" | head -1)"
+fi
+
+# Override dengan env var jika diset (prioritas lebih tinggi)
+DB_URL="${WEALTHTRACK_DATABASE_URL:-${DB_URL:-}}"
+if [ -z "$DB_URL" ]; then
+  echo "ERROR: WEALTHTRACK_DATABASE_URL atau DATABASE_URL tidak ditemukan"
+  exit 1
+fi
 
 mkdir -p "$BACKUP_DIR"
 

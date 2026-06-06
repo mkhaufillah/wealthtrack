@@ -23,6 +23,7 @@ import 'features/debt/kpr/ui/kpr_detail_screen.dart';
 import 'features/debt/credit_card/ui/credit_card_list_screen.dart';
 import 'features/debt/credit_card/ui/credit_card_form_screen.dart';
 import 'features/debt/credit_card/ui/credit_card_detail_screen.dart';
+import 'features/debt/credit_card/ui/add_installment_screen.dart';
 import 'shared/providers/theme_provider.dart';
 import 'shared/widgets/app_scaffold.dart';
 
@@ -88,6 +89,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     builder: (_, state) => CreditCardDetailScreen(
                       cardId: int.parse(state.pathParameters['id']!),
                     ),
+                    routes: [
+                      GoRoute(
+                        path: 'installments/new',
+                        builder: (_, state) => AddInstallmentScreen(
+                          cardId: int.parse(state.pathParameters['id']!),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

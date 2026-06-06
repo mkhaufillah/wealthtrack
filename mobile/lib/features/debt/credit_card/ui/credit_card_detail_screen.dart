@@ -93,6 +93,15 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         bottom: card != null
             ? TabBar(
                 controller: _tabController,
+                labelColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : AppColors.textPrimary,
+                unselectedLabelColor: AppColors.textSecondary.withAlpha(180),
+                indicatorSize: TabBarIndicatorSize.label,
+                indicatorColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white70
+                    : AppColors.textPrimary.withAlpha(100),
+                indicatorWeight: 1,
                 tabs: const [
                   Tab(text: 'Transactions'),
                   Tab(text: 'Installments'),
@@ -601,79 +610,97 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
   }
 
   void _addTransaction() {
-    // For now, show a simple dialog to add a transaction
     final descriptionCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
-    final dateCtrl = TextEditingController(text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+    DateTime selectedDate = DateTime.now();
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Add Transaction'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: descriptionCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                hintText: 'e.g. Groceries',
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text('Add Transaction'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: descriptionCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  hintText: 'e.g. Groceries',
+                  border: OutlineInputBorder(),
+                ),
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: amountCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Amount',
+                  hintText: 'e.g. 50000',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) {
+                    setDialogState(() => selectedDate = picked);
+                  }
+                },
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Date',
+                    border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  child: Text(
+                    DateFormat('MMM dd, yyyy').format(selectedDate),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: amountCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                hintText: 'e.g. 50000',
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: dateCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Date (YYYY-MM-DD)',
-                hintText: 'e.g. 2026-06-06',
-              ),
+            FilledButton(
+              onPressed: () async {
+                final desc = descriptionCtrl.text.trim();
+                final amount = int.tryParse(amountCtrl.text.replaceAll(RegExp(r'[^\d]'), ''));
+                if (desc.isEmpty || amount == null || amount <= 0) return;
+
+                final success = await ref.read(creditCardProvider.notifier).addTransaction(
+                  widget.cardId,
+                  {
+                    'description': desc,
+                    'amount': amount,
+                    'transaction_date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                  },
+                );
+
+                if (ctx.mounted) Navigator.pop(ctx);
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(success ? 'Transaction added' : 'Failed to add transaction'),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final desc = descriptionCtrl.text.trim();
-              final amount = int.tryParse(amountCtrl.text.replaceAll(RegExp(r'[^\d]'), ''));
-              final date = dateCtrl.text.trim();
-              if (desc.isEmpty || amount == null || amount <= 0 || date.isEmpty) return;
-
-              final success = await ref.read(creditCardProvider.notifier).addTransaction(
-                widget.cardId,
-                {
-                  'description': desc,
-                  'amount': amount,
-                  'transaction_date': date,
-                },
-              );
-
-              if (ctx.mounted) Navigator.pop(ctx);
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(success ? 'Transaction added' : 'Failed to add transaction'),
-                  ),
-                );
-              }
-            },
-            child: Text('Save', style: TextStyle(color: AppColors.accent)),
-          ),
-        ],
       ),
     );
   }

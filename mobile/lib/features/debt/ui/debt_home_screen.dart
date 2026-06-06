@@ -9,83 +9,84 @@ class DebtHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Debt Tracker')),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(16),
+        children: [
+          // KPR Card
+          _buildDebtCard(
+            context: context,
+            imagePath: 'assets/images/debt/mortgage_illustration.png',
+            title: 'Mortgage (KPR)',
+            description: 'Calculate and simulate mortgage payments with various interest rate types',
+            onTap: () => context.go('/debt/kpr'),
+          ),
+          const SizedBox(height: 16),
+          // Credit Card Card
+          _buildDebtCard(
+            context: context,
+            imagePath: 'assets/images/debt/credit_card_illustration.png',
+            title: 'Credit Cards',
+            description: 'Track credit card spending, installments, and upcoming payments',
+            onTap: () => context.go('/debt/credit-cards'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDebtCard({
+    required BuildContext context,
+    required String imagePath,
+    required String title,
+    required String description,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      color: AppColors.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // KPR Card
-            Card(
-              child: InkWell(
-                onTap: () => context.go('/debt/kpr'),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(Icons.home_work_outlined,
-                          size: 48, color: theme.colorScheme.primary),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Mortgage (KPR)',
-                              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text('Calculate and simulate mortgage payments\nwith various interest rate types',
-                              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right, color: Colors.grey[400]),
-                    ],
+            // Image
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: AppColors.divider.withAlpha(40),
+                  child: Center(
+                    child: Icon(Icons.image_outlined, size: 48, color: AppColors.textSecondary.withAlpha(100)),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            // Credit Card Card
-            Card(
-              child: InkWell(
-                onTap: () => context.go('/debt/credit-cards'),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.tertiaryContainer,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(Icons.credit_card_outlined,
-                          size: 48, color: theme.colorScheme.tertiary),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Credit Cards',
-                              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text('Track credit card spending, installments,\nand upcoming payments',
-                              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right, color: Colors.grey[400]),
-                    ],
+            // Content
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
