@@ -344,6 +344,48 @@ CREATE TABLE IF NOT EXISTS kpr_monthly_schedules (
 );
 
 CREATE INDEX IF NOT EXISTS idx_kpr_schedules_sim ON kpr_monthly_schedules(simulation_id);
+
+CREATE TABLE IF NOT EXISTS credit_cards (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    name TEXT NOT NULL,
+    card_number_last4 TEXT DEFAULT '',
+    billing_date INTEGER NOT NULL DEFAULT 1,
+    due_date INTEGER NOT NULL DEFAULT 15,
+    credit_limit INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_credit_cards_user ON credit_cards(user_id);
+
+CREATE TABLE IF NOT EXISTS credit_card_transactions (
+    id SERIAL PRIMARY KEY,
+    card_id INTEGER NOT NULL REFERENCES credit_cards(id) ON DELETE CASCADE,
+    description TEXT NOT NULL DEFAULT '',
+    amount INTEGER NOT NULL,
+    category_id INTEGER REFERENCES categories(id),
+    transaction_date TEXT NOT NULL,
+    is_installment INTEGER NOT NULL DEFAULT 0,
+    installment_id INTEGER REFERENCES credit_card_installments(id),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_cc_transactions_card ON credit_card_transactions(card_id);
+CREATE INDEX IF NOT EXISTS idx_cc_transactions_date ON credit_card_transactions(transaction_date DESC);
+
+CREATE TABLE IF NOT EXISTS credit_card_installments (
+    id SERIAL PRIMARY KEY,
+    card_id INTEGER NOT NULL REFERENCES credit_cards(id) ON DELETE CASCADE,
+    description TEXT NOT NULL DEFAULT '',
+    total_amount INTEGER NOT NULL,
+    monthly_amount INTEGER NOT NULL,
+    total_months INTEGER NOT NULL,
+    remaining_months INTEGER NOT NULL,
+    start_month TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_cc_installments_card ON credit_card_installments(card_id);
 """
 
 
