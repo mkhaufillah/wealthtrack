@@ -1,6 +1,6 @@
 # WealthTrack — Personal Finance Tracker
 
-A personal finance tracker for **Filla & Nahda**. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Flutter + AI features. v0.5.4 — 20 audit fixes applied, all CI green.
+A personal finance tracker. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Redis + Meilisearch + Flutter + AI features. v0.5.4 — 20 audit fixes applied, all CI green.
 
 ## Architecture
 
@@ -112,8 +112,6 @@ Every CI run sends **start + result notifications** to Keluarga Super Sapi → t
 | `JAVA` | Keystore password for APK signing |
 | `FLUTTER` | Key password for APK signing |
 | `OPENROUTER_API_KEY` | Optional premium Claude model for AI Advisor |
-
-> **Note:** SSH secrets (`VPS_HOST`, `VPS_SSH_KEY`, `VPS_USER`, `SUDO_PASSWORD`) have been removed — deployment uses a self-hosted GitHub Actions runner directly on the VPS.
 
 ## Security
 
