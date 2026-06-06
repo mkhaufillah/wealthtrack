@@ -96,7 +96,7 @@ jobs:
 
       - name: Generate app icons
         run: |
-          pip install Pillow
+          pip install --break-system-packages Pillow
           python3 generate_icons.py --platforms android
 
       - name: Install dependencies
