@@ -8,6 +8,7 @@ import '../../../shared/providers/theme_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/services/local_chat_storage.dart';
 import '../data/household_repository.dart';
+import '../providers/profile_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -17,8 +18,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  // Edit profile state
-  bool _editing = false;
+  // Edit profile state - controllers only
   late TextEditingController _displayNameCtrl;
 
   // Change password state
@@ -27,27 +27,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _newPwCtrl = TextEditingController();
   final _confirmPwCtrl = TextEditingController();
 
-  // Billing cycle state
-  int _cycleStartDay = 1;
-
-  // Loading states
-  bool _savingProfile = false;
-  bool _changingPassword = false;
-  bool _deleting = false;
-
-  // Household state
-  Map<String, dynamic>? _household;
-  List<dynamic> _members = [];
-  bool _isAdmin = false;
-  bool _loadingHousehold = true;
-
   @override
   void initState() {
     super.initState();
     _displayNameCtrl = TextEditingController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadHousehold();
-      _loadCycleDay();
+      ref.read(profileProvider.notifier).loadHousehold(ref.read(apiClientProvider));
+      ref.read(profileProvider.notifier).loadCycleDay(ref.read(authProvider).user);
     });
   }
 
@@ -63,54 +49,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _saveProfile() async {
     final name = _displayNameCtrl.text.trim();
     if (name.isEmpty) return;
-    setState(() => _savingProfile = true);
-    try {
-      await ref.read(authProvider.notifier).updateProfile(name);
-      if (mounted) {
-        setState(() {
-          _editing = false;
-          _savingProfile = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _savingProfile = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e')),
-        );
-      }
-    }
+    await ref.read(profileProvider.notifier).saveProfile(
+      ref.read(apiClientProvider),
+      ref.read(authProvider.notifier),
+      name,
+    );
   }
 
   /// Returns true on success, false on validation failure or API error.
   /// Does NOT pop any route — caller (bottom sheet) handles that.
   Future<bool> _changePassword() async {
     if (!_pwFormKey.currentState!.validate()) return false;
-    setState(() => _changingPassword = true);
-    try {
-      await ref.read(authProvider.notifier).changePassword(
-            _currentPwCtrl.text,
-            _newPwCtrl.text,
-          );
-      if (mounted) {
-        setState(() => _changingPassword = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password changed successfully')),
-        );
-      }
-      return true;
-    } catch (e) {
-      if (mounted) {
-        setState(() => _changingPassword = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e')),
-        );
-      }
-      return false;
-    }
+    return ref.read(profileProvider.notifier).changePassword(
+      ref.read(apiClientProvider),
+      ref.read(authProvider.notifier),
+      _currentPwCtrl.text,
+      _newPwCtrl.text,
+    );
   }
 
   Future<void> _logout() async {
@@ -146,67 +101,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
     if (confirmed != true) return;
 
-    setState(() => _deleting = true);
-    try {
-      await ref.read(authProvider.notifier).deleteAccount();
-      // authProvider state change → GoRouter redirects to /login automatically
-    } catch (e) {
-      if (mounted) {
-        setState(() => _deleting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e')),
-        );
-      }
-    }
+    await ref.read(profileProvider.notifier).deleteAccount(
+      ref.read(apiClientProvider),
+      ref.read(authProvider.notifier),
+    );
   }
 
   Future<void> _loadHousehold() async {
-    try {
-      final repo = HouseholdRepository(ref.read(apiClientProvider));
-      final data = await repo.getMyHousehold();
-      if (mounted) {
-        setState(() {
-          _household = data['household'] as Map<String, dynamic>?;
-          _members = data['members'] as List<dynamic>? ?? [];
-          _isAdmin = data['is_admin'] as bool? ?? false;
-          _loadingHousehold = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('ERROR: $e');
-      if (mounted) setState(() => _loadingHousehold = false);
-    }
+    await ref.read(profileProvider.notifier).loadHousehold(
+      ref.read(apiClientProvider),
+    );
   }
 
   void _loadCycleDay() {
-    final user = ref.read(authProvider).user;
-    if (user != null) {
-      setState(() => _cycleStartDay = user.cycleStartDay);
-    }
+    ref.read(profileProvider.notifier).loadCycleDay(
+      ref.read(authProvider).user,
+    );
   }
 
   Future<void> _saveCycleDay(int day) async {
-    try {
-      await ref.read(authProvider.notifier).updateProfile(
-        ref.read(authProvider).user?.displayName ?? '',
-        cycleStartDay: day,
-      );
-      setState(() => _cycleStartDay = day);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Billing cycle updated')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Failed: $e')),
-        );
-      }
-    }
+    await ref.read(profileProvider.notifier).setCycleDay(
+      ref.read(apiClientProvider),
+      ref.read(authProvider.notifier),
+      day,
+    );
   }
 
   void _showCyclePicker() {
+    final cycleStartDay = ref.read(profileProvider).cycleStartDay;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -247,7 +169,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     itemCount: 28,
                     itemBuilder: (ctx, i) {
                       final day = i + 1;
-                      final isSelected = day == _cycleStartDay;
+                      final isSelected = day == cycleStartDay;
                       return GestureDetector(
                         onTap: () {
                           Navigator.pop(ctx);
@@ -472,6 +394,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ProfileState>(profileProvider, (previous, state) {
+      if (state.message != null && state.message != previous?.message) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(state.message!)),
+        );
+        Future.microtask(() => ref.read(profileProvider.notifier).clearMessage());
+      }
+      if (state.error != null && state.error != previous?.error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(state.error!)),
+        );
+        Future.microtask(() => ref.read(profileProvider.notifier).clearError());
+      }
+    });
+
+    final state = ref.watch(profileProvider);
     final auth = ref.watch(authProvider);
     final user = auth.user;
 
@@ -480,7 +418,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       appBar: AppBar(
         title: const Text('Profile'),
       ),
-      body: _deleting
+      body: state.deleting
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
@@ -490,24 +428,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 20),
 
                 // ── Household section ──
-                _buildHouseholdSection(),
+                _buildHouseholdSection(state),
                 const SizedBox(height: 24),
 
                 // ── Account Settings ──
                 _buildSectionHeader(Icons.settings_outlined, 'Account Settings'),
                 const SizedBox(height: 8),
 
-                if (!_editing)
+                if (!state.isEditing)
                   _buildMenuItem(
                     icon: Icons.edit_outlined,
                     title: 'Edit Profile',
                     onTap: () {
                       _displayNameCtrl.text = user?.displayName ?? '';
-                      setState(() => _editing = true);
+                      ref.read(profileProvider.notifier).toggleEdit();
                     },
                   ),
 
-                if (_editing) _buildEditProfileForm(),
+                if (state.isEditing) _buildEditProfileForm(state),
 
                 _buildMenuItem(
                   icon: Icons.lock_outline,
@@ -542,7 +480,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 _buildMenuItem(
                   icon: Icons.edit_calendar,
-                  title: 'Cycle Start Day: Day $_cycleStartDay',
+                  title: 'Cycle Start Day: Day ${state.cycleStartDay}',
                   onTap: _showCyclePicker,
                 ),
 
@@ -685,9 +623,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildHouseholdSection() {
+  Widget _buildHouseholdSection(ProfileState state) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (_loadingHousehold) {
+    if (state.loadingHousehold) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(8),
@@ -699,7 +637,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
 
-    if (_household == null) {
+    if (state.household == null) {
       // Not in a household — show join/create options
       return Card(
         elevation: 0,
@@ -748,7 +686,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     // In a household — show details
-    final hh = _household!;
+    final hh = state.household!;
     final inviteCode = hh['invite_code'] as String? ?? '';
     return Card(
       elevation: 0,
@@ -770,7 +708,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   hh['name'] as String? ?? 'Home',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
-                if (_isAdmin) ...[
+                if (state.isAdmin) ...[
                   const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -808,14 +746,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ],
             ),
-            if (_members.length > 1) ...[
+            if (state.members.length > 1) ...[
               const SizedBox(height: 10),
               Divider(height: 1, color: AppColors.divider),
               const SizedBox(height: 8),
               Text('Members',
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               const SizedBox(height: 4),
-              ..._members.map<Widget>((m) {
+              ...state.members.map<Widget>((m) {
                     final isDark = Theme.of(context).brightness == Brightness.dark;
                     return Padding(
                     padding: const EdgeInsets.only(bottom: 4),
@@ -881,7 +819,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildEditProfileForm() {
+  Widget _buildEditProfileForm(ProfileState state) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -909,13 +847,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               children: [
                 TextButton(
                   onPressed:
-                      _savingProfile ? null : () => setState(() => _editing = false),
+                      state.savingProfile ? null : () => ref.read(profileProvider.notifier).cancelEdit(),
                   child: const Text('Cancel'),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
-                  onPressed: _savingProfile ? null : _saveProfile,
-                  child: _savingProfile
+                  onPressed: state.savingProfile ? null : _saveProfile,
+                  child: state.savingProfile
                       ? const SizedBox(
                           width: 16,
                           height: 16,
@@ -958,7 +896,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _currentPwCtrl.clear();
     _newPwCtrl.clear();
     _confirmPwCtrl.clear();
-    _changingPassword = false;
 
     showModalBottomSheet(
       context: context,

@@ -11,6 +11,7 @@ import '../../../shared/utils/date_formatter.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../features/transactions/ui/widgets/amount_field.dart';
 import '../providers/budget_provider.dart';
+import '../providers/budget_navigation_provider.dart';
 import '../models/budget_model.dart';
 import 'budget_suggestion_sheet.dart';
 
@@ -22,32 +23,31 @@ class BudgetsScreen extends ConsumerStatefulWidget {
 }
 
 class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
-  late DateTime _currentMonth;
-  String _cycleLabel = '';
-  int _userCycleDay = 1;
-  String? _cycleDateFrom;
-  String? _cycleDateTo;
-
   @override
   void initState() {
     super.initState();
-    _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
+    final now = DateTime(DateTime.now().year, DateTime.now().month);
+    ref.read(budgetNavigationProvider.notifier).state =
+        BudgetScreenNavigationState(currentMonth: now);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // First load cycle info for the current month, then jump to latest viewable
       await _loadCycleInfo();
-      _currentMonth = _maxMonth();
+      final nav = ref.read(budgetNavigationProvider);
+      final maxMonth = _maxMonth(nav.userCycleDay);
+      ref.read(budgetNavigationProvider.notifier).state =
+          nav.copyWith(currentMonth: maxMonth);
       await _loadCycleInfo();  // re-fetch with the correct month
       _load();
     });
   }
 
-  DateTime _maxMonth() {
-    if (_userCycleDay <= 1) return DateTime.now();
+  DateTime _maxMonth(int userCycleDay) {
+    if (userCycleDay <= 1) return DateTime.now();
     // With new month=start logic:
     // - today >= cycle: budget starting this month is current
     // - today < cycle: still in previous month's budget period
     final today = DateTime.now();
-    if (today.day >= _userCycleDay) {
+    if (today.day >= userCycleDay) {
       return DateTime(today.year, today.month);
     }
     if (today.month == 1) {
@@ -57,61 +57,67 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 
   Future<void> _loadCycleInfo() async {
+    final nav = ref.read(budgetNavigationProvider);
     try {
       final api = ref.read(apiClientProvider);
       // Use mid-month as reference so cycle changes when navigated
-      final refDate = DateFormat('yyyy-MM-15').format(_currentMonth);
+      final refDate = DateFormat('yyyy-MM-15').format(nav.currentMonth);
       final resp = await api.get('/summaries/cycle-info', queryParams: {'date': refDate});
       final data = resp.data;
       final cycleStartDay = data['cycle_start_day'] as int? ?? 1;
       if (!mounted) return;
-      setState(() {
-        _userCycleDay = cycleStartDay;
-        // Compute range locally using getCycleRangeForMonth — NOT from API.
-        // API's date_from/date_to uses get_cycle_range (cycle containing ref date),
-        // but budgets need get_cycle_range_for_month (budget period for month label).
-        // These differ for D1-D15 (get_cycle_range shifts forward one month).
-        final (dFrom, dTo) = getCycleRangeForMonth(_monthParam, cycleStartDay);
-        _cycleDateFrom = DateFormat('yyyy-MM-dd').format(dFrom);
-        _cycleDateTo = DateFormat('yyyy-MM-dd').format(dTo);
-        _cycleLabel = '${DateFormat('dd MMM yyyy').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
-      });
+      // Compute range locally using getCycleRangeForMonth
+      final monthParam = DateFormat('yyyy-MM').format(nav.currentMonth);
+      final (dFrom, dTo) = getCycleRangeForMonth(monthParam, cycleStartDay);
+      ref.read(budgetNavigationProvider.notifier).state = BudgetScreenNavigationState(
+        currentMonth: nav.currentMonth,
+        userCycleDay: cycleStartDay,
+        cycleDateFrom: DateFormat('yyyy-MM-dd').format(dFrom),
+        cycleDateTo: DateFormat('yyyy-MM-dd').format(dTo),
+        cycleLabel: '${DateFormat('dd MMM yyyy').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}',
+      );
     } catch (e) {
       debugPrint('ERROR: $e');
       if (!mounted) return;
-      setState(() {
-        _cycleLabel = '';
-        _userCycleDay = 1;
-        _cycleDateFrom = null;
-        _cycleDateTo = null;
-      });
+      ref.read(budgetNavigationProvider.notifier).state = nav.copyWith(
+        cycleLabel: '',
+        userCycleDay: 1,
+        cycleDateFrom: null,
+        cycleDateTo: null,
+      );
     }
   }
 
-  String get _monthParam => DateFormat('yyyy-MM').format(_currentMonth);
+  String get _monthParam => DateFormat('yyyy-MM').format(ref.read(budgetNavigationProvider).currentMonth);
 
   void _load() {
+    final nav = ref.read(budgetNavigationProvider);
     ref.read(budgetProvider.notifier).load(_monthParam,
-        dateFrom: _cycleDateFrom, dateTo: _cycleDateTo);
+        dateFrom: nav.cycleDateFrom, dateTo: nav.cycleDateTo);
   }
 
   Future<void> _prevMonth() async {
-    setState(() => _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1));
+    final nav = ref.read(budgetNavigationProvider);
+    ref.read(budgetNavigationProvider.notifier).state = nav.copyWith(
+      currentMonth: DateTime(nav.currentMonth.year, nav.currentMonth.month - 1),
+    );
     await _loadCycleInfo();
     _load();
   }
 
   Future<void> _nextMonth() async {
-    final next = DateTime(_currentMonth.year, _currentMonth.month + 1);
-    final maxMonth = _maxMonth();
+    final nav = ref.read(budgetNavigationProvider);
+    final next = DateTime(nav.currentMonth.year, nav.currentMonth.month + 1);
+    final maxMonth = _maxMonth(ref.read(budgetNavigationProvider).userCycleDay);
     if (next.isAfter(maxMonth)) return;
-    setState(() => _currentMonth = next);
+    ref.read(budgetNavigationProvider.notifier).state = nav.copyWith(currentMonth: next);
     await _loadCycleInfo();
     _load();
   }
 
   @override
   Widget build(BuildContext context) {
+    final nav = ref.watch(budgetNavigationProvider);
     final state = ref.watch(budgetProvider);
 
     return Scaffold(
@@ -119,7 +125,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       appBar: AppBar(title: const Text('Budgets')),
       body: Column(
         children: [
-          _buildMonthPicker(),
+          _buildMonthPicker(nav),
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async => ref.read(budgetProvider.notifier).load(_monthParam),
@@ -173,10 +179,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     );
   }
 
-  Widget _buildMonthPicker() {
-    final maxMonth = _maxMonth();
+  Widget _buildMonthPicker(BudgetScreenNavigationState nav) {
+    final maxMonth = _maxMonth(nav.userCycleDay);
     final canGoNext =
-        DateTime(_currentMonth.year, _currentMonth.month + 1).isBefore(
+        DateTime(nav.currentMonth.year, nav.currentMonth.month + 1).isBefore(
               DateTime(maxMonth.year, maxMonth.month + 1),
             );
 
@@ -188,7 +194,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         children: [
           IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => _prevMonth()),
           Text(
-            _cycleLabel.isNotEmpty ? _cycleLabel : DateFormat('MMMM yyyy').format(_currentMonth),
+            nav.cycleLabel.isNotEmpty ? nav.cycleLabel : DateFormat('MMMM yyyy').format(nav.currentMonth),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           IconButton(
@@ -585,7 +591,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       builder: (ctx) => _AddBudgetSheet(
         categories: categories,
         month: _monthParam,
-        defaultCycleDay: _userCycleDay,
+        defaultCycleDay: ref.read(budgetNavigationProvider).userCycleDay,
         existingItem: existingItem,
         onSaved: (catId, amount, cycleOn) {
           ref.read(budgetProvider.notifier).setBudget(catId, amount, _monthParam, cycleOn: cycleOn);
