@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/ui/login_screen.dart';
@@ -111,6 +112,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/transactions/add',
         builder: (_, state) => AddTransactionScreen(
           editTransaction: state.extra is TransactionModel ? state.extra as TransactionModel : null,
+          autoScan: state.extra is Map ? (state.extra as Map)['autoScan'] == true : false,
         ),
       ),
       GoRoute(
@@ -138,13 +140,33 @@ class WealthTrackApp extends ConsumerStatefulWidget {
 
 class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
   bool _initialized = false;
+  static const _widgetChannel = MethodChannel('com.filla.wealthtrack/widget');
 
   @override
   void initState() {
     super.initState();
+    _widgetChannel.setMethodCallHandler(_handleWidgetNavigation);
     ref.read(authProvider.notifier).checkAuth().then((_) {
       if (mounted) setState(() => _initialized = true);
     });
+  }
+
+  @override
+  void dispose() {
+    _widgetChannel.setMethodCallHandler(null);
+    super.dispose();
+  }
+
+  Future<void> _handleWidgetNavigation(MethodCall call) async {
+    if (call.method != 'navigate') return;
+    final action = call.arguments as String?;
+    final router = ref.read(goRouterProvider);
+    switch (action) {
+      case 'add_transaction':
+        router.go('/transactions/add');
+      case 'scan_receipt':
+        router.go('/transactions/add', extra: <String, dynamic>{'autoScan': true});
+    }
   }
 
   @override

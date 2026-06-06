@@ -13,7 +13,9 @@ import 'widgets/category_picker.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
   final TransactionModel? editTransaction;
-  const AddTransactionScreen({super.key, this.editTransaction});
+  /// If true, auto-trigger receipt scanning on load (from home widget)
+  final bool autoScan;
+  const AddTransactionScreen({super.key, this.editTransaction, this.autoScan = false});
   @override
   ConsumerState<AddTransactionScreen> createState() => _AddTransactionScreenState();
 }
@@ -40,6 +42,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     _selectedDate = DateTime.now();
     _loadAllCategories();
     if (_isEditing) _prefillFields();
+    if (widget.autoScan) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scanReceipt());
+    }
   }
 
   void _prefillFields() {
