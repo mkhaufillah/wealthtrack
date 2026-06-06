@@ -6,11 +6,14 @@ on:
     paths:
       - 'backend/**'
       - 'deploy/**'
+      - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  WEALTHTRACK_TEST_DATABASE_URL: postgresql://wealthtrack_test:wealthtrack_test123@localhost:5433/wealthtrack_test
+  WEALTHTRACK_TEST_DATABASE_URL: postgresql://wealthtrack_test:***@localhost:5433/wealthtrack_test
+  TG_CHAT_ID: "-1003997003114"
+  TG_TOPIC_ID: "3"
 
 concurrency:
   group: deploy-backend-${{ github.ref }}
@@ -50,6 +53,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: 🚀 Notify — CI started
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ env.TG_CHAT_ID }}" \
+            -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
+            -d parse_mode="HTML" \
+            -d text="<b>🚀 WealthTrack CI</b>%0A<code>${GITHUB_SHA::7}</code> — tests running... ⏳"
+
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
@@ -65,6 +76,15 @@ jobs:
         run: pytest tests/ -v --tb=short
         env:
           WEALTHTRACK_TEST_DATABASE_URL: ${{ env.WEALTHTRACK_TEST_DATABASE_URL }}
+
+      - name: ❌ Notify — tests failed
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ env.TG_CHAT_ID }}" \
+            -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
+            -d parse_mode="HTML" \
+            -d text="<b>❌ WealthTrack CI</b>%0ATests failed for <code>${GITHUB_SHA::7}</code>!%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Lihat details</a>"
 
   deploy:
     needs: test
@@ -100,28 +120,20 @@ jobs:
           echo "❌ Service failed to respond after 12 attempts"
           exit 1
 
-      - name: Telegram notification — success
+      - name: ✅ Notify — deploy success
         if: success()
-        env:
-          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: "-1003997003114"
-          TOPIC_ID: "3"
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            -d chat_id="${CHAT_ID}" \
-            -d message_thread_id="${TOPIC_ID}" \
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ env.TG_CHAT_ID }}" \
+            -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
             -d parse_mode="HTML" \
-            -d text="<b>✅ WealthTrack Deploy</b>%0ABackend deployed <code>${GITHUB_SHA::7}</code> 🚀"
+            -d text="<b>✅ WealthTrack Deploy</b>%0A<code>${GITHUB_SHA::7}</code> deployed successfully 🚀"
 
-      - name: Telegram notification — failure
+      - name: ❌ Notify — deploy failure
         if: failure()
-        env:
-          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: "-1003997003114"
-          TOPIC_ID: "3"
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            -d chat_id="${CHAT_ID}" \
-            -d message_thread_id="${TOPIC_ID}" \
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ env.TG_CHAT_ID }}" \
+            -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
             -d parse_mode="HTML" \
-            -d text="<b>❌ WealthTrack Deploy</b>%0ADeploy gagal! <a href=\"https://github.com/mkhaufillah/wealthtrack/actions/runs/${GITHUB_RUN_ID}\">Lihat logs</a>"
+            -d text="<b>❌ WealthTrack Deploy</b>%0ADeploy gagal untuk <code>${GITHUB_SHA::7}</code>!%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Lihat details</a>"
