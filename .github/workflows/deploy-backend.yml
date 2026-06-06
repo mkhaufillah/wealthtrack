@@ -53,6 +53,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: 🧹 Cleanup stale containers
+        run: |
+          echo "→ Removing any leftover containers on test ports..."
+          docker rm -f $(docker ps -a -q --filter "publish=5433") 2>/dev/null || true
+          docker rm -f $(docker ps -a -q --filter "publish=6380") 2>/dev/null || true
+          echo "✅ Cleanup done"
+
       - name: 🚀 Notify — CI started
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
