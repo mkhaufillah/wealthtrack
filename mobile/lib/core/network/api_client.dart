@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import '../constants.dart';
 import '../storage/secure_storage.dart';
 import 'api_exceptions.dart';
@@ -118,8 +119,8 @@ class ApiClient {
               if (token != null && token.isNotEmpty) {
                 streamController.add(token);
               }
-            } catch (_) {
-              // Ignore malformed SSE events
+            } catch (e) {
+              developer.log('SSE parse error: $e');
             }
           }
         },

@@ -98,7 +98,9 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
         _pollTimer = null;
         _isLoading = false;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('ERROR: $e');
+    }
   }
 
   @override
@@ -195,7 +197,8 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
     final api = ref.read(apiClientProvider);
     try {
       await api.delete('/ai/chat/messages');
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ERROR: $e');
       // ignore — local clear still happens
     }
     await _chatStorage.clear();

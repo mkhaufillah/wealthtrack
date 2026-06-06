@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../providers/dashboard_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/providers/app_providers.dart';
@@ -22,13 +22,13 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _savingsBalance = 0;
   int _emergencyBalance = 0;
-  Timer? _ocrPollTimer;
 
   String _formatDate(String iso) {
     try {
       final dt = DateTime.parse(iso);
       return DateFormat('dd MMM').format(dt);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ERROR: $e');
       return iso;
     }
   }
@@ -38,14 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     Future.microtask(() => ref.read(dashboardProvider.notifier).load());
     Future.microtask(() => _loadAllTimeBalances());
-    _startOcrPolling();
     Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());
-  }
-
-  void _startOcrPolling() {
-    _ocrPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      ref.read(ocrPendingCountProvider.notifier).load();
-    });
   }
 
   @override
@@ -78,7 +71,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _emergencyBalance = emergency;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ERROR: $e');
       // Silently fail — the summary card is optional
     }
   }
@@ -90,13 +84,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Reload dashboard when homeRefreshProvider is incremented
     ref.listen<int>(homeRefreshProvider, (prev, next) {
-      if (prev != next) ref.read(dashboardProvider.notifier).load();
+      if (prev != next) ref.read(dashboardProvider.notifier).load(force: true);
     });
 
     // Auto-refresh when OCR pending drops to 0
     ref.listen<OcrState>(ocrPendingCountProvider, (previous, next) {
       if (previous != null && next.pendingCount < previous.pendingCount) {
-        ref.read(dashboardProvider.notifier).load();
+        ref.read(dashboardProvider.notifier).load(force: true);
       }
     });
 
@@ -104,9 +98,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('WealthTrack')),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(dashboardProvider.notifier).load(),
+        onRefresh: () => ref.read(dashboardProvider.notifier).load(force: true),
         child: state.isLoading
-            ? const LoadingIndicator()
+            ? const ShimmerLoading(itemCount: 4, itemHeight: 120)
             : state.error != null
                 ? ErrorDisplay(message: state.error!, onRetry: () => ref.read(dashboardProvider.notifier).load())
                 : ListView(

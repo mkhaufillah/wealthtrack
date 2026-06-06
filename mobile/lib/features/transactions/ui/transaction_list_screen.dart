@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../features/ocr/providers/ocr_provider.dart';
@@ -20,7 +21,7 @@ class TransactionListScreen extends ConsumerStatefulWidget {
 class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
-  Timer? _ocrPollTimer;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -33,31 +34,39 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
         notifier.load();
       }
     });
-    _startOcrPolling();
-    // Immediate OCR check, no wait for first poll tick
+    _scrollController.addListener(_onScroll);
     Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());
-  }
-
-  void _startOcrPolling() {
-    _ocrPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      ref.read(ocrPendingCountProvider.notifier).load();
-    });
   }
 
   @override
   void dispose() {
-    _ocrPollTimer?.cancel();
+    _debounceTimer?.cancel();
     _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
   void _onSearch(String q) {
-    ref.read(transactionListProvider.notifier).setSearchQuery(q);
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      ref.read(transactionListProvider.notifier).setSearchQuery(q);
+    });
   }
 
   Future<void> _onRefresh() async {
     await ref.read(transactionListProvider.notifier).load();
+  }
+
+  void _onScroll() {
+    final state = ref.read(transactionListProvider);
+    if (state.isLoading || state.isLoadingMore) return;
+    if (state.page >= state.totalPages) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (currentScroll >= maxScroll - 300) {
+      ref.read(transactionListProvider.notifier).loadNextPage();
+    }
   }
 
   void _showSortSheet() {
@@ -552,7 +561,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           // Content
           Expanded(
             child: state.isLoading
-                ? const LoadingIndicator()
+                ? const ShimmerLoading()
                 : state.error != null
                     ? ErrorDisplay(
                         message: state.error!,
@@ -578,22 +587,16 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                               ),
                               controller: _scrollController,
                               physics: const AlwaysScrollableScrollPhysics(),
-                              itemCount: state.transactions.length + (state.totalPages > 1 ? 1 : 0),
+                              itemCount: state.transactions.length + (state.isLoadingMore ? 1 : 0),
                               separatorBuilder: (_, index) {
-                                // No divider before the pagination item
-                                if (state.totalPages > 1 && index == state.transactions.length - 1) {
-                                  return const SizedBox.shrink();
-                                }
                                 return const SizedBox(height: 1);
                               },
                               itemBuilder: (context, i) {
-                                // Pagination item at the end
-                                if (state.totalPages > 1 && i == state.transactions.length) {
-                                  return _PaginationRow(
-                                    page: state.page,
-                                    totalPages: state.totalPages,
-                                    onPrev: state.page > 1 ? () => notifier.prevPage() : null,
-                                    onNext: state.page < state.totalPages ? () => notifier.nextPage() : null,
+                                // Loading shimmer at the bottom for infinite scroll
+                                if (state.isLoadingMore && i == state.transactions.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
                                   );
                                 }
                                 final txn = state.transactions[i];

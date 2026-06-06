@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:path_provider/path_provider.dart';
 
 class ChatMessage {
@@ -47,7 +48,8 @@ class LocalChatStorage {
         final list = jsonDecode(content) as List<dynamic>;
         _messages = list.map((e) => ChatMessage.fromJson(e as Map<String, dynamic>)).toList();
       }
-    } catch (_) {
+    } catch (e) {
+      developer.log('Load local storage error: $e');
       // Corrupted file? Start fresh
       _messages = [];
     }

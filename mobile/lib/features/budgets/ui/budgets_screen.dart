@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/utils/date_formatter.dart';
@@ -75,7 +76,8 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         _cycleDateTo = DateFormat('yyyy-MM-dd').format(dTo);
         _cycleLabel = '${DateFormat('dd MMM yyyy').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ERROR: $e');
       if (!mounted) return;
       setState(() {
         _cycleLabel = '';
@@ -122,7 +124,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             child: RefreshIndicator(
               onRefresh: () async => ref.read(budgetProvider.notifier).load(_monthParam),
               child: state.isLoading && state.items.isEmpty
-                  ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [SizedBox(height: 300, child: Center(child: CircularProgressIndicator()))])
+                  ? const ShimmerLoading(itemCount: 4, itemHeight: 160)
                   : state.error != null && state.items.isEmpty
                       ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: [SizedBox(height: 300, child: ErrorDisplay(message: state.error!, onRetry: _load))])
                       : state.items.isEmpty
@@ -567,7 +569,9 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     try {
       final res = await api.get('/categories', queryParams: {'type': 'expense'});
       categories = List<Map<String, dynamic>>.from(res.data);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('ERROR: $e');
+    }
 
     if (!mounted) return;
 

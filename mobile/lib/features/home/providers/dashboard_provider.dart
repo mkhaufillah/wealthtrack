@@ -26,8 +26,14 @@ class DashboardState {
 class DashboardNotifier extends StateNotifier<DashboardState> {
   final ApiClient _api;
   DashboardNotifier(this._api) : super(const DashboardState());
+  DateTime? _lastFetch;
+  static const _cacheDuration = Duration(seconds: 30);
 
-  Future<void> load() async {
+  Future<void> load({bool force = false}) async {
+    // Use cache if within 30s window, unless forced refresh
+    if (!force && _lastFetch != null && DateTime.now().difference(_lastFetch!) < _cacheDuration) {
+      return;
+    }
     state = state.copyWith(isLoading: true, error: null);
     try {
       final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -47,7 +53,10 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         dateFrom: summary['date_from'] as String?,
         dateTo: summary['date_to'] as String?,
       );
-    } catch (e) { state = state.copyWith(isLoading: false, error: _api.handleError(e).toString()); }
+      _lastFetch = DateTime.now();
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _api.handleError(e).toString());
+    }
   }
 }
 

@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
@@ -62,7 +63,8 @@ class OcrPendingCountNotifier extends StateNotifier<OcrState> {
         hasFailure: showFailure,
         failedJobId: failedJobId,
       );
-    } catch (_) {
+    } catch (e) {
+      developer.log('ERROR: $e');
       state = const OcrState();
     }
   }

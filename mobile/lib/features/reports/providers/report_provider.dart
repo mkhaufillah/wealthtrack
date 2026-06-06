@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/providers/app_providers.dart';
@@ -84,7 +85,8 @@ class ReportNotifier extends StateNotifier<ReportState> {
               .toList() ??
           [];
       state = state.copyWith(householdTransactions: data);
-    } catch (_) {
+    } catch (e) {
+      developer.log('ERROR: $e');
       // Household transactions are supplementary — non-critical.
       // Don't overwrite the main error state.
     }
@@ -95,7 +97,8 @@ class ReportNotifier extends StateNotifier<ReportState> {
     try {
       final trend = await _repo.getMonthlyTrend(monthFrom: monthFrom, monthTo: monthTo);
       state = state.copyWith(trend: trend, isTrendLoading: false);
-    } catch (_) {
+    } catch (e) {
+      developer.log('ERROR: $e');
       state = state.copyWith(isTrendLoading: false);
     }
   }

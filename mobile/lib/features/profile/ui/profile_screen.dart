@@ -172,7 +172,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _loadingHousehold = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ERROR: $e');
       if (mounted) setState(() => _loadingHousehold = false);
     }
   }

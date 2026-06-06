@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/providers/app_providers.dart';
@@ -74,7 +75,8 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
           });
           balance = monthlyRes.data['balance'] as int? ?? 0;
           income = monthlyRes.data['total_income'] as int? ?? 0;
-        } catch (_) {
+        } catch (e) {
+          developer.log('ERROR: $e');
           balance = 0;
         }
       }

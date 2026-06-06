@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
@@ -54,7 +55,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: user,
         isAuthenticated: true,
       );
-    } catch (_) {
+    } catch (e) {
+      developer.log('ERROR: $e');
       await _storage.clearToken();
       state = const AuthState(status: AuthStatus.unauthenticated);
     }

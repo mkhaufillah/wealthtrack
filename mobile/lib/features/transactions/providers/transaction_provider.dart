@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/providers/app_providers.dart';
@@ -8,6 +9,7 @@ class TransactionListState {
   final bool isLoading; final String? error;
   final List<TransactionModel> transactions; final int total;
   final bool isTransferring; final String? transferError;
+  final bool isLoadingMore; // infinite scroll pagination
 
   // Filters
   final String typeFilter; // 'all', 'expense', 'income'
@@ -23,15 +25,17 @@ class TransactionListState {
     this.isLoading = false, this.error,
     this.transactions = const [], this.total = 0,
     this.isTransferring = false, this.transferError,
+    this.isLoadingMore = false,
     this.typeFilter = 'all', this.selectedCategoryIds = const [],
     this.sortBy = '-date', this.searchQuery = '',
-    this.page = 1, this.perPage = 10,
+    this.page = 1, this.perPage = 20, // perPage 20 for infinite scroll
   });
 
   TransactionListState copyWith({
     bool? isLoading, String? error,
     List<TransactionModel>? transactions, int? total,
     bool? isTransferring, String? transferError,
+    bool? isLoadingMore,
     String? typeFilter, List<int>? selectedCategoryIds,
     String? sortBy, String? searchQuery,
     int? page, int? perPage,
@@ -40,6 +44,7 @@ class TransactionListState {
     transactions: transactions ?? this.transactions, total: total ?? this.total,
     isTransferring: isTransferring ?? this.isTransferring,
     transferError: transferError ?? this.transferError,
+    isLoadingMore: isLoadingMore ?? this.isLoadingMore,
     typeFilter: typeFilter ?? this.typeFilter,
     selectedCategoryIds: selectedCategoryIds ?? this.selectedCategoryIds,
     sortBy: sortBy ?? this.sortBy, searchQuery: searchQuery ?? this.searchQuery,
@@ -64,7 +69,9 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
     try {
       final res = await _api.get('/categories');
       _categories = (res.data as List?)?.cast<Map<String, dynamic>>() ?? [];
-    } catch (_) {}
+    } catch (e) {
+      developer.log('ERROR: $e');
+    }
   }
 
   Future<void> load() async {
@@ -117,7 +124,7 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
     load();
   }
 
-  // -- Pagination --
+  // -- Pagination (infinite scroll) --
 
   void goToPage(int p) {
     if (p < 1 || p > state.totalPages || p == state.page) return;
@@ -127,6 +134,35 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
 
   void nextPage() => goToPage(state.page + 1);
   void prevPage() => goToPage(state.page - 1);
+
+  /// Load next page for infinite scroll — appends to existing list.
+  Future<void> loadNextPage() async {
+    if (state.isLoading || state.isLoadingMore) return;
+    state = state.copyWith(isLoadingMore: true);
+    try {
+      final result = await _repo.list(
+        page: state.page + 1,
+        perPage: state.perPage,
+        sort: state.sortBy,
+        type: state.typeFilter == 'all' ? null : state.typeFilter,
+        categoryIds: state.selectedCategoryIds.isEmpty ? null : state.selectedCategoryIds,
+        q: state.searchQuery.isEmpty ? null : state.searchQuery,
+      );
+      final newTxns = result['transactions'] as List<TransactionModel>;
+      state = TransactionListState(
+        transactions: [...state.transactions, ...newTxns],
+        total: result['total'] as int,
+        typeFilter: state.typeFilter,
+        selectedCategoryIds: state.selectedCategoryIds,
+        sortBy: state.sortBy,
+        searchQuery: state.searchQuery,
+        page: state.page + 1,
+        perPage: state.perPage,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoadingMore: false, error: _api.handleError(e).toString());
+    }
+  }
 
   // -- Mutations (carry over filters) --
 

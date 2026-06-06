@@ -66,7 +66,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         )).toList();
         _categories = _isExpense ? _expenseCategories : _incomeCategories;
       });
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('ERROR: $e');
+    }
   }
 
   void _toggleType(bool isExpense) {

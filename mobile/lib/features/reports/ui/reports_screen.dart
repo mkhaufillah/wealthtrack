@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../features/home/providers/dashboard_provider.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/utils/date_formatter.dart';
@@ -70,7 +71,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final cycleData = cycleResp.data;
       cycleDay = cycleData['cycle_start_day'] as int? ?? 1;
       _userCycleDay = cycleDay;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ERROR: $e');
       _userCycleDay = 1;
     }
 
@@ -118,7 +120,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 .toList() ??
             [];
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ERROR: $e');
       if (!mounted) return;
       setState(() {
         _budgetItems = [];
@@ -337,7 +340,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           final to = DateFormat('dd MMM yyyy').parse(parts[1]);
           actualDays = to.difference(from).inDays;
           if (actualDays <= 0) actualDays = 30;
-        } catch (_) {
+        } catch (e) {
+          debugPrint('ERROR: $e');
           actualDays = 30;
         }
       }
