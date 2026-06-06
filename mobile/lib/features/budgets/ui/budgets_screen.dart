@@ -26,18 +26,17 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime(DateTime.now().year, DateTime.now().month);
-    ref.read(budgetNavigationProvider.notifier).state =
-        BudgetScreenNavigationState(currentMonth: now);
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // First load cycle info for the current month, then jump to latest viewable
-      await _loadCycleInfo();
-      final nav = ref.read(budgetNavigationProvider);
-      final maxMonth = _maxMonth(nav.userCycleDay);
-      ref.read(budgetNavigationProvider.notifier).state =
-          nav.copyWith(currentMonth: maxMonth);
-      await _loadCycleInfo();  // re-fetch with the correct month
-      _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.microtask(() async {
+        // First load cycle info for the current month, then jump to latest viewable
+        await _loadCycleInfo();
+        final nav = ref.read(budgetNavigationProvider);
+        final maxMonth = _maxMonth(nav.userCycleDay);
+        ref.read(budgetNavigationProvider.notifier).state =
+            nav.copyWith(currentMonth: maxMonth);
+        await _loadCycleInfo();  // re-fetch with the correct month
+        _load();
+      });
     });
   }
 
