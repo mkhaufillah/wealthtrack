@@ -43,7 +43,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
-    _ocrPollTimer?.cancel();
     super.dispose();
   }
 

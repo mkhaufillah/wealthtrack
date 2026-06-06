@@ -9,6 +9,8 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  TG_CHAT_ID: "-1003997003114"
+  TG_TOPIC_ID: "3"
 
 permissions:
   contents: write
@@ -28,6 +30,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+
+      - name: 🚀 Notify — APK build started
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ env.TG_CHAT_ID }}" \
+            -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
+            -d parse_mode="HTML" \
+            -d text="<b>📱 WealthTrack APK</b>%0A<code>${GITHUB_SHA::7}</code> — building... ⏳"
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -144,26 +154,18 @@ jobs:
 
       - name: Telegram notification — success
         if: success()
-        env:
-          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: "-1003997003114"
-          TOPIC_ID: "3"
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            -d chat_id="${CHAT_ID}" \
-            -d message_thread_id="${TOPIC_ID}" \
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ env.TG_CHAT_ID }}" \
+            -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
             -d parse_mode="HTML" \
-            -d text="<b>✅ WealthTrack APK</b>%0ABuild APK <code>${GITHUB_SHA::7}</code> berhasil 🚀%0ARun: <a href=\"https://github.com/mkhaufillah/wealthtrack/actions/runs/${GITHUB_RUN_ID}\">#${GITHUB_RUN_ID}</a>"
+            -d text="<b>✅ WealthTrack APK</b>%0ABuild APK <code>${GITHUB_SHA::7}</code> berhasil 🚀%0ARun: <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">#${{ github.run_id }}</a>"
 
       - name: Telegram notification — failure
         if: failure()
-        env:
-          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: "-1003997003114"
-          TOPIC_ID: "3"
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            -d chat_id="${CHAT_ID}" \
-            -d message_thread_id="${TOPIC_ID}" \
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ env.TG_CHAT_ID }}" \
+            -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
             -d parse_mode="HTML" \
-            -d text="<b>❌ WealthTrack APK</b>%0ABuild APK <code>${GITHUB_SHA::7}</code> gagal!%0A<a href=\"https://github.com/mkhaufillah/wealthtrack/actions/runs/${GITHUB_RUN_ID}\">Lihat logs</a>"
+            -d text="<b>❌ WealthTrack APK</b>%0ABuild APK <code>${GITHUB_SHA::7}</code> gagal!%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Lihat logs</a>"
