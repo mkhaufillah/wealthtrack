@@ -299,6 +299,51 @@ CREATE TABLE IF NOT EXISTS ai_messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ai_messages_user ON ai_messages(user_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_user_type_date ON transactions(user_id, type, COALESCE(date, LEFT(created_at, 10)));
+CREATE INDEX IF NOT EXISTS idx_transactions_user_cat_date ON transactions(user_id, category_id, COALESCE(date, LEFT(created_at, 10)) DESC);
+CREATE INDEX IF NOT EXISTS idx_ocr_jobs_user_created ON ocr_jobs(user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS kpr_simulations (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    name TEXT NOT NULL DEFAULT 'KPR Simulation',
+    property_price INTEGER NOT NULL DEFAULT 0,
+    down_payment INTEGER NOT NULL DEFAULT 0,
+    total_loan INTEGER NOT NULL DEFAULT 0,
+    tenor_months INTEGER NOT NULL DEFAULT 120,
+    interest_type TEXT NOT NULL DEFAULT 'fixed' CHECK(interest_type IN ('fixed', 'floating', 'graduated', 'mix')),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_kpr_simulations_user ON kpr_simulations(user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS kpr_rate_periods (
+    id SERIAL PRIMARY KEY,
+    simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
+    period_start INTEGER NOT NULL,
+    period_end INTEGER NOT NULL,
+    interest_rate NUMERIC(6,4) NOT NULL,
+    rate_type TEXT NOT NULL DEFAULT 'fixed' CHECK(rate_type IN ('fixed', 'floating')),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_kpr_rate_periods_sim ON kpr_rate_periods(simulation_id);
+
+CREATE TABLE IF NOT EXISTS kpr_monthly_schedules (
+    id SERIAL PRIMARY KEY,
+    simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
+    month_number INTEGER NOT NULL,
+    payment INTEGER NOT NULL,
+    principal INTEGER NOT NULL,
+    interest INTEGER NOT NULL,
+    remaining_balance INTEGER NOT NULL,
+    rate_type TEXT NOT NULL,
+    interest_rate NUMERIC(6,4) NOT NULL,
+    UNIQUE(simulation_id, month_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_kpr_schedules_sim ON kpr_monthly_schedules(simulation_id);
 """
 
 
