@@ -107,11 +107,11 @@ Every CI run sends **start + result notifications** to Keluarga Super Sapi → t
 
 | Secret | Purpose |
 |--------|---------|
-| `TG_BOT_TOKEN` | Telegram bot for CI notifications |
-| `DART` | Keystore alias for APK signing |
-| `JAVA` | Keystore password for APK signing |
-| `FLUTTER` | Key password for APK signing |
-| `OPENROUTER_API_KEY` | Optional premium Claude model for AI Advisor |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot for CI notifications |
+| `KEYSTORE_BASE64` | Keystore file (base64) for APK signing |
+| `KEY_ALIAS` | Keystore alias for APK signing |
+| `KEYSTORE_PASSWORD` | Keystore password for APK signing |
+| `KEY_PASSWORD` | Key password for APK signing |
 
 ## Security
 
