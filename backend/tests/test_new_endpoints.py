@@ -116,7 +116,7 @@ class TestOcrProcessAndSave:
             files={"file": ("receipt.png", png_data, "image/png")},
         )
         assert resp.status_code == 429
-        assert "already have an OCR job" in resp.json()["detail"].lower()
+        assert "already have an ocr job" in resp.json()["detail"].lower()
 
 
 # ──────────────────────────────────────────────
