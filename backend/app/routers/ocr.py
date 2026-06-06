@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional
@@ -21,6 +22,8 @@ from app.core.rate_limiter import check_rate_limit
 from app.database import get_db, CursorWrapper
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
+
+logger = logging.getLogger(__name__)
 
 # ── Rate limit: max 30 OCR calls per user (Redis sliding window, persisted)
 
@@ -391,7 +394,8 @@ async def process_ocr_and_save(
                     "UPDATE ocr_jobs SET status = 'failed', error = 'OCR failed. Please try again with a clearer photo.' WHERE id = ?",
                     (job_id,),
                 )
-            except Exception:
+            except Exception as e:
+                logger.warning("OCR background task error: %s", e)
                 await bg_db.execute(
                     "UPDATE ocr_jobs SET status = 'failed', error = 'OCR failed. Please try again with a clearer photo.' WHERE id = ?",
                     (job_id,),

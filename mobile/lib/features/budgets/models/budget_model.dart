@@ -62,7 +62,7 @@ class BudgetSummaryItem {
         categoryIcon: json['category_icon'] as String? ?? '📦',
         budgetAmount: json['budget_amount'] as int,
         actualSpent: json['actual_spent'] as int,
-        percentage: (json['percentage'] as num).toDouble(),
+        percentage: ((json['percentage'] ?? 0.0) as num).toDouble(),
         remaining: json['remaining'] as int,
         cycleOn: json['cycle_on'] as int? ?? 1,
       );

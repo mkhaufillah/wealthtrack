@@ -76,7 +76,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = AuthState(
         status: AuthStatus.error,
-        error: e.toString(),
+        error: _api.handleError(e).toString(),
       );
     }
   }
@@ -87,7 +87,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _repo.sendOtp(email);
       state = state.copyWith(status: AuthStatus.initial);
     } catch (e) {
-      state = AuthState(status: AuthStatus.error, error: e.toString());
+      state = AuthState(status: AuthStatus.error, error: _api.handleError(e).toString());
     }
   }
 
@@ -98,7 +98,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _repo.register(email, otpCode, username, displayName, password);
       await login(username, password);
     } catch (e) {
-      state = AuthState(status: AuthStatus.error, error: e.toString());
+      state = AuthState(status: AuthStatus.error, error: _api.handleError(e).toString());
     }
   }
 

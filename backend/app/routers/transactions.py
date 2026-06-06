@@ -1,8 +1,12 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 import asyncpg
 from typing import Optional
 
 from app.database import get_db, CursorWrapper
+
+logger = logging.getLogger(__name__)
 from app.core.security import get_current_user
 from app.core.meilisearch import (
     index_document,
@@ -251,9 +255,9 @@ async def list_transactions(
             )
 
         # Fetch from PostgreSQL with the matching IDs (preserve Meilisearch order)
-        id_placeholders = ",".join(str(i) for i in matching_ids)
+        placeholders = ",".join("?" for _ in matching_ids)
         order_clause = (
-            f"array_position(ARRAY[{id_placeholders}]::int[], t.id)"
+            f"array_position(ARRAY[{placeholders}]::int[], t.id)"
         )  # Preserve Meilisearch relevance order
 
         cursor = await db.execute(
@@ -265,8 +269,9 @@ async def list_transactions(
                 FROM transactions t
                 LEFT JOIN categories c ON t.category_id = c.id
                 LEFT JOIN users u ON t.user_id = u.id
-                WHERE t.id IN ({id_placeholders})
+                WHERE t.id IN ({placeholders})
                 ORDER BY {order_clause}""",
+            *matching_ids, *matching_ids,
         )
         rows = await cursor.fetchall()
         data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "") for r in rows]
@@ -389,8 +394,8 @@ async def create_transaction(
     # Index in Meilisearch
     try:
         await index_document(dict(row))
-    except Exception:
-        pass  # search failure shouldn't block the response
+    except Exception as e:
+        logger.warning("Meilisearch indexing error in create_transaction: %s", e)
 
     return _format_txn(row, cat["name"], cat["icon"], cat["name_en"] or "", u["display_name"] if u else "")
 
@@ -469,8 +474,8 @@ async def update_transaction(
     # Index in Meilisearch
     try:
         await index_document(dict(row))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Meilisearch indexing error in update_transaction: %s", e)
 
     return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", c["name_en"] if c else "")
 
@@ -551,8 +556,8 @@ async def transfer_owner(
     # Index in Meilisearch (user_id changed)
     try:
         await index_document(dict(row))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Meilisearch indexing error in transfer_owner: %s", e)
 
     return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", c["name_en"] if c else "")
 
@@ -695,8 +700,8 @@ async def transfer_balance(
         try:
             await index_document(dict(exp_row))
             await index_document(dict(inc_row))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Meilisearch indexing error in transfer_balance: %s", e)
 
         results.append({
             "sender_expense": _format_txn(exp_row, expense_cat_name, expense_cat_icon,
@@ -738,5 +743,5 @@ async def delete_transaction(
     # Remove from Meilisearch
     try:
         await delete_document(txn_id)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Meilisearch delete error in delete_transaction: %s", e)

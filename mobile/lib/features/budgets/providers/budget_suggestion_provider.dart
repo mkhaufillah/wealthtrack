@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../data/budget_repository.dart';
 import '../models/budget_model.dart';
@@ -36,8 +37,9 @@ class BudgetSuggestionState {
 
 class BudgetSuggestionNotifier extends StateNotifier<BudgetSuggestionState> {
   final BudgetRepository _repo;
+  final ApiClient _api;
 
-  BudgetSuggestionNotifier(this._repo) : super(const BudgetSuggestionState());
+  BudgetSuggestionNotifier(this._repo, this._api) : super(const BudgetSuggestionState());
 
   Future<void> load(String month, {int numCycles = 3}) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -45,7 +47,7 @@ class BudgetSuggestionNotifier extends StateNotifier<BudgetSuggestionState> {
       final response = await _repo.getSuggestions(month, numCycles: numCycles);
       state = state.copyWith(isLoading: false, response: response, numAccepted: 0);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: _api.handleError(e).toString());
     }
   }
 
@@ -112,7 +114,7 @@ class BudgetSuggestionNotifier extends StateNotifier<BudgetSuggestionState> {
       );
       return true;
     } catch (e) {
-      state = state.copyWith(isApplying: false, error: e.toString());
+      state = state.copyWith(isApplying: false, error: _api.handleError(e).toString());
       return false;
     }
   }
@@ -121,5 +123,5 @@ class BudgetSuggestionNotifier extends StateNotifier<BudgetSuggestionState> {
 final budgetSuggestionProvider =
     StateNotifierProvider<BudgetSuggestionNotifier, BudgetSuggestionState>((ref) {
   final api = ref.watch(apiClientProvider);
-  return BudgetSuggestionNotifier(BudgetRepository(api));
+  return BudgetSuggestionNotifier(BudgetRepository(api), api);
 });

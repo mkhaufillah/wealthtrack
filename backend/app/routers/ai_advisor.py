@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -14,6 +15,8 @@ from app.core.limiter import limiter
 from app.services.web_search import _should_search, search_web, format_search_results
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+
+logger = logging.getLogger(__name__)
 
 
 class HistoryItem(BaseModel):
@@ -708,8 +711,8 @@ async def ai_chat(
                     (f"Error: {e}", ai_msg_id),
                 )
                 await bg_db.close()
-            except Exception:
-                pass
+            except Exception as db_err:
+                logger.warning("Failed to update AI message error status: %s", db_err)
 
     asyncio.create_task(_process_ai())
 

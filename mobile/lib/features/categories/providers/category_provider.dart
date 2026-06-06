@@ -37,7 +37,7 @@ class CategoryManagementNotifier extends StateNotifier<CategoryManagementState> 
         categories: List<Map<String, dynamic>>.from(res.data),
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: _api.handleError(e).toString());
     }
   }
 
@@ -47,7 +47,7 @@ class CategoryManagementNotifier extends StateNotifier<CategoryManagementState> 
       await load();
       return true;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: _api.handleError(e).toString());
       return false;
     }
   }
@@ -58,7 +58,7 @@ class CategoryManagementNotifier extends StateNotifier<CategoryManagementState> 
       await load();
       return true;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: _api.handleError(e).toString());
       return false;
     }
   }

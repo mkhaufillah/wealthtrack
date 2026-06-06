@@ -56,15 +56,14 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Warn in development / debug mode about known defaults
-if settings.DEBUG:
-    import warnings
+# Warn about known insecure defaults — always, not just in DEBUG mode
+import warnings
 
-    if settings.SECRET_KEY == "change-me-in-production-use-env":
-        warnings.warn(
-            "\u26a0\ufe0f  SECRET_KEY is still the default! Set a real key in backend/.env for production."
-        )
-    if settings.CORS_ORIGINS == '["*"]':
-        warnings.warn(
-            "\u26a0\ufe0f  CORS_ORIGINS is set to wildcard! Restrict it in backend/.env for production."
-        )
+if settings.SECRET_KEY == "change-me-in-production-use-env":
+    warnings.warn(
+        "\u26a0\ufe0f  SECRET_KEY is still the default! Set a real key in backend/.env for production."
+    )
+if settings.CORS_ORIGINS == '["*"]':
+    warnings.warn(
+        "\u26a0\ufe0f  CORS_ORIGINS is set to wildcard! Restrict it in backend/.env for production."
+    )

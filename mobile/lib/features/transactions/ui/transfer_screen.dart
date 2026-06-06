@@ -281,17 +281,19 @@ class _TransferBalanceScreenState
                         padding: const EdgeInsets.all(16),
                         child: Row(children: [
                           CircleAvatar(
-                            backgroundColor: (currentUser?.displayName ?? '') == 'Nahda'
-                                ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
-                                : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
+                            backgroundColor: () {
+                              final hash = (currentUser?.displayName ?? '').hashCode;
+                              final idx = hash.abs() % Colors.primaries.length;
+                              return isDark
+                                  ? Colors.primaries[idx].shade200.withOpacity(0.3)
+                                  : Colors.primaries[idx].shade50;
+                            }(),
                             child: Text(
                               (currentUser?.displayName ?? '?')[0]
                                   .toUpperCase(),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : ((currentUser?.displayName ?? '') == 'Nahda'
-                                      ? Colors.pink.shade700
-                                      : Colors.blue.shade700)),
+                                  color: isDark ? Colors.white : Colors.primaries[(currentUser?.displayName ?? '').hashCode.abs() % Colors.primaries.length].shade700),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -383,17 +385,19 @@ class _TransferBalanceScreenState
                                   children: [
                                     CircleAvatar(
                                       radius: 16,
-                                      backgroundColor: r.displayName == 'Nahda'
-                                          ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
-                                          : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
+                                      backgroundColor: () {
+                                        final hash = r.displayName.hashCode;
+                                        final idx = hash.abs() % Colors.primaries.length;
+                                        return isDark
+                                            ? Colors.primaries[idx].shade200.withOpacity(0.3)
+                                            : Colors.primaries[idx].shade50;
+                                      }(),
                                       child: Text(
                                         r.displayName[0].toUpperCase(),
                                         style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
-                                            color: isDark ? Colors.white : (r.displayName == 'Nahda'
-                                                ? Colors.pink.shade700
-                                                : Colors.blue.shade700)),
+                                            color: isDark ? Colors.white : Colors.primaries[r.displayName.hashCode.abs() % Colors.primaries.length].shade700),
                                       ),
                                     ),
                                     const SizedBox(width: 8),

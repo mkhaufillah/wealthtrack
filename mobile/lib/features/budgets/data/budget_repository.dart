@@ -27,12 +27,20 @@ class BudgetRepository {
   }
 
   Future<BudgetModel> create(Map<String, dynamic> data) async {
-    final res = await _client.post('/budgets', data: data);
-    return BudgetModel.fromJson(res.data);
+    try {
+      final res = await _client.post('/budgets', data: data);
+      return BudgetModel.fromJson(res.data);
+    } catch (e) {
+      throw _client.handleError(e);
+    }
   }
 
   Future<void> delete(int id) async {
-    await _client.delete('/budgets/$id');
+    try {
+      await _client.delete('/budgets/$id');
+    } catch (e) {
+      throw _client.handleError(e);
+    }
   }
 
   Future<BudgetSuggestionResponse> getSuggestions(String month, {int numCycles = 3}) async {
