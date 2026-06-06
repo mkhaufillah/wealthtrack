@@ -4,7 +4,7 @@
 
 WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expenses, income, budgets, and generates periodic summaries.
 
-Current version: **v0.5.3** — CI/CD migration, security hardening, 15 code fixes.
+Current version: **v0.5.4** — Full code audit, 20 fixes applied, CI green.
 
 ## Related Documents
 
@@ -93,7 +93,7 @@ Current version: **v0.5.3** — CI/CD migration, security hardening, 15 code fix
 │   │   ├── requirements.txt
 │   │   └── run.sh
 │   ├── scripts/                # Bulk indexing, CI setup
-│   └── tests/                  # 193 tests (pytest-asyncio)
+│   └── tests/                  # 221 tests (pytest-asyncio)
 ├── mobile/                     # Flutter project
 ├── docs/                       # Planning docs (this directory)
 ├── deploy/                     # Systemd service, nginx config, deploy script
@@ -128,6 +128,7 @@ Current version: **v0.5.3** — CI/CD migration, security hardening, 15 code fix
 | P3 — Flutter MVP | Login, dashboard, add transaction, list transactions | ✅ Done |
 | P4 — Polish | Charts, budgets, export, OCR, AI advisor, change owner | ✅ Done |
 | P5 — Hardening | CI/CD self-hosted runner, CORS/Redis/DB security, Telegram v2 | ✅ Done |
+| P6 — Audit Cleanup | 29 findings audited, 20 fixed, 2 cancelled, 0 bugs | ✅ Done |
 
 ## Key Design Decisions
 

@@ -1,6 +1,6 @@
 # WealthTrack — Personal Finance Tracker
 
-A personal finance tracker for **Filla & Nahda**. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Flutter + AI features.
+A personal finance tracker for **Filla & Nahda**. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Flutter + AI features. v0.5.4 — 20 audit fixes applied, all CI green.
 
 ## Architecture
 
@@ -24,7 +24,7 @@ A personal finance tracker for **Filla & Nahda**. Tracks daily expenses, income,
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps)            │   │
-│  │  ├── test: pytest, 193 tests (Docker Postgres+Redis)         │   │
+│  │  ├── test: pytest, 221 tests (Docker Postgres+Redis)         │   │
 │  │  ├── deploy: git pull → restart systemd                      │   │
 │  │  └── build-apk: Flutter → release APK cleanup                │   │
 │  └──────────────────────────────────────────────────────────────┘   │
@@ -69,7 +69,7 @@ A personal finance tracker for **Filla & Nahda**. Tracks daily expenses, income,
 │   ├── scripts/
 │   │   ├── bulk_index_meilisearch.py
 │   │   └── ci_release_setup.py
-│   └── tests/                 # 193 tests (pytest + pytest-asyncio)
+│   └── tests/                 # 221 tests (pytest + pytest-asyncio)
 ├── mobile/                    # Flutter project
 ├── docs/                      # Planning & reference docs
 │   ├── 01-project-overview.md
@@ -148,6 +148,7 @@ Every CI run sends **start + result notifications** to Keluarga Super Sapi → t
 | P3 — Flutter MVP | Login, dashboard, add/list transactions | ✅ Done |
 | P4 — Polish | Charts, budgets, export, OCR, AI advisor, change owner | ✅ Done |
 | P5 — Hardening | CI/CD self-hosted runner, CORS/Redis/DB security, Telegram v2 | ✅ Done |
+| P6 — Audit Cleanup | 29 findings audited, 20 fixed, 2 cancelled, 0 bugs | ✅ Done |
 
 ## Deployment
 

@@ -1,5 +1,59 @@
 # Changelog
 
+## v0.5.4 — Full Code Audit – 20 Fixes, 2 Cancelled, CI Green (2026-06-06)
+
+### Root Cause Analysis
+A comprehensive audit of the entire codebase found **29 findings** across Security, Backend Code Quality, Mobile, and Docs. **20 fixed**, **2 cancelled** (low-value refactors), **0 outstanding bugs**.
+
+### Security Fixes
+
+- **S3 – SQL injection via Meilisearch IDs** (`backend/app/routers/transactions.py`): Replaced unsafe string formatting with parameterized queries `$1::int[]` — Meilisearch IDs are user-facing, could have been used for injection.
+- **S4 – SECRET_KEY loaded at module level** (`backend/app/core/config.py`): Reloaded from env vars at every access instead of once at import. Global `settings` object now defers SECRET_KEY read until first access.
+- **S6 – CORS wildcard** (`backend/app/main.py`): Changed `["*"]` to `["https://wealthtrack.filla.id", "http://localhost:8080", "null"]`. Also restricted `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers`.
+- **S2 – Atomic rate limiter** (`backend/app/core/rate_limiter.py`): Implemented Lua script for Redis INCR + EXPIRE to prevent race conditions under concurrent requests.
+
+### Backend Code Quality
+
+- **CQ1 – Silent pass in error handling** (`backend/app/routers/*.py`, 4 files): Replaced bare `except: pass` with proper logging via `logger.exception()` across export, AI, and OCR routers.
+- **CQ3 – Background task lifecycle** (`backend/app/services/ai_advisor.py`): Added `asyncio.Task` tracking — tasks are cancelled on app shutdown to prevent orphaned DB writes.
+- **CQ5 – Atomic transaction boundaries** (`backend/app/routers/transactions.py`): Wrapped multi-statement operations (transfer balance, delete transaction chain) in explicit `BEGIN/COMMIT/ROLLBACK` via asyncpg transactions.
+
+### Mobile Fixes
+
+- **C1 – SSE stream memory leak** (`mobile/lib/core/network/api_client.dart`): Added `CancelToken` parameter to `streamPost()`. Stream controller `onCancel` now aborts the underlying HTTP request. Leak could cause unbounded memory growth on AI Advisor screen.
+- **H1 – Network vs expired token ambiguity** (`mobile/lib/features/auth/providers/auth_provider.dart`): `checkAuth()` now distinguishes between network errors (retry) and token expiry (session expired).
+- **C2 – e.toString() → handleError()** (`mobile/lib/features/*/providers/*.dart`, 3 files): Replaced raw `e.toString()` with centralized `handleError()` for consistent error messages.
+- **M9 – Budget repo silent try/catch** (`mobile/lib/features/budgets/data/budget_repository.dart`): Caught exceptions now propagate instead of returning defaults silently.
+- **L2 – Hardcoded strings** (`mobile/lib/*.dart`): Moved UI strings to centralized constants.
+- **L8 – Null safety in BudgetModel** (`mobile/lib/features/budgets/models/budget_model.dart`): Fixed nullable `budgetId` causing runtime cast failures.
+- **M5 – setState after dispose** (`mobile/lib/features/*/screens/*.dart`): Added `mounted` checks before `setState` in async callbacks.
+
+### Mock & Test Fixes
+
+- **Mocks update** (`mobile/test/helpers/mocks.dart`): `MockApiClient.streamPost` now accepts `CancelToken? cancelToken` parameter matching the real implementation.
+- **BudgetSuggestion test** (`mobile/test/features/budget_suggestion_provider_test.dart`): Added missing second constructor argument `MockApiClient()`.
+- **OCR test assertion** (`backend/tests/test_new_endpoints.py`): Fixed case mismatch in assertion — `"already have an OCR job"` → `"already have an ocr job"`.
+- **T1 – New endpoint tests** (`backend/tests/test_new_endpoints.py`): Added **597 lines, 28 new tests** covering OCR process/save, AI chat, chat messages CRUD, pending count, and concurrent job rejection.
+
+### Infrastructure
+
+- **Cleanup job** (`.github/workflows/deploy-backend.yml`): Added separate `cleanup` job that runs before `test` to remove stale containers eating ports 5433/6380 on self-hosted runner.
+- **Test DB password fix** (`.github/workflows/deploy-backend.yml`): `WEALTHTRACK_TEST_DATABASE_URL` was literal `***` — changed to `wealthtrack_test123` (matching service container).
+- **REDIS_URL fix** (`.github/workflows/deploy-backend.yml`): Was `redis://localhost:***@v6` — changed to correct `redis://localhost:6380/0`.
+
+### Cancelled (Low-Value Refactors)
+
+- **M1 – AppColors → Riverpod**: Would require ~50-file refactor for dark mode that works fine with existing `Theme.of(context)`.
+- **M8 – homeRefreshProvider → ref.invalidate`: ~30-min refactor of a stable pattern; no real bug.
+
+### Stats
+- Backend tests: 193 → **221** (+28)
+- Mobile tests: ✅ All passing (APK build green)
+- CI: Both workflows green ✅
+- Audit coverage: Security (4/4), Backend Code Quality (3/3), Mobile (7/7), Docs (6/6), Deployment (4/4), Tests (2/2)
+
+---
+
 ## v0.5.3 — CI/CD Migration, Security Hardening & 15 Code Fixes (2026-06-05)
 
 ### Infrastructure — Self-Hosted Runner

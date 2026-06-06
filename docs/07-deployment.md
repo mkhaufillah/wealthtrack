@@ -32,7 +32,7 @@
                           |  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps) │     │
                           |  │  systemd service: actions.runner.wealthtrack-...     │     │
                           |  │  Outbound connection to GitHub — no inbound ports    │     │
-                          │  │  ├── test → pytest 193 tests (Docker Postgres+Redis)       │     │
+                          │  │  ├── test → pytest 221 tests (Docker Postgres+Redis)       │     │
                           │  │  ├── deploy → git pull → uv pip install → sudo systemctl │     │
                           │  │  ├── build-apk → Flutter release APK + cleanup            │     │
                           │  │  └── Verify → health check                               │     │
@@ -229,8 +229,9 @@ sudo systemctl status actions.runner.wealthtrack-wealthtrack.wealthtrack-vps.ser
 ### Deploy Flow (git push → live)
 
 1. **Push to `main`** triggers workflows
-2. **Test phase** (self-hosted runner): runs 193 pytest tests with PostgreSQL 18 + Redis 7 service containers (Docker). Tests use `wealthtrack_test` database on port 5433, Redis on port 6380.
-3. **Deploy phase** (self-hosted runner): on test success, the runner:
+2. **Cleanup phase** (self-hosted runner): removes any stale Docker containers on ports 5433/6380 left from previous runs.
+3. **Test phase** (self-hosted runner): runs 221 pytest tests with PostgreSQL 18 + Redis 7 service containers (Docker). Tests use `wealthtrack_test` database on port 5433, Redis on port 6380.
+4. **Deploy phase** (self-hosted runner): on test success, the runner:
    - `git pull` on the VPS
    - `uv pip install -r backend/requirements.txt`
    - `sudo systemctl restart wealthtrack` (NOPASSWD)
@@ -296,7 +297,7 @@ Triggered by `build-apk.yml` on push to `main` with `mobile/**` changes or manua
 | Test runner | Self-hosted runner (wealthtrack-vps) |
 | Test database | `wealthtrack_test` on PostgreSQL 18 container (port 5433) |
 | Redis for tests | `redis:7-alpine` container (port 6380, no auth) |
-| Test count | **193 tests** — all passing |
+| Test count | **221 tests** — all passing |
 | Env override | `WEALTHTRACK_TEST_DATABASE_URL=postgresql://wealthtrack_test:***@localhost:5433/wealthtrack_test` |
 | Docker cleanup | Weekly cron: `docker system prune -f` (`docker` dangling images) |
 | Concurrency | `cancel-in-progress: true` — old runs cancelled on new push |
