@@ -83,6 +83,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(card?.name ?? 'Credit Card'),
+        scrolledUnderElevation: 0,
         actions: [
           if (card != null)
             IconButton(
@@ -93,15 +94,11 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         bottom: card != null
             ? TabBar(
                 controller: _tabController,
-                labelColor: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : AppColors.textPrimary,
-                unselectedLabelColor: AppColors.textSecondary.withAlpha(180),
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white60,
+                indicatorColor: Colors.white,
+                indicatorWeight: 2,
                 indicatorSize: TabBarIndicatorSize.label,
-                indicatorColor: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white70
-                    : AppColors.textPrimary.withAlpha(100),
-                indicatorWeight: 1,
                 tabs: const [
                   Tab(text: 'Transactions'),
                   Tab(text: 'Installments'),
@@ -137,34 +134,27 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                       message: 'Card not found',
                       onRetry: _onRefresh,
                     )
-                  : RefreshIndicator(
-                      onRefresh: _onRefresh,
-                      child: CustomScrollView(
-                        slivers: [
-                          // Card info header
-                          SliverToBoxAdapter(
-                            child: _buildCardInfoHeader(card, isDark),
+                  : Column(
+                      children: [
+                        _buildCardInfoHeader(card, isDark),
+                        if (state.projection != null)
+                          _buildProjectionSummary(state.projection!, isDark),
+                        Expanded(
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              RefreshIndicator(
+                                onRefresh: _onRefresh,
+                                child: _buildTransactionsTab(card),
+                              ),
+                              RefreshIndicator(
+                                onRefresh: _onRefresh,
+                                child: _buildInstallmentsTab(card),
+                              ),
+                            ],
                           ),
-
-                          // Next month projection summary
-                          if (state.projection != null)
-                            SliverToBoxAdapter(
-                              child: _buildProjectionSummary(state.projection!, isDark),
-                            ),
-
-                          // Tab content
-                          SliverFillRemaining(
-                            hasScrollBody: true,
-                            child: TabBarView(
-                              controller: _tabController,
-                              children: [
-                                _buildTransactionsTab(card),
-                                _buildInstallmentsTab(card),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
     );
   }

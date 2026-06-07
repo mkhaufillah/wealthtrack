@@ -172,7 +172,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       _buildCategoriesCard(),
                       const SizedBox(height: 24),
                       _buildAiCard(),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
                       _buildDebtCard(),
                       const SizedBox(height: 24),
                       RecentTransactions(transactions: state.recentTransactions),

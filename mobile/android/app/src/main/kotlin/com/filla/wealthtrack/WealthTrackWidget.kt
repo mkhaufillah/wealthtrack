@@ -41,7 +41,7 @@ class WealthTrackWidget : AppWidgetProvider() {
         val addIntent = Intent(context, MainActivity::class.java).apply {
             action = ACTION_ADD_TRANSACTION
             putExtra(EXTRA_WIDGET_ACTION, ACTION_ADD_TRANSACTION)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         val addPendingIntent = PendingIntent.getActivity(
             context,
@@ -55,7 +55,7 @@ class WealthTrackWidget : AppWidgetProvider() {
         val scanIntent = Intent(context, MainActivity::class.java).apply {
             action = ACTION_SCAN_RECEIPT
             putExtra(EXTRA_WIDGET_ACTION, ACTION_SCAN_RECEIPT)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         val scanPendingIntent = PendingIntent.getActivity(
             context,

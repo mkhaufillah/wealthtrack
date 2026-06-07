@@ -64,7 +64,7 @@
                 android:layout_height="wrap_content"
                 android:text="Add"
                 android:textColor="#FFFFFF"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:layout_marginTop="6dp"/>
 
@@ -73,7 +73,7 @@
                 android:layout_height="wrap_content"
                 android:text="Transaction"
                 android:textColor="#B0FFFFFF"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:layout_marginTop="1dp"/>
         </LinearLayout>
 
@@ -93,7 +93,7 @@
             <ImageView
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:src="@drawable/ic_scan"
+                android:src="@drawable/ic_camera"
                 android:contentDescription="Scan"
                 android:tint="#FFFFFF"/>
 
@@ -102,7 +102,7 @@
                 android:layout_height="wrap_content"
                 android:text="Scan"
                 android:textColor="#FFFFFF"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:layout_marginTop="6dp"/>
 
@@ -111,7 +111,7 @@
                 android:layout_height="wrap_content"
                 android:text="Receipt"
                 android:textColor="#B0FFFFFF"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:layout_marginTop="1dp"/>
         </LinearLayout>
     </LinearLayout>
