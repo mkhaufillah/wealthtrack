@@ -148,6 +148,7 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
     _widgetChannel.setMethodCallHandler(_handleWidgetNavigation);
     ref.read(authProvider.notifier).checkAuth().then((_) {
       if (mounted) setState(() => _initialized = true);
+      _checkPendingWidgetAction();
     });
   }
 
@@ -167,6 +168,20 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
       case 'scan_receipt':
         router.go('/transactions/add', extra: <String, dynamic>{'autoScan': true});
     }
+  }
+
+  Future<void> _checkPendingWidgetAction() async {
+    try {
+      final pending = await _widgetChannel.invokeMethod<String>('getPendingAction');
+      if (pending != null && mounted) {
+        final router = ref.read(goRouterProvider);
+        if (pending == 'add_transaction') {
+          router.go('/transactions/add');
+        } else if (pending == 'scan_receipt') {
+          router.go('/transactions/add', extra: <String, dynamic>{'autoScan': true});
+        }
+      }
+    } catch (_) {}
   }
 
   @override

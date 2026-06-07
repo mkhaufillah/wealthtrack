@@ -15,19 +15,28 @@ class MainActivity : FlutterActivity() {
     }
 
     private var methodChannel: MethodChannel? = null
+    private var pendingWidgetAction: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
 
-        // Handle intent that launched the activity
+        methodChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getPendingAction" -> {
+                    result.success(pendingWidgetAction)
+                    pendingWidgetAction = null
+                }
+                else -> result.notImplemented()
+            }
+        }
+
         handleWidgetIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        // Handle intents when app is already running
         handleWidgetIntent(intent)
     }
 
@@ -41,9 +50,11 @@ class MainActivity : FlutterActivity() {
 
         when (resolvedAction) {
             ACTION_ADD_TRANSACTION -> {
+                pendingWidgetAction = "add_transaction"
                 methodChannel?.invokeMethod("navigate", "add_transaction")
             }
             ACTION_SCAN_RECEIPT -> {
+                pendingWidgetAction = "scan_receipt"
                 methodChannel?.invokeMethod("navigate", "scan_receipt")
             }
         }

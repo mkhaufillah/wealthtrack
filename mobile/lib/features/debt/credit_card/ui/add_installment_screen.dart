@@ -158,6 +158,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
       'total_amount': totalAmount,
       'monthly_amount': monthlyAmount,
       'total_months': _getTotalMonths(),
+      'remaining_months': _getTotalMonths(),
       'start_month': _startMonthCtrl.text.trim(),
     };
 

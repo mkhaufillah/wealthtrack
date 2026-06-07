@@ -8,7 +8,12 @@ class DebtHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) context.go('/home');
+      },
+      child: Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Debt Tracker')),
       body: ListView(
@@ -91,6 +96,7 @@ class DebtHomeScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

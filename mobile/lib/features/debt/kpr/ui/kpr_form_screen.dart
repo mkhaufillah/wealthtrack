@@ -309,11 +309,11 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       'down_payment': _getDownPayment(),
       'tenor_months': _getTenorMonths(),
       'interest_type': _interestType,
-      'base_interest_rate': _getBaseRate(),
+      'base_interest_rate': _getBaseRate() / 100,
     };
 
     if (_interestType == 'graduated') {
-      data['graduated_increment'] = double.tryParse(_gradIncrementCtrl.text) ?? 0.0;
+      data['graduated_increment'] = (double.tryParse(_gradIncrementCtrl.text) ?? 0.0) / 100;
       data['graduated_every_months'] = int.tryParse(_gradEveryMonthsCtrl.text) ?? 12;
     }
 
@@ -321,7 +321,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       data['rate_periods'] = _ratePeriods.map((rp) => {
         'period_start': int.tryParse(rp.fromMonthCtrl.text) ?? 1,
         'period_end': int.tryParse(rp.toMonthCtrl.text) ?? 12,
-        'interest_rate': double.tryParse(rp.rateCtrl.text) ?? 0.0,
+        'interest_rate': (double.tryParse(rp.rateCtrl.text) ?? 0.0) / 100,
         'rate_type': rp.rateType,
       }).toList();
     }

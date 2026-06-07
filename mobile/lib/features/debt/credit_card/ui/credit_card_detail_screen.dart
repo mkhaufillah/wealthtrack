@@ -25,6 +25,9 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     Future.microtask(() {
       ref.read(creditCardProvider.notifier).loadCardDetail(widget.cardId);
       ref.read(creditCardProvider.notifier).loadProjection();
@@ -98,6 +101,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 unselectedLabelColor: Colors.white60,
                 indicatorColor: Colors.white,
                 indicatorWeight: 2,
+                dividerColor: Colors.transparent,
                 indicatorSize: TabBarIndicatorSize.label,
                 tabs: const [
                   Tab(text: 'Transactions'),
