@@ -96,6 +96,10 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     // Add initial rate periods for mix
     _ratePeriods.add(_RatePeriodRow(fromMonth: 1, toMonth: 60, rate: 8.0, rateType: 'fixed'));
     _ratePeriods.add(_RatePeriodRow(fromMonth: 61, toMonth: 120, rate: 10.0, rateType: 'floating'));
+    // Extend last rate period to full tenor after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncLastRatePeriodToTenor();
+    });
   }
 
   @override
@@ -160,6 +164,14 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
   String? _validateRequired(String? value) {
     if (value == null || value.trim().isEmpty) return 'Required';
     return null;
+  }
+
+  void _syncLastRatePeriodToTenor() {
+    if (_ratePeriods.isNotEmpty && mounted) {
+      final totalMonths = _getTenorMonths();
+      final last = _ratePeriods.last;
+      last.toMonthCtrl.text = totalMonths.toString();
+    }
   }
 
   /// Calculate monthly payment for a fixed-rate loan using standard amortization formula.
@@ -341,6 +353,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Simulation saved successfully')),
       );
+      ref.read(homeRefreshProvider.notifier).state++;
       if (mounted) context.pop();
     } else {
       final err = ref.read(kprProvider).error;

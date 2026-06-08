@@ -145,6 +145,12 @@ async def create_simulation(
 
     return KPRSimulationDetailOut(
         **refetched,
+        total_interest=summary["total_interest"],
+        monthly_payment=summary["monthly_payment"],
+        current_month_number=1,
+        current_month_payment=schedule[0].payment if schedule else 0,
+        current_remaining_balance=total_loan,
+        due_date=refetched.get("due_date"),
         schedule=[
             KPRScheduleItemOut(
                 month_number=s.month_number,

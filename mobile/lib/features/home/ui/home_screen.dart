@@ -194,16 +194,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ? '${_formatDate(state.dateFrom!)} – ${_formatDate(state.dateTo!)}'
                             : null,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 8),
                       _buildCategoriesCard(),
                       if (!_debtLoading && _debtData['total_debt'] != null && (_debtData['total_debt'] as int) > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildDebtSummaryCard(),
-                        ),
-                      const SizedBox(height: 24),
+                        _buildDebtSummaryCard(),
+                      const SizedBox(height: 8),
                       _buildAiCard(),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 8),
                       _buildDebtCard(),
                       const SizedBox(height: 24),
                       RecentTransactions(transactions: state.recentTransactions),

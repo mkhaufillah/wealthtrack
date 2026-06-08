@@ -188,7 +188,10 @@ async def get_credit_card(
     # Fetch installments
     inst_cursor = await db.execute(
         """SELECT id, card_id, description, total_amount, monthly_amount,
-                  total_months, remaining_months, start_month, created_at
+                  total_months, GREATEST(0, total_months - (
+        (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
+        - (CAST(SUBSTR(start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(start_month, 6, 2) AS integer))
+    )) AS remaining_months, start_month, created_at
            FROM credit_card_installments
            WHERE card_id = ?
            ORDER BY start_month DESC""",
@@ -365,7 +368,10 @@ async def create_installment(
 
     inst_cursor = await db.execute(
         """SELECT id, card_id, description, total_amount, monthly_amount,
-                  total_months, remaining_months, start_month, created_at
+                  total_months, GREATEST(0, total_months - (
+        (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
+        - (CAST(SUBSTR(start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(start_month, 6, 2) AS integer))
+    )) AS remaining_months, start_month, created_at
            FROM credit_card_installments WHERE id = ?""",
         (inst_id,),
     )
@@ -384,7 +390,10 @@ async def list_installments(
 
     cursor = await db.execute(
         """SELECT id, card_id, description, total_amount, monthly_amount,
-                  total_months, remaining_months, start_month, created_at
+                  total_months, GREATEST(0, total_months - (
+        (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
+        - (CAST(SUBSTR(start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(start_month, 6, 2) AS integer))
+    )) AS remaining_months, start_month, created_at
            FROM credit_card_installments
            WHERE card_id = ?
            ORDER BY start_month DESC""",

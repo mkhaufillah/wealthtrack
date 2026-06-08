@@ -7,6 +7,7 @@ import '../../models/credit_card_model.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/error_display.dart';
+import '../../../../home/providers/dashboard_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class CreditCardDetailScreen extends ConsumerStatefulWidget {
@@ -42,6 +43,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
 
   Future<void> _onRefresh() async {
     await ref.read(creditCardProvider.notifier).loadCardDetail(widget.cardId);
+    await ref.read(creditCardProvider.notifier).loadProjection();
   }
 
   Future<bool> _confirmDeleteCard(CreditCardModel card) async {
@@ -81,6 +83,13 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
     final state = ref.watch(creditCardProvider);
     final card = state.selectedCard;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    ref.listen<int>(homeRefreshProvider, (prev, next) {
+      if (prev != next) {
+        ref.read(creditCardProvider.notifier).loadCardDetail(widget.cardId);
+        ref.read(creditCardProvider.notifier).loadProjection();
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
