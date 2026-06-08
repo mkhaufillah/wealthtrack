@@ -25,7 +25,7 @@ class DebtHomeScreen extends StatelessWidget {
               imagePath: 'assets/images/debt/mortgage_illustration.png',
               title: 'Mortgage (KPR)',
               description: 'Calculate and simulate mortgage payments with various interest rate types',
-              onTap: () => context.go('/debt/kpr'),
+              onTap: () => context.push('/debt/kpr'),
             ),
             const SizedBox(height: 16),
             // Credit Card Card
@@ -34,7 +34,7 @@ class DebtHomeScreen extends StatelessWidget {
               imagePath: 'assets/images/debt/credit_card_illustration.png',
               title: 'Credit Cards',
               description: 'Track credit card spending, installments, and upcoming payments',
-              onTap: () => context.go('/debt/credit-cards'),
+              onTap: () => context.push('/debt/credit-cards'),
             ),
           ],
         ),

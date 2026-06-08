@@ -362,8 +362,9 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     final yearKeys = yearMap.keys.toList()..sort();
 
     final now = DateTime.now();
-    final currentYear = now.year;
-    final currentMonth = now.month;
+    final startMonth = sim.startMonth;
+    final startYear = sim.startYear;
+    final startTotalMonths = startYear * 12 + (startMonth - 1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,7 +386,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         const SizedBox(height: 12),
         ...yearKeys.map((yearIdx) {
           final items = yearMap[yearIdx]!;
-          return _buildYearTile(yearIdx, items, isDark, currentYear, currentMonth);
+          return _buildYearTile(yearIdx, items, isDark, startTotalMonths, now);
         }),
       ],
     );
@@ -395,8 +396,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     int yearIndex,
     List<KPRScheduleItem> items,
     bool isDark,
-    int currentYear,
-    int currentMonth,
+    int startTotalMonths,
+    DateTime now,
   ) {
     final yearNumber = yearIndex + 1;
     final totalYearPayment = items.fold<int>(0, (s, m) => s + m.payment);
@@ -506,9 +507,10 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             const SizedBox(height: 4),
             // ── Table rows ──
             ...items.map((item) {
-              final itemYear = currentYear + ((item.monthNumber - 1) ~/ 12);
-              final itemMonth = item.monthNumber % 12 == 0 ? 12 : item.monthNumber % 12;
-              final isCurrentMonth = itemYear == currentYear && itemMonth == currentMonth;
+              final itemTotalMonths = startTotalMonths + (item.monthNumber - 1);
+              final itemYear = itemTotalMonths ~/ 12;
+              final itemMonth = itemTotalMonths % 12 + 1;
+              final isCurrentMonth = itemYear == now.year && itemMonth == now.month;
 
               return Container(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -525,7 +527,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
                 child: Row(
                   children: [
-                    _tableCell('${item.monthNumber}', flex: 1, bold: isCurrentMonth),
+                    _tableCell('${_shortMonthName(itemMonth)} $itemYear', flex: 1, bold: isCurrentMonth),
                     _tableCell(formatCurrency(item.payment), flex: 2),
                     _tableCell(formatCurrency(item.principal), flex: 2),
                     _tableCell(formatCurrency(item.interest), flex: 2,
@@ -586,5 +588,11 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     if (schedule == null || schedule.isEmpty) return 0;
     final totalPaid = schedule.fold<int>(0, (s, m) => s + m.payment);
     return totalPaid - totalLoan;
+  }
+
+  String _shortMonthName(int m) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[m - 1];
   }
 }
