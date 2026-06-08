@@ -216,7 +216,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
           Text(
             _cycleLabel.isNotEmpty ? _cycleLabel : DateFormat('MMMM yyyy').format(_currentMonth),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -422,7 +422,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Text('Total Budget', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ),
               Text(formatCurrency(totalBudget),
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               const SizedBox(width: 12),
               Expanded(
                 child: Text('Total Spent', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
@@ -442,13 +442,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             padding: const EdgeInsets.only(bottom: 10),
             child: Row(
               children: [
-                SizedBox(width: 24, child: Text(item.categoryIcon, style: const TextStyle(fontSize: 16))),
+                SizedBox(width: 24, child: Text(item.categoryIcon, style: TextStyle(fontSize: 16))),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 3,
                   child: Text(
                     item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName,
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: 13),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -500,7 +500,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   width: 28,
                   child: Text(
                     isOver ? '🔴' : pct >= 70 ? '⚠️' : '✅',
-                    style: const TextStyle(fontSize: 14),
+                    style: TextStyle(fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -545,7 +545,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         const SizedBox(width: 6),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -568,14 +568,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             children: [
               SizedBox(
                 width: 28,
-                child: Text(cat.icon, style: const TextStyle(fontSize: 16)),
+                child: Text(cat.icon, style: TextStyle(fontSize: 16)),
               ),
               const SizedBox(width: 8),
               Expanded(
                 flex: 3,
                 child: Text(
                   cat.categoryNameEn.isNotEmpty ? cat.categoryNameEn : cat.categoryName,
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -666,7 +666,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   flex: 2,
                   child: Text(
                     u.displayName,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -742,7 +742,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   children: [
                     Text(
                       dayLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -765,7 +765,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     if (day.expense > 0)
                       Text(
                         '-${formatCurrency(day.expense)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: AppColors.highlight,
                         ),
@@ -773,7 +773,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     if (day.income > 0)
                       Text(
                         '+${formatCurrency(day.income)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: AppColors.success,
                         ),
@@ -807,14 +807,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             children: [
               SizedBox(
                 width: 28,
-                child: Text(cat.icon, style: const TextStyle(fontSize: 16)),
+                child: Text(cat.icon, style: TextStyle(fontSize: 16)),
               ),
               const SizedBox(width: 8),
               Expanded(
                 flex: 3,
                 child: Text(
                   cat.categoryNameEn.isNotEmpty ? cat.categoryNameEn : cat.categoryName,
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -907,7 +907,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   children: [
                     Text(
                       dayLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -923,7 +923,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     const Spacer(),
                     Text(
                       'E: ' + formatCurrency(totalExpense),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         color: AppColors.highlight,
                       ),
@@ -932,7 +932,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       const SizedBox(width: 8),
                       Text(
                         'I: ' + formatCurrency(totalIncome),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           color: AppColors.success,
                         ),
@@ -959,7 +959,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     children: [
                       SizedBox(
                         width: 24,
-                        child: Text(catIcon, style: const TextStyle(fontSize: 14)),
+                        child: Text(catIcon, style: TextStyle(fontSize: 14)),
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -968,7 +968,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           children: [
                             Text(
                               desc.isNotEmpty ? desc : catName,
-                              style: const TextStyle(fontSize: 12),
+                              style: TextStyle(fontSize: 12),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),

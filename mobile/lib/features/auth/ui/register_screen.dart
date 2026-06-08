@@ -230,7 +230,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 if (authState.error != null) ...[
                   const SizedBox(height: 8),
                   Text(authState.error!,
-                      style: const TextStyle(
+                      style:  TextStyle(
                           color: AppColors.highlight, fontSize: 13)),
                 ],
                 const SizedBox(height: 16),

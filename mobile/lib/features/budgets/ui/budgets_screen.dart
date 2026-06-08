@@ -505,7 +505,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                       color: AppColors.highlight.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(Icons.delete_outline, size: 16, color: AppColors.highlight),
+                    child:  Icon(Icons.delete_outline, size: 16, color: AppColors.highlight),
                   ),
                 ),
                 const SizedBox(width: 8),

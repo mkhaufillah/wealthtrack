@@ -144,7 +144,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
+                                 Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(

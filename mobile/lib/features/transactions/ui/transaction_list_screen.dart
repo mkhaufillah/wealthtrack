@@ -445,7 +445,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               color: AppColors.highlight.withOpacity(0.1),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
+                   Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
