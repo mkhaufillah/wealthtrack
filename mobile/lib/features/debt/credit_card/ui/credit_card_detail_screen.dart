@@ -7,7 +7,7 @@ import '../../models/credit_card_model.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/error_display.dart';
-import '../../../../home/providers/dashboard_provider.dart';
+import '../../../../features/home/providers/dashboard_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class CreditCardDetailScreen extends ConsumerStatefulWidget {
