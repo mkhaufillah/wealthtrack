@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../shared/providers/app_providers.dart';
+import '../../../home/providers/dashboard_provider.dart';
 import '../../models/kpr_model.dart';
 
 class KPRState {
@@ -32,8 +33,9 @@ class KPRState {
 
 class KPRNotifier extends StateNotifier<KPRState> {
   final ApiClient _api;
+  final Ref _ref;
 
-  KPRNotifier(this._api) : super(const KPRState());
+  KPRNotifier(this._api, this._ref) : super(const KPRState());
 
   Future<void> loadAll() async {
     state = state.copyWith(isLoading: true, error: null);
@@ -90,6 +92,7 @@ class KPRNotifier extends StateNotifier<KPRState> {
             ? null
             : state.selectedSimulation,
       );
+      _ref.read(homeRefreshProvider.notifier).state++;
       return true;
     } catch (e) {
       state = state.copyWith(error: _api.handleError(e).toString());
@@ -109,5 +112,5 @@ class KPRNotifier extends StateNotifier<KPRState> {
 final kprProvider =
     StateNotifierProvider<KPRNotifier, KPRState>((ref) {
   final api = ref.watch(apiClientProvider);
-  return KPRNotifier(api);
+  return KPRNotifier(api, ref);
 });

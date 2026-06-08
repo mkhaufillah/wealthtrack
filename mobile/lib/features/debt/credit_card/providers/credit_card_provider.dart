@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../shared/providers/app_providers.dart';
+import '../../../../features/home/providers/dashboard_provider.dart';
 import '../../models/credit_card_model.dart';
 
 class CreditCardState {
@@ -37,8 +38,9 @@ class CreditCardState {
 
 class CreditCardNotifier extends StateNotifier<CreditCardState> {
   final ApiClient _api;
+  final Ref _ref;
 
-  CreditCardNotifier(this._api) : super(const CreditCardState());
+  CreditCardNotifier(this._api, this._ref) : super(const CreditCardState());
 
   Future<void> loadCards() async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -91,6 +93,7 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
         selectedCard:
             state.selectedCard?.id == id ? null : state.selectedCard,
       );
+      _ref.read(homeRefreshProvider.notifier).state++;
       return true;
     } catch (e) {
       state = state.copyWith(error: _api.handleError(e).toString());
@@ -157,5 +160,5 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
 final creditCardProvider =
     StateNotifierProvider<CreditCardNotifier, CreditCardState>((ref) {
   final api = ref.watch(apiClientProvider);
-  return CreditCardNotifier(api);
+  return CreditCardNotifier(api, ref);
 });
