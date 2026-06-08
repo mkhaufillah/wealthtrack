@@ -243,7 +243,7 @@ class TestCreateInstallment:
         data = inst_resp.json()
         assert data["description"] == "iPhone 12"
         assert data["monthly_amount"] == 1000000
-        assert data["remaining_months"] == 12  # = total_months, auto-calculated
+        assert data["remaining_months"] == 7  # = 12 - 5 elapsed (start Jan 2026, now Jun)
 
 
 # ── Next Month Projection ────────────────────────────────────────────
