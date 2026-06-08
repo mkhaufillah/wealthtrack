@@ -65,48 +65,40 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/debt',
         builder: (_, __) => const DebtHomeScreen(),
-        routes: [
-          GoRoute(
-            path: 'kpr',
-            builder: (_, __) => const KPRListScreen(),
-            routes: [
-              GoRoute(
-                path: 'new',
-                builder: (_, __) => const KPRFormScreen(),
-              ),
-              GoRoute(
-                path: ':id',
-                builder: (_, state) => KPRDetailScreen(
-                  simulationId: int.parse(state.pathParameters['id']!),
-                ),
-              ),
-            ],
-          ),
-          GoRoute(
-            path: 'credit-cards',
-            builder: (_, __) => const CreditCardListScreen(),
-            routes: [
-              GoRoute(
-                path: 'new',
-                builder: (_, __) => const CreditCardFormScreen(),
-              ),
-              GoRoute(
-                path: ':id',
-                builder: (_, state) => CreditCardDetailScreen(
-                  cardId: int.parse(state.pathParameters['id']!),
-                ),
-                routes: [
-                  GoRoute(
-                    path: 'installments/new',
-                    builder: (_, state) => AddInstallmentScreen(
-                      cardId: int.parse(state.pathParameters['id']!),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+      ),
+      GoRoute(
+        path: '/debt/kpr',
+        builder: (_, __) => const KPRListScreen(),
+      ),
+      GoRoute(
+        path: '/debt/kpr/new',
+        builder: (_, __) => const KPRFormScreen(),
+      ),
+      GoRoute(
+        path: '/debt/kpr/:id',
+        builder: (_, state) => KPRDetailScreen(
+          simulationId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        path: '/debt/credit-cards',
+        builder: (_, __) => const CreditCardListScreen(),
+      ),
+      GoRoute(
+        path: '/debt/credit-cards/new',
+        builder: (_, __) => const CreditCardFormScreen(),
+      ),
+      GoRoute(
+        path: '/debt/credit-cards/:id',
+        builder: (_, state) => CreditCardDetailScreen(
+          cardId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        path: '/debt/credit-cards/:id/installments/new',
+        builder: (_, state) => AddInstallmentScreen(
+          cardId: int.parse(state.pathParameters['id']!),
+        ),
       ),
       GoRoute(
         path: '/transactions/add',

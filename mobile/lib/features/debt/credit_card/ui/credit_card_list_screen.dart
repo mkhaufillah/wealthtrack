@@ -110,7 +110,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                         ),
                 ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go('/debt/credit-cards/new'),
+        onPressed: () => context.push('/debt/credit-cards/new'),
         child: const Icon(Icons.add),
       ),
     );
@@ -245,7 +245,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
       ),
       confirmDismiss: (_) => _confirmDelete(card),
       child: GestureDetector(
-        onTap: () => context.go('/debt/credit-cards/${card.id}'),
+        onTap: () => context.push('/debt/credit-cards/${card.id}'),
         child: Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 0,

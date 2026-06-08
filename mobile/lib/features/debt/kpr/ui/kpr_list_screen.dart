@@ -103,7 +103,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                         ),
                 ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go('/debt/kpr/new'),
+        onPressed: () => context.push('/debt/kpr/new'),
         child: const Icon(Icons.add),
       ),
     );
@@ -169,7 +169,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
       ),
       confirmDismiss: (_) => _confirmDelete(sim),
       child: GestureDetector(
-        onTap: () => context.go('/debt/kpr/${sim.id}'),
+        onTap: () => context.push('/debt/kpr/${sim.id}'),
         child: Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 0,

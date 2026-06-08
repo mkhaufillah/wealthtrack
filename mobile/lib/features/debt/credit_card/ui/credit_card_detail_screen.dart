@@ -116,7 +116,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 if (_tabController.index == 0) {
                   _addTransaction();
                 } else {
-                  context.go('/debt/credit-cards/${card.id}/installments/new');
+                  context.push('/debt/credit-cards/${card.id}/installments/new');
                 }
               },
               child: Icon(
