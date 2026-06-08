@@ -196,7 +196,7 @@ async def list_simulations(
                    MAX(CASE WHEN month_number = (
                        SELECT CASE WHEN cm.current_month <= 1 THEN 0
                        ELSE cm.current_month - 1 END
-                       FROM kpr_simulations ks3 WHERE ks3.id = kms.simulation_id
+                       FROM kpr_simulations ks3
                        CROSS JOIN LATERAL (
                            SELECT LEAST(
                                (EXTRACT(YEAR FROM CURRENT_DATE) - ks3.start_year) * 12
@@ -204,6 +204,7 @@ async def list_simulations(
                                ks3.tenor_months
                            ) AS current_month
                        ) cm
+                       WHERE ks3.id = kms.simulation_id
                    ) THEN remaining_balance ELSE 0 END) AS current_remaining_balance,
                    (
                        SELECT LEAST(
