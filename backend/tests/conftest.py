@@ -171,6 +171,8 @@ CREATE TABLE kpr_simulations (
     total_loan INTEGER NOT NULL DEFAULT 0,
     tenor_months INTEGER NOT NULL DEFAULT 120,
     interest_type TEXT NOT NULL DEFAULT 'fixed' CHECK(interest_type IN ('fixed', 'floating', 'graduated', 'mix')),
+    start_month INTEGER NOT NULL DEFAULT 1,
+    start_year INTEGER NOT NULL DEFAULT 2026,
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 CREATE TABLE kpr_rate_periods (
