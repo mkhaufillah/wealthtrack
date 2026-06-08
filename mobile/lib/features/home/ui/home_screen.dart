@@ -197,7 +197,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const SizedBox(height: 8),
                       _buildCategoriesCard(),
                       if (!_debtLoading && _debtData['total_debt'] != null && (_debtData['total_debt'] as int) > 0)
-                        _buildDebtSummaryCard(),
+                        ...[
+                          const SizedBox(height: 8),
+                          _buildDebtSummaryCard(),
+                        ],
                       const SizedBox(height: 8),
                       _buildAiCard(),
                       const SizedBox(height: 8),
