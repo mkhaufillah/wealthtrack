@@ -231,7 +231,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     color: AppColors.highlight.withAlpha(30),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.warning_amber_rounded, color: AppColors.highlight, size: 20),
+                  child: Icon(Icons.warning_amber_rounded, color: AppColors.highlight, size: 20),
                 ),
                 const SizedBox(width: 12),
                 const Text('Total Outstanding Debt',
