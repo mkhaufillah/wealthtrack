@@ -38,8 +38,7 @@ class DebtHomeScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildDebtCard({
