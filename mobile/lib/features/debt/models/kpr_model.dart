@@ -46,6 +46,7 @@ class KPRSimulation {
   final int startYear;
   final int currentMonthNumber;
   final int currentMonthPayment;
+  final int currentRemainingBalance;
   final List<KPRScheduleItem>? schedule;
   final Map<String, dynamic>? summary;
 
@@ -65,6 +66,7 @@ class KPRSimulation {
     this.startYear = 2026,
     this.currentMonthNumber = 1,
     this.currentMonthPayment = 0,
+    this.currentRemainingBalance = 0,
     this.schedule,
     this.summary,
   });
@@ -86,6 +88,7 @@ class KPRSimulation {
       startYear: json['start_year'] as int? ?? DateTime.now().year,
       currentMonthNumber: json['current_month_number'] as int? ?? 1,
       currentMonthPayment: json['current_month_payment'] as int? ?? 0,
+      currentRemainingBalance: json['current_remaining_balance'] as int? ?? 0,
       schedule: (json['schedule'] as List?)
           ?.map((e) => KPRScheduleItem.fromJson(e as Map<String, dynamic>))
           .toList(),

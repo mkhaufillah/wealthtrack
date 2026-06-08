@@ -535,3 +535,58 @@ async def all_time_category_balance(
         "savings_investment": await _query_balance(savings_ids),
         "emergency_funds": await _query_balance(emergency_ids),
     }
+
+
+@router.get("/debt")
+async def debt_summary(
+    db: CursorWrapper = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Total remaining debt: KPR remaining balance + CC installment remaining."""
+    user_id = current_user["id"]
+
+    # Total KPR remaining (sum of current remaining balance across all simulations)
+    cursor = await db.execute(
+        """SELECT COALESCE(SUM(kms.remaining_balance), 0) AS total_kpr
+           FROM kpr_monthly_schedules kms
+           JOIN kpr_simulations ks ON ks.id = kms.simulation_id
+           WHERE ks.user_id = ?
+           AND kms.month_number = LEAST(
+               (EXTRACT(YEAR FROM CURRENT_DATE) - ks.start_year) * 12
+               + (EXTRACT(MONTH FROM CURRENT_DATE) - ks.start_month) + 1,
+               ks.tenor_months
+           )""",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    total_kpr = int(row["total_kpr"]) if row else 0
+
+    # Count active KPR simulations
+    cursor = await db.execute(
+        "SELECT COUNT(*) AS cnt FROM kpr_simulations WHERE user_id = ?",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    kpr_count = row["cnt"] if row else 0
+
+    # Total CC remaining (sum of monthly_amount * remaining_months)
+    cursor = await db.execute(
+        """SELECT
+               COUNT(*) AS total_active,
+               COALESCE(SUM(cci.monthly_amount * cci.remaining_months), 0) AS total_cc
+           FROM credit_card_installments cci
+           JOIN credit_cards cc ON cc.id = cci.card_id
+           WHERE cc.user_id = ? AND cci.remaining_months > 0""",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    total_cc = int(row["total_cc"]) if row else 0
+    cc_count = row["total_active"] if row else 0
+
+    return {
+        "total_kpr": total_kpr,
+        "kpr_count": kpr_count,
+        "total_cc": total_cc,
+        "cc_count": cc_count,
+        "total_debt": total_kpr + total_cc,
+    }

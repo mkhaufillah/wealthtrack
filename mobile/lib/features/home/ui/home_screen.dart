@@ -22,6 +22,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _savingsBalance = 0;
   int _emergencyBalance = 0;
+  Map<String, dynamic> _debtData = {};
+  bool _debtLoading = true;
 
   String _formatDate(String iso) {
     try {
@@ -39,6 +41,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Future.microtask(() => ref.read(dashboardProvider.notifier).load());
     Future.microtask(() => _loadAllTimeBalances());
     Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());
+    Future.microtask(() => _loadDebtSummary());
   }
 
   @override
@@ -73,6 +76,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     } catch (e) {
       debugPrint('ERROR: $e');
       // Silently fail — the summary card is optional
+    }
+  }
+
+  Future<void> _loadDebtSummary() async {
+    try {
+      final api = ref.read(apiClientProvider);
+      final resp = await api.get('/summaries/debt');
+      final data = resp.data as Map<String, dynamic>? ?? {};
+      if (mounted) {
+        setState(() {
+          _debtData = data;
+          _debtLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('ERROR: $e');
+      if (mounted) setState(() => _debtLoading = false);
     }
   }
 
@@ -170,6 +190,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       const SizedBox(height: 24),
                       _buildCategoriesCard(),
+                      if (!_debtLoading && _debtData['total_debt'] != null && (_debtData['total_debt'] as int) > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildDebtSummaryCard(),
+                        ),
                       const SizedBox(height: 24),
                       _buildAiCard(),
                       const SizedBox(height: 8),
@@ -181,6 +206,73 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+  Widget _buildDebtSummaryCard() {
+    final totalKpr = _debtData['total_kpr'] as int? ?? 0;
+    final totalCc = _debtData['total_cc'] as int? ?? 0;
+    final totalDebt = _debtData['total_debt'] as int? ?? 0;
+
+    return Card(
+      color: AppColors.highlight.withAlpha(15),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.highlight.withAlpha(50)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.highlight.withAlpha(30),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.warning_amber_rounded, color: AppColors.highlight, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Text('Total Outstanding Debt',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (totalKpr > 0)
+              _debtRow('🏠 KPR', formatCurrency(totalKpr)),
+            if (totalKpr > 0 && totalCc > 0)
+              const SizedBox(height: 6),
+            if (totalCc > 0)
+              _debtRow('💳 Credit Cards', formatCurrency(totalCc)),
+            const Divider(height: 18),
+            _debtRow('Total', formatCurrency(totalDebt),
+                valueColor: AppColors.highlight, bold: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _debtRow(String label, String value, {Color? valueColor, bool bold = false}) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(label,
+              style: TextStyle(fontSize: 13, fontWeight: bold ? FontWeight.w600 : FontWeight.w500)),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
+            color: valueColor ?? AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCategoriesCard() {
     return Card(
       color: AppColors.surface,

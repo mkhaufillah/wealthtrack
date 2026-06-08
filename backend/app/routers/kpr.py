@@ -45,6 +45,7 @@ def _convert_sim_row(row: dict) -> KPRSimulationOut:
         start_year=row.get("start_year", 2026),
         current_month_number=row.get("current_month_number", 1),
         current_month_payment=row.get("current_month_payment", 0),
+        current_remaining_balance=row.get("current_remaining_balance", 0),
     )
 
 
@@ -171,7 +172,8 @@ async def list_simulations(
                COALESCE(agg.total_interest, 0) AS total_interest,
                COALESCE(agg.monthly_payment, 0) AS monthly_payment,
                COALESCE(agg.current_month_number, 1) AS current_month_number,
-               COALESCE(agg.current_month_payment, 0) AS current_month_payment
+               COALESCE(agg.current_month_payment, 0) AS current_month_payment,
+               COALESCE(agg.current_remaining_balance, 0) AS current_remaining_balance
            FROM kpr_simulations ks
            LEFT JOIN (
                SELECT
@@ -186,6 +188,14 @@ async def list_simulations(
                        )
                        FROM kpr_simulations ks2 WHERE ks2.id = kms.simulation_id
                    ) THEN payment ELSE 0 END) AS current_month_payment,
+                   MAX(CASE WHEN month_number = (
+                       SELECT LEAST(
+                           (EXTRACT(YEAR FROM CURRENT_DATE) - ks3.start_year) * 12
+                           + (EXTRACT(MONTH FROM CURRENT_DATE) - ks3.start_month) + 1,
+                           ks3.tenor_months
+                       )
+                       FROM kpr_simulations ks3 WHERE ks3.id = kms.simulation_id
+                   ) THEN remaining_balance ELSE 0 END) AS current_remaining_balance,
                    (
                        SELECT LEAST(
                            (EXTRACT(YEAR FROM CURRENT_DATE) - ks3.start_year) * 12

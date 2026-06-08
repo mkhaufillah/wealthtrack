@@ -80,6 +80,9 @@ Pengguna memiliki dua kategori khusus:
 • Dana Darurat / Emergency Funds — dicatat sebagai pengeluaran saat menyisihkan, pemasukan saat menggunakan dana.
 {all_time_balances}
 
+**Total Utang:**
+{debt_context}
+
 {search_results}
 
 ─── CARA MENGANALISIS ───
@@ -404,6 +407,53 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         if results:
             search_text = format_search_results(results)
 
+    # ── Debt summary ──
+    cursor = await db.execute(
+        """SELECT COALESCE(SUM(kms.remaining_balance), 0) AS total_kpr
+           FROM kpr_monthly_schedules kms
+           JOIN kpr_simulations ks ON ks.id = kms.simulation_id
+           WHERE ks.user_id = ?
+           AND kms.month_number = LEAST(
+               (EXTRACT(YEAR FROM CURRENT_DATE) - ks.start_year) * 12
+               + (EXTRACT(MONTH FROM CURRENT_DATE) - ks.start_month) + 1,
+               ks.tenor_months
+           )""",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    total_kpr = int(row["total_kpr"]) if row else 0
+
+    cursor = await db.execute(
+        "SELECT COUNT(*) AS cnt FROM kpr_simulations WHERE user_id = ?",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    kpr_count = row["cnt"] if row else 0
+
+    cursor = await db.execute(
+        """SELECT COUNT(*) AS total_active,
+                  COALESCE(SUM(cci.monthly_amount * cci.remaining_months), 0) AS total_cc
+           FROM credit_card_installments cci
+           JOIN credit_cards cc ON cc.id = cci.card_id
+           WHERE cc.user_id = ? AND cci.remaining_months > 0""",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    total_cc = int(row["total_cc"]) if row else 0
+    cc_count = row["total_active"] if row else 0
+    total_debt = total_kpr + total_cc
+
+    debt_parts = []
+    if kpr_count > 0:
+        debt_parts.append(f"• KPR: Rp{total_kpr:,} ({kpr_count} simulasi)")
+    if cc_count > 0:
+        debt_parts.append(f"• Kartu Kredit (cicilan): Rp{total_cc:,} ({cc_count} cicilan aktif)")
+    if debt_parts:
+        debt_context = "\n".join(debt_parts)
+        debt_context += f"\n• **Total Utang: Rp{total_debt:,}**"
+    else:
+        debt_context = "Tidak ada utang aktif saat ini."
+
     return {
         "user_name": user_name,
         "current_datetime_wib": current_datetime,
@@ -422,6 +472,7 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         "budgets": budgets,
         "health_context": health_context,
         "all_time_balances": all_time_balances,
+        "debt_context": debt_context,
         "search_results": search_text,
     }
 

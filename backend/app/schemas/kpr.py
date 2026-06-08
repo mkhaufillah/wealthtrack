@@ -56,6 +56,7 @@ class KPRSimulationOut(BaseModel):
     start_year: int = 2026
     current_month_number: int = 1
     current_month_payment: int = 0
+    current_remaining_balance: int = 0
 
 
 class KPRSimulationDetailOut(KPRSimulationOut):
