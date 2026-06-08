@@ -122,23 +122,6 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
     }
   }
 
-  Future<bool> updateInstallment(
-    int cardId,
-    int instId,
-    Map<String, dynamic> data,
-  ) async {
-    try {
-      await _api.put(
-        '/credit-cards/$cardId/installments/$instId',
-        data: data,
-      );
-      await loadCardDetail(cardId);
-      return true;
-    } catch (e) {
-      state = state.copyWith(error: _api.handleError(e).toString());
-      return false;
-    }
-  }
 
   Future<bool> deleteInstallment(int cardId, int instId) async {
     try {

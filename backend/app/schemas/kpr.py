@@ -21,6 +21,7 @@ class KPRSimulationCreate(BaseModel):
     rate_periods: list[RatePeriodIn] = []
     start_month: int = Field(1, ge=1, le=12)
     start_year: int = Field(2026, ge=2000, le=2100)
+    due_date: Optional[int] = Field(None, ge=1, le=31)
 
 
 class KPRSimulationUpdate(BaseModel):
@@ -54,6 +55,7 @@ class KPRSimulationOut(BaseModel):
     monthly_payment: int = 0
     start_month: int = 1
     start_year: int = 2026
+    due_date: Optional[int] = None
     current_month_number: int = 1
     current_month_payment: int = 0
     current_remaining_balance: int = 0

@@ -120,7 +120,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('WealthTrack')),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(dashboardProvider.notifier).load(force: true),
+        onRefresh: () async {
+          await ref.read(dashboardProvider.notifier).load(force: true);
+          _loadDebtSummary();
+        },
         child: state.isLoading
             ? const ShimmerLoading(itemCount: 4, itemHeight: 120)
             : state.error != null
@@ -200,7 +203,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       const SizedBox(height: 24),
                       _buildAiCard(),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 24),
                       _buildDebtCard(),
                       const SizedBox(height: 24),
                       RecentTransactions(transactions: state.recentTransactions),

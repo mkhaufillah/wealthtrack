@@ -83,8 +83,8 @@ async def create_simulation(
         cursor = await db.execute(
             """INSERT INTO kpr_simulations
                (user_id, name, property_price, down_payment, total_loan,
-                tenor_months, interest_type, start_month, start_year)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                tenor_months, interest_type, start_month, start_year, due_date)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 user_id,
                 data.name,
@@ -95,6 +95,7 @@ async def create_simulation(
                 data.interest_type,
                 data.start_month,
                 data.start_year,
+                data.due_date,
             ),
         )
         sim_id = cursor.lastrowid
@@ -173,7 +174,7 @@ async def list_simulations(
         """SELECT
                ks.id, ks.user_id, ks.name, ks.property_price, ks.down_payment,
                ks.total_loan, ks.tenor_months, ks.interest_type, ks.created_at,
-               ks.start_month, ks.start_year,
+               ks.start_month, ks.start_year, ks.due_date,
                COALESCE(agg.total_interest, 0) AS total_interest,
                COALESCE(agg.monthly_payment, 0) AS monthly_payment,
                COALESCE(agg.current_month_number, 1) AS current_month_number,

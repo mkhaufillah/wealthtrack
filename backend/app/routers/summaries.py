@@ -545,18 +545,32 @@ async def debt_summary(
     """Total remaining debt: KPR remaining principal + CC transactions + CC installment remaining."""
     user_id = current_user["id"]
 
-    # Total KPR remaining: remaining_balance BEFORE this month's payment
-    # If current_month=1 (no payment made yet), use total_loan
-    # If current_month>1, use remaining_balance at month (current_month - 1)
+    # Total KPR remaining with due_date awareness
+    # If due_date IS NOT NULL AND current day >= due_date → payment made this month
+    #   → outstanding = remaining_balance AFTER payment (month = current_month)
+    # If due_date IS NULL OR current day < due_date → payment not yet this month
+    #   → outstanding = remaining_balance BEFORE payment (month = current_month - 1)
     cursor = await db.execute(
         """SELECT COALESCE(SUM(
-            CASE WHEN cm.current_month <= 1 THEN ks.total_loan
-            ELSE (
-                SELECT kms.remaining_balance
-                FROM kpr_monthly_schedules kms
-                WHERE kms.simulation_id = ks.id
-                AND kms.month_number = cm.current_month - 1
-            ) END
+            CASE
+                WHEN ks.due_date IS NOT NULL AND EXTRACT(DAY FROM CURRENT_DATE) >= ks.due_date THEN
+                    -- Payment already made this month → after-payment balance
+                    COALESCE((
+                        SELECT kms.remaining_balance
+                        FROM kpr_monthly_schedules kms
+                        WHERE kms.simulation_id = ks.id
+                        AND kms.month_number = cm.current_month
+                    ), ks.total_loan)
+                ELSE
+                    -- Payment not yet made → before-payment balance (original logic)
+                    CASE WHEN cm.current_month <= 1 THEN ks.total_loan
+                    ELSE (
+                        SELECT kms.remaining_balance
+                        FROM kpr_monthly_schedules kms
+                        WHERE kms.simulation_id = ks.id
+                        AND kms.month_number = cm.current_month - 1
+                    ) END
+            END
         ), 0) AS total_kpr
         FROM kpr_simulations ks
         CROSS JOIN LATERAL (
@@ -580,13 +594,14 @@ async def debt_summary(
     row = await cursor.fetchone()
     kpr_count = row["cnt"] if row else 0
 
-    # Total CC: unpaid transactions (non-installment) + installment remaining amounts
+    # Total CC: this month's transactions (non-installment) + installment remaining amounts
     cursor = await db.execute(
-        """SELECT
-               COALESCE(SUM(cct.amount), 0) AS total_txns
+        """SELECT COALESCE(SUM(cct.amount), 0) AS total_txns
            FROM credit_card_transactions cct
            JOIN credit_cards cc ON cc.id = cct.card_id
-           WHERE cc.user_id = ? AND cct.is_installment = 0""",
+           WHERE cc.user_id = ? AND cct.is_installment = 0
+               AND EXTRACT(YEAR FROM cct.transaction_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+               AND EXTRACT(MONTH FROM cct.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
         (user_id,),
     )
     row = await cursor.fetchone()
@@ -595,10 +610,17 @@ async def debt_summary(
     cursor = await db.execute(
         """SELECT
                COUNT(*) AS total_active,
-               COALESCE(SUM(cci.monthly_amount * cci.remaining_months), 0) AS total_installments
+               COALESCE(SUM(cci.monthly_amount * GREATEST(0, cci.total_months - (
+                   (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
+                   - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
+               ))), 0) AS total_installments
            FROM credit_card_installments cci
            JOIN credit_cards cc ON cc.id = cci.card_id
-           WHERE cc.user_id = ? AND cci.remaining_months > 0""",
+           WHERE cc.user_id = ?
+               AND cci.total_months > (
+                   (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
+                   - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
+               )""",
         (user_id,),
     )
     row = await cursor.fetchone()

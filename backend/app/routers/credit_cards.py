@@ -9,7 +9,6 @@ from app.schemas.credit_card import (
     CreditCardTransactionCreate,
     CreditCardTransactionOut,
     CreditCardInstallmentCreate,
-    CreditCardInstallmentUpdate,
     CreditCardInstallmentOut,
     NextMonthProjection,
 )
@@ -43,19 +42,36 @@ async def next_month_projection(
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> NextMonthProjection:
-    """Aggregate all active installments across cards for next month's projection.
+    """Aggregate this month's non-installment transactions and active installments
+    per card for next month's projection.
 
-    For each card, sums monthly_amount of installments where remaining_months > 0,
-    grouped by card. Returns per-card breakdown plus grand total.
+    For each card, sums:
+      - current-month non-installment transactions
+      - monthly_amount of installments where total_months > elapsed_months
+        (i.e., remaining > 0 dynamically computed from start_month)
+    Returns per-card breakdown plus grand total.
     """
     cursor = await db.execute(
         """SELECT
                cc.id AS card_id,
                cc.name AS card_name,
-               COALESCE(SUM(cci.monthly_amount), 0) AS total_monthly
+               COALESCE(SUM(combined.monthly), 0) AS total_monthly
            FROM credit_cards cc
-           LEFT JOIN credit_card_installments cci
-               ON cci.card_id = cc.id AND cci.remaining_months > 0
+           LEFT JOIN (
+               -- current month non-installment transactions
+               SELECT card_id, amount AS monthly FROM credit_card_transactions
+               WHERE is_installment = 0
+                   AND EXTRACT(YEAR FROM transaction_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+                   AND EXTRACT(MONTH FROM transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+               UNION ALL
+               -- active installments
+               SELECT cci.card_id, cci.monthly_amount AS monthly
+               FROM credit_card_installments cci
+               WHERE cci.total_months > (
+                   EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer
+                   - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
+               )
+           ) combined ON combined.card_id = cc.id
            WHERE cc.user_id = ?
            GROUP BY cc.id, cc.name
            ORDER BY cc.name""",
@@ -74,12 +90,16 @@ async def next_month_projection(
         grand_total += monthly
         per_card.append({"card_id": r["card_id"], "card_name": r["card_name"], "total": monthly})
 
-    # Count distinct active installments
+    # Count distinct active installments dynamically (remaining > 0)
     count_cursor = await db.execute(
         """SELECT COUNT(*) AS cnt
            FROM credit_card_installments cci
            JOIN credit_cards cc ON cc.id = cci.card_id
-           WHERE cc.user_id = ? AND cci.remaining_months > 0""",
+           WHERE cc.user_id = ?
+             AND cci.total_months > (
+                 EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer
+                 - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
+             )""",
         (current_user["id"],),
     )
     count_row = await count_cursor.fetchone()
@@ -337,7 +357,7 @@ async def create_installment(
             data.total_amount,
             data.monthly_amount,
             data.total_months,
-            data.remaining_months,
+            data.total_months,
             data.start_month,
         ),
     )
@@ -372,50 +392,6 @@ async def list_installments(
     )
     rows = await cursor.fetchall()
     return [CreditCardInstallmentOut(**dict(r)) for r in rows]
-
-
-@router.put("/{card_id}/installments/{inst_id}")
-async def update_installment(
-    card_id: int,
-    inst_id: int,
-    data: CreditCardInstallmentUpdate,
-    db: CursorWrapper = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    """Update an installment (e.g., decrement remaining_months)."""
-    await _get_card_for_user(db, card_id, current_user["id"])
-
-    cursor = await db.execute(
-        "SELECT id FROM credit_card_installments WHERE id = ? AND card_id = ?",
-        (inst_id, card_id),
-    )
-    if not await cursor.fetchone():
-        raise HTTPException(status_code=404, detail="Installment not found")
-
-    fields = []
-    params = []
-
-    if data.remaining_months is not None:
-        fields.append("remaining_months = ?")
-        params.append(data.remaining_months)
-
-    if not fields:
-        raise HTTPException(status_code=400, detail="No fields to update")
-
-    params.append(inst_id)
-    await db.execute(
-        f"UPDATE credit_card_installments SET {', '.join(fields)} WHERE id = ?",
-        tuple(params),
-    )
-
-    inst_cursor = await db.execute(
-        """SELECT id, card_id, description, total_amount, monthly_amount,
-                  total_months, remaining_months, start_month, created_at
-           FROM credit_card_installments WHERE id = ?""",
-        (inst_id,),
-    )
-    row = await inst_cursor.fetchone()
-    return CreditCardInstallmentOut(**dict(row))
 
 
 @router.delete("/{card_id}/installments/{inst_id}", status_code=204)

@@ -65,6 +65,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
   String _interestType = 'fixed';
   int _startMonth = DateTime.now().month;
   int _startYear = DateTime.now().year;
+  int? _dueDate;
 
   // Fixed/Floating fields
   final _baseRateCtrl = TextEditingController(text: '9.0');
@@ -314,6 +315,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       'base_interest_rate': _getBaseRate() / 100,
       'start_month': _startMonth,
       'start_year': _startYear,
+      if (_dueDate != null) 'due_date': _dueDate,
     };
 
     if (_interestType == 'graduated') {
@@ -488,6 +490,24 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 20),
+
+            // ─── Due Date ───────────────────────────
+            _sectionLabel('Payment Due Date'),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<int>(
+              value: _dueDate,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.event, size: 20),
+                hintText: 'Date of month',
+              ),
+              items: List.generate(28, (i) => i + 1).map((d) {
+                return DropdownMenuItem(value: d, child: Text('Day $d'));
+              }).toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _dueDate = v);
+              },
             ),
             const SizedBox(height: 20),
 

@@ -111,16 +111,32 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
   int _getMonthlyAmount() => _parseAmount(_monthlyAmountCtrl.text);
   int _getTotalMonths() => int.tryParse(_totalMonthsCtrl.text) ?? 0;
 
-  String? _validateRequired(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Required';
-    return null;
+  Future<void> _pickStartMonth() async {
+    final now = DateTime.now();
+    final currentParts = _startMonthCtrl.text.split('-');
+    int year = now.year;
+    int month = now.month;
+    if (currentParts.length == 2) {
+      year = int.tryParse(currentParts[0]) ?? now.year;
+      month = int.tryParse(currentParts[1]) ?? now.month;
+      month = month.clamp(1, 12);
+    }
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(year, month, 1),
+      firstDate: DateTime(2020, 1, 1),
+      lastDate: DateTime(2035, 12, 31),
+      initialDatePickerMode: DatePickerMode.year,
+      helpText: 'Select Start Month',
+    );
+    if (picked != null) {
+      final formatted = '${picked.year}-${picked.month.toString().padLeft(2, '0')}';
+      _startMonthCtrl.text = formatted;
+    }
   }
 
-  String? _validateStartMonth(String? value) {
+  String? _validateRequired(String? value) {
     if (value == null || value.trim().isEmpty) return 'Required';
-    if (!RegExp(r'^\d{4}-\d{2}$').hasMatch(value.trim())) {
-      return 'Use YYYY-MM format';
-    }
     return null;
   }
 
@@ -256,11 +272,14 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             const SizedBox(height: 6),
             TextFormField(
               controller: _startMonthCtrl,
-              decoration: const InputDecoration(
+              readOnly: true,
+              decoration: InputDecoration(
                 hintText: 'YYYY-MM',
-                prefixIcon: Icon(Icons.calendar_month_outlined, size: 20),
+                prefixIcon: const Icon(Icons.calendar_month_outlined, size: 20),
+                suffixIcon: Icon(Icons.arrow_drop_down, size: 20, color: AppColors.textSecondary),
               ),
-              validator: _validateStartMonth,
+              validator: _validateRequired,
+              onTap: _pickStartMonth,
             ),
             const SizedBox(height: 32),
 

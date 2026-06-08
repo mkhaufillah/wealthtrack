@@ -449,11 +449,11 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
       itemCount: installments.length,
-      itemBuilder: (_, i) => _buildInstallmentItem(card.id, installments[i]),
+      itemBuilder: (_, i) => _buildInstallmentItem(installments[i]),
     );
   }
 
-  Widget _buildInstallmentItem(int cardId, CCInstallment inst) {
+  Widget _buildInstallmentItem(CCInstallment inst) {
     final progress = inst.totalMonths - inst.remainingMonths;
     final progressRatio = inst.totalMonths > 0
         ? progress / inst.totalMonths
@@ -481,22 +481,6 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                   ),
                 ),
               ),
-              if (inst.remainingMonths == 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withAlpha(30),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'Paid',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.success,
-                    ),
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: 10),
@@ -529,45 +513,11 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
               Expanded(
                 child: _infoColumn('Total', formatCurrency(inst.totalAmount)),
               ),
-              if (inst.remainingMonths > 0)
-                TextButton(
-                  onPressed: () => _markMonthComplete(cardId, inst),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    'Mark Complete',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                ),
             ],
           ),
         ],
       ),
     );
-  }
-
-  Future<void> _markMonthComplete(int cardId, CCInstallment inst) async {
-    final newRemaining = (inst.remainingMonths - 1).clamp(0, inst.totalMonths);
-    final success = await ref.read(creditCardProvider.notifier).updateInstallment(
-      cardId,
-      inst.id,
-      {'remaining_months': newRemaining},
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? 'Installment updated' : 'Failed to update installment'),
-        ),
-      );
-    }
   }
 
   Widget _infoColumn(String label, String value) {

@@ -59,10 +59,6 @@ class CreditCardInstallmentCreate(BaseModel):
     start_month: str
 
 
-class CreditCardInstallmentUpdate(BaseModel):
-    remaining_months: Optional[int] = None
-
-
 class CreditCardInstallmentOut(BaseModel):
     id: int
     card_id: int
