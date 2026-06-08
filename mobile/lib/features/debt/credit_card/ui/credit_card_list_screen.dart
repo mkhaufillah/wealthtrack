@@ -267,7 +267,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                         color: AppColors.accent.withAlpha(25),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.credit_card,
                         size: 22,
                         color: AppColors.accent,

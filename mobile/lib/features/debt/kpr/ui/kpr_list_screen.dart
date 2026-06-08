@@ -221,7 +221,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                         color: AppColors.accent.withAlpha(25),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.home_work_outlined,
                         size: 22,
                         color: AppColors.accent,
