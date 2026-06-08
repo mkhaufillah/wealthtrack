@@ -542,20 +542,31 @@ async def debt_summary(
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Total remaining debt: KPR remaining balance + CC installment remaining."""
+    """Total remaining debt: KPR remaining principal + CC transactions + CC installment remaining."""
     user_id = current_user["id"]
 
-    # Total KPR remaining (sum of current remaining balance across all simulations)
+    # Total KPR remaining: remaining_balance BEFORE this month's payment
+    # If current_month=1 (no payment made yet), use total_loan
+    # If current_month>1, use remaining_balance at month (current_month - 1)
     cursor = await db.execute(
-        """SELECT COALESCE(SUM(kms.remaining_balance), 0) AS total_kpr
-           FROM kpr_monthly_schedules kms
-           JOIN kpr_simulations ks ON ks.id = kms.simulation_id
-           WHERE ks.user_id = ?
-           AND kms.month_number = LEAST(
-               (EXTRACT(YEAR FROM CURRENT_DATE) - ks.start_year) * 12
-               + (EXTRACT(MONTH FROM CURRENT_DATE) - ks.start_month) + 1,
-               ks.tenor_months
-           )""",
+        """SELECT COALESCE(SUM(
+            CASE WHEN cm.current_month <= 1 THEN ks.total_loan
+            ELSE (
+                SELECT kms.remaining_balance
+                FROM kpr_monthly_schedules kms
+                WHERE kms.simulation_id = ks.id
+                AND kms.month_number = cm.current_month - 1
+            ) END
+        ), 0) AS total_kpr
+        FROM kpr_simulations ks
+        CROSS JOIN LATERAL (
+            SELECT LEAST(
+                (EXTRACT(YEAR FROM CURRENT_DATE) - ks.start_year) * 12
+                + (EXTRACT(MONTH FROM CURRENT_DATE) - ks.start_month) + 1,
+                ks.tenor_months
+            ) AS current_month
+        ) cm
+        WHERE ks.user_id = ?""",
         (user_id,),
     )
     row = await cursor.fetchone()
@@ -569,19 +580,32 @@ async def debt_summary(
     row = await cursor.fetchone()
     kpr_count = row["cnt"] if row else 0
 
-    # Total CC remaining (sum of monthly_amount * remaining_months)
+    # Total CC: unpaid transactions (non-installment) + installment remaining amounts
+    cursor = await db.execute(
+        """SELECT
+               COALESCE(SUM(cct.amount), 0) AS total_txns
+           FROM credit_card_transactions cct
+           JOIN credit_cards cc ON cc.id = cct.card_id
+           WHERE cc.user_id = ? AND cct.is_installment = 0""",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    total_cc_txns = int(row["total_txns"]) if row else 0
+
     cursor = await db.execute(
         """SELECT
                COUNT(*) AS total_active,
-               COALESCE(SUM(cci.monthly_amount * cci.remaining_months), 0) AS total_cc
+               COALESCE(SUM(cci.monthly_amount * cci.remaining_months), 0) AS total_installments
            FROM credit_card_installments cci
            JOIN credit_cards cc ON cc.id = cci.card_id
            WHERE cc.user_id = ? AND cci.remaining_months > 0""",
         (user_id,),
     )
     row = await cursor.fetchone()
-    total_cc = int(row["total_cc"]) if row else 0
+    total_cc_installments = int(row["total_installments"]) if row else 0
     cc_count = row["total_active"] if row else 0
+
+    total_cc = total_cc_txns + total_cc_installments
 
     return {
         "total_kpr": total_kpr,

@@ -31,6 +31,11 @@ async def _get_simulation_for_user(
 
 
 def _convert_sim_row(row: dict) -> KPRSimulationOut:
+    cmn = row.get("current_month_number", 1)
+    crb = row.get("current_remaining_balance", 0)
+    # If month 1, remaining balance = total_loan (no payment made yet)
+    if cmn <= 1 and crb == 0:
+        crb = row.get("total_loan", 0)
     return KPRSimulationOut(
         id=row["id"],
         user_id=row["user_id"],
@@ -45,7 +50,7 @@ def _convert_sim_row(row: dict) -> KPRSimulationOut:
         start_year=row.get("start_year", 2026),
         current_month_number=row.get("current_month_number", 1),
         current_month_payment=row.get("current_month_payment", 0),
-        current_remaining_balance=row.get("current_remaining_balance", 0),
+        current_remaining_balance=crb,
     )
 
 
@@ -189,12 +194,16 @@ async def list_simulations(
                        FROM kpr_simulations ks2 WHERE ks2.id = kms.simulation_id
                    ) THEN payment ELSE 0 END) AS current_month_payment,
                    MAX(CASE WHEN month_number = (
-                       SELECT LEAST(
-                           (EXTRACT(YEAR FROM CURRENT_DATE) - ks3.start_year) * 12
-                           + (EXTRACT(MONTH FROM CURRENT_DATE) - ks3.start_month) + 1,
-                           ks3.tenor_months
-                       )
+                       SELECT CASE WHEN cm.current_month <= 1 THEN 0
+                       ELSE cm.current_month - 1 END
                        FROM kpr_simulations ks3 WHERE ks3.id = kms.simulation_id
+                       CROSS JOIN LATERAL (
+                           SELECT LEAST(
+                               (EXTRACT(YEAR FROM CURRENT_DATE) - ks3.start_year) * 12
+                               + (EXTRACT(MONTH FROM CURRENT_DATE) - ks3.start_month) + 1,
+                               ks3.tenor_months
+                           ) AS current_month
+                       ) cm
                    ) THEN remaining_balance ELSE 0 END) AS current_remaining_balance,
                    (
                        SELECT LEAST(

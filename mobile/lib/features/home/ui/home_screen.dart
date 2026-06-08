@@ -103,7 +103,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Reload dashboard when homeRefreshProvider is incremented
     ref.listen<int>(homeRefreshProvider, (prev, next) {
-      if (prev != next) ref.read(dashboardProvider.notifier).load(force: true);
+      if (prev != next) {
+        ref.read(dashboardProvider.notifier).load(force: true);
+        _loadDebtSummary();
+      }
     });
 
     // Auto-refresh when OCR pending drops to 0
@@ -245,7 +248,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 6),
             if (totalCc > 0)
               _debtRow('💳 Credit Cards', formatCurrency(totalCc)),
-            const Divider(height: 18),
+            Divider(height: 18, color: AppColors.divider),
             _debtRow('Total', formatCurrency(totalDebt),
                 valueColor: AppColors.highlight, bold: true),
           ],
