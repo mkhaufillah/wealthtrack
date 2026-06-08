@@ -19,6 +19,8 @@ class KPRSimulationCreate(BaseModel):
     graduated_increment: float = 0.005
     graduated_every_months: int = 12
     rate_periods: list[RatePeriodIn] = []
+    start_month: int = Field(1, ge=1, le=12)
+    start_year: int = Field(2026, ge=2000, le=2100)
 
 
 class KPRSimulationUpdate(BaseModel):
@@ -50,6 +52,10 @@ class KPRSimulationOut(BaseModel):
     created_at: str
     total_interest: int = 0
     monthly_payment: int = 0
+    start_month: int = 1
+    start_year: int = 2026
+    current_month_number: int = 1
+    current_month_payment: int = 0
 
 
 class KPRSimulationDetailOut(KPRSimulationOut):

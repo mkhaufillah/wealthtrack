@@ -63,6 +63,8 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
 
   int _tenorYears = 15;
   String _interestType = 'fixed';
+  int _startMonth = DateTime.now().month;
+  int _startYear = DateTime.now().year;
 
   // Fixed/Floating fields
   final _baseRateCtrl = TextEditingController(text: '9.0');
@@ -310,6 +312,8 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       'tenor_months': _getTenorMonths(),
       'interest_type': _interestType,
       'base_interest_rate': _getBaseRate() / 100,
+      'start_month': _startMonth,
+      'start_year': _startYear,
     };
 
     if (_interestType == 'graduated') {
@@ -439,6 +443,51 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               onChanged: (v) {
                 if (v != null) setState(() => _tenorYears = v);
               },
+            ),
+            const SizedBox(height: 20),
+
+            // ─── Start Month & Year ──────────────────
+            _sectionLabel('First Payment'),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: _startMonth,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.calendar_month, size: 20),
+                    ),
+                    items: List.generate(12, (i) => i + 1).map((m) {
+                      final months = [
+                        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                      ];
+                      return DropdownMenuItem(
+                        value: m,
+                        child: Text(months[m - 1]),
+                      );
+                    }).toList(),
+                    onChanged: (v) {
+                      if (v != null) setState(() => _startMonth = v);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: _startYear,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.date_range, size: 20),
+                    ),
+                    items: List.generate(31, (i) => 2020 + i).map((y) {
+                      return DropdownMenuItem(value: y, child: Text('$y'));
+                    }).toList(),
+                    onChanged: (v) {
+                      if (v != null) setState(() => _startYear = v);
+                    },
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
 

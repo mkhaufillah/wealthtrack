@@ -148,6 +148,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                                 .firstOrNull,
                             state.projection!,
                             isDark,
+                            card: card,
                           ),
                         Expanded(
                           child: TabBarView(
@@ -272,9 +273,12 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
     );
   }
 
-  Widget _buildProjectionSummary(Map<String, dynamic>? cardProjection, NextMonthProjection projection, bool isDark) {
+  Widget _buildProjectionSummary(Map<String, dynamic>? cardProjection, NextMonthProjection projection, bool isDark, {CreditCardModel? card}) {
     final totalForCard = cardProjection?['total'] as int? ?? projection.totalExpected;
-    final totalInstallments = projection.totalInstallments;
+    final perCardCount = card?.installments
+            ?.where((inst) => inst.remainingMonths > 0)
+            .length ??
+        projection.totalInstallments;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -302,7 +306,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${totalInstallments} installments · ${formatCurrency(totalForCard)} expected',
+                  '${perCardCount} installments · ${formatCurrency(totalForCard)} expected',
                   style: TextStyle(
                     fontSize: 13,
                     color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,

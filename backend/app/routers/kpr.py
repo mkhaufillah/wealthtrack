@@ -41,6 +41,10 @@ def _convert_sim_row(row: dict) -> KPRSimulationOut:
         tenor_months=row["tenor_months"],
         interest_type=row["interest_type"],
         created_at=row["created_at"],
+        start_month=row.get("start_month", 1),
+        start_year=row.get("start_year", 2026),
+        current_month_number=row.get("current_month_number", 1),
+        current_month_payment=row.get("current_month_payment", 0),
     )
 
 
@@ -73,8 +77,8 @@ async def create_simulation(
         cursor = await db.execute(
             """INSERT INTO kpr_simulations
                (user_id, name, property_price, down_payment, total_loan,
-                tenor_months, interest_type)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                tenor_months, interest_type, start_month, start_year)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 user_id,
                 data.name,
@@ -83,6 +87,8 @@ async def create_simulation(
                 total_loan,
                 data.tenor_months,
                 data.interest_type,
+                data.start_month,
+                data.start_year,
             ),
         )
         sim_id = cursor.lastrowid
@@ -161,21 +167,34 @@ async def list_simulations(
         """SELECT
                ks.id, ks.user_id, ks.name, ks.property_price, ks.down_payment,
                ks.total_loan, ks.tenor_months, ks.interest_type, ks.created_at,
+               ks.start_month, ks.start_year,
                COALESCE(agg.total_interest, 0) AS total_interest,
-               COALESCE(agg.monthly_payment, 0) AS monthly_payment
+               COALESCE(agg.monthly_payment, 0) AS monthly_payment,
+               COALESCE(agg.current_month_number, 1) AS current_month_number,
+               COALESCE(agg.current_month_payment, 0) AS current_month_payment
            FROM kpr_simulations ks
            LEFT JOIN (
                SELECT
                    simulation_id,
                    SUM(interest) AS total_interest,
-                   MAX(monthly_payment) AS monthly_payment
-               FROM (
-                   SELECT
-                       simulation_id,
-                       interest,
-                       CASE WHEN month_number = 1 THEN payment ELSE 0 END AS monthly_payment
-                   FROM kpr_monthly_schedules
-               ) sub
+                   MAX(CASE WHEN month_number = 1 THEN payment ELSE 0 END) AS monthly_payment,
+                   MAX(CASE WHEN month_number = (
+                       SELECT LEAST(
+                           (EXTRACT(YEAR FROM CURRENT_DATE) - ks2.start_year) * 12
+                           + (EXTRACT(MONTH FROM CURRENT_DATE) - ks2.start_month) + 1,
+                           ks2.tenor_months
+                       )
+                       FROM kpr_simulations ks2 WHERE ks2.id = kms.simulation_id
+                   ) THEN payment ELSE 0 END) AS current_month_payment,
+                   (
+                       SELECT LEAST(
+                           (EXTRACT(YEAR FROM CURRENT_DATE) - ks3.start_year) * 12
+                           + (EXTRACT(MONTH FROM CURRENT_DATE) - ks3.start_month) + 1,
+                           ks3.tenor_months
+                       )
+                       FROM kpr_simulations ks3 WHERE ks3.id = kms.simulation_id
+                   ) AS current_month_number
+               FROM kpr_monthly_schedules kms
                GROUP BY simulation_id
            ) agg ON agg.simulation_id = ks.id
            WHERE ks.user_id = ?
