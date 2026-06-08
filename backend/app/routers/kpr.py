@@ -158,15 +158,32 @@ async def list_simulations(
 ) -> list[KPRSimulationOut]:
     """List all KPR simulations for the current user (metadata only)."""
     cursor = await db.execute(
-        """SELECT id, user_id, name, property_price, down_payment, total_loan,
-                  tenor_months, interest_type, created_at
-           FROM kpr_simulations
-           WHERE user_id = ?
-           ORDER BY created_at DESC""",
+        """SELECT
+               ks.id, ks.user_id, ks.name, ks.property_price, ks.down_payment,
+               ks.total_loan, ks.tenor_months, ks.interest_type, ks.created_at,
+               COALESCE(agg.total_interest, 0) AS total_interest,
+               COALESCE(agg.monthly_payment, 0) AS monthly_payment
+           FROM kpr_simulations ks
+           LEFT JOIN (
+               SELECT
+                   simulation_id,
+                   SUM(interest) AS total_interest,
+                   MAX(monthly_payment) AS monthly_payment
+               FROM (
+                   SELECT
+                       simulation_id,
+                       interest,
+                       CASE WHEN month_number = 1 THEN payment ELSE 0 END AS monthly_payment
+                   FROM kpr_monthly_schedules
+               ) sub
+               GROUP BY simulation_id
+           ) agg ON agg.simulation_id = ks.id
+           WHERE ks.user_id = ?
+           ORDER BY ks.created_at DESC""",
         (current_user["id"],),
     )
     rows = await cursor.fetchall()
-    return [_convert_sim_row(dict(r)) for r in rows]
+    return [KPRSimulationOut(**dict(r)) for r in rows]
 
 
 # ── Get single simulation ───────────────────────────────────────────

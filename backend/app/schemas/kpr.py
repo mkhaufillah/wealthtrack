@@ -48,6 +48,8 @@ class KPRSimulationOut(BaseModel):
     tenor_months: int
     interest_type: str
     created_at: str
+    total_interest: int = 0
+    monthly_payment: int = 0
 
 
 class KPRSimulationDetailOut(KPRSimulationOut):

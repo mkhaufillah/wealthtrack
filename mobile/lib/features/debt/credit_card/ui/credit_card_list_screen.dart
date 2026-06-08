@@ -70,8 +70,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
     // Compute summary values
     final totalLimit = state.cards.fold<int>(0, (sum, c) => sum + c.creditLimit);
     final totalActiveInstallments = state.cards.fold<int>(0, (sum, c) {
-      if (c.installments == null) return sum;
-      return sum + c.installments!.where((inst) => inst.remainingMonths > 0).length;
+      return sum + (c.activeInstallments);
     });
 
     return Scaffold(

@@ -114,6 +114,7 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
     try {
       await _api.post('/credit-cards/$cardId/installments', data: data);
       await loadCardDetail(cardId);
+      await loadProjection();
       return true;
     } catch (e) {
       state = state.copyWith(error: _api.handleError(e).toString());

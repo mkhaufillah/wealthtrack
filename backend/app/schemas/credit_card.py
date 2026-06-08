@@ -26,6 +26,7 @@ class CreditCardOut(BaseModel):
     due_date: int
     credit_limit: int
     created_at: str
+    active_installments: int = 0
 
 
 class CreditCardTransactionCreate(BaseModel):

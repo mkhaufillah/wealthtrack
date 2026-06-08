@@ -15,7 +15,13 @@ class DebtHomeScreen extends StatelessWidget {
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(title: const Text('Debt Tracker')),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/home'),
+          ),
+          title: const Text('Debt Tracker'),
+        ),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [

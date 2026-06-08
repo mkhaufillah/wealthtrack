@@ -126,11 +126,19 @@ async def list_credit_cards(
 ) -> list[CreditCardOut]:
     """List all credit cards for the current user."""
     cursor = await db.execute(
-        """SELECT id, user_id, name, card_number_last4, billing_date, due_date,
-                  credit_limit, created_at
-           FROM credit_cards
-           WHERE user_id = ?
-           ORDER BY created_at DESC""",
+        """SELECT
+               cc.id, cc.user_id, cc.name, cc.card_number_last4,
+               cc.billing_date, cc.due_date, cc.credit_limit, cc.created_at,
+               COALESCE(active_inst.cnt, 0) AS active_installments
+           FROM credit_cards cc
+           LEFT JOIN (
+               SELECT card_id, COUNT(*) AS cnt
+               FROM credit_card_installments
+               WHERE remaining_months > 0
+               GROUP BY card_id
+           ) active_inst ON active_inst.card_id = cc.id
+           WHERE cc.user_id = ?
+           ORDER BY cc.created_at DESC""",
         (current_user["id"],),
     )
     rows = await cursor.fetchall()

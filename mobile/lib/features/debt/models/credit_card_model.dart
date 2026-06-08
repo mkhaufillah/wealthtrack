@@ -7,6 +7,7 @@ class CreditCardModel {
   final int dueDate;
   final int creditLimit;
   final String createdAt;
+  final int activeInstallments;
   final List<CCTransaction>? transactions;
   final List<CCInstallment>? installments;
 
@@ -19,6 +20,7 @@ class CreditCardModel {
     this.dueDate = 15,
     this.creditLimit = 0,
     required this.createdAt,
+    this.activeInstallments = 0,
     this.transactions,
     this.installments,
   });
@@ -33,6 +35,7 @@ class CreditCardModel {
       dueDate: json['due_date'] as int? ?? 15,
       creditLimit: json['credit_limit'] as int? ?? 0,
       createdAt: json['created_at'] as String? ?? '',
+      activeInstallments: json['active_installments'] as int? ?? 0,
       transactions: (json['transactions'] as List?)
           ?.map((e) => CCTransaction.fromJson(e as Map<String, dynamic>))
           .toList(),

@@ -40,6 +40,8 @@ class KPRSimulation {
   final int tenorMonths;
   final String interestType;
   final String createdAt;
+  final int totalInterest;
+  final int monthlyPayment;
   final List<KPRScheduleItem>? schedule;
   final Map<String, dynamic>? summary;
 
@@ -53,6 +55,8 @@ class KPRSimulation {
     required this.tenorMonths,
     required this.interestType,
     required this.createdAt,
+    this.totalInterest = 0,
+    this.monthlyPayment = 0,
     this.schedule,
     this.summary,
   });
@@ -68,6 +72,8 @@ class KPRSimulation {
       tenorMonths: json['tenor_months'] as int? ?? 0,
       interestType: json['interest_type'] as String? ?? 'fixed',
       createdAt: json['created_at'] as String? ?? '',
+      totalInterest: json['total_interest'] as int? ?? 0,
+      monthlyPayment: json['monthly_payment'] as int? ?? 0,
       schedule: (json['schedule'] as List?)
           ?.map((e) => KPRScheduleItem.fromJson(e as Map<String, dynamic>))
           .toList(),

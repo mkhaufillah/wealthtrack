@@ -27,6 +27,39 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
     await ref.read(kprProvider.notifier).loadAll();
   }
 
+  // ── KPR current year selector ────────────────────────────
+  final Map<int, int> _currentYears = {};
+
+  int _getCurrentYear(int simId) => _currentYears[simId] ?? 1;
+
+  void _setCurrentYear(int simId, int year) {
+    setState(() => _currentYears[simId] = year.clamp(1, 99));
+  }
+
+  int _computePaymentForYear(KPRSimulation sim, int year) {
+    final basePayment = sim.monthlyPayment > 0 ? sim.monthlyPayment : sim.totalLoan ~/ (sim.tenorMonths.clamp(1, 999));
+    if (basePayment <= 0) return 0;
+
+    switch (sim.interestType.toLowerCase()) {
+      case 'fixed':
+        return basePayment;
+      case 'graduated':
+        final increment = (sim.summary?['graduated_increment'] as num?)?.toDouble() ?? 0.005;
+        final everyMonths = (sim.summary?['graduated_every_months'] as int?) ?? 12;
+        final periodsPassed = ((year - 1) * 12) ~/ everyMonths.clamp(1, 999);
+        final factor = pow(1 + increment, periodsPassed).toDouble();
+        return (basePayment * factor).round();
+      case 'floating':
+        // Estimate: payment adjusts with base rate changes
+        return basePayment;
+      case 'mix':
+        // Use base payment for mixed; detail screen has full schedule
+        return basePayment;
+      default:
+        return basePayment;
+    }
+  }
+
   Future<bool> _confirmDelete(KPRSimulation sim) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -139,12 +172,15 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
   }
 
   Widget _buildSimulationCard(KPRSimulation sim, bool isDark) {
-    final monthlyPayment = sim.summary?['monthly_payment'] as int?;
-    final totalInterest = sim.summary?['total_interest'] as int?;
-    final monthlyPaymentStr = monthlyPayment != null
+    final currentYear = _getCurrentYear(sim.id);
+    final yearlyPayment = _computePaymentForYear(sim, currentYear);
+    final monthlyPayment = sim.summary?['monthly_payment'] as int? ?? sim.monthlyPayment;
+    final totalInterest = sim.summary?['total_interest'] as int? ?? sim.totalInterest;
+    final monthlyPaymentStr = monthlyPayment > 0
         ? formatCurrency(monthlyPayment)
         : _estimateMonthlyPayment(sim.totalLoan, sim.tenorMonths);
-    final totalInterestStr = totalInterest != null
+    final adjustedPaymentStr = currentYear > 1 ? formatCurrency(yearlyPayment) : monthlyPaymentStr;
+    final totalInterestStr = totalInterest > 0
         ? formatCurrency(totalInterest)
         : formatCurrency(0);
 
@@ -240,7 +276,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                     Expanded(
                       child: _infoColumn(
                         'Monthly Payment',
-                        monthlyPaymentStr,
+                        adjustedPaymentStr,
                       ),
                     ),
                     Expanded(
@@ -249,6 +285,41 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                         totalInterestStr,
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Current year selector
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 14, color: AppColors.textSecondary),
+                    const SizedBox(width: 6),
+                    Text('Year', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    const Spacer(),
+                    SizedBox(
+                      width: 28, height: 28,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(Icons.remove_circle_outline, size: 20, color: AppColors.accent),
+                        onPressed: currentYear > 1 ? () => _setCurrentYear(sim.id, currentYear - 1) : null,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('$currentYear', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent)),
+                    ),
+                    SizedBox(
+                      width: 28, height: 28,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(Icons.add_circle_outline, size: 20, color: AppColors.accent),
+                        onPressed: currentYear < (sim.tenorMonths ~/ 12) + 1
+                            ? () => _setCurrentYear(sim.id, currentYear + 1)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text('/ ${sim.tenorMonths ~/ 12} yrs',
+                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                   ],
                 ),
               ],

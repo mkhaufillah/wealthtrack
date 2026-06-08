@@ -16,12 +16,14 @@ class AppColors {
   static const Color darkTextSecondary = Color(0xFF8B949E);
   static const Color darkDivider = Color(0xFF30363D);
   static const Color darkPrimary = Color(0xFF58A6FF);
+  static const Color darkAccent = Color(0xFF58A6FF);
+  static const Color darkHighlight = Color(0xFFF87171);
 
   // ─── Shared (theme-independent) ──────────────────────
-  static const Color primary = Color(0xFF1A1A2E);
+  static const Color _primary = Color(0xFF1A1A2E);
   static const Color secondary = Color(0xFF16213E);
-  static const Color accent = Color(0xFF0F3460);
-  static const Color highlight = Color(0xFFE94560);
+  static const Color _accent = Color(0xFF0F3460);
+  static const Color _highlight = Color(0xFFE94560);
   static const Color success = Color(0xFF2ECC71);
   static const Color warning = Color(0xFFF39C12);
 
@@ -40,18 +42,25 @@ class AppColors {
       _brightness == Brightness.dark ? darkTextSecondary : _textSecondary;
   static Color get divider =>
       _brightness == Brightness.dark ? darkDivider : _divider;
+
+  static Color get primary =>
+      _brightness == Brightness.dark ? darkPrimary : _primary;
+  static Color get accent =>
+      _brightness == Brightness.dark ? darkAccent : _accent;
+  static Color get highlight =>
+      _brightness == Brightness.dark ? darkHighlight : _highlight;
 }
 
 class AppTheme {
   static ThemeData get light => ThemeData(
         brightness: Brightness.light,
-        primaryColor: AppColors.primary,
+        primaryColor: AppColors._primary,
         scaffoldBackgroundColor: AppColors._background,
         colorScheme: const ColorScheme.light(
-          primary: AppColors.primary,
-          secondary: AppColors.accent,
+          primary: AppColors._primary,
+          secondary: AppColors._accent,
           surface: AppColors._surface,
-          error: AppColors.highlight,
+          error: AppColors._highlight,
           onPrimary: Colors.white,
           onSecondary: Colors.white,
           onSurface: AppColors._textPrimary,
@@ -59,12 +68,12 @@ class AppTheme {
         cardColor: AppColors._surface,
         dividerColor: AppColors._divider,
         appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors._primary,
           foregroundColor: Colors.white,
           elevation: 0,
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: AppColors.accent,
+          backgroundColor: AppColors._accent,
           foregroundColor: Colors.white,
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -80,13 +89,13 @@ class AppTheme {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: AppColors.accent, width: 1.5),
+            borderSide: BorderSide(color: AppColors._accent, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.accent,
+            backgroundColor: AppColors._accent,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -96,7 +105,7 @@ class AppTheme {
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: AppColors._surface,
-          selectedItemColor: AppColors.accent,
+          selectedItemColor: AppColors._accent,
           unselectedItemColor: AppColors._textSecondary,
         ),
         dialogTheme: DialogThemeData(
@@ -106,13 +115,13 @@ class AppTheme {
 
   static ThemeData get dark => ThemeData(
         brightness: Brightness.dark,
-        primaryColor: AppColors.primary,
+        primaryColor: AppColors.darkPrimary,
         scaffoldBackgroundColor: AppColors.darkBackground,
         colorScheme: const ColorScheme.dark(
           primary: AppColors.darkPrimary,
-          secondary: AppColors.accent,
+          secondary: AppColors.darkAccent,
           surface: AppColors.darkSurface,
-          error: AppColors.highlight,
+          error: AppColors.darkHighlight,
           onPrimary: Colors.white,
           onSecondary: Colors.white,
           onSurface: AppColors.darkTextPrimary,
@@ -125,7 +134,7 @@ class AppTheme {
           elevation: 0,
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: AppColors.accent,
+          backgroundColor: AppColors.darkAccent,
           foregroundColor: Colors.white,
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -150,7 +159,7 @@ class AppTheme {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.accent,
+            backgroundColor: AppColors.darkAccent,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
