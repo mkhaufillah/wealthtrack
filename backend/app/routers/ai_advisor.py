@@ -456,8 +456,8 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
            FROM credit_card_transactions cct
            JOIN credit_cards cc ON cc.id = cct.card_id
            WHERE cc.user_id = ? AND cct.is_installment = 0
-               AND EXTRACT(YEAR FROM cct.transaction_date) = EXTRACT(YEAR FROM CURRENT_DATE)
-               AND EXTRACT(MONTH FROM cct.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
+               AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
+               AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
         (user_id,),
     )
     row = await cursor.fetchone()

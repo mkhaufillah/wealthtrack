@@ -61,8 +61,8 @@ async def next_month_projection(
                -- current month non-installment transactions
                SELECT card_id, amount AS monthly FROM credit_card_transactions
                WHERE is_installment = 0
-                   AND EXTRACT(YEAR FROM transaction_date) = EXTRACT(YEAR FROM CURRENT_DATE)
-                   AND EXTRACT(MONTH FROM transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+                   AND EXTRACT(YEAR FROM transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
+                   AND EXTRACT(MONTH FROM transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)
                UNION ALL
                -- active installments
                SELECT cci.card_id, cci.monthly_amount AS monthly
