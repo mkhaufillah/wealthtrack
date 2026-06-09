@@ -40,7 +40,7 @@ jobs:
             -d chat_id="${{ env.TG_CHAT_ID }}" \
             -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
             -d parse_mode="HTML" \
-            -d text="<b>📱 WealthTrack APK</b>%0A<code>${GITHUB_SHA::7}</code> — building... ⏳"
+            -d text="<b>📱 WealthTrack APK</b>%0A<code>${GITHUB_SHA::7}</code> — building... ⏳" || true
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -166,7 +166,7 @@ jobs:
             -d chat_id="${{ env.TG_CHAT_ID }}" \
             -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
             -d parse_mode="HTML" \
-            -d text="<b>✅ WealthTrack APK</b>%0ABuild APK <code>${GITHUB_SHA::7}</code> berhasil 🚀%0ARun: <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">#${{ github.run_id }}</a>"
+            -d text="<b>✅ WealthTrack APK</b>%0ABuild APK <code>${GITHUB_SHA::7}</code> berhasil 🚀%0ARun: <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">#${{ github.run_id }}</a>" || true
 
       - name: Telegram notification — failure
         if: failure()
@@ -175,7 +175,7 @@ jobs:
             -d chat_id="${{ env.TG_CHAT_ID }}" \
             -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
             -d parse_mode="HTML" \
-            -d text="<b>❌ WealthTrack APK</b>%0ABuild APK <code>${GITHUB_SHA::7}</code> gagal!%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Lihat logs</a>"
+            -d text="<b>❌ WealthTrack APK</b>%0ABuild APK <code>${GITHUB_SHA::7}</code> gagal!%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Lihat logs</a>" || true
 
       - name: 🧹 Cleanup build artifacts
         if: always()
