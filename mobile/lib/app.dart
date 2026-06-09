@@ -141,6 +141,9 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
     ref.read(authProvider.notifier).checkAuth().then((_) {
       if (mounted) setState(() => _initialized = true);
       _checkPendingWidgetAction();
+    }).catchError((_) {
+      // Safety net: if checkAuth throws unexpectedly, still release the loading screen
+      if (mounted) setState(() => _initialized = true);
     });
   }
 

@@ -43,13 +43,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier(this._repo, this._storage, this._api) : super(const AuthState());
 
   Future<void> checkAuth() async {
-    final token = await _storage.getToken();
-    if (token == null) {
-      state =
-          const AuthState(status: AuthStatus.unauthenticated);
-      return;
-    }
     try {
+      final token = await _storage.getToken();
+      if (token == null) {
+        state =
+            const AuthState(status: AuthStatus.unauthenticated);
+        return;
+      }
       final user = await _repo.getMe();
       state = AuthState(
         status: AuthStatus.authenticated,
