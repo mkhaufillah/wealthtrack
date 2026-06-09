@@ -24,6 +24,7 @@ Current version: **v0.6.2** — Debt Tracker (KPR + Credit Cards), Android Widge
 - [Improvement Plan AI & OCR](15-improvement-plan-ai-ocr.md) — AI Advisor & OCR improvements roadmap
 - [OCR Scanner](16-ocr-scanner.md) — receipt scanning with vision AI
 - [Admin Category CRUD](17-admin-category-crud.md) — category management for admin
+- [Extra Payment KPR & Household Debt](plans/2026-06-09-extra-payment-household-debt.md) — planned for v0.7.0
 
 ## Architecture
 
