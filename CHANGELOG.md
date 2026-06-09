@@ -22,6 +22,10 @@ All 18 KPR + CC routes now have coverage. KPR engine fully covered (6 tests). CC
 
 ### Bugs Fixed
 
+- **`copyWith` null-coalescing bug** (`mobile/lib/features/debt/kpr/providers/kpr_provider.dart`, `mobile/lib/features/debt/credit_card/providers/credit_card_provider.dart`): `copyWith(error: null)` dan `copyWith(selectedSimulation: null)` tidak berfungsi karena `??` (null-coalescing) operator mengembalikan nilai lama saat parameter null. Semua state class sekarang punya `clearError`/`clearSelection` flags.
+- **`loadCardDetail` silent error swallowing** (`mobile/lib/features/debt/credit_card/providers/credit_card_provider.dart`): Semua error di-silent catch — caller seperti `addTransaction`/`addInstallment` tidak tahu bahwa refresh detail gagal. Sekarang `rethrow` setelah clear selection.
+- **Detail screen crash saat card dihapus** (`mobile/lib/features/debt/credit_card/ui/credit_card_detail_screen.dart`): Listener `homeRefreshProvider` wrap `loadCardDetail` dengan try-catch (card mungkin sudah dihapus).
+
 - **White screen / stuck loading after APK update** (`mobile/lib/features/auth/providers/auth_provider.dart`): `getToken()` dari `flutter_secure_storage` dipanggil di luar try-catch. Pas update APK, secure storage bisa throw (encryption key mismatch) → Future reject → `_initialized` tetap false → loading spinner forever. Fix: pindah `getToken()` ke dalam try-catch + `.catchError()` safety net di `app.dart`.
 - **"Something went wrong" setelah delete credit card/KPR terakhir** (`mobile/lib/features/debt/credit_card/providers/credit_card_provider.dart`): `deleteCard()` trigger `homeRefreshProvider` → listener di detail screen panggil `loadCardDetail(cardId)` (card sudah dihapus → 404) → `state.error` diset. List screen lihat `state.error != null && cards.isEmpty` → error display. Fix: clearError di delete, silent catch 404 di loadCardDetail.
 - **Sama untuk KPR provider** — tambah `error: null` di `delete()`.
