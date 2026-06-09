@@ -300,7 +300,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               padding: EdgeInsets.only(top: visibleMembers.isNotEmpty ? 10 : 0),
               child: Column(
                 children: [
-                  const Divider(height: 1),
+                  Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Divider(height: 1, color: AppColors.divider.withOpacity(0.3)),
+              ),
                   const SizedBox(height: 10),
                   _debtRow('Total', formatCurrency(totalDebt),
                       valueColor: AppColors.highlight, bold: true),
@@ -376,7 +379,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
       // Member separator
-      const Divider(height: 12),
+      Divider(height: 12, color: AppColors.divider.withOpacity(0.3)),
     ];
 
     // Private debts (current user only)
@@ -408,9 +411,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     if (showDivider) {
-      items.add(const Padding(
-        padding: EdgeInsets.symmetric(vertical: 4),
-        child: Divider(height: 1),
+      items.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Divider(height: 1, color: AppColors.divider.withOpacity(0.3)),
       ));
     }
 
