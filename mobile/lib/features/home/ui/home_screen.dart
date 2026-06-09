@@ -305,7 +305,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 );
               }),
 
-            if (isHousehold) const Divider(height: 16, color: AppColors.divider),
+            if (isHousehold) Divider(height: 16, color: AppColors.divider),
 
             // KPR + CC breakdown
             if (totalKpr > 0)
