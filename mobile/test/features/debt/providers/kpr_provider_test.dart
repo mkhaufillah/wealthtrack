@@ -218,15 +218,17 @@ void main() {
       });
 
       test('does not clear selectedSimulation when deleting different id', () async {
+        // Create two simulations
         mockApi.onPost('/kpr/simulations', {
           'id': 1,
           'user_id': 1,
-          'name': 'Keep',
+          'name': 'First',
           'created_at': '2026-06-09T10:00:00Z',
         });
-        await notifier.create({'name': 'Keep'});
+        await notifier.create({'name': 'First'});
+        expect(notifier.state.simulations.length, 1);
 
-        // Select a different one via loadDetail
+        // Select a different simulation via loadDetail (sim 2 not in list)
         mockApi.onGet('/kpr/simulations/2', {
           'id': 2,
           'user_id': 1,
@@ -236,14 +238,14 @@ void main() {
         await notifier.loadDetail(2);
         expect(notifier.state.selectedSimulation!.id, 2);
 
-        // Delete id 1
+        // Delete simulation 1 — selection on 2 should remain, list should be empty
+        // since 'First' (id=1) was the only one in simulations list
         mockApi.onDelete('/kpr/simulations/1');
         await notifier.delete(1);
 
-        // Selection should remain on id 2
         expect(notifier.state.selectedSimulation, isNotNull);
         expect(notifier.state.selectedSimulation!.id, 2);
-        expect(notifier.state.simulations.length, 1);
+        expect(notifier.state.simulations, isEmpty);
       });
     });
 

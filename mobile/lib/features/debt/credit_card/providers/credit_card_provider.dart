@@ -67,6 +67,7 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
     } catch (e) {
       // Card might have been deleted — don't set error, just clear selection
       state = state.copyWith(isLoading: false, clearSelection: true);
+      rethrow;
     }
   }
 

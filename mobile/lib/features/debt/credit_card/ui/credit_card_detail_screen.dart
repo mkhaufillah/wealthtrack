@@ -86,7 +86,9 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
 
     ref.listen<int>(homeRefreshProvider, (prev, next) {
       if (prev != next) {
-        ref.read(creditCardProvider.notifier).loadCardDetail(widget.cardId);
+        try {
+          ref.read(creditCardProvider.notifier).loadCardDetail(widget.cardId);
+        } catch (_) {}
         ref.read(creditCardProvider.notifier).loadProjection();
       }
     });

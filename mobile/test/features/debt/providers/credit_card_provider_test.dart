@@ -112,10 +112,13 @@ void main() {
         expect(notifier.state.selectedCard, isNotNull);
 
         // Load a non-existent card (no mock → empty Map → fromJson fails)
-        await notifier.loadCardDetail(999);
+        // loadCardDetail now rethrows so callers can handle the error
+        try {
+          await notifier.loadCardDetail(999);
+        } catch (_) {}
 
         expect(notifier.state.isLoading, false);
-        // loadCardDetail catch block explicitly clears selection without setting error
+        // loadCardDetail catch block clears selection without setting error
         expect(notifier.state.selectedCard, isNull);
         expect(notifier.state.error, isNull);
       });
