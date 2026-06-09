@@ -653,12 +653,17 @@ async def household_debt_summary(
     )
     hm = await cursor.fetchone()
     if not hm:
-        # Not in household — return personal data only
+        # Not in household — personal data only
+        detail = await _single_member_debt(db, user_id)
+        detail["display_name"] = current_user.get("display_name", "")
+        detail["is_current_user"] = True
+        member_total = detail["kpr_total"] + detail["cc_total"]
+        detail["member_total"] = member_total
         return {
-            "total_debt": 0,
-            "members": [
-                await _single_member_debt(db, user_id),
-            ],
+            "total_debt": member_total,
+            "total_kpr": detail["kpr_total"],
+            "total_cc": detail["cc_total"],
+            "members": [detail],
         }
 
     household_id = hm["household_id"]
@@ -679,9 +684,11 @@ async def household_debt_summary(
 
     for m in members:
         member = dict(m)
-        detail = await _single_member_debt(db, member["user_id"],
-                                            household_id=household_id)
+        detail = await _single_member_debt(db, member["user_id"])
         detail["display_name"] = member["display_name"]
+        detail["is_current_user"] = (member["user_id"] == user_id)
+        member_total = detail["kpr_total"] + detail["cc_total"]
+        detail["member_total"] = member_total
         member_details.append(detail)
         grand_total_kpr += detail.get("kpr_total", 0)
         grand_total_cc += detail.get("cc_total", 0)
@@ -711,33 +718,36 @@ async def household_debt_summary(
 async def _single_member_debt(
     db: CursorWrapper,
     user_id: int,
-    household_id: int | None = None,
 ) -> dict:
-    """Calculate KPR + CC debt for a single member.
+    """Calculate KPR + CC debt for a single member with private/shared breakdown.
 
-    If household_id is set, include shared debt (household_id = that household).
+    Returns separate amounts for private (household_id IS NULL) and
+    shared (household_id IS NOT NULL) debts.
     """
-    # KPR remaining balance
+    kpr_schedule_sub = """
+        CASE
+            WHEN ks.due_date IS NOT NULL AND EXTRACT(DAY FROM CURRENT_DATE) >= ks.due_date THEN
+                COALESCE((
+                    SELECT kms.remaining_balance
+                    FROM kpr_monthly_schedules kms
+                    WHERE kms.simulation_id = ks.id
+                    AND kms.month_number = cm.current_month
+                ), ks.total_loan)
+            ELSE
+                CASE WHEN cm.current_month <= 1 THEN ks.total_loan
+                ELSE (
+                    SELECT kms.remaining_balance
+                    FROM kpr_monthly_schedules kms
+                    WHERE kms.simulation_id = ks.id
+                    AND kms.month_number = cm.current_month - 1
+                ) END
+        END
+    """
+    # KPR: private vs shared
     cursor = await db.execute(
-        """SELECT COALESCE(SUM(
-            CASE
-                WHEN ks.due_date IS NOT NULL AND EXTRACT(DAY FROM CURRENT_DATE) >= ks.due_date THEN
-                    COALESCE((
-                        SELECT kms.remaining_balance
-                        FROM kpr_monthly_schedules kms
-                        WHERE kms.simulation_id = ks.id
-                        AND kms.month_number = cm.current_month
-                    ), ks.total_loan)
-                ELSE
-                    CASE WHEN cm.current_month <= 1 THEN ks.total_loan
-                    ELSE (
-                        SELECT kms.remaining_balance
-                        FROM kpr_monthly_schedules kms
-                        WHERE kms.simulation_id = ks.id
-                        AND kms.month_number = cm.current_month - 1
-                    ) END
-            END
-        ), 0) AS total_kpr
+        f"""SELECT
+            COALESCE(SUM(CASE WHEN ks.household_id IS NULL THEN ({kpr_schedule_sub}) ELSE 0 END), 0) AS total_kpr_private,
+            COALESCE(SUM(CASE WHEN ks.household_id IS NOT NULL THEN ({kpr_schedule_sub}) ELSE 0 END), 0) AS total_kpr_shared
         FROM kpr_simulations ks
         CROSS JOIN LATERAL (
             SELECT LEAST(
@@ -746,70 +756,82 @@ async def _single_member_debt(
                 ks.tenor_months
             ) AS current_month
         ) cm
-        WHERE """ + (
-            "(ks.user_id = ? OR ks.household_id = ?)" if household_id else "ks.user_id = ?"
-        ),
-        (user_id, household_id) if household_id else (user_id,),
+        WHERE ks.user_id = ?""",
+        (user_id,),
     )
     row = await cursor.fetchone()
-    kpr_total = int(row["total_kpr"]) if row else 0
+    kpr_private = int(row["total_kpr_private"]) if row else 0
+    kpr_shared = int(row["total_kpr_shared"]) if row else 0
 
-    # CC: transactions + installments
+    # CC non-installment transactions: private vs shared
     cursor = await db.execute(
-        """SELECT COALESCE(SUM(cct.amount), 0) AS total_txns
-           FROM credit_card_transactions cct
-           JOIN credit_cards cc ON cc.id = cct.card_id
-           WHERE """ + (
-               "(cc.user_id = ? OR cc.household_id = ?)" if household_id else "cc.user_id = ?"
-           ) + """ AND cct.is_installment = 0
-               AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
-               AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
-        (user_id, household_id) if household_id else (user_id,),
+        """SELECT
+            COALESCE(SUM(CASE WHEN cc.household_id IS NULL THEN cct.amount ELSE 0 END), 0) AS cc_txns_private,
+            COALESCE(SUM(CASE WHEN cc.household_id IS NOT NULL THEN cct.amount ELSE 0 END), 0) AS cc_txns_shared
+        FROM credit_card_transactions cct
+        JOIN credit_cards cc ON cc.id = cct.card_id
+        WHERE cc.user_id = ? AND cct.is_installment = 0
+            AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
+        (user_id,),
     )
     row = await cursor.fetchone()
-    total_cc_txns = int(row["total_txns"]) if row else 0
+    cc_txns_private = int(row["cc_txns_private"]) if row else 0
+    cc_txns_shared = int(row["cc_txns_shared"]) if row else 0
 
+    # CC installments: private vs shared
     cursor = await db.execute(
-        """SELECT COALESCE(SUM(cci.monthly_amount * GREATEST(0, cci.total_months - (
-               (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
-               - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
-           ))), 0) AS total_installments
-           FROM credit_card_installments cci
-           JOIN credit_cards cc ON cc.id = cci.card_id
-           WHERE """ + (
-               "(cc.user_id = ? OR cc.household_id = ?)" if household_id else "cc.user_id = ?"
-           ) + """
-               AND cci.total_months > (
-                   (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
-                   - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
-               )""",
-        (user_id, household_id) if household_id else (user_id,),
+        """SELECT
+            COALESCE(SUM(CASE WHEN cc.household_id IS NULL THEN
+                cci.monthly_amount * GREATEST(0, cci.total_months - (
+                    (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
+                    - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
+                ))
+            ELSE 0 END), 0) AS cc_inst_private,
+            COALESCE(SUM(CASE WHEN cc.household_id IS NOT NULL THEN
+                cci.monthly_amount * GREATEST(0, cci.total_months - (
+                    (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
+                    - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
+                ))
+            ELSE 0 END), 0) AS cc_inst_shared
+        FROM credit_card_installments cci
+        JOIN credit_cards cc ON cc.id = cci.card_id
+        WHERE cc.user_id = ?
+            AND cci.total_months > (
+                (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
+                - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
+            )""",
+        (user_id,),
     )
     row = await cursor.fetchone()
-    total_cc_installments = int(row["total_installments"]) if row else 0
+    cc_inst_private = int(row["cc_inst_private"]) if row else 0
+    cc_inst_shared = int(row["cc_inst_shared"]) if row else 0
 
-    cc_total = total_cc_txns + total_cc_installments
+    cc_private = cc_txns_private + cc_inst_private
+    cc_shared = cc_txns_shared + cc_inst_shared
 
-    # Count active KPR / CC
+    # Count active KPR / CC (total, not split by shared)
     cursor = await db.execute(
-        "SELECT COUNT(*) AS cnt FROM kpr_simulations WHERE " +
-        ("(user_id = ? OR household_id = ?)" if household_id else "user_id = ?"),
-        (user_id, household_id) if household_id else (user_id,),
+        "SELECT COUNT(*) AS cnt FROM kpr_simulations WHERE user_id = ?",
+        (user_id,),
     )
-    kpr_count_row = await cursor.fetchone()
-    kpr_count = kpr_count_row["cnt"] if kpr_count_row else 0
+    row = await cursor.fetchone()
+    kpr_count = row["cnt"] if row else 0
 
     cursor = await db.execute(
-        """SELECT COUNT(*) AS cnt FROM credit_cards cc WHERE """ +
-        ("(cc.user_id = ? OR cc.household_id = ?)" if household_id else "cc.user_id = ?"),
-        (user_id, household_id) if household_id else (user_id,),
+        "SELECT COUNT(*) AS cnt FROM credit_cards WHERE user_id = ?",
+        (user_id,),
     )
-    cc_count_row = await cursor.fetchone()
-    cc_count = cc_count_row["cnt"] if cc_count_row else 0
+    row = await cursor.fetchone()
+    cc_count = row["cnt"] if row else 0
 
     return {
-        "kpr_total": kpr_total,
+        "kpr_private": kpr_private,
+        "kpr_shared": kpr_shared,
+        "kpr_total": kpr_private + kpr_shared,
         "kpr_count": kpr_count,
-        "cc_total": cc_total,
+        "cc_private": cc_private,
+        "cc_shared": cc_shared,
+        "cc_total": cc_private + cc_shared,
         "cc_count": cc_count,
     }

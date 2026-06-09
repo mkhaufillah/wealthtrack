@@ -221,12 +221,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
   Widget _buildDebtSummaryCard() {
-    final totalKpr = _debtData['total_kpr'] as int? ?? 0;
-    final totalCc = _debtData['total_cc'] as int? ?? 0;
     final totalDebt = _debtData['total_debt'] as int? ?? 0;
-    final members = _debtData['members'] as List?;
+    final members = _debtData['members'] as List<dynamic>?;
     final isHousehold = members != null && members.length > 1;
-    final title = isHousehold ? 'Outstanding Household Debt' : 'Outstanding Debt';
+
+    // Filter members with visible debt from current user's perspective
+    final visibleMembers = <Map<String, dynamic>>[];
+    if (members != null) {
+      for (final m in members) {
+        final mData = m as Map<String, dynamic>;
+        final isCurrentUser = mData['is_current_user'] as bool? ?? false;
+        final kprPrivate = mData['kpr_private'] as int? ?? 0;
+        final kprShared = mData['kpr_shared'] as int? ?? 0;
+        final ccPrivate = mData['cc_private'] as int? ?? 0;
+        final ccShared = mData['cc_shared'] as int? ?? 0;
+
+        final visibleTotal = isCurrentUser
+            ? (kprPrivate + kprShared + ccPrivate + ccShared)
+            : (kprShared + ccShared);
+
+        if (visibleTotal > 0) {
+          mData['_visible_total'] = visibleTotal;
+          visibleMembers.add(mData);
+        }
+      }
+    }
 
     return Card(
       color: AppColors.highlight.withAlpha(15),
@@ -240,6 +259,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header row
             Row(
               children: [
                 Container(
@@ -252,7 +272,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(title,
+                  child: Text('Total Outstanding Debt',
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
                 if (isHousehold)
@@ -263,7 +283,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '🏠 ${members!.length} members',
+                      '${members!.length} members',
                       style: TextStyle(fontSize: 11, color: AppColors.accent),
                     ),
                   ),
@@ -271,55 +291,136 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Member breakdown (household)
-            if (isHousehold)
-              ...members!.map((m) {
-                final mData = m as Map<String, dynamic>;
-                final name = mData['display_name'] as String? ?? '';
-                final memberKpr = mData['kpr_total'] as int? ?? 0;
-                final memberCc = mData['cc_total'] as int? ?? 0;
-                final memberTotal = memberKpr + memberCc;
-                if (memberTotal <= 0) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 10,
-                        backgroundColor: AppColors.accent.withAlpha(30),
-                        child: Text(
-                          name.isNotEmpty ? name[0].toUpperCase() : '?',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.accent),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                      ),
-                      Text(
-                        formatCurrency(memberTotal),
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.highlight),
-                      ),
-                    ],
-                  ),
-                );
-              }),
+            // Per-member breakdown
+            if (visibleMembers.isNotEmpty)
+              ..._buildMemberSections(visibleMembers),
 
-            if (isHousehold) Divider(height: 16, color: AppColors.divider),
-
-            // KPR + CC breakdown
-            if (totalKpr > 0)
-              _debtRow('🏠 KPR', formatCurrency(totalKpr)),
-            if (totalKpr > 0 && totalCc > 0)
-              const SizedBox(height: 6),
-            if (totalCc > 0)
-              _debtRow('💳 Credit Cards', formatCurrency(totalCc)),
-            Divider(height: 18, color: AppColors.divider),
-            _debtRow('Total', formatCurrency(totalDebt),
-                valueColor: AppColors.highlight, bold: true),
+            // Total
+            Padding(
+              padding: const EdgeInsets.only(top: visibleMembers.isNotEmpty ? 10 : 0),
+              child: Column(
+                children: [
+                  const Divider(height: 1),
+                  const SizedBox(height: 10),
+                  _debtRow('Total', formatCurrency(totalDebt),
+                      valueColor: AppColors.highlight, bold: true),
+                ],
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  List<Widget> _buildMemberSections(List<Map<String, dynamic>> members) {
+    final sections = <Widget>[];
+    for (int i = 0; i < members.length; i++) {
+      final m = members[i];
+      final name = m['display_name'] as String? ?? '';
+      final isCurrentUser = m['is_current_user'] as bool? ?? false;
+      final memberTotal = m['_visible_total'] as int? ?? 0;
+      final kprPrivate = m['kpr_private'] as int? ?? 0;
+      final kprShared = m['kpr_shared'] as int? ?? 0;
+      final ccPrivate = m['cc_private'] as int? ?? 0;
+      final ccShared = m['cc_shared'] as int? ?? 0;
+
+      sections.add(_buildMemberSection(
+        name: name,
+        total: memberTotal,
+        isCurrentUser: isCurrentUser,
+        kprPrivate: kprPrivate,
+        kprShared: kprShared,
+        ccPrivate: ccPrivate,
+        ccShared: ccShared,
+        showDivider: i < members.length - 1,
+      ));
+    }
+    return sections;
+  }
+
+  Widget _buildMemberSection({
+    required String name,
+    required int total,
+    required bool isCurrentUser,
+    required int kprPrivate,
+    required int kprShared,
+    required int ccPrivate,
+    required int ccShared,
+    bool showDivider = false,
+  }) {
+    final items = <Widget>[
+      // Member name + total
+      Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 10,
+              backgroundColor: AppColors.accent.withAlpha(30),
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.accent),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(name,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            ),
+            Text(
+              formatCurrency(total),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.highlight),
+            ),
+          ],
+        ),
+      ),
+      // Dashed separator
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text('─' * 30,
+            style: TextStyle(fontSize: 9, color: AppColors.textSecondary.withAlpha(80))),
+      ),
+    ];
+
+    // Private debts (current user only)
+    if (isCurrentUser && kprPrivate > 0) {
+      items.add(Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: _debtRow('KPR - private', formatCurrency(kprPrivate)),
+      ));
+    }
+    if (isCurrentUser && ccPrivate > 0) {
+      items.add(Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: _debtRow('Credit - private', formatCurrency(ccPrivate)),
+      ));
+    }
+
+    // Shared debts (visible to current user from any member)
+    if (kprShared > 0) {
+      items.add(Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: _debtRow('KPR - shared', formatCurrency(kprShared)),
+      ));
+    }
+    if (ccShared > 0) {
+      items.add(Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: _debtRow('Credit - shared', formatCurrency(ccShared)),
+      ));
+    }
+
+    if (showDivider) {
+      items.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Divider(height: 1, color: AppColors.divider),
+      ));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: items,
     );
   }
 
