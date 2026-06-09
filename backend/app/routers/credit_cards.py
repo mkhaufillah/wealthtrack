@@ -164,6 +164,7 @@ async def list_credit_cards(
         """SELECT
                cc.id, cc.user_id, cc.name, cc.card_number_last4,
                cc.billing_date, cc.due_date, cc.credit_limit, cc.created_at,
+               cc.household_id, cc.display_order,
                COALESCE(active_inst.cnt, 0) AS active_installments
            FROM credit_cards cc
            LEFT JOIN (

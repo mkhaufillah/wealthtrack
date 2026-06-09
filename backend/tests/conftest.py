@@ -59,6 +59,7 @@ DEFAULT_TRANSACTIONS = [
 ]
 
 SCHEMA_SQL = """
+DROP TABLE IF EXISTS kpr_extra_payments CASCADE;
 DROP TABLE IF EXISTS kpr_monthly_schedules CASCADE;
 DROP TABLE IF EXISTS kpr_rate_periods CASCADE;
 DROP TABLE IF EXISTS kpr_simulations CASCADE;
