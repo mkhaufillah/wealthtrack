@@ -105,6 +105,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Clean build cache
+        run: flutter clean
+
       - name: Remove default test file
         run: rm -f test/widget_test.dart
 
