@@ -1,5 +1,108 @@
 # Changelog
 
+## v0.6.2 — Hotfix: White Screen on Update, Stale Error After Delete (2026-06-09)
+
+### Bugs Fixed
+
+- **White screen / stuck loading after APK update** (`mobile/lib/features/auth/providers/auth_provider.dart`): `getToken()` dari `flutter_secure_storage` dipanggil di luar try-catch. Pas update APK, secure storage bisa throw (encryption key mismatch) → Future reject → `_initialized` tetap false → loading spinner forever. Fix: pindah `getToken()` ke dalam try-catch + `.catchError()` safety net di `app.dart`.
+- **"Something went wrong" setelah delete credit card/KPR terakhir** (`mobile/lib/features/debt/credit_card/providers/credit_card_provider.dart`): `deleteCard()` trigger `homeRefreshProvider` → listener di detail screen panggil `loadCardDetail(cardId)` (card sudah dihapus → 404) → `state.error` diset. List screen lihat `state.error != null && cards.isEmpty` → error display. Fix: clearError di delete, silent catch 404 di loadCardDetail.
+- **Sama untuk KPR provider** — tambah `error: null` di `delete()`.
+- **White screen setelah update APK** — Safety net `.catchError()` di `app.dart` agar loading screen selalu release meskipun ada unexpected error.
+
+### CI
+
+- `flutter clean` ditambahkan sebelum `flutter build apk --release` untuk mencegah stale artifact issues.
+
+---
+
+## v0.6.1 — Bug Fix Batch: 12 Fixes for Debt Tracker & Polish (2026-06-08)
+
+### Fixes
+
+#### KPR Engine
+- **Rate period auto-extend** — Last rate period sekarang auto-extend ke full tenor. Sebelumnya default `toMonth: 120`, month 121+ pake `base_interest_rate` salah.
+- **KPR outstanding value** — Ambil `remaining_balance` dari prev month (sebelum bayar cicilan bulan ini). Month 1 → `total_loan`.
+- **`totalInterest=0`** — Response sekarang include computed fields (`total_interest`, `monthly_payment`, dll) secara eksplisit.
+- **CROSS JOIN LATERAL syntax** — WHERE clause dipindah setelah semua JOINs (PostgreSQL strict requirement).
+- **`due_date` duplicate arg** — Fix double pass di KPR create response.
+
+#### Credit Card
+- **CC value tidak muncul** — Sekarang include transaksi non-cicilan (current month) + sisa cicilan aktif.
+- **Installment progress 0/12** — `remaining_months` dihitung dinamis dari `start_month`, bukan dari kolom DB statis.
+- **CC debt summary** — Filter transaksi by current month (`EXTRACT(YEAR/MONTH FROM transaction_date::date)`).
+- **EXTRACT on TEXT columns** — Tambah `::date` cast untuk kolom `transaction_date` (TEXT).
+
+#### Home Screen
+- **Spacing konsisten 8px** antar semua widget home (CategoriesCard, DebtSummaryCard, AI, dll).
+- **Auto refresh home** — `homeRefreshProvider.state++` di trigger di semua mutation (add/delete KPR, add installment, add transaction).
+- **Next month projection refresh** — Listener on back to detail card via `homeRefreshProvider`.
+
+#### UI
+- **Divider opacity** — `Divider(color: AppColors.divider)`.
+- **Import path** — Fix 3 file import path missing `features/` prefix.
+- **Route flattening** — Debt routes di-flatten ke top-level agar `push()`/`pop()` kompatibel dengan GoRouter.
+- **Start month date picker** — Ganti text field dengan `showDatePicker` (month-year).
+- **Mark complete dihapus** — `remaining_months` auto-calculated. Tidak ada manual mark complete.
+- **KPR `due_date`** — Kolom INTEGER 1-31. Outstanding: if today >= due_date → exclude bulan ini.
+
+### Test Fixes
+- Test assertions updated untuk dynamic `remaining_months`, `due_date`, dan `EXTRACT` cast.
+
+---
+
+## v0.6.0 — Debt Tracker: KPR Calculator & Credit Card Management (2026-06-07)
+
+### Features
+
+#### KPR (Mortgage) Calculator
+- **Full amortization engine** (`backend/app/services/kpr_engine.py`) — Mendukung 4 interest types: fixed, floating, graduated, mix.
+- **Rate periods** — Multiple rate periods per simulation. Masing-masing dengan start/end month, rate, dan type.
+- **Auto-extend** — Last rate period auto-extend ke full tenor.
+- **Schedule generation** — Full amortization schedule per month (payment, principal, interest, remaining balance).
+- **API CRUD** — Create, list, detail (with full schedule), update, delete.
+- **Flutter UI:**
+  - **Form screen** — Input property price, down payment (auto loan), tenor, interest type + periods.
+  - **Detail screen** — Collapsible year-by-year schedule, summary cards (monthly payment, total interest, total payment).
+  - **List screen** — Swipe to delete, card list with key metrics.
+- **`due_date` support** — Tanggal jatuh tempo (1-31) mempengaruhi perhitungan outstanding bulan ini.
+- **Dynamic `remaining_months`** — Auto-dihitung dari `start_month` vs current date.
+
+#### Credit Card Management
+- **Full CRUD** — Cards, transactions, installments.
+- **Transactions** — Non-installment transaction per card with date & amount.
+- **Installments** — Auto-calculated remaining months from `start_month`.
+- **Next month projection** — Aggregates non-installment transactions + active installments.
+- **Debt summary** — CC debt = transaksi non-cicilan bulan ini + sisa cicilan (monthly_amount × remaining_months).
+- **Flutter UI:**
+  - **List screen** — Summary header, card list with credit limit, billing/due dates, swipe to delete.
+  - **Detail screen** — Tabs for transactions & installments, projection summary.
+  - **Form screen** — Add card with name, last 4 digits, credit limit, billing/due dates.
+  - **Add installment screen** — Description, amount, total months, start month.
+- **Refresh on mutation** — `homeRefreshProvider` trigger di semua add/delete.
+
+#### Home Screen Debt Widget
+- **Total debt summary** — Aggregates KPR outstanding + CC debt.
+- **AI Advisor debt context** — Debt summary dimasukkan ke konteks AI advisor untuk saran yang lebih relevan.
+- **Debt Home Screen** — Entry point dari home & profile, routing ke KPR & CC sections.
+
+#### Android Home Screen Widget
+- **Quick add transaction** — Buka add transaction screen langsung dari widget.
+- **Quick scan receipt** — Buka scan (OCR) langsung dari widget.
+- **Native Kotlin implementation** — AppWidgetProvider dengan configuration activity.
+- **Pending intent navigation** — Method channel ke Flutter untuk handle tap actions.
+
+### Infrastructure
+- **Auto DB backup script** (`backend/scripts/pg_backup.sh`) — pg_dump custom format, 7-day retention.
+- **Missing indexes** — 3 indexes untuk optimasi query (transactions user+type+date, user+cat+date, OCR jobs user+created).
+- **Docs relocation** — Plan docs dipindah dari `.hermes/plans/` ke `docs/plans/` untuk konsistensi.
+
+### Test Coverage
+- **Backend** — 361 lines test untuk KPR engine + API di `test_kpr.py`.
+- **Backend** — 392 lines test untuk CC creation, transactions, installments, projection di `test_credit_cards.py`.
+- **conftest.py** — Updated dengan schema untuk semua tabel debt tracker.
+
+---
+
 ## v0.5.4 — Full Code Audit – 20 Fixes, 2 Cancelled, CI Green (2026-06-06)
 
 ### Root Cause Analysis

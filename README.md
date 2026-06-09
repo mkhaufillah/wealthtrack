@@ -1,6 +1,6 @@
 # WealthTrack — Personal Finance Tracker
 
-A personal finance tracker. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Redis + Meilisearch + Flutter + AI features. v0.5.4 — 20 audit fixes applied, all CI green.
+A personal finance tracker. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Redis + Meilisearch + Flutter + AI features. **v0.6.2** — Debt Tracker (KPR + Credit Cards), Android Widget, all CI green.
 
 ## Architecture
 
@@ -139,14 +139,16 @@ Every CI run sends **start + result notifications** to Keluarga Super Sapi → t
 
 ## Phase Status
 
-| Phase | Scope | Status |
-|-------|-------|--------|
-| P1 — Core Backend | PostgreSQL schema, FastAPI CRUD, JWT auth | ✅ Done |
-| P2 — Hermes Integration | Cron scripts, chat input | ✅ Done |
-| P3 — Flutter MVP | Login, dashboard, add/list transactions | ✅ Done |
-| P4 — Polish | Charts, budgets, export, OCR, AI advisor, change owner | ✅ Done |
-| P5 — Hardening | CI/CD self-hosted runner, CORS/Redis/DB security, Telegram v2 | ✅ Done |
-| P6 — Audit Cleanup | 29 findings audited, 20 fixed, 2 cancelled, 0 bugs | ✅ Done |
+|| Phase | Scope | Status |
+||-------|-------|--------|
+|| P1 — Core Backend | PostgreSQL schema, FastAPI CRUD, JWT auth | ✅ Done |
+|| P2 — Hermes Integration | Cron scripts, chat input | ✅ Done |
+|| P3 — Flutter MVP | Login, dashboard, add/list transactions | ✅ Done |
+|| P4 — Polish | Charts, budgets, export, OCR, AI advisor, change owner | ✅ Done |
+|| P5 — Hardening | CI/CD self-hosted runner, CORS/Redis/DB security, Telegram v2 | ✅ Done |
+|| P6 — Audit Cleanup | 29 findings audited, 20 fixed, 2 cancelled, 0 bugs | ✅ Done |
+|| P7 — Debt Tracker | KPR Calculator + Credit Card Management + Android Widget | ✅ Done |
+|| P8 — Home Polishing | Refresh, spacing, projection, due_date, white screen fix | ✅ Done |
 
 ## Deployment
 

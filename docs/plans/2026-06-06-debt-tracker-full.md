@@ -1,12 +1,8 @@
-# Debt Tracker — Full Implementation Plan
+# Debt Tracker — Full Implementation Plan (✅ Complete — v0.6.0/v0.6.1/v0.6.2)
 
-> **For Hermes:** Use subagent-driven-development to implement this plan task-by-task.
-
-**Goal:** Build debt tracker with comprehensive KPR (mortgage) calculator and credit card tracker.
-
-**Architecture:** Backend (FastAPI + asyncpg) handles all business logic, calculations, and persistence. Mobile (Flutter + Riverpod) provides UI with clean feature folders following existing patterns. New DB tables use `SCHEMA_SQL` in `database.py` for auto-migration.
-
-**Tech Stack:** Python/FastAPI, asyncpg, Pydantic v2, Flutter 3.44, Riverpod 2.x, GoRouter, Dio
+> **Status:** ✅ Done. Implemented in v0.6.0–v0.6.2 across 30+ commits.
+> **Actual vs Plan:** All tasks completed. 12 post-release bug fixes applied in v0.6.1. 2 hotfixes in v0.6.2 (white screen on update, stale error after delete).
+> **Key divergence from plan:** Added `due_date` column to KPR, `start_month`/`start_year` for dynamic remaining_months, Android widget, home screen debt summary widget, auto-extend rate period.
 
 ---
 

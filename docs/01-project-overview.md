@@ -4,7 +4,7 @@
 
 WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expenses, income, budgets, and generates periodic summaries.
 
-Current version: **v0.5.4** — Full code audit, 20 fixes applied, CI green.
+Current version: **v0.6.2** — Debt Tracker (KPR + Credit Cards), Android Widget, all CI green.
 
 ## Related Documents
 
