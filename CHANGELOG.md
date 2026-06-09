@@ -52,12 +52,25 @@
 - KPR/CC list screens: Owner badge (`🏠 Anggota`) for shared debts
 - KPR/CC form screens: "Share with household" toggle
 
-### Fixes
+### Database Fixes
 - Persist `base_interest_rate`, `graduated_increment`, `graduated_every_months` in `kpr_simulations` (schedule regeneration now uses correct parameters)
 - Added missing columns to CREATE TABLE: `due_date`, `start_month`, `start_year`, `base_interest_rate`, `graduated_increment`, `graduated_every_months`
 - `apply_month` now has upper bound validation (max 600 months)
 - `ExtraPaymentOut` response now returns real `created_at` from DB
 - Extra payment delete correctly re-fetches from DB for fresh data
+
+### CI Polish & Bugfixes
+
+- **Missing `import pytest`** (`test_summaries.py`) — caused `NameError` when running tests; function-scoped fixtures became inaccessible.
+- **`const Divider(color: AppColors.divider)`** (`home_screen.dart:308`) — `AppColors.divider` is a getter, not a compile-time constant; removed `const`.
+- **Telegram notification exit code 35** — curl to Telegram API occasionally failed with SSL error (exit 35), which blocked subsequent CI steps (`Setup Python`, `Run tests`) and marked successful builds as failed. Fixed by appending `|| true` to all notification curl commands + added `--connect-timeout 10`.
+- **`kpr_extra_payments` table not dropped between tests** (`conftest.py`) — `DROP TABLE IF EXISTS kpr_extra_payments CASCADE` was missing from `SCHEMA_SQL`, causing extra payments to leak across test functions and making `test_list_extra_payments`, `test_delete_extra_payment`, and `test_delete_restores_schedule` fail.
+- **Missing `household_id` / `display_order` in credit card list query** (`credit_cards.py`) — the `SELECT` for `GET /credit-cards` omitted `cc.household_id` and `cc.display_order`, so household-scoped listing always returned empty for other household members.
+
+### Test Counts
+
+- **Backend:** 312 tests (58 routes, ~5.4 tests/route)
+- **Flutter:** 311 tests
 
 ---
 
