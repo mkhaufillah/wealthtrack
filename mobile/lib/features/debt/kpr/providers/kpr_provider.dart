@@ -126,7 +126,6 @@ class KPRNotifier extends StateNotifier<KPRState> {
   Future<ExtraPaymentPreview?> previewExtraPayment({
     required int simId,
     required int amount,
-    double penaltyRate = 0,
     required int applyMonth,
   }) async {
     state = state.copyWith(isLoading: true, clearExtraPreview: true);
@@ -135,7 +134,6 @@ class KPRNotifier extends StateNotifier<KPRState> {
         '/kpr/simulations/$simId/extra-payments/preview',
         data: {
           'amount': amount,
-          'penalty_rate': penaltyRate,
           'apply_month': applyMonth,
         },
       );
@@ -155,7 +153,6 @@ class KPRNotifier extends StateNotifier<KPRState> {
   Future<bool> createExtraPayment({
     required int simId,
     required int amount,
-    double penaltyRate = 0,
     required int applyMonth,
     required String reductionType,
   }) async {
@@ -164,7 +161,6 @@ class KPRNotifier extends StateNotifier<KPRState> {
         '/kpr/simulations/$simId/extra-payments',
         data: {
           'amount': amount,
-          'penalty_rate': penaltyRate,
           'apply_month': applyMonth,
           'reduction_type': reductionType,
         },

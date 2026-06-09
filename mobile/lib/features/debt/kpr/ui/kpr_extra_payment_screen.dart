@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../providers/kpr_provider.dart';
 import '../../models/kpr_model.dart';
 import '../../../../shared/utils/currency_formatter.dart';
@@ -27,6 +28,20 @@ class _KPRExtraPaymentScreenState
   ExtraStep _step = ExtraStep.form;
   int? _selectedOption; // 0 = Kurangi Cicilan, 1 = Kurangi Tenor
 
+  // Cache validation bounds from state
+  int _minMonth = 1;
+  int _maxMonth = 600;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load detail + extra payments for validation bounds
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(kprProvider.notifier).loadDetail(widget.simulationId);
+      ref.read(kprProvider.notifier).loadExtraPayments(widget.simulationId);
+    });
+  }
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -34,16 +49,40 @@ class _KPRExtraPaymentScreenState
     super.dispose();
   }
 
+  void _updateValidationBounds(KPRState state) {
+    final extras = state.extraPayments;
+    if (extras.isNotEmpty) {
+      _minMonth = extras.map((e) => e.applyMonth).reduce((a, b) => a > b ? a : b);
+    } else {
+      _minMonth = 1;
+    }
+    _maxMonth = state.selectedSimulation?.tenorMonths ?? 600;
+  }
+
+  /// Format raw number with thousand separators (e.g. "5000000" → "5,000,000")
+  /// for display while editing. The actual value is stored as pure number.
+  void _formatAmountOnUnfocus() {
+    final text = _amountController.text.replaceAll(',', '');
+    if (text.isEmpty) return;
+    final n = int.tryParse(text);
+    if (n == null) return;
+    final formatter = NumberFormat('#,###', 'id_ID');
+    _amountController.value = TextEditingValue(
+      text: formatter.format(n),
+      selection: TextSelection.collapsed(offset: formatter.format(n).length),
+    );
+  }
+
   Future<void> _preview() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final amount = int.parse(_amountController.text);
+    // Parse amount: strip thousand separators
+    final amount = int.parse(_amountController.text.replaceAll(',', ''));
     final month = int.parse(_monthController.text);
 
     final preview = await ref.read(kprProvider.notifier).previewExtraPayment(
           simId: widget.simulationId,
           amount: amount,
-          penaltyRate: 0,
           applyMonth: month,
         );
 
@@ -55,7 +94,7 @@ class _KPRExtraPaymentScreenState
   Future<void> _confirm() async {
     if (_selectedOption == null) return;
 
-    final amount = int.parse(_amountController.text);
+    final amount = int.parse(_amountController.text.replaceAll(',', ''));
     final month = int.parse(_monthController.text);
     final type = _selectedOption == 0 ? 'installment' : 'tenor';
 
@@ -64,7 +103,6 @@ class _KPRExtraPaymentScreenState
         .createExtraPayment(
           simId: widget.simulationId,
           amount: amount,
-          penaltyRate: 0,
           applyMonth: month,
           reductionType: type,
         );
@@ -95,6 +133,9 @@ class _KPRExtraPaymentScreenState
     final state = ref.watch(kprProvider);
     final preview = state.extraPreview;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Update validation bounds whenever state changes
+    _updateValidationBounds(state);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -158,9 +199,12 @@ class _KPRExtraPaymentScreenState
               filled: true,
               fillColor: AppColors.surface,
             ),
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) _formatAmountOnUnfocus();
+            },
             validator: (v) {
               if (v == null || v.isEmpty) return 'Enter amount';
-              final n = int.tryParse(v);
+              final n = int.tryParse(v.replaceAll(',', ''));
               if (n == null || n < 1000) return 'Minimum Rp1,000';
               return null;
             },
@@ -173,7 +217,7 @@ class _KPRExtraPaymentScreenState
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'Apply at Month Number',
-              hintText: 'e.g. 24 (1 — 180)',
+              hintText: '$_minMonth — $_maxMonth',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -183,7 +227,12 @@ class _KPRExtraPaymentScreenState
             validator: (v) {
               if (v == null || v.isEmpty) return 'Enter month number';
               final n = int.tryParse(v);
-              if (n == null || n < 1) return 'Must be 1 or more';
+              if (n == null || n < _minMonth) {
+                return _minMonth == 1
+                    ? 'Must be 1 or more'
+                    : 'Must be $_minMonth or more (after existing extra payments)';
+              }
+              if (n > _maxMonth) return 'Cannot exceed $_maxMonth (tenor end)';
               return null;
             },
           ),
@@ -320,7 +369,7 @@ class _KPRExtraPaymentScreenState
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Installment: $installmentDiff/month lower (Option A)\\n'
+                      'Installment: $installmentDiff/month lower (Option A)\n'
                       'Tenor: $monthsSaved months faster (Option B)',
                       style: TextStyle(
                         fontSize: 12,

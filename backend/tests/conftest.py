@@ -208,7 +208,6 @@ CREATE TABLE IF NOT EXISTS kpr_extra_payments (
     id SERIAL PRIMARY KEY,
     simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
     amount INTEGER NOT NULL,
-    penalty_rate NUMERIC(6,4) NOT NULL DEFAULT 0,
     penalty_amount INTEGER NOT NULL DEFAULT 0,
     apply_month INTEGER NOT NULL,
     reduction_type TEXT NOT NULL DEFAULT 'tenor' CHECK(reduction_type IN ('tenor', 'installment')),

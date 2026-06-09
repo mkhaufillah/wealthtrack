@@ -30,10 +30,7 @@ Extra payment (pembayaran ekstra / pelunasan sebagian) adalah fasilitas dari ban
 - Cicilan: M = P × (r × (1+r)^n) / ((1+r)^n - 1)
 
 **Sesudah extra payment (Opsi B — Kurangi Tenor):**
-- Pokok baru: P' = P - extra + penalti
-  - Penalti = extra × penalty_rate
-  - Jadi P' = P - extra + (extra × penalty_rate) = P - extra × (1 - penalty_rate)
-  - Atau: P' = P - extra (penalti dibayar terpisah, tergantung bank)
+- Pokok baru: P' = P - extra (penalty dihapus di v0.7.1)
 - Cicilan tetap: M (sama)
 - Tenor baru: n' dihitung ulang dengan formula:
   - n' = log(M / (M - P' × r)) / log(1 + r)
@@ -82,8 +79,7 @@ CREATE TABLE IF NOT EXISTS kpr_extra_payments (
     id SERIAL PRIMARY KEY,
     simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
     amount INTEGER NOT NULL,                     -- Nominal extra payment (Rp)
-    penalty_rate NUMERIC(6,4) NOT NULL DEFAULT 0, -- Persentase penalti (desimal, 0.02 = 2%)
-    penalty_amount INTEGER NOT NULL DEFAULT 0,   -- Nominal penalti (otomatis)
+    penalty_amount INTEGER NOT NULL DEFAULT 0,   -- Nominal penalti (otomatis, selalu 0 sejak v0.7.1)
     apply_month INTEGER NOT NULL,                 -- Bulan ke berapa extra payment dilakukan
     reduction_type TEXT NOT NULL DEFAULT 'tenor' CHECK(reduction_type IN ('tenor', 'installment')),
     -- Hasil perhitungan (disimpan untuk referensi)
@@ -105,7 +101,6 @@ Request:
 ```json
 {
     "amount": 50000000,
-    "penalty_rate": 0.02,
     "apply_month": 24
 }
 ```
@@ -142,7 +137,6 @@ Request:
 ```json
 {
     "amount": 50000000,
-    "penalty_rate": 0.02,
     "apply_month": 24,
     "reduction_type": "tenor"
 }
@@ -153,8 +147,7 @@ Response:
 {
     "id": 1,
     "amount": 50000000,
-    "penalty_rate": 0.02,
-    "penalty_amount": 1000000,
+    "penalty_amount": 0,
     "apply_month": 24,
     "reduction_type": "tenor",
     "old_remaining_balance": 400000000,
@@ -189,8 +182,7 @@ def apply_extra_payment(
     schedule: list[MonthlySchedule],
     extra_amount: int,
     apply_month: int,
-    penalty_rate: float = 0,
-    reduction_type: str = "tenor",  # "tenor" | "installment"
+    reduction_type: str = "tenor",
 ) -> ExtraPaymentResult:
     """
     Apply an extra payment at a specific month.
@@ -202,10 +194,9 @@ def apply_extra_payment(
 
 #### Algoritma Umum (shared):
 1. Ambil `remaining_balance` di bulan `apply_month` (sebelum bayar cicilan bulan itu)
-2. Hitung `penalty = extra_amount * penalty_rate`
-3. `new_balance = remaining_balance - extra_amount + penalty`
-4. Ambil `current_installment` = cicilan per bulan sebelum extra payment
-5. Ambil `remaining_months` = sisa tenor sebelum extra payment
+2. `new_balance = remaining_balance - extra_amount` (penalty dihapus di v0.7.1)
+3. Ambil `current_installment` = cicilan per bulan sebelum extra payment
+4. Ambil `remaining_months` = sisa tenor sebelum extra payment
 
 #### Algoritma Opsi A — Kurangi Cicilan (`reduction_type='installment'`):
 1. Tenor tetap = `remaining_months` (tidak berubah)

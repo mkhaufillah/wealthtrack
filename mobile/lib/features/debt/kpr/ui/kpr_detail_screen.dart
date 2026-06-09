@@ -397,15 +397,28 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             ),
           )
         else
-          ...extras.map((ep) => _buildExtraPaymentCard(ep, isDark)),
+          ...extras.map((ep) => _buildExtraPaymentCard(ep, sim, isDark)),
       ],
     );
   }
 
-  Widget _buildExtraPaymentCard(ExtraPaymentRecord ep, bool isDark) {
+  Widget _buildExtraPaymentCard(ExtraPaymentRecord ep, KPRSimulation sim, bool isDark) {
     final isTenor = ep.reductionType == 'tenor';
     final monthsSaved = ep.oldRemainingMonths - ep.newRemainingMonths;
     final paymentDiff = ep.oldInstallment - ep.newInstallment;
+
+    // Calculate the actual start date of the extra payment's apply month
+    final startMonth = sim.startMonth;
+    final startYear = sim.startYear;
+    final totalMonths = startMonth + ep.applyMonth - 1;
+    final applyYear = startYear + (totalMonths - 1) ~/ 12;
+    final applyMonthDate = ((totalMonths - 1) % 12) + 1;
+    final monthNames = [
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final startDateStr = '${monthNames[applyMonthDate]} $applyYear';
+    final endDateStr = ep.newEndDate.isNotEmpty ? ep.newEndDate : ep.originalEndDate;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -508,6 +521,26 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.accent.withOpacity(0.15),
+                ),
+              ),
+              child: Text(
+                'Recalculation of installment amount and new tenor starts from $startDateStr — $endDateStr',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.accent,
+                  height: 1.4,
+                ),
+              ),
             ),
             if (monthsSaved > 0 || paymentDiff > 0) ...[
               const SizedBox(height: 10),

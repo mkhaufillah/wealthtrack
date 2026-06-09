@@ -271,7 +271,6 @@ def apply_extra_payment(
     schedule: list[MonthlySchedule],
     extra_amount: int,
     apply_month: int,
-    penalty_rate: float = 0,
     reduction_type: str = "tenor",
     start_month: int = 1,
     start_year: int = 2026,
@@ -288,14 +287,8 @@ def apply_extra_payment(
         _get_current_installment_and_balance(schedule, apply_month)
     )
 
-    # Apply penalty
-    extra_with_penalty = extra_amount
-    penalty_amount = 0
-    if penalty_rate > 0:
-        penalty_amount = int(extra_amount * penalty_rate)
-        extra_with_penalty = extra_amount - penalty_amount
-
-    new_balance = remaining_balance - extra_with_penalty
+    # Extra amount applies directly to principal
+    new_balance = remaining_balance - extra_amount
     if new_balance < 0:
         new_balance = 0
 
@@ -378,17 +371,16 @@ def preview_extra_payment(
     schedule: list[MonthlySchedule],
     extra_amount: int,
     apply_month: int,
-    penalty_rate: float = 0,
     start_month: int = 1,
     start_year: int = 2026,
 ) -> ExtraPaymentComparison:
     """Preview both reduction options side-by-side. No side effects."""
     opt_installment = apply_extra_payment(
-        schedule, extra_amount, apply_month, penalty_rate,
+        schedule, extra_amount, apply_month,
         reduction_type="installment", start_month=start_month, start_year=start_year,
     )
     opt_tenor = apply_extra_payment(
-        schedule, extra_amount, apply_month, penalty_rate,
+        schedule, extra_amount, apply_month,
         reduction_type="tenor", start_month=start_month, start_year=start_year,
     )
     return ExtraPaymentComparison(

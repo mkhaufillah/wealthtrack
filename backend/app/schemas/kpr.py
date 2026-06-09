@@ -71,14 +71,12 @@ class KPRSimulationDetailOut(KPRSimulationOut):
 
 class ExtraPaymentCreate(BaseModel):
     amount: int = Field(ge=1000)
-    penalty_rate: float = Field(0, ge=0, le=1)
     apply_month: int = Field(ge=1, le=600)
     reduction_type: str = Field("tenor", pattern=r"^(tenor|installment)$")
 
 
 class ExtraPaymentPreviewRequest(BaseModel):
     amount: int = Field(ge=1000)
-    penalty_rate: float = Field(0, ge=0, le=1)
     apply_month: int = Field(ge=1, le=600)
 
 
@@ -100,7 +98,6 @@ class ExtraPaymentOut(BaseModel):
     id: int
     simulation_id: int
     amount: int
-    penalty_rate: float
     penalty_amount: int
     apply_month: int
     reduction_type: str

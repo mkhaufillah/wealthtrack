@@ -46,8 +46,7 @@ class TestKprEngine:
         """3 years fixed 6%, then floating 9%."""
         periods = [
             RatePeriod(1, 36, 0.06, "fixed"),
-            RatePeriod(37, 120, 0.09, "floating"),
-        ]
+            RatePeriod(37, 120, 0.09, "floating")]
         result = calculate_kpr(
             total_loan=500000000,
             tenor_months=120,
@@ -125,8 +124,7 @@ class TestKprApiCreate:
                 "down_payment": 50000000,
                 "tenor_months": 120,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.075,
-            },
+                "base_interest_rate": 0.075},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         assert response.status_code == 201
@@ -147,8 +145,7 @@ class TestKprApiCreate:
                 "tenor_months": 180,
                 "interest_type": "graduated",
                 "base_interest_rate": 0.07,
-                "graduated_increment": 0.005,
-            },
+                "graduated_increment": 0.005},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         assert response.status_code == 201
@@ -186,8 +183,7 @@ class TestKprApiList:
                     "property_price": 300000000,
                     "tenor_months": 60,
                     "interest_type": "fixed",
-                    "base_interest_rate": 0.08,
-                },
+                    "base_interest_rate": 0.08},
                 headers={"Authorization": f"Bearer {filla_token}"},
             )
 
@@ -214,8 +210,7 @@ class TestKprApiList:
                 "property_price": 200000000,
                 "tenor_months": 60,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.07,
-            },
+                "base_interest_rate": 0.07},
             headers={"Authorization": f"Bearer {nahda_token}"},
         )
 
@@ -253,8 +248,7 @@ class TestKprApiDetail:
                 "property_price": 300000000,
                 "tenor_months": 60,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.08,
-            },
+                "base_interest_rate": 0.08},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -281,8 +275,7 @@ class TestKprApiDetail:
                 "property_price": 100000000,
                 "tenor_months": 12,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.05,
-            },
+                "base_interest_rate": 0.05},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -311,8 +304,7 @@ class TestKprApiDelete:
                 "property_price": 100000000,
                 "tenor_months": 12,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.05,
-            },
+                "base_interest_rate": 0.05},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -348,8 +340,7 @@ class TestKprApiDelete:
                 "property_price": 200000000,
                 "tenor_months": 24,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.06,
-            },
+                "base_interest_rate": 0.06},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -378,8 +369,7 @@ class TestKprApiUpdate:
                 "property_price": 300000000,
                 "tenor_months": 60,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.08,
-            },
+                "base_interest_rate": 0.08},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -405,8 +395,7 @@ class TestKprApiUpdate:
                 "down_payment": 50000000,
                 "tenor_months": 120,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.075,
-            },
+                "base_interest_rate": 0.075},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -431,8 +420,7 @@ class TestKprApiUpdate:
                 "property_price": 200000000,
                 "tenor_months": 60,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.07,
-            },
+                "base_interest_rate": 0.07},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -464,8 +452,7 @@ class TestKprApiUpdate:
                 "property_price": 300000000,
                 "tenor_months": 60,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.08,
-            },
+                "base_interest_rate": 0.08},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -495,8 +482,7 @@ class TestKprApiSchedule:
                 "property_price": 300000000,
                 "tenor_months": 12,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.06,
-            },
+                "base_interest_rate": 0.06},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -526,8 +512,7 @@ class TestKprApiSchedule:
                 "property_price": 300000000,
                 "tenor_months": 12,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.06,
-            },
+                "base_interest_rate": 0.06},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -553,8 +538,7 @@ class TestKprApiSchedule:
                 "property_price": 300000000,
                 "tenor_months": 12,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.06,
-            },
+                "base_interest_rate": 0.06},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -577,8 +561,7 @@ class TestKprApiSchedule:
                 "property_price": 100000000,
                 "tenor_months": 12,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.05,
-            },
+                "base_interest_rate": 0.05},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -616,7 +599,6 @@ class TestExtraPaymentEngine:
             schedule=schedule,
             extra_amount=50000000,
             apply_month=24,
-            penalty_rate=0.02,
             reduction_type="tenor",
             start_month=1,
             start_year=2026,
@@ -637,7 +619,6 @@ class TestExtraPaymentEngine:
             schedule=schedule,
             extra_amount=50000000,
             apply_month=24,
-            penalty_rate=0.02,
             reduction_type="installment",
             start_month=1,
             start_year=2026,
@@ -658,7 +639,6 @@ class TestExtraPaymentEngine:
             schedule=schedule,
             extra_amount=100000000,
             apply_month=12,
-            penalty_rate=0,
             reduction_type="tenor",
         )
 
@@ -674,7 +654,6 @@ class TestExtraPaymentEngine:
             schedule=schedule,
             extra_amount=50000000,
             apply_month=1,
-            penalty_rate=0.02,
             reduction_type="installment",
         )
 
@@ -693,7 +672,6 @@ class TestExtraPaymentEngine:
             schedule=schedule,
             extra_amount=remaining_at_60,
             apply_month=60,
-            penalty_rate=0,
             reduction_type="tenor",
         )
 
@@ -709,7 +687,6 @@ class TestExtraPaymentEngine:
             schedule=schedule,
             extra_amount=50000000,
             apply_month=24,
-            penalty_rate=0.02,
             start_month=1,
             start_year=2026,
         )
@@ -726,11 +703,11 @@ class TestExtraPaymentEngine:
 
         result_low = apply_extra_payment(
             schedule=schedule, extra_amount=50000000,
-            apply_month=24, penalty_rate=0, reduction_type="tenor",
+            apply_month=24, reduction_type="tenor",
         )
         result_high = apply_extra_payment(
             schedule=schedule, extra_amount=50000000,
-            apply_month=24, penalty_rate=0.05, reduction_type="tenor",
+            apply_month=24, reduction_type="tenor",
         )
 
         assert result_high.new_remaining_months > result_low.new_remaining_months
@@ -744,12 +721,12 @@ class TestExtraPaymentEngine:
         # First extra at month 12
         r1 = apply_extra_payment(
             schedule=schedule, extra_amount=25000000,
-            apply_month=12, penalty_rate=0, reduction_type="installment",
+            apply_month=12, reduction_type="installment",
         )
         # Second extra at month 36 (on the modified schedule)
         r2 = apply_extra_payment(
             schedule=r1.schedule, extra_amount=25000000,
-            apply_month=36, penalty_rate=0, reduction_type="installment",
+            apply_month=36, reduction_type="installment",
         )
 
         assert r2.new_installment < r1.new_installment  # Kedua extra turunkan cicilan
@@ -777,8 +754,7 @@ class TestExtraPaymentAPI:
                 "interest_type": "fixed",
                 "base_interest_rate": 0.0899,
                 "start_month": 1,
-                "start_year": 2026,
-            },
+                "start_year": 2026},
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 201
@@ -788,7 +764,7 @@ class TestExtraPaymentAPI:
         """Preview without schedule should fail."""
         resp = await client.post(
             "/api/v1/kpr/simulations/999/extra-payments/preview",
-            json={"amount": 50000000, "penalty_rate": 0.02, "apply_month": 24},
+            json={"amount": 50000000, "apply_month": 24},
             headers=auth_headers,
         )
         assert resp.status_code == 404
@@ -801,7 +777,7 @@ class TestExtraPaymentAPI:
 
         resp = await client.post(
             f"/api/v1/kpr/simulations/{sim_id}/extra-payments/preview",
-            json={"amount": 50000000, "penalty_rate": 0.02, "apply_month": 24},
+            json={"amount": 50000000, "apply_month": 24},
             headers=auth_headers,
         )
         assert resp.status_code == 200
@@ -827,10 +803,8 @@ class TestExtraPaymentAPI:
             f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
             json={
                 "amount": 50000000,
-                "penalty_rate": 0.02,
                 "apply_month": 24,
-                "reduction_type": "tenor",
-            },
+                "reduction_type": "tenor"},
             headers=auth_headers,
         )
         assert resp.status_code == 201
@@ -850,10 +824,8 @@ class TestExtraPaymentAPI:
             f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
             json={
                 "amount": 50000000,
-                "penalty_rate": 0.02,
                 "apply_month": 12,
-                "reduction_type": "installment",
-            },
+                "reduction_type": "installment"},
             headers=auth_headers,
         )
         assert resp.status_code == 201
@@ -871,12 +843,12 @@ class TestExtraPaymentAPI:
         # Create two extra payments
         await client.post(
             f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
-            json={"amount": 25000000, "penalty_rate": 0, "apply_month": 12, "reduction_type": "installment"},
+            json={"amount": 25000000, "apply_month": 12, "reduction_type": "installment"},
             headers=auth_headers,
         )
         await client.post(
             f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
-            json={"amount": 25000000, "penalty_rate": 0, "apply_month": 36, "reduction_type": "tenor"},
+            json={"amount": 25000000, "apply_month": 36, "reduction_type": "tenor"},
             headers=auth_headers,
         )
 
@@ -897,7 +869,7 @@ class TestExtraPaymentAPI:
         # Create & capture ID
         create_resp = await client.post(
             f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
-            json={"amount": 50000000, "penalty_rate": 0.02, "apply_month": 24, "reduction_type": "tenor"},
+            json={"amount": 50000000, "apply_month": 24, "reduction_type": "tenor"},
             headers=auth_headers,
         )
         ep_id = create_resp.json()["id"]
@@ -932,7 +904,7 @@ class TestExtraPaymentAPI:
         # Add extra payment (tenor reduction shrinks schedule)
         ep_resp = await client.post(
             f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
-            json={"amount": 100000000, "penalty_rate": 0, "apply_month": 12, "reduction_type": "tenor"},
+            json={"amount": 100000000, "apply_month": 12, "reduction_type": "tenor"},
             headers=auth_headers,
         )
         ep_id = ep_resp.json()["id"]
@@ -965,7 +937,7 @@ class TestExtraPaymentAPI:
 
         resp = await client.post(
             f"/api/v1/kpr/simulations/{sim_id}/extra-payments/preview",
-            json={"amount": 50000000, "penalty_rate": 0.02, "apply_month": 24},
+            json={"amount": 50000000, "apply_month": 24},
             headers={"Authorization": f"Bearer {nahda_token}"},
         )
         assert resp.status_code == 403
@@ -992,8 +964,7 @@ class TestKPRHousehold:
                 "tenor_months": 120,
                 "interest_type": "fixed",
                 "base_interest_rate": 0.0899,
-                "household_id": 1,
-            },
+                "household_id": 1},
             headers=auth_headers,
         )
         assert resp.status_code == 201
@@ -1012,8 +983,7 @@ class TestKPRHousehold:
                 "tenor_months": 60,
                 "interest_type": "fixed",
                 "base_interest_rate": 0.075,
-                "household_id": 1,
-            },
+                "household_id": 1},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -1036,8 +1006,7 @@ class TestKPRHousehold:
                 "tenor_months": 36,
                 "interest_type": "fixed",
                 "base_interest_rate": 0.06,
-                "household_id": 1,
-            },
+                "household_id": 1},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]
@@ -1059,8 +1028,7 @@ class TestKPRHousehold:
                 "property_price": 400000000,
                 "tenor_months": 120,
                 "interest_type": "fixed",
-                "base_interest_rate": 0.08,
-            },
+                "base_interest_rate": 0.08},
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         sim_id = create_resp.json()["id"]

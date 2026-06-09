@@ -213,7 +213,6 @@ class ExtraPaymentRecord {
   final int id;
   final int simulationId;
   final int amount;
-  final double penaltyRate;
   final int penaltyAmount;
   final int applyMonth;
   final String reductionType;
@@ -232,7 +231,6 @@ class ExtraPaymentRecord {
     required this.id,
     required this.simulationId,
     required this.amount,
-    required this.penaltyRate,
     required this.penaltyAmount,
     required this.applyMonth,
     required this.reductionType,
@@ -253,7 +251,6 @@ class ExtraPaymentRecord {
       id: json['id'] as int,
       simulationId: json['simulation_id'] as int,
       amount: json['amount'] as int,
-      penaltyRate: (json['penalty_rate'] as num).toDouble(),
       penaltyAmount: json['penalty_amount'] as int? ?? 0,
       applyMonth: json['apply_month'] as int,
       reductionType: json['reduction_type'] as String? ?? 'tenor',
