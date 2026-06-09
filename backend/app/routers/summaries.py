@@ -681,6 +681,7 @@ async def household_debt_summary(
     member_details = []
     grand_total_kpr = 0
     grand_total_cc = 0
+    visible_total = 0
 
     for m in members:
         member = dict(m)
@@ -692,6 +693,12 @@ async def household_debt_summary(
         member_details.append(detail)
         grand_total_kpr += detail.get("kpr_total", 0)
         grand_total_cc += detail.get("cc_total", 0)
+
+        # Calculate visible debt from current user's perspective
+        if detail["is_current_user"]:
+            visible_total += detail["kpr_total"] + detail["cc_total"]
+        else:
+            visible_total += detail.get("kpr_shared", 0) + detail.get("cc_shared", 0)
 
     # Also include shared household debt where household_id is set
     # (cards/simulations owned by household that may not belong to a member's personal scope)
@@ -708,7 +715,7 @@ async def household_debt_summary(
     extra_kpr = extra_kpr_row["cnt"] if extra_kpr_row else 0
 
     return {
-        "total_debt": grand_total_kpr + grand_total_cc,
+        "total_debt": visible_total,
         "total_kpr": grand_total_kpr,
         "total_cc": grand_total_cc,
         "members": member_details,

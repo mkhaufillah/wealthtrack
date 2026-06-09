@@ -375,12 +375,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
       ),
-      // Dashed separator
-      Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text('─' * 30,
-            style: TextStyle(fontSize: 9, color: AppColors.textSecondary.withAlpha(80))),
-      ),
+      // Member separator
+      const Divider(height: 12),
     ];
 
     // Private debts (current user only)
@@ -412,9 +408,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     if (showDivider) {
-      items.add(Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Divider(height: 1, color: AppColors.divider),
+      items.add(const Padding(
+        padding: EdgeInsets.symmetric(vertical: 4),
+        child: Divider(height: 1),
       ));
     }
 
