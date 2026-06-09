@@ -297,7 +297,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             // Total
             Padding(
-              padding: const EdgeInsets.only(top: visibleMembers.isNotEmpty ? 10 : 0),
+              padding: EdgeInsets.only(top: visibleMembers.isNotEmpty ? 10 : 0),
               child: Column(
                 children: [
                   const Divider(height: 1),
