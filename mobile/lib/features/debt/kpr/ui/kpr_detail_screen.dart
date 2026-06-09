@@ -475,10 +475,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Divider(height: 1, color: AppColors.divider.withOpacity(0.3)),
-            ),
+            Divider(height: 24, color: AppColors.divider),
             Row(
               children: [
                 Expanded(
