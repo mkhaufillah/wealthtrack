@@ -9,12 +9,16 @@ class KPRState {
   final String? error;
   final List<KPRSimulation> simulations;
   final KPRSimulation? selectedSimulation;
+  final ExtraPaymentPreview? extraPreview;
+  final List<ExtraPaymentRecord> extraPayments;
 
   const KPRState({
     this.isLoading = false,
     this.error,
     this.simulations = const [],
     this.selectedSimulation,
+    this.extraPreview,
+    this.extraPayments = const [],
   });
 
   KPRState copyWith({
@@ -22,14 +26,22 @@ class KPRState {
     String? error,
     List<KPRSimulation>? simulations,
     KPRSimulation? selectedSimulation,
+    ExtraPaymentPreview? extraPreview,
+    List<ExtraPaymentRecord>? extraPayments,
     bool clearError = false,
     bool clearSelection = false,
+    bool clearExtraPreview = false,
   }) =>
       KPRState(
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : (error ?? this.error),
         simulations: simulations ?? this.simulations,
-        selectedSimulation: clearSelection ? null : (selectedSimulation ?? this.selectedSimulation),
+        selectedSimulation:
+            clearSelection ? null : (selectedSimulation ?? this.selectedSimulation),
+        extraPreview: clearExtraPreview
+            ? null
+            : (extraPreview ?? this.extraPreview),
+        extraPayments: extraPayments ?? this.extraPayments,
       );
 }
 
@@ -107,6 +119,100 @@ class KPRNotifier extends StateNotifier<KPRState> {
 
   void clearSelection() {
     state = state.copyWith(clearSelection: true);
+  }
+
+  // ── Extra Payment: Preview ──────────────────────────────────────
+
+  Future<ExtraPaymentPreview?> previewExtraPayment({
+    required int simId,
+    required int amount,
+    double penaltyRate = 0,
+    required int applyMonth,
+  }) async {
+    state = state.copyWith(isLoading: true, clearExtraPreview: true);
+    try {
+      final res = await _api.post(
+        '/kpr/simulations/$simId/extra-payments/preview',
+        data: {
+          'amount': amount,
+          'penalty_rate': penaltyRate,
+          'apply_month': applyMonth,
+        },
+      );
+      final preview = ExtraPaymentPreview.fromJson(
+          res.data as Map<String, dynamic>);
+      state = state.copyWith(isLoading: false, extraPreview: preview);
+      return preview;
+    } catch (e) {
+      state = state.copyWith(
+          isLoading: false, error: _api.handleError(e).toString());
+      return null;
+    }
+  }
+
+  // ── Extra Payment: Commit ───────────────────────────────────────
+
+  Future<bool> createExtraPayment({
+    required int simId,
+    required int amount,
+    double penaltyRate = 0,
+    required int applyMonth,
+    required String reductionType,
+  }) async {
+    try {
+      await _api.post(
+        '/kpr/simulations/$simId/extra-payments',
+        data: {
+          'amount': amount,
+          'penalty_rate': penaltyRate,
+          'apply_month': applyMonth,
+          'reduction_type': reductionType,
+        },
+      );
+      // Refresh detail to get updated schedule
+      await loadDetail(simId);
+      // Refresh extra payments list
+      await loadExtraPayments(simId);
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: _api.handleError(e).toString());
+      return false;
+    }
+  }
+
+  // ── Extra Payment: List ─────────────────────────────────────────
+
+  Future<void> loadExtraPayments(int simId) async {
+    try {
+      final res = await _api.get(
+        '/kpr/simulations/$simId/extra-payments',
+      );
+      final data = res.data;
+      final list = (data as List)
+          .map((e) =>
+              ExtraPaymentRecord.fromJson(e as Map<String, dynamic>))
+          .toList();
+      state = state.copyWith(extraPayments: list);
+    } catch (e) {
+      state = state.copyWith(
+          error: _api.handleError(e).toString());
+    }
+  }
+
+  // ── Extra Payment: Delete ───────────────────────────────────────
+
+  Future<bool> deleteExtraPayment(int simId, int extraPaymentId) async {
+    try {
+      await _api.delete(
+          '/kpr/simulations/$simId/extra-payments/$extraPaymentId');
+      // Refresh detail to get restored schedule
+      await loadDetail(simId);
+      await loadExtraPayments(simId);
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: _api.handleError(e).toString());
+      return false;
+    }
   }
 }
 

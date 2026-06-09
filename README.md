@@ -1,6 +1,6 @@
 # WealthTrack — Personal Finance Tracker
 
-A personal finance tracker. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Redis + Meilisearch + Flutter + AI features. **v0.6.2** — Debt Tracker (KPR + Credit Cards), Android Widget, all CI green.
+A personal finance tracker. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Redis + Meilisearch + Flutter + AI features. **v0.7.0** — Extra Payment KPR (Reduce Installment / Reduce Tenor) + Household Debt (shared family debt visibility).
 
 ## Architecture
 
@@ -148,7 +148,8 @@ Every CI run sends **start + result notifications** to Keluarga Super Sapi → t
 || P5 — Hardening | CI/CD self-hosted runner, CORS/Redis/DB security, Telegram v2 | ✅ Done |
 || P6 — Audit Cleanup | 29 findings audited, 20 fixed, 2 cancelled, 0 bugs | ✅ Done |
 || P7 — Debt Tracker | KPR Calculator + Credit Card Management + Android Widget | ✅ Done |
-|| P8 — Home Polishing | Refresh, spacing, projection, due_date, white screen fix | ✅ Done |
+||| P8 — Home Polishing | Refresh, spacing, projection, due_date, white screen fix | ✅ Done |
+||| P9 — Extra Payment KPR + Household Debt | Extra Payment (Option A: Reduce Installment, Option B: Reduce Tenor), preview comparison, household debt aggregation | ✅ Done |
 
 ## Deployment
 

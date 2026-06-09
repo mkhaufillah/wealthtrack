@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/credit_card_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../features/auth/providers/auth_provider.dart';
+import '../../../../shared/providers/app_providers.dart';
 
 /// Extracts raw integer amount from a formatted IDR string like "Rp 50.000".
 int _parseAmount(String text) {
@@ -41,6 +43,11 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
   int _dueDate = 15;
   bool _isSaving = false;
 
+  // Share toggle
+  bool _shareWithHousehold = false;
+  bool _hasHousehold = false;
+  bool _householdCheckDone = false;
+
   // Focus nodes for amount field
   final _creditLimitFocus = FocusNode();
   bool _creditLimitFocused = false;
@@ -50,6 +57,9 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
     super.initState();
     _creditLimitFocus.addListener(_onCreditLimitFocusChange);
     _creditLimitCtrl.addListener(_onAmountTextChange);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkHousehold();
+    });
   }
 
   @override
@@ -107,6 +117,26 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
     return 'Digits only';
   }
 
+  Future<void> _checkHousehold() async {
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.get('/households/me');
+      if (mounted) {
+        setState(() {
+          _hasHousehold = true;
+          _householdCheckDone = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _hasHousehold = false;
+          _householdCheckDone = true;
+        });
+      }
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -118,6 +148,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
       'billing_date': _billingDate,
       'due_date': _dueDate,
       'credit_limit': _getCreditLimit(),
+      if (_shareWithHousehold) 'household_id': 1,
     };
 
     final success = await ref.read(creditCardProvider.notifier).createCard(data);
@@ -225,7 +256,21 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
                 prefixIcon: Icon(Icons.monetization_on_outlined, size: 20),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
+
+            // ─── Share with Household Toggle ─────────
+            if (_householdCheckDone && _hasHousehold)
+              SwitchListTile(
+                title: const Text('Share with household'),
+                subtitle: const Text('Make this visible to all household members'),
+                value: _shareWithHousehold,
+                onChanged: (v) => setState(() => _shareWithHousehold = v),
+                contentPadding: EdgeInsets.zero,
+              ),
+            if (_householdCheckDone && _hasHousehold)
+              const SizedBox(height: 8),
+
+            SizedBox(height: _householdCheckDone && _hasHousehold ? 8 : 32),
 
             // ─── Save Button ──────────────────────────
             FilledButton.icon(

@@ -6,6 +6,8 @@ import '../../../../features/home/providers/dashboard_provider.dart';
 import '../providers/kpr_provider.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../features/auth/providers/auth_provider.dart';
+import '../../../../shared/providers/app_providers.dart';
 
 /// Extracts raw integer amount from a formatted IDR string like "Rp 50.000".
 int _parseAmount(String text) {
@@ -81,6 +83,11 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
   bool _isSaving = false;
   bool _isCalculating = false;
 
+  // Share toggle
+  bool _shareWithHousehold = false;
+  bool _hasHousehold = false;
+  bool _householdCheckDone = false;
+
   // Focus nodes for amount fields
   final _propertyFocus = FocusNode();
   final _downPaymentFocus = FocusNode();
@@ -100,6 +107,11 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     // Extend last rate period to full tenor after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncLastRatePeriodToTenor();
+    });
+
+    // Check if user has a household
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkHousehold();
     });
   }
 
@@ -172,6 +184,26 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       final totalMonths = _getTenorMonths();
       final last = _ratePeriods.last;
       last.toMonthCtrl.text = totalMonths.toString();
+    }
+  }
+
+  Future<void> _checkHousehold() async {
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.get('/households/me');
+      if (mounted) {
+        setState(() {
+          _hasHousehold = true;
+          _householdCheckDone = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _hasHousehold = false;
+          _householdCheckDone = true;
+        });
+      }
     }
   }
 
@@ -329,6 +361,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       'start_month': _startMonth,
       'start_year': _startYear,
       if (_dueDate != null) 'due_date': _dueDate,
+      if (_shareWithHousehold) 'household_id': 1,
     };
 
     if (_interestType == 'graduated') {
@@ -553,6 +586,18 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               ..._buildMixFields(),
 
             const SizedBox(height: 24),
+
+            // ─── Share with Household Toggle ─────────
+            if (_householdCheckDone && _hasHousehold)
+              SwitchListTile(
+                title: const Text('Share with household'),
+                subtitle: const Text('Make this visible to all household members'),
+                value: _shareWithHousehold,
+                onChanged: (v) => setState(() => _shareWithHousehold = v),
+                contentPadding: EdgeInsets.zero,
+              ),
+            if (_householdCheckDone && _hasHousehold)
+              const SizedBox(height: 8),
 
             // ─── Action Buttons ──────────────────────
             Row(

@@ -1,5 +1,66 @@
 # Changelog
 
+## v0.7.0 — Extra Payment KPR + Household Debt (2026-06-09)
+
+### Extra Payment KPR
+
+**Two reduction options for extra payments:**
+- **Option A — Reduce Installment:** Keep same tenor, lower monthly payment when principal is reduced
+- **Option B — Reduce Tenor:** Keep same installment, shorter loan period, save more total interest
+- Preview comparison: See both options side-by-side before committing
+- Penalty rate support (% of extra payment, configurable)
+- Multiple extra payments can stack — each recalculates the amortization schedule
+- Delete extra payment: Regenerates original schedule, re-applies remaining extras
+
+**Engine (`kpr_engine.py`):**
+- `apply_extra_payment()` — core function supporting both reduction types
+- `preview_extra_payment()` — returns comparison of both options without DB write
+- `_build_schedule_from()` — generates amortization schedule from a given starting point
+- `ExtraPaymentResult` / `ExtraPaymentComparison` dataclasses
+
+**New DB table: `kpr_extra_payments`**
+- Stores amount, penalty, reduction type, before/after balance, savings info
+
+**API endpoints:**
+- `POST /kpr/simulations/{id}/extra-payments/preview` — preview comparison
+- `POST /kpr/simulations/{id}/extra-payments` — commit extra payment
+- `GET /kpr/simulations/{id}/extra-payments` — list history
+- `DELETE /kpr/simulations/{id}/extra-payments/{eid}` — delete and restore
+
+**Mobile (Flutter):**
+- New `KPRExtraPaymentScreen` — 3-step flow: form → preview comparison → confirm
+- Extra payment history section in KPR detail screen
+- Extra button in KPR detail app bar
+- `ExtraPaymentRecord`, `ExtraPaymentPreview`, `ExtraPaymentOption` models
+
+### Household Debt — Family-wide Debt Visibility
+
+**All debt types (KPR + Credit Cards) can now be shared:**
+- `household_id` column added to `kpr_simulations` and `credit_cards` tables
+- Debt with `household_id` set is visible to all household members
+- Debt without `household_id` stays private
+
+**API changes:**
+- `GET /summaries/debt/household` — aggregated debt across all household members
+- KPR CREATE/LIST/DELETE now support household scope
+- Credit Card CREATE/LIST/DELETE now support household scope
+- `_get_simulation_for_user()` and `_get_card_for_user()` household-aware
+- Personal debt summary still works as before
+
+**Mobile (Flutter) changes:**
+- Home screen: "Outstanding Household Debt" title with member breakdown
+- KPR/CC list screens: Owner badge (`🏠 Anggota`) for shared debts
+- KPR/CC form screens: "Share with household" toggle
+
+### Fixes
+- Persist `base_interest_rate`, `graduated_increment`, `graduated_every_months` in `kpr_simulations` (schedule regeneration now uses correct parameters)
+- Added missing columns to CREATE TABLE: `due_date`, `start_month`, `start_year`, `base_interest_rate`, `graduated_increment`, `graduated_every_months`
+- `apply_month` now has upper bound validation (max 600 months)
+- `ExtraPaymentOut` response now returns real `created_at` from DB
+- Extra payment delete correctly re-fetches from DB for fresh data
+
+---
+
 ## v0.6.2 — Test Coverage + Hotfixes (2026-06-09)
 
 ### Test Coverage — Debt Tracker

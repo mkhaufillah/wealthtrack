@@ -588,3 +588,485 @@ class TestKprApiSchedule:
             headers={"Authorization": f"Bearer {nahda_token}"},
         )
         assert resp.status_code == 403
+
+
+# ──────────────────────────────────────────────
+# Extra Payment — Engine Tests
+# ──────────────────────────────────────────────
+
+
+class TestExtraPaymentEngine:
+    """Pure-python tests for extra payment engine."""
+
+    def _make_schedule(self):
+        """Create a standard 120-month schedule for testing."""
+        return calculate_kpr(
+            total_loan=500000000,
+            tenor_months=120,
+            interest_type="fixed",
+            base_interest_rate=0.0899,
+        )
+
+    def test_extra_payment_tenor_reduction(self):
+        """Opsi B — extra payment reduces tenor, keeps same installment."""
+        schedule = self._make_schedule()
+        from app.services.kpr_engine import apply_extra_payment
+
+        result = apply_extra_payment(
+            schedule=schedule,
+            extra_amount=50000000,
+            apply_month=24,
+            penalty_rate=0.02,
+            reduction_type="tenor",
+            start_month=1,
+            start_year=2026,
+        )
+
+        assert result.old_installment == result.new_installment  # Same payment
+        assert result.new_remaining_months < result.old_remaining_months  # Shorter tenor
+        assert result.total_interest_saved > 0  # Saved some interest
+        assert result.new_end_date < result.original_end_date  # Ends sooner
+        assert len(result.schedule) < len(schedule)  # Total schedule shorter
+
+    def test_extra_payment_installment_reduction(self):
+        """Opsi A — extra payment reduces installment, keeps same tenor."""
+        schedule = self._make_schedule()
+        from app.services.kpr_engine import apply_extra_payment
+
+        result = apply_extra_payment(
+            schedule=schedule,
+            extra_amount=50000000,
+            apply_month=24,
+            penalty_rate=0.02,
+            reduction_type="installment",
+            start_month=1,
+            start_year=2026,
+        )
+
+        assert result.new_installment < result.old_installment  # Lower payment
+        assert result.new_remaining_months == result.old_remaining_months  # Same tenor
+        assert result.total_interest_saved > 0
+        # Combined schedule = months before + remaining months = len original
+        assert len(result.schedule) == len(schedule)
+
+    def test_extra_payment_no_penalty(self):
+        """Extra payment without penalty rate."""
+        schedule = self._make_schedule()
+        from app.services.kpr_engine import apply_extra_payment
+
+        result = apply_extra_payment(
+            schedule=schedule,
+            extra_amount=100000000,
+            apply_month=12,
+            penalty_rate=0,
+            reduction_type="tenor",
+        )
+
+        assert result.new_remaining_months < result.old_remaining_months
+        assert result.total_interest_saved > 0
+
+    def test_extra_payment_first_month(self):
+        """Extra payment at month 1 (before first payment)."""
+        schedule = self._make_schedule()
+        from app.services.kpr_engine import apply_extra_payment
+
+        result = apply_extra_payment(
+            schedule=schedule,
+            extra_amount=50000000,
+            apply_month=1,
+            penalty_rate=0.02,
+            reduction_type="installment",
+        )
+
+        assert result.new_installment < result.old_installment
+        assert result.new_remaining_months == result.old_remaining_months
+
+    def test_extra_payment_full_payoff(self):
+        """Extra payment large enough to almost pay off the loan."""
+        schedule = self._make_schedule()
+        from app.services.kpr_engine import apply_extra_payment
+
+        # Pay off remaining balance at month 60
+        remaining_at_60 = schedule[59].remaining_balance  # before month 60
+
+        result = apply_extra_payment(
+            schedule=schedule,
+            extra_amount=remaining_at_60,
+            apply_month=60,
+            penalty_rate=0,
+            reduction_type="tenor",
+        )
+
+        # Should finish in 1 more month or less
+        assert result.new_remaining_months <= 2
+
+    def test_preview_returns_both_options(self):
+        """Preview should return comparison of both options."""
+        schedule = self._make_schedule()
+        from app.services.kpr_engine import preview_extra_payment
+
+        preview = preview_extra_payment(
+            schedule=schedule,
+            extra_amount=50000000,
+            apply_month=24,
+            penalty_rate=0.02,
+            start_month=1,
+            start_year=2026,
+        )
+
+        assert preview.option_installment is not None
+        assert preview.option_tenor is not None
+        assert preview.option_installment.new_installment < preview.option_tenor.new_installment
+        assert preview.option_tenor.new_remaining_months < preview.option_installment.new_remaining_months
+
+    def test_extra_payment_high_penalty(self):
+        """High penalty rate reduces effective extra payment."""
+        schedule = self._make_schedule()
+        from app.services.kpr_engine import apply_extra_payment
+
+        result_low = apply_extra_payment(
+            schedule=schedule, extra_amount=50000000,
+            apply_month=24, penalty_rate=0, reduction_type="tenor",
+        )
+        result_high = apply_extra_payment(
+            schedule=schedule, extra_amount=50000000,
+            apply_month=24, penalty_rate=0.05, reduction_type="tenor",
+        )
+
+        assert result_high.new_remaining_months > result_low.new_remaining_months
+        assert result_high.total_interest_saved < result_low.total_interest_saved
+
+    def test_extra_payment_multiple_applied(self):
+        """Multiple extra payments stack correctly."""
+        schedule = self._make_schedule()
+        from app.services.kpr_engine import apply_extra_payment
+
+        # First extra at month 12
+        r1 = apply_extra_payment(
+            schedule=schedule, extra_amount=25000000,
+            apply_month=12, penalty_rate=0, reduction_type="installment",
+        )
+        # Second extra at month 36 (on the modified schedule)
+        r2 = apply_extra_payment(
+            schedule=r1.schedule, extra_amount=25000000,
+            apply_month=36, penalty_rate=0, reduction_type="installment",
+        )
+
+        assert r2.new_installment < r1.new_installment  # Kedua extra turunkan cicilan
+        assert r2.total_interest_saved > 0
+        # r1 saves more total interest because it's applied earlier (month 12 vs 36)
+
+
+# ──────────────────────────────────────────────
+# Extra Payment — API Tests
+# ──────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+class TestExtraPaymentAPI:
+    """API tests for extra payment endpoints."""
+
+    async def _create_sim(self, client, token) -> int:
+        resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Extra Payment Test",
+                "property_price": 700000000,
+                "down_payment": 200000000,
+                "tenor_months": 120,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.0899,
+                "start_month": 1,
+                "start_year": 2026,
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 201
+        return resp.json()["id"]
+
+    async def test_preview_no_schedule(self, client, auth_headers, filla_token):
+        """Preview without schedule should fail."""
+        resp = await client.post(
+            "/api/v1/kpr/simulations/999/extra-payments/preview",
+            json={"amount": 50000000, "penalty_rate": 0.02, "apply_month": 24},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
+
+    async def test_preview_returns_comparison(
+        self, client, auth_headers, filla_token
+    ):
+        """Preview returns both reduction options."""
+        sim_id = await self._create_sim(client, filla_token)
+
+        resp = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments/preview",
+            json={"amount": 50000000, "penalty_rate": 0.02, "apply_month": 24},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "option_installment" in data
+        assert "option_tenor" in data
+        assert "comparison" in data
+
+        opt_a = data["option_installment"]
+        opt_b = data["option_tenor"]
+        assert opt_a["new_installment"] > 0
+        assert opt_b["new_tenor"] > 0
+        assert opt_a["new_installment"] < opt_b["new_installment"]
+        assert opt_b["new_tenor"] < opt_a["new_tenor"]
+
+    async def test_commit_tenor_reduction(
+        self, client, auth_headers, filla_token
+    ):
+        """Commit extra payment with tenor reduction."""
+        sim_id = await self._create_sim(client, filla_token)
+
+        resp = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={
+                "amount": 50000000,
+                "penalty_rate": 0.02,
+                "apply_month": 24,
+                "reduction_type": "tenor",
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["id"] > 0
+        assert data["reduction_type"] == "tenor"
+        assert data["new_remaining_months"] < data["old_remaining_months"]
+        assert data["new_installment"] == data["old_installment"]
+
+    async def test_commit_installment_reduction(
+        self, client, auth_headers, filla_token
+    ):
+        """Commit extra payment with installment reduction."""
+        sim_id = await self._create_sim(client, filla_token)
+
+        resp = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={
+                "amount": 50000000,
+                "penalty_rate": 0.02,
+                "apply_month": 12,
+                "reduction_type": "installment",
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["reduction_type"] == "installment"
+        assert data["new_installment"] < data["old_installment"]
+        assert data["new_remaining_months"] == data["old_remaining_months"]
+
+    async def test_list_extra_payments(
+        self, client, auth_headers, filla_token
+    ):
+        """List extra payments for a simulation."""
+        sim_id = await self._create_sim(client, filla_token)
+
+        # Create two extra payments
+        await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 25000000, "penalty_rate": 0, "apply_month": 12, "reduction_type": "installment"},
+            headers=auth_headers,
+        )
+        await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 25000000, "penalty_rate": 0, "apply_month": 36, "reduction_type": "tenor"},
+            headers=auth_headers,
+        )
+
+        resp = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 2
+
+    async def test_delete_extra_payment(
+        self, client, auth_headers, filla_token
+    ):
+        """Delete extra payment and verify it's gone."""
+        sim_id = await self._create_sim(client, filla_token)
+
+        # Create & capture ID
+        create_resp = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 50000000, "penalty_rate": 0.02, "apply_month": 24, "reduction_type": "tenor"},
+            headers=auth_headers,
+        )
+        ep_id = create_resp.json()["id"]
+
+        # Delete
+        resp = await client.delete(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments/{ep_id}",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 204
+
+        # Verify gone
+        resp = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            headers=auth_headers,
+        )
+        assert len(resp.json()) == 0
+
+    async def test_delete_restores_schedule(
+        self, client, auth_headers, filla_token
+    ):
+        """After deleting extra payment, schedule should be original length."""
+        sim_id = await self._create_sim(client, filla_token)
+
+        # Get original schedule length
+        sim_resp = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}",
+            headers=auth_headers,
+        )
+        orig_schedule_count = len(sim_resp.json()["schedule"])
+
+        # Add extra payment (tenor reduction shrinks schedule)
+        ep_resp = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 100000000, "penalty_rate": 0, "apply_month": 12, "reduction_type": "tenor"},
+            headers=auth_headers,
+        )
+        ep_id = ep_resp.json()["id"]
+
+        # Verify schedule got shorter
+        sim_after = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}",
+            headers=auth_headers,
+        )
+        assert len(sim_after.json()["schedule"]) < orig_schedule_count
+
+        # Delete extra payment
+        await client.delete(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments/{ep_id}",
+            headers=auth_headers,
+        )
+
+        # Verify schedule restored to original length
+        sim_restored = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}",
+            headers=auth_headers,
+        )
+        assert len(sim_restored.json()["schedule"]) == orig_schedule_count
+
+    async def test_forbidden_other_user_extra(
+        self, client, filla_token, nahda_token
+    ):
+        """Another user cannot access extra payments of other simulation."""
+        sim_id = await self._create_sim(client, filla_token)
+
+        resp = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments/preview",
+            json={"amount": 50000000, "penalty_rate": 0.02, "apply_month": 24},
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert resp.status_code == 403
+
+
+# ──────────────────────────────────────────────
+# Household Debt — API Tests
+# ──────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+class TestKPRHousehold:
+    """Household-scoped KPR tests."""
+
+    async def test_create_with_household_id(
+        self, client, auth_headers, filla_token
+    ):
+        """Can create a simulation with household_id."""
+        resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Household KPR",
+                "property_price": 500000000,
+                "tenor_months": 120,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.0899,
+                "household_id": 1,
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data.get("household_id") == 1
+
+    async def test_household_member_can_access(
+        self, client, filla_token, nahda_token
+    ):
+        """Nahda can access Filla's simulation if shared via household."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Shared KPR",
+                "property_price": 300000000,
+                "tenor_months": 60,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.075,
+                "household_id": 1,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+
+        resp = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert resp.status_code == 200
+
+    async def test_non_household_member_blocked(
+        self, client, filla_token, empty_token
+    ):
+        """Non-household member cannot access shared simulation."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Private Shared",
+                "property_price": 200000000,
+                "tenor_months": 36,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.06,
+                "household_id": 1,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+
+        resp = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}",
+            headers={"Authorization": f"Bearer {empty_token}"},
+        )
+        assert resp.status_code == 403
+
+    async def test_private_simulation_not_visible_to_others(
+        self, client, filla_token, nahda_token
+    ):
+        """Personal sim (no household_id) stays private."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "My Private KPR",
+                "property_price": 400000000,
+                "tenor_months": 120,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.08,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+
+        resp = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert resp.status_code == 403

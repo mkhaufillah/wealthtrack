@@ -29,9 +29,17 @@ async def _get_card_for_user(
     if not card:
         raise HTTPException(status_code=404, detail="Credit card not found")
     card = dict(card)
-    if card["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Not your credit card")
-    return card
+    if card["user_id"] == user_id:
+        return card
+    # Allow household members if card has household_id
+    if card.get("household_id"):
+        cursor = await db.execute(
+            "SELECT 1 FROM household_members WHERE user_id = ? AND household_id = ?",
+            (user_id, card["household_id"]),
+        )
+        if await cursor.fetchone():
+            return card
+    raise HTTPException(status_code=403, detail="Not your credit card")
 
 
 # ── Next Month Projection ───────────────────────────────────────────
@@ -73,9 +81,12 @@ async def next_month_projection(
                )
            ) combined ON combined.card_id = cc.id
            WHERE cc.user_id = ?
+              OR cc.household_id IN (
+                  SELECT household_id FROM household_members WHERE user_id = ?
+              )
            GROUP BY cc.id, cc.name
            ORDER BY cc.name""",
-        (current_user["id"],),
+        (current_user["id"], current_user["id"]),
     )
     rows = await cursor.fetchall()
 
@@ -95,12 +106,15 @@ async def next_month_projection(
         """SELECT COUNT(*) AS cnt
            FROM credit_card_installments cci
            JOIN credit_cards cc ON cc.id = cci.card_id
-           WHERE cc.user_id = ?
+           WHERE (cc.user_id = ?
+              OR cc.household_id IN (
+                  SELECT household_id FROM household_members WHERE user_id = ?
+              ))
              AND cci.total_months > (
                  EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer
                  - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
              )""",
-        (current_user["id"],),
+        (current_user["id"], current_user["id"]),
     )
     count_row = await count_cursor.fetchone()
     if count_row:
@@ -124,8 +138,8 @@ async def create_credit_card(
 ):
     """Create a new credit card for the current user."""
     cursor = await db.execute(
-        """INSERT INTO credit_cards (user_id, name, card_number_last4, billing_date, due_date, credit_limit)
-           VALUES (?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO credit_cards (user_id, name, card_number_last4, billing_date, due_date, credit_limit, household_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
         (
             current_user["id"],
             data.name,
@@ -133,6 +147,7 @@ async def create_credit_card(
             data.billing_date,
             data.due_date,
             data.credit_limit,
+            data.household_id,
         ),
     )
     card_id = cursor.lastrowid
@@ -144,7 +159,7 @@ async def list_credit_cards(
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> list[CreditCardOut]:
-    """List all credit cards for the current user."""
+    """List all credit cards for the current user, including household shared cards."""
     cursor = await db.execute(
         """SELECT
                cc.id, cc.user_id, cc.name, cc.card_number_last4,
@@ -158,8 +173,11 @@ async def list_credit_cards(
                GROUP BY card_id
            ) active_inst ON active_inst.card_id = cc.id
            WHERE cc.user_id = ?
-           ORDER BY cc.created_at DESC""",
-        (current_user["id"],),
+              OR cc.household_id IN (
+                  SELECT household_id FROM household_members WHERE user_id = ?
+              )
+           ORDER BY cc.display_order ASC, cc.created_at DESC""",
+        (current_user["id"], current_user["id"]),
     )
     rows = await cursor.fetchall()
     return [CreditCardOut(**dict(r)) for r in rows]

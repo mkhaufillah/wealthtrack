@@ -382,3 +382,67 @@ class TestCycleAwareSummaries:
         data = resp.json()
         assert data["total_income"] >= 0
         assert data["total_expense"] >= 0
+
+
+# ──────────────────────────────────────────────
+# Household Debt Summary — API Tests
+# ──────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+class TestHouseholdDebtSummary:
+    """Tests for GET /summaries/debt/household."""
+
+    async def test_household_debt_endpoint(
+        self, client, auth_headers
+    ):
+        """Household debt endpoint returns OK with members list."""
+        resp = await client.get(
+            "/api/v1/summaries/debt/household",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "total_debt" in data
+        assert "members" in data
+
+    async def test_household_debt_includes_kpr(
+        self, client, auth_headers, filla_token
+    ):
+        """After creating a shared KPR, household debt reflects it."""
+        # Create a shared KPR simulation
+        await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Shared KPR",
+                "property_price": 500000000,
+                "down_payment": 100000000,
+                "tenor_months": 120,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.0899,
+                "household_id": 1,
+            },
+            headers=auth_headers,
+        )
+
+        resp = await client.get(
+            "/api/v1/summaries/debt/household",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_debt"] > 0
+
+    async def test_personal_debt_endpoint_still_works(
+        self, client, auth_headers
+    ):
+        """Personal /summaries/debt endpoint still works."""
+        resp = await client.get(
+            "/api/v1/summaries/debt",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "total_debt" in data
+        assert "total_kpr" in data
+        assert "total_cc" in data

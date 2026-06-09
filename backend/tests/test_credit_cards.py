@@ -665,3 +665,80 @@ class TestDeleteInstallment:
             headers=auth_headers,
         )
         assert resp.status_code == 404
+
+
+# ──────────────────────────────────────────────
+# Household Credit Card — API Tests
+# ──────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+class TestCreditCardHousehold:
+    """Household-scoped credit card tests."""
+
+    async def test_create_with_household_id(
+        self, client, auth_headers
+    ):
+        """Can create a credit card with household_id."""
+        resp = await client.post(
+            "/api/v1/credit-cards",
+            json={
+                "name": "Household Card",
+                "billing_date": 5,
+                "due_date": 20,
+                "household_id": 1,
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data.get("household_id") == 1
+
+    async def test_household_member_can_list(
+        self, client, filla_token, nahda_token
+    ):
+        """Nahda can see Filla's card shared via household."""
+        await client.post(
+            "/api/v1/credit-cards",
+            json={
+                "name": "Shared Card",
+                "billing_date": 10,
+                "due_date": 25,
+                "household_id": 1,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+
+        resp = await client.get(
+            "/api/v1/credit-cards",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert resp.status_code == 200
+        cards = resp.json()
+        shared = [c for c in cards if c.get("household_id") == 1]
+        assert len(shared) >= 1
+
+    async def test_private_card_not_visible_to_household(
+        self, client, filla_token, nahda_token
+    ):
+        """Personal card (no household_id) not visible to others."""
+        await client.post(
+            "/api/v1/credit-cards",
+            json={
+                "name": "My Private Card",
+                "billing_date": 1,
+                "due_date": 15,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+
+        resp = await client.get(
+            "/api/v1/credit-cards",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert resp.status_code == 200
+        cards = resp.json()
+        private = [c for c in cards if c.get("household_id") is None and c.get("user_id") == 2]
+        # Nahda should only see her own personal cards, not Filla's
+        filla_private = [c for c in cards if c.get("user_id") == 1 and c.get("household_id") is None]
+        assert len(filla_private) == 0

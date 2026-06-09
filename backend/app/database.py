@@ -313,6 +313,12 @@ CREATE TABLE IF NOT EXISTS kpr_simulations (
     total_loan INTEGER NOT NULL DEFAULT 0,
     tenor_months INTEGER NOT NULL DEFAULT 120,
     interest_type TEXT NOT NULL DEFAULT 'fixed' CHECK(interest_type IN ('fixed', 'floating', 'graduated', 'mix')),
+    base_interest_rate NUMERIC(6,4) NOT NULL DEFAULT 0.075,
+    graduated_increment NUMERIC(6,4) NOT NULL DEFAULT 0.005,
+    graduated_every_months INTEGER NOT NULL DEFAULT 12,
+    start_month INTEGER NOT NULL DEFAULT 1,
+    start_year INTEGER NOT NULL DEFAULT 2026,
+    due_date INTEGER DEFAULT NULL,
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 
@@ -345,6 +351,40 @@ CREATE TABLE IF NOT EXISTS kpr_monthly_schedules (
 
 CREATE INDEX IF NOT EXISTS idx_kpr_schedules_sim ON kpr_monthly_schedules(simulation_id);
 
+-- Household debt support
+ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS household_id INTEGER REFERENCES households(id);
+ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+-- Legacy column migration (safe on existing)
+ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS base_interest_rate NUMERIC(6,4) NOT NULL DEFAULT 0.075;
+ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS graduated_increment NUMERIC(6,4) NOT NULL DEFAULT 0.005;
+ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS graduated_every_months INTEGER NOT NULL DEFAULT 12;
+ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS start_month INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS start_year INTEGER NOT NULL DEFAULT 2026;
+ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS due_date INTEGER DEFAULT NULL;
+CREATE INDEX IF NOT EXISTS idx_kpr_simulations_household ON kpr_simulations(household_id);
+
+CREATE TABLE IF NOT EXISTS kpr_extra_payments (
+    id SERIAL PRIMARY KEY,
+    simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
+    amount INTEGER NOT NULL,
+    penalty_rate NUMERIC(6,4) NOT NULL DEFAULT 0,
+    penalty_amount INTEGER NOT NULL DEFAULT 0,
+    apply_month INTEGER NOT NULL,
+    reduction_type TEXT NOT NULL DEFAULT 'tenor' CHECK(reduction_type IN ('tenor', 'installment')),
+    old_remaining_balance INTEGER NOT NULL,
+    new_remaining_balance INTEGER NOT NULL,
+    old_remaining_months INTEGER NOT NULL,
+    new_remaining_months INTEGER NOT NULL,
+    old_installment INTEGER NOT NULL DEFAULT 0,
+    new_installment INTEGER NOT NULL DEFAULT 0,
+    total_interest_saved INTEGER NOT NULL DEFAULT 0,
+    original_end_date TEXT DEFAULT '',
+    new_end_date TEXT DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_kpr_extra_payments_sim ON kpr_extra_payments(simulation_id);
+
 CREATE TABLE IF NOT EXISTS credit_cards (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
@@ -357,6 +397,11 @@ CREATE TABLE IF NOT EXISTS credit_cards (
 );
 
 CREATE INDEX IF NOT EXISTS idx_credit_cards_user ON credit_cards(user_id);
+
+-- Household debt support for CC
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS household_id INTEGER REFERENCES households(id);
+ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_credit_cards_household ON credit_cards(household_id);
 
 CREATE TABLE IF NOT EXISTS credit_card_transactions (
     id SERIAL PRIMARY KEY,

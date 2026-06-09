@@ -8,8 +8,16 @@ from app.schemas.kpr import (
     KPRSimulationOut,
     KPRSimulationDetailOut,
     KPRScheduleItemOut,
+    ExtraPaymentCreate,
+    ExtraPaymentPreviewRequest,
+    ExtraPaymentPreviewOut,
+    ExtraPaymentOptionOut,
+    ExtraPaymentOut,
 )
-from app.services.kpr_engine import calculate_kpr, simulate_summary, RatePeriod
+from app.services.kpr_engine import (
+    calculate_kpr, simulate_summary, RatePeriod,
+    MonthlySchedule, apply_extra_payment, preview_extra_payment,
+)
 
 router = APIRouter(prefix="/kpr", tags=["kpr"])
 
@@ -25,9 +33,17 @@ async def _get_simulation_for_user(
     if not sim:
         raise HTTPException(status_code=404, detail="Simulation not found")
     sim = dict(sim)
-    if sim["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Not your simulation")
-    return sim
+    if sim["user_id"] == user_id:
+        return sim
+    # Allow household members if simulation has household_id
+    if sim.get("household_id"):
+        cursor = await db.execute(
+            "SELECT 1 FROM household_members WHERE user_id = ? AND household_id = ?",
+            (user_id, sim["household_id"]),
+        )
+        if await cursor.fetchone():
+            return sim
+    raise HTTPException(status_code=403, detail="Not your simulation")
 
 
 def _convert_sim_row(row: dict) -> KPRSimulationOut:
@@ -83,8 +99,9 @@ async def create_simulation(
         cursor = await db.execute(
             """INSERT INTO kpr_simulations
                (user_id, name, property_price, down_payment, total_loan,
-                tenor_months, interest_type, start_month, start_year, due_date)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                tenor_months, interest_type, start_month, start_year, due_date,
+                household_id, base_interest_rate, graduated_increment, graduated_every_months)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 user_id,
                 data.name,
@@ -96,6 +113,10 @@ async def create_simulation(
                 data.start_month,
                 data.start_year,
                 data.due_date,
+                data.household_id,
+                data.base_interest_rate,
+                data.graduated_increment,
+                data.graduated_every_months,
             ),
         )
         sim_id = cursor.lastrowid
@@ -224,8 +245,11 @@ async def list_simulations(
                GROUP BY simulation_id
            ) agg ON agg.simulation_id = ks.id
            WHERE ks.user_id = ?
-           ORDER BY ks.created_at DESC""",
-        (current_user["id"],),
+              OR ks.household_id IN (
+                  SELECT household_id FROM household_members WHERE user_id = ?
+              )
+           ORDER BY ks.display_order ASC, ks.created_at DESC""",
+        (current_user["id"], current_user["id"]),
     )
     rows = await cursor.fetchall()
     return [KPRSimulationOut(**dict(r)) for r in rows]
@@ -353,7 +377,354 @@ async def delete_simulation(
     )
 
 
-# ── Get single month breakdown ──────────────────────────────────────
+# ── Extra Payment: Preview ──────────────────────────────────────────
+
+
+@router.post("/simulations/{simulation_id}/extra-payments/preview")
+async def preview_extra_payment_endpoint(
+    simulation_id: int,
+    data: ExtraPaymentPreviewRequest,
+    db: CursorWrapper = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Preview both reduction options for an extra payment (no DB write)."""
+    sim = await _get_simulation_for_user(db, simulation_id, current_user["id"])
+
+    # Load schedule from DB
+    cursor = await db.execute(
+        """SELECT month_number, payment, principal, interest,
+                  remaining_balance, rate_type, interest_rate
+           FROM kpr_monthly_schedules
+           WHERE simulation_id = ? ORDER BY month_number""",
+        (simulation_id,),
+    )
+    rows = await cursor.fetchall()
+    if not rows:
+        raise HTTPException(status_code=400, detail="No schedule found. Generate schedule first.")
+
+    schedule = [
+        MonthlySchedule(**dict(r))
+        for r in rows
+    ]
+
+    preview = preview_extra_payment(
+        schedule=schedule,
+        extra_amount=data.amount,
+        apply_month=data.apply_month,
+        penalty_rate=data.penalty_rate,
+        start_month=sim.get("start_month", 1),
+        start_year=sim.get("start_year", 2026),
+    )
+
+    def _to_option(result) -> ExtraPaymentOptionOut:
+        return ExtraPaymentOptionOut(
+            new_installment=result.new_installment,
+            new_tenor=result.new_remaining_months,
+            total_interest_paid=result.total_interest_paid,
+            interest_saved=result.total_interest_saved,
+            end_date=result.new_end_date,
+        )
+
+    comparison = {
+        "installment_difference": preview.option_tenor.new_installment - preview.option_installment.new_installment,
+        "months_saved_difference": preview.option_installment.new_remaining_months - preview.option_tenor.new_remaining_months,
+    }
+
+    return ExtraPaymentPreviewOut(
+        option_installment=_to_option(preview.option_installment),
+        option_tenor=_to_option(preview.option_tenor),
+        comparison=comparison,
+    )
+
+
+# ── Extra Payment: Commit ───────────────────────────────────────────
+
+
+@router.post("/simulations/{simulation_id}/extra-payments", status_code=201)
+async def create_extra_payment(
+    simulation_id: int,
+    data: ExtraPaymentCreate,
+    db: CursorWrapper = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Commit an extra payment, regenerate schedule, store record."""
+    sim = await _get_simulation_for_user(db, simulation_id, current_user["id"])
+
+    # Load schedule from DB
+    cursor = await db.execute(
+        """SELECT month_number, payment, principal, interest,
+                  remaining_balance, rate_type, interest_rate
+           FROM kpr_monthly_schedules
+           WHERE simulation_id = ? ORDER BY month_number""",
+        (simulation_id,),
+    )
+    rows = await cursor.fetchall()
+    if not rows:
+        raise HTTPException(status_code=400, detail="No schedule found.")
+
+    schedule = [MonthlySchedule(**dict(r)) for r in rows]
+
+    # Calculate penalty
+    penalty_amount = int(data.amount * data.penalty_rate)
+
+    result = apply_extra_payment(
+        schedule=schedule,
+        extra_amount=data.amount,
+        apply_month=data.apply_month,
+        penalty_rate=data.penalty_rate,
+        reduction_type=data.reduction_type,
+        start_month=sim.get("start_month", 1),
+        start_year=sim.get("start_year", 2026),
+    )
+
+    async with db.transaction():
+        # 1. Store the extra payment record
+        cursor = await db.execute(
+            """INSERT INTO kpr_extra_payments
+               (simulation_id, amount, penalty_rate, penalty_amount, apply_month,
+                reduction_type, old_remaining_balance, new_remaining_balance,
+                old_remaining_months, new_remaining_months, old_installment,
+                new_installment, total_interest_saved, original_end_date, new_end_date)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                simulation_id, data.amount, data.penalty_rate, penalty_amount,
+                data.apply_month, data.reduction_type,
+                result.old_remaining_balance, result.new_remaining_balance,
+                result.old_remaining_months, result.new_remaining_months,
+                result.old_installment, result.new_installment,
+                result.total_interest_saved,
+                result.original_end_date, result.new_end_date,
+            ),
+        )
+        extra_id = cursor.lastrowid or 0
+
+        # 2. Delete old schedule and insert new one
+        await db.execute(
+            "DELETE FROM kpr_monthly_schedules WHERE simulation_id = ?",
+            (simulation_id,),
+        )
+        for item in result.schedule:
+            await db.execute(
+                """INSERT INTO kpr_monthly_schedules
+                   (simulation_id, month_number, payment, principal, interest,
+                    remaining_balance, rate_type, interest_rate)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    simulation_id,
+                    item.month_number,
+                    item.payment,
+                    item.principal,
+                    item.interest,
+                    item.remaining_balance,
+                    item.rate_type,
+                    item.interest_rate,
+                ),
+            )
+
+    # Re-fetch the record to get DB-generated created_at
+    fetch_cursor = await db.execute(
+        """SELECT id, simulation_id, amount, penalty_rate, penalty_amount,
+                  apply_month, reduction_type,
+                  old_remaining_balance, new_remaining_balance,
+                  old_remaining_months, new_remaining_months,
+                  old_installment, new_installment,
+                  total_interest_saved, original_end_date, new_end_date,
+                  created_at
+           FROM kpr_extra_payments WHERE id = ?""",
+        (extra_id,),
+    )
+    db_record = await fetch_cursor.fetchone()
+
+    return ExtraPaymentOut(
+        **(dict(db_record) if db_record else {
+            "id": extra_id,
+            "simulation_id": simulation_id,
+            "amount": data.amount,
+            "penalty_rate": data.penalty_rate,
+            "penalty_amount": penalty_amount,
+            "apply_month": data.apply_month,
+            "reduction_type": data.reduction_type,
+            "old_remaining_balance": result.old_remaining_balance,
+            "new_remaining_balance": result.new_remaining_balance,
+            "old_remaining_months": result.old_remaining_months,
+            "new_remaining_months": result.new_remaining_months,
+            "old_installment": result.old_installment,
+            "new_installment": result.new_installment,
+            "total_interest_saved": result.total_interest_saved,
+            "original_end_date": result.original_end_date,
+            "new_end_date": result.new_end_date,
+            "created_at": "",
+        }),
+    )
+
+
+# ── Extra Payment: List ─────────────────────────────────────────────
+
+
+@router.get("/simulations/{simulation_id}/extra-payments")
+async def list_extra_payments(
+    simulation_id: int,
+    db: CursorWrapper = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> list[ExtraPaymentOut]:
+    """List all extra payments for a simulation."""
+    await _get_simulation_for_user(db, simulation_id, current_user["id"])
+
+    cursor = await db.execute(
+        """SELECT id, simulation_id, amount, penalty_rate, penalty_amount,
+                  apply_month, reduction_type,
+                  old_remaining_balance, new_remaining_balance,
+                  old_remaining_months, new_remaining_months,
+                  old_installment, new_installment,
+                  total_interest_saved, original_end_date, new_end_date,
+                  created_at
+           FROM kpr_extra_payments
+           WHERE simulation_id = ?
+           ORDER BY created_at DESC""",
+        (simulation_id,),
+    )
+    rows = await cursor.fetchall()
+    return [ExtraPaymentOut(**dict(r)) for r in rows]
+
+
+# ── Extra Payment: Delete ───────────────────────────────────────────
+
+
+@router.delete(
+    "/simulations/{simulation_id}/extra-payments/{extra_payment_id}",
+    status_code=204,
+)
+async def delete_extra_payment(
+    simulation_id: int,
+    extra_payment_id: int,
+    db: CursorWrapper = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete an extra payment and regenerate the original schedule.
+
+    This re-calculates the full amortization schedule as if the extra
+    payment never happened, removing its effect.
+    """
+    sim = await _get_simulation_for_user(db, simulation_id, current_user["id"])
+
+    # Verify extra payment exists
+    cursor = await db.execute(
+        "SELECT id FROM kpr_extra_payments WHERE id = ? AND simulation_id = ?",
+        (extra_payment_id, simulation_id),
+    )
+    if not await cursor.fetchone():
+        raise HTTPException(status_code=404, detail="Extra payment not found")
+
+    async with db.transaction():
+        # Delete the extra payment record
+        await db.execute(
+            "DELETE FROM kpr_extra_payments WHERE id = ?",
+            (extra_payment_id,),
+        )
+
+        # Regenerate the schedule based on current extra payments
+        # First check if any extra payments remain
+        cursor = await db.execute(
+            "SELECT COUNT(*) AS cnt FROM kpr_extra_payments WHERE simulation_id = ?",
+            (simulation_id,),
+        )
+        count_row = await cursor.fetchone()
+        remaining_count = count_row["cnt"] if count_row else 0
+
+        # We need to re-apply remaining extra payments on top of original schedule
+        # Strategy: get the original simulation params, generate base schedule,
+        # then re-apply remaining extra payments in order
+        rate_periods_cursor = await db.execute(
+            """SELECT period_start, period_end, interest_rate, rate_type
+               FROM kpr_rate_periods WHERE simulation_id = ?
+               ORDER BY period_start""",
+            (simulation_id,),
+        )
+        rate_periods_rows = await rate_periods_cursor.fetchall()
+        rate_periods = [
+            RatePeriod(**dict(r))
+            for r in rate_periods_rows
+        ]
+
+        base_schedule = calculate_kpr(
+            total_loan=sim["total_loan"],
+            tenor_months=sim["tenor_months"],
+            rate_periods=rate_periods if rate_periods else None,
+            interest_type=sim["interest_type"],
+            base_interest_rate=float(sim.get("base_interest_rate", 0.075)),
+            graduated_increment=float(sim.get("graduated_increment", 0.005)),
+            graduated_every_months=int(sim.get("graduated_every_months", 12)),
+        )
+
+        if remaining_count == 0:
+            # No remaining extra payments — write base schedule
+            await db.execute(
+                "DELETE FROM kpr_monthly_schedules WHERE simulation_id = ?",
+                (simulation_id,),
+            )
+            for item in base_schedule:
+                await db.execute(
+                    """INSERT INTO kpr_monthly_schedules
+                       (simulation_id, month_number, payment, principal, interest,
+                        remaining_balance, rate_type, interest_rate)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        simulation_id,
+                        item.month_number,
+                        item.payment,
+                        item.principal,
+                        item.interest,
+                        item.remaining_balance,
+                        item.rate_type,
+                        item.interest_rate,
+                    ),
+                )
+        else:
+            # Re-apply remaining extra payments
+            cursor = await db.execute(
+                """SELECT amount, penalty_rate, apply_month, reduction_type
+                   FROM kpr_extra_payments
+                   WHERE simulation_id = ?
+                   ORDER BY apply_month ASC""",
+                (simulation_id,),
+            )
+            remaining_extras = await cursor.fetchall()
+
+            current_schedule = base_schedule
+            for ep in remaining_extras:
+                ep_dict = dict(ep)
+                result = apply_extra_payment(
+                    schedule=current_schedule,
+                    extra_amount=ep_dict["amount"],
+                    apply_month=ep_dict["apply_month"],
+                    penalty_rate=ep_dict["penalty_rate"],
+                    reduction_type=ep_dict["reduction_type"],
+                    start_month=sim.get("start_month", 1),
+                    start_year=sim.get("start_year", 2026),
+                )
+                current_schedule = result.schedule
+
+            await db.execute(
+                "DELETE FROM kpr_monthly_schedules WHERE simulation_id = ?",
+                (simulation_id,),
+            )
+            for item in current_schedule:
+                await db.execute(
+                    """INSERT INTO kpr_monthly_schedules
+                       (simulation_id, month_number, payment, principal, interest,
+                        remaining_balance, rate_type, interest_rate)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        simulation_id,
+                        item.month_number,
+                        item.payment,
+                        item.principal,
+                        item.interest,
+                        item.remaining_balance,
+                        item.rate_type,
+                        item.interest_rate,
+                    ),
+                )
 
 
 @router.get("/simulations/{simulation_id}/schedule")

@@ -7,6 +7,7 @@ import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../features/auth/providers/auth_provider.dart';
 
 class CreditCardListScreen extends ConsumerStatefulWidget {
   const CreditCardListScreen({super.key});
@@ -230,6 +231,10 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
     final dueDateLabel = 'Due on ${_ordinalSuffix(card.dueDate)}';
     final billingDateLabel = 'Billing ${_ordinalSuffix(card.billingDate)}';
 
+    // Owner badge check
+    final currentUser = ref.read(authProvider).user;
+    final isNotOwner = currentUser != null && card.userId != currentUser.id;
+
     return Dismissible(
       key: ValueKey(card.id),
       direction: DismissDirection.endToStart,
@@ -278,12 +283,33 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            card.name.isNotEmpty ? card.name : 'Credit Card',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  card.name.isNotEmpty ? card.name : 'Credit Card',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              if (isNotOwner)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.warning.withAlpha(30),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '🏠 Anggota',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 2),
                           Text(

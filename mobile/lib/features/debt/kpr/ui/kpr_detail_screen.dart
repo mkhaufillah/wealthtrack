@@ -22,7 +22,10 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(kprProvider.notifier).loadDetail(widget.simulationId));
+    Future.microtask(() {
+      ref.read(kprProvider.notifier).loadDetail(widget.simulationId);
+      ref.read(kprProvider.notifier).loadExtraPayments(widget.simulationId);
+    });
   }
 
   Future<void> _onRefresh() async {
@@ -81,6 +84,13 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         actions: [
           if (sim != null)
             IconButton(
+              icon: const Icon(Icons.payments_outlined),
+              tooltip: 'Extra Payment',
+              onPressed: () => context.push(
+                  '/debt/kpr/${sim.id}/extra-payment'),
+            ),
+          if (sim != null)
+            IconButton(
               icon: const Icon(Icons.delete_outline),
               tooltip: 'Delete',
               onPressed: () => _confirmDelete(sim),
@@ -103,6 +113,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                         children: [
                           _buildSummaryCards(sim, isDark),
+                          const SizedBox(height: 16),
+                          _buildExtraPaymentSection(sim, state, isDark),
                           const SizedBox(height: 16),
                           _buildScheduleSection(sim, isDark),
                         ],
@@ -320,6 +332,248 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textColor),
       ),
     );
+  }
+
+  // ─── Extra Payment Section ──────────────────────────────
+
+  Widget _buildExtraPaymentSection(
+      KPRSimulation sim, KPRState state, bool isDark) {
+    final extras = state.extraPayments;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.payments_outlined,
+                size: 18, color: AppColors.textSecondary),
+            const SizedBox(width: 8),
+            Text(
+              'Extra Payments',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const Spacer(),
+            if (extras.isNotEmpty)
+              Text(
+                '${extras.length} record${extras.length > 1 ? 's' : ''}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        if (extras.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: AppColors.divider.withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline,
+                    size: 18, color: AppColors.textSecondary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No extra payments yet. Tap the payments icon in the app bar to add one.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...extras.map((ep) => _buildExtraPaymentCard(ep, isDark)),
+      ],
+    );
+  }
+
+  Widget _buildExtraPaymentCard(ExtraPaymentRecord ep, bool isDark) {
+    final isTenor = ep.reductionType == 'tenor';
+    final monthsSaved = ep.oldRemainingMonths - ep.newRemainingMonths;
+    final paymentDiff = ep.oldInstallment - ep.newInstallment;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: isTenor
+              ? AppColors.accent.withOpacity(0.3)
+              : AppColors.success.withOpacity(0.3),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: (isTenor ? AppColors.accent : AppColors.success)
+                        .withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    isTenor
+                        ? Icons.timer_outlined
+                        : Icons.trending_down,
+                    size: 16,
+                    color:
+                        isTenor ? AppColors.accent : AppColors.success,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isTenor
+                          ? 'Kurangi Tenor'
+                          : 'Kurangi Cicilan',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Month ${ep.applyMonth} • ${formatCurrency(ep.amount)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  '${_fmtDate(ep.createdAt)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: _statItem(
+                      'Cicilan',
+                      '${formatCurrency(ep.oldInstallment)} → ${formatCurrency(ep.newInstallment)}'),
+                ),
+                Expanded(
+                  child: _statItem(
+                    'Tenor',
+                    '${ep.oldRemainingMonths} → ${ep.newRemainingMonths} bln',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _statItem(
+                    'Selesai',
+                    '${ep.originalEndDate} → ${ep.newEndDate}',
+                  ),
+                ),
+                Expanded(
+                  child: _statItem(
+                    'Bunga Dihemat',
+                    formatCurrency(ep.totalInterestSaving),
+                    highlight: true,
+                  ),
+                ),
+              ],
+            ),
+            if (monthsSaved > 0 || paymentDiff > 0) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: (isTenor
+                          ? AppColors.accent
+                          : AppColors.success)
+                      .withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isTenor
+                      ? 'Lunas $monthsSaved bulan lebih cepat 🎯'
+                      : 'Cicilan turun ${formatCurrency(paymentDiff)}/bulan 💰',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isTenor
+                        ? AppColors.accent
+                        : AppColors.success,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statItem(String label, String value, {bool highlight = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: highlight ? AppColors.accent : AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _fmtDate(String iso) {
+    if (iso.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(iso);
+      return '${dt.day}/${dt.month}/${dt.year}';
+    } catch (_) {
+      return iso.length > 10 ? iso.substring(0, 10) : iso;
+    }
   }
 
   // ─── Schedule Section ──────────────────────────────────

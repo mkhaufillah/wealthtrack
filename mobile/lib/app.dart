@@ -21,6 +21,7 @@ import 'features/debt/ui/debt_home_screen.dart';
 import 'features/debt/kpr/ui/kpr_list_screen.dart';
 import 'features/debt/kpr/ui/kpr_form_screen.dart';
 import 'features/debt/kpr/ui/kpr_detail_screen.dart';
+import 'features/debt/kpr/ui/kpr_extra_payment_screen.dart';
 import 'features/debt/credit_card/ui/credit_card_list_screen.dart';
 import 'features/debt/credit_card/ui/credit_card_form_screen.dart';
 import 'features/debt/credit_card/ui/credit_card_detail_screen.dart';
@@ -77,6 +78,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/debt/kpr/:id',
         builder: (_, state) => KPRDetailScreen(
+          simulationId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        path: '/debt/kpr/:id/extra-payment',
+        builder: (_, state) => KPRExtraPaymentScreen(
           simulationId: int.parse(state.pathParameters['id']!),
         ),
       ),

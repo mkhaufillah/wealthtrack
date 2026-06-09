@@ -636,3 +636,180 @@ async def debt_summary(
         "cc_count": cc_count,
         "total_debt": total_kpr + total_cc,
     }
+
+
+@router.get("/debt/household")
+async def household_debt_summary(
+    db: CursorWrapper = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Household-wide debt summary — aggregate across all household members."""
+    user_id = current_user["id"]
+
+    # Get user's household
+    cursor = await db.execute(
+        "SELECT household_id FROM household_members WHERE user_id = ?",
+        (user_id,),
+    )
+    hm = await cursor.fetchone()
+    if not hm:
+        # Not in household — return personal data only
+        return {
+            "total_debt": 0,
+            "members": [
+                await _single_member_debt(db, user_id),
+            ],
+        }
+
+    household_id = hm["household_id"]
+
+    # Get all members in the household
+    cursor = await db.execute(
+        """SELECT u.id AS user_id, u.display_name
+           FROM household_members hm
+           JOIN users u ON u.id = hm.user_id
+           WHERE hm.household_id = ?""",
+        (household_id,),
+    )
+    members = await cursor.fetchall()
+
+    member_details = []
+    grand_total_kpr = 0
+    grand_total_cc = 0
+
+    for m in members:
+        member = dict(m)
+        detail = await _single_member_debt(db, member["user_id"],
+                                            household_id=household_id)
+        detail["display_name"] = member["display_name"]
+        member_details.append(detail)
+        grand_total_kpr += detail.get("kpr_total", 0)
+        grand_total_cc += detail.get("cc_total", 0)
+
+    # Also include shared household debt where household_id is set
+    # (cards/simulations owned by household that may not belong to a member's personal scope)
+    cursor = await db.execute(
+        """SELECT COUNT(*) AS cnt
+           FROM kpr_simulations
+           WHERE household_id = ?
+             AND user_id NOT IN (
+                 SELECT user_id FROM household_members WHERE household_id = ?
+             )""",
+        (household_id, user_id),
+    )
+    extra_kpr_row = await cursor.fetchone()
+    extra_kpr = extra_kpr_row["cnt"] if extra_kpr_row else 0
+
+    return {
+        "total_debt": grand_total_kpr + grand_total_cc,
+        "total_kpr": grand_total_kpr,
+        "total_cc": grand_total_cc,
+        "members": member_details,
+    }
+
+
+async def _single_member_debt(
+    db: CursorWrapper,
+    user_id: int,
+    household_id: int | None = None,
+) -> dict:
+    """Calculate KPR + CC debt for a single member.
+
+    If household_id is set, include shared debt (household_id = that household).
+    """
+    # KPR remaining balance
+    cursor = await db.execute(
+        """SELECT COALESCE(SUM(
+            CASE
+                WHEN ks.due_date IS NOT NULL AND EXTRACT(DAY FROM CURRENT_DATE) >= ks.due_date THEN
+                    COALESCE((
+                        SELECT kms.remaining_balance
+                        FROM kpr_monthly_schedules kms
+                        WHERE kms.simulation_id = ks.id
+                        AND kms.month_number = cm.current_month
+                    ), ks.total_loan)
+                ELSE
+                    CASE WHEN cm.current_month <= 1 THEN ks.total_loan
+                    ELSE (
+                        SELECT kms.remaining_balance
+                        FROM kpr_monthly_schedules kms
+                        WHERE kms.simulation_id = ks.id
+                        AND kms.month_number = cm.current_month - 1
+                    ) END
+            END
+        ), 0) AS total_kpr
+        FROM kpr_simulations ks
+        CROSS JOIN LATERAL (
+            SELECT LEAST(
+                (EXTRACT(YEAR FROM CURRENT_DATE) - ks.start_year) * 12
+                + (EXTRACT(MONTH FROM CURRENT_DATE) - ks.start_month) + 1,
+                ks.tenor_months
+            ) AS current_month
+        ) cm
+        WHERE """ + (
+            "ks.household_id = ?" if household_id else "ks.user_id = ?"
+        ),
+        (household_id or user_id,),
+    )
+    row = await cursor.fetchone()
+    kpr_total = int(row["total_kpr"]) if row else 0
+
+    # CC: transactions + installments
+    cursor = await db.execute(
+        """SELECT COALESCE(SUM(cct.amount), 0) AS total_txns
+           FROM credit_card_transactions cct
+           JOIN credit_cards cc ON cc.id = cct.card_id
+           WHERE """ + (
+               "cc.household_id = ?" if household_id else "cc.user_id = ?"
+           ) + """ AND cct.is_installment = 0
+               AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
+               AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
+        (household_id or user_id,),
+    )
+    row = await cursor.fetchone()
+    total_cc_txns = int(row["total_txns"]) if row else 0
+
+    cursor = await db.execute(
+        """SELECT COALESCE(SUM(cci.monthly_amount * GREATEST(0, cci.total_months - (
+               (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
+               - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
+           ))), 0) AS total_installments
+           FROM credit_card_installments cci
+           JOIN credit_cards cc ON cc.id = cci.card_id
+           WHERE """ + (
+               "cc.household_id = ?" if household_id else "cc.user_id = ?"
+           ) + """
+               AND cci.total_months > (
+                   (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
+                   - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
+               )""",
+        (household_id or user_id,),
+    )
+    row = await cursor.fetchone()
+    total_cc_installments = int(row["total_installments"]) if row else 0
+
+    cc_total = total_cc_txns + total_cc_installments
+
+    # Count active KPR / CC
+    cursor = await db.execute(
+        "SELECT COUNT(*) AS cnt FROM kpr_simulations WHERE " +
+        ("household_id = ?" if household_id else "user_id = ?"),
+        (household_id or user_id,),
+    )
+    kpr_count_row = await cursor.fetchone()
+    kpr_count = kpr_count_row["cnt"] if kpr_count_row else 0
+
+    cursor = await db.execute(
+        """SELECT COUNT(*) AS cnt FROM credit_cards cc WHERE """ +
+        ("cc.household_id = ?" if household_id else "cc.user_id = ?"),
+        (household_id or user_id,),
+    )
+    cc_count_row = await cursor.fetchone()
+    cc_count = cc_count_row["cnt"] if cc_count_row else 0
+
+    return {
+        "kpr_total": kpr_total,
+        "kpr_count": kpr_count,
+        "cc_total": cc_total,
+        "cc_count": cc_count,
+    }

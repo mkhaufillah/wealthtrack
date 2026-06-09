@@ -82,8 +82,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _loadDebtSummary() async {
     try {
       final api = ref.read(apiClientProvider);
-      final resp = await api.get('/summaries/debt');
-      final data = resp.data as Map<String, dynamic>? ?? {};
+      // Try household endpoint first — shows aggregated family debt
+      late Map<String, dynamic> data;
+      try {
+        final resp = await api.get('/summaries/debt/household');
+        data = resp.data as Map<String, dynamic>? ?? {};
+      } catch (_) {
+        // Fall back to personal debt summary
+        final resp = await api.get('/summaries/debt');
+        data = resp.data as Map<String, dynamic>? ?? {};
+      }
       if (mounted) {
         setState(() {
           _debtData = data;
@@ -216,6 +224,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final totalKpr = _debtData['total_kpr'] as int? ?? 0;
     final totalCc = _debtData['total_cc'] as int? ?? 0;
     final totalDebt = _debtData['total_debt'] as int? ?? 0;
+    final members = _debtData['members'] as List?;
+    final isHousehold = members != null && members.length > 1;
+    final title = isHousehold ? 'Outstanding Household Debt' : 'Outstanding Debt';
 
     return Card(
       color: AppColors.highlight.withAlpha(15),
@@ -240,11 +251,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Icon(Icons.warning_amber_rounded, color: AppColors.highlight, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Text('Total Outstanding Debt',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                Expanded(
+                  child: Text(title,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                ),
+                if (isHousehold)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withAlpha(25),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '🏠 ${members!.length} members',
+                      style: TextStyle(fontSize: 11, color: AppColors.accent),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
+
+            // Member breakdown (household)
+            if (isHousehold)
+              ...members!.map((m) {
+                final mData = m as Map<String, dynamic>;
+                final name = mData['display_name'] as String? ?? '';
+                final memberKpr = mData['kpr_total'] as int? ?? 0;
+                final memberCc = mData['cc_total'] as int? ?? 0;
+                final memberTotal = memberKpr + memberCc;
+                if (memberTotal <= 0) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 10,
+                        backgroundColor: AppColors.accent.withAlpha(30),
+                        child: Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.accent),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                      ),
+                      Text(
+                        formatCurrency(memberTotal),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.highlight),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+
+            if (isHousehold) const Divider(height: 16, color: AppColors.divider),
+
+            // KPR + CC breakdown
             if (totalKpr > 0)
               _debtRow('🏠 KPR', formatCurrency(totalKpr)),
             if (totalKpr > 0 && totalCc > 0)

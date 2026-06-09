@@ -1,6 +1,6 @@
 # Extra Payment KPR & Household Debt — Implementation Plan
 
-> **Status:** Draft — belum dikerjakan.
+> **Status:** ✅ Complete — implemented in v0.7.0
 > **Target rilis:** v0.7.0
 
 ---
@@ -46,9 +46,32 @@ Extra payment (pembayaran ekstra / pelunasan sebagian) adalah fasilitas dari ban
 
 ### Scope Aplikasi
 
-Untuk MVP, WealthTrack akan implementasikan:
-- **Opsi B (Kurangi Tenor)** — angsuran tetap, tenor lebih pendek (lebih umum dan lebih menguntungkan)
-- Input: nominal extra payment, bulan ke berapa, penalty rate (%)
+WealthTrack akan implementasikan **kedua opsi** yang bisa dipilih user:
+
+#### Opsi A — Kurangi Cicilan (Reduce Installment)
+- **Tenor tetap**, angsuran bulanan turun karena pokok berkurang
+- Cocok untuk yang mau arus kas lebih ringan
+- Rumus: `M' = P' × (r × (1+r)^n) / ((1+r)^n - 1)` dengan P' = pokok baru, n = sisa tenor tetap
+
+#### Opsi B — Kurangi Tenor (Reduce Tenor)
+- **Angsuran tetap**, masa kredit selesai lebih cepat
+- Cocok untuk yang mau lunas lebih cepat dan hemat bunga total
+- Rumus: iterasi bulanan dengan payment tetap hingga pokok habis
+
+#### Opsi C — Perbandingan Keduanya (Preview)
+Sebelum commit, user bisa lihat perbandingan kedua opsi:
+| | Opsi A (Kurangi Cicilan) | Opsi B (Kurangi Tenor) |
+|---|---|---|
+| Cicilan baru | Rp X.xxx.xxx/bulan | Rp X.xxx.xxx/bulan (tetap) |
+| Tenor baru | n bulan (tetap) | n' bulan (lebih pendek) |
+| Total bunga saved | Rp Y.yyy.yyy | Rp Z.zzz.zzz |
+| Selesai | Tgl tetap | Tgl lebih cepat |
+
+#### Input
+- Nominal extra payment
+- Bulan ke berapa extra dilakukan
+- Penalty rate (%) — default sesuai bank
+- Pilihan opsi: Kurangi Cicilan / Kurangi Tenor
 
 ### Database Changes
 
@@ -74,7 +97,46 @@ CREATE TABLE IF NOT EXISTS kpr_extra_payments (
 
 ### Backend API
 
+#### `POST /kpr/simulations/{id}/extra-payments/preview`
+
+Preview perbandingan kedua opsi SEBELUM commit (no DB write).
+
+Request:
+```json
+{
+    "amount": 50000000,
+    "penalty_rate": 0.02,
+    "apply_month": 24
+}
+```
+
+Response — return kedua opsi:
+```json
+{
+    "option_installment": {
+        "new_installment": 4500000,
+        "new_tenor": 96,
+        "total_interest_paid": 180000000,
+        "interest_saved": 50000000,
+        "end_date": "2034-06"
+    },
+    "option_tenor": {
+        "new_installment": 5200000,
+        "new_tenor": 78,
+        "total_interest_paid": 150000000,
+        "interest_saved": 80000000,
+        "end_date": "2032-12"
+    },
+    "comparison": {
+        "installment_difference": -700000,
+        "months_saved_difference": 18
+    }
+}
+```
+
 #### `POST /kpr/simulations/{id}/extra-payments`
+
+Commit extra payment dengan pilihan opsi.
 
 Request:
 ```json
@@ -99,6 +161,8 @@ Response:
     "new_remaining_balance": 349000000,
     "old_remaining_months": 96,
     "new_remaining_months": 78,
+    "old_installment": 5200000,
+    "new_installment": 5200000,
     "savings": {
         "total_interest_saved": 45000000,
         "months_saved": 18,
@@ -126,34 +190,58 @@ def apply_extra_payment(
     extra_amount: int,
     apply_month: int,
     penalty_rate: float = 0,
-    reduction_type: str = "tenor",
+    reduction_type: str = "tenor",  # "tenor" | "installment"
 ) -> ExtraPaymentResult:
     """
     Apply an extra payment at a specific month.
-    - reduction_type='tenor': Recalculate remaining schedule with same payment amount.
-    - reduction_type='installment': Recalculate with same remaining months.
-    Returns new schedule + savings summary.
+    - reduction_type='tenor' (Opsi B): Keep same monthly payment, shorten tenor.
+    - reduction_type='installment' (Opsi A): Keep same tenor, lower monthly payment.
+    Returns new schedule + savings summary + comparison of both options.
     """
 ```
 
-**Algoritma (Opsi B — Kurangi Tenor):**
+#### Algoritma Umum (shared):
 1. Ambil `remaining_balance` di bulan `apply_month` (sebelum bayar cicilan bulan itu)
 2. Hitung `penalty = extra_amount * penalty_rate`
 3. `new_balance = remaining_balance - extra_amount + penalty`
-4. Buat schedule baru dari bulan `apply_month` dengan:
-   - Principal baru = `new_balance`
-   - Payment tetap (sama dengan cicilan sebelum extra payment)
-   - Hitung ulang tenor sisa dengan iterasi bulanan
-5. Kembalikan schedule baru + summary savings
+4. Ambil `current_installment` = cicilan per bulan sebelum extra payment
+5. Ambil `remaining_months` = sisa tenor sebelum extra payment
+
+#### Algoritma Opsi A — Kurangi Cicilan (`reduction_type='installment'`):
+1. Tenor tetap = `remaining_months` (tidak berubah)
+2. Cicilan baru:
+   `new_installment = new_balance × (r × (1+r)^n) / ((1+r)^n - 1)`
+   dengan n = `remaining_months`
+3. Generate schedule dari bulan `apply_month` dengan principal baru dan cicilan baru
+4. Total bunga baru = `new_installment × n - new_balance`
+
+#### Algoritma Opsi B — Kurangi Tenor (`reduction_type='tenor'`):
+1. Cicilan tetap = `current_installment`
+2. Hitung tenor baru dengan iterasi bulanan:
+   - Setiap bulan: bunga = balance × r, pokok = cicilan - bunga, balance -= pokok
+   - Stop saat balance ≤ 0
+   - n' = jumlah iterasi
+3. Generate schedule dari bulan `apply_month` dengan principal baru dan cicilan tetap
+4. Total bunga baru = `current_installment × n' - new_balance`
+
+#### Preview Comparison (sebelum commit):
+Engine juga return data untuk kedua opsi sekaligus, biar UI bisa tampilkan perbandingan sebelum user decide:
+```python
+@dataclass
+class ExtraPaymentComparison:
+    option_installment: ExtraPaymentResult  # Opsi A
+    option_tenor: ExtraPaymentResult       # Opsi B
+```
 
 ### Flutter UI
 
 #### KPR Detail Screen — Extra Payment Section
 - Tombol "Add Extra Payment" di detail screen
-- Form: nominal, bulan ke-, penalty rate %, reduction type dropdown
-- Preview hasil: perbandingan sebelum/sesudah (tenor baru, bunga saved)
-- List riwayat extra payment
-- Delete extra payment
+- **Step 1:** Form input nominal, bulan ke-, penalty rate %
+- **Step 2 (PREVIEW):** Tampilkan perbandingan dua opsi sekaligus (Opsi A vs Opsi B) — cicilan baru, tenor baru, bunga saved, end date
+- **Step 3:** User pilih opsi → tap "Confirm" → commit extra payment
+- List riwayat extra payment dengan label opsi yang dipilih
+- Delete extra payment (regenerate schedule original)
 
 #### Perubahan KPR Schedule Display
 - Tandai bulan di mana extra payment dilakukan (icon/note)
@@ -270,16 +358,16 @@ Tambah field `household_id` opsional di request body.
 | # | Task | Files | Est. |
 |---|------|-------|------|
 | 1.1 | DB migration — tabel `kpr_extra_payments` | `backend/app/database.py` | 30m |
-| 1.2 | Engine — `apply_extra_payment()` function | `backend/app/services/kpr_engine.py` | 2h |
-| 1.3 | API — `POST /kpr/simulations/{id}/extra-payments` | `backend/app/routers/kpr.py`, `backend/app/schemas/kpr.py` | 1h |
-| 1.4 | API — `GET /kpr/simulations/{id}/extra-payments` | `backend/app/routers/kpr.py` | 30m |
-| 1.5 | API — `DELETE /kpr/simulations/{id}/extra-payments/{extra_id}` | `backend/app/routers/kpr.py` | 30m |
+| 1.2 | Engine — `apply_extra_payment()` kedua opsi + comparison | `backend/app/services/kpr_engine.py` | 3h |
+| 1.3 | API — `POST /preview` (comparison, no DB write) | `backend/app/routers/kpr.py`, `backend/app/schemas/kpr.py` | 1h |
+| 1.4 | API — `POST /extra-payments` (commit) | `backend/app/routers/kpr.py` | 1h |
+| 1.5 | API — `GET /extra-payments`, `DELETE /extra-payments/{id}` | `backend/app/routers/kpr.py` | 30m |
 | 1.6 | Mobile — Extra payment model + provider | `mobile/lib/features/debt/models/kpr_model.dart`, provider | 1h |
-| 1.7 | Mobile — Extra payment form screen | `mobile/lib/features/debt/kpr/ui/` | 2h |
+| 1.7 | Mobile — Extra payment form + preview + confirm screen | `mobile/lib/features/debt/kpr/ui/` | 3h |
 | 1.8 | Mobile — Extra payment history + display in detail | `mobile/lib/features/debt/kpr/ui/kpr_detail_screen.dart` | 1h |
-| 1.9 | Tests — Engine tests for extra payment | `backend/tests/test_kpr.py` | 1h |
-| 1.10 | Tests — API tests for extra payment endpoints | `backend/tests/test_kpr.py` | 1h |
-| | **Total Phase 1** | | **~10h** |
+| 1.9 | Tests — Engine tests (kedua opsi, berbagai skenario) | `backend/tests/test_kpr.py` | 1.5h |
+| 1.10 | Tests — API tests extra payment | `backend/tests/test_kpr.py` | 1h |
+| | **Total Phase 1** | | **~13h** |
 
 ### Phase 2: Household Debt
 
@@ -300,7 +388,7 @@ Tambah field `household_id` opsional di request body.
 
 ---
 
-## Total Estimate: ~23 jam kerja
+## Total Estimate: ~26 jam kerja
 
 ### Prioritas
 1. **Phase 1.1–1.3** (Engine + API extra payment) — core logic

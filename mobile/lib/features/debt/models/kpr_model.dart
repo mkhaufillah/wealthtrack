@@ -157,3 +157,116 @@ class KPRCreateRequest {
           'rate_periods': ratePeriods.map((rp) => rp.toJson()).toList(),
       };
 }
+
+
+class ExtraPaymentOption {
+  final int newInstallment;
+  final int newTenor;
+  final int totalInterestPaid;
+  final int interestSaved;
+  final String endDate;
+
+  ExtraPaymentOption({
+    required this.newInstallment,
+    required this.newTenor,
+    required this.totalInterestPaid,
+    required this.interestSaved,
+    required this.endDate,
+  });
+
+  factory ExtraPaymentOption.fromJson(Map<String, dynamic> json) {
+    return ExtraPaymentOption(
+      newInstallment: json['new_installment'] as int,
+      newTenor: json['new_tenor'] as int,
+      totalInterestPaid: json['total_interest_paid'] as int,
+      interestSaved: json['interest_saved'] as int,
+      endDate: json['end_date'] as String? ?? '',
+    );
+  }
+}
+
+
+class ExtraPaymentPreview {
+  final ExtraPaymentOption optionInstallment;
+  final ExtraPaymentOption optionTenor;
+  final Map<String, dynamic> comparison;
+
+  ExtraPaymentPreview({
+    required this.optionInstallment,
+    required this.optionTenor,
+    required this.comparison,
+  });
+
+  factory ExtraPaymentPreview.fromJson(Map<String, dynamic> json) {
+    return ExtraPaymentPreview(
+      optionInstallment: ExtraPaymentOption.fromJson(
+          json['option_installment'] as Map<String, dynamic>),
+      optionTenor: ExtraPaymentOption.fromJson(
+          json['option_tenor'] as Map<String, dynamic>),
+      comparison: json['comparison'] as Map<String, dynamic>? ?? {},
+    );
+  }
+}
+
+
+class ExtraPaymentRecord {
+  final int id;
+  final int simulationId;
+  final int amount;
+  final double penaltyRate;
+  final int penaltyAmount;
+  final int applyMonth;
+  final String reductionType;
+  final int oldRemainingBalance;
+  final int newRemainingBalance;
+  final int oldRemainingMonths;
+  final int newRemainingMonths;
+  final int oldInstallment;
+  final int newInstallment;
+  final int totalInterestSaving;
+  final String originalEndDate;
+  final String newEndDate;
+  final String createdAt;
+
+  ExtraPaymentRecord({
+    required this.id,
+    required this.simulationId,
+    required this.amount,
+    required this.penaltyRate,
+    required this.penaltyAmount,
+    required this.applyMonth,
+    required this.reductionType,
+    required this.oldRemainingBalance,
+    required this.newRemainingBalance,
+    required this.oldRemainingMonths,
+    required this.newRemainingMonths,
+    required this.oldInstallment,
+    required this.newInstallment,
+    required this.totalInterestSaving,
+    required this.originalEndDate,
+    required this.newEndDate,
+    required this.createdAt,
+  });
+
+  factory ExtraPaymentRecord.fromJson(Map<String, dynamic> json) {
+    return ExtraPaymentRecord(
+      id: json['id'] as int,
+      simulationId: json['simulation_id'] as int,
+      amount: json['amount'] as int,
+      penaltyRate: (json['penalty_rate'] as num).toDouble(),
+      penaltyAmount: json['penalty_amount'] as int? ?? 0,
+      applyMonth: json['apply_month'] as int,
+      reductionType: json['reduction_type'] as String? ?? 'tenor',
+      oldRemainingBalance: json['old_remaining_balance'] as int,
+      newRemainingBalance: json['new_remaining_balance'] as int,
+      oldRemainingMonths: json['old_remaining_months'] as int,
+      newRemainingMonths: json['new_remaining_months'] as int,
+      oldInstallment: json['old_installment'] as int? ?? 0,
+      newInstallment: json['new_installment'] as int? ?? 0,
+      totalInterestSaving: json['total_interest_saved'] as int? ?? 0,
+      originalEndDate: json['original_end_date'] as String? ?? '',
+      newEndDate: json['new_end_date'] as String? ?? '',
+      createdAt: json['created_at'] as String? ?? '',
+    );
+  }
+}

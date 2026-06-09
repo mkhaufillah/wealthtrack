@@ -171,9 +171,14 @@ CREATE TABLE kpr_simulations (
     total_loan INTEGER NOT NULL DEFAULT 0,
     tenor_months INTEGER NOT NULL DEFAULT 120,
     interest_type TEXT NOT NULL DEFAULT 'fixed' CHECK(interest_type IN ('fixed', 'floating', 'graduated', 'mix')),
+    base_interest_rate NUMERIC(6,4) NOT NULL DEFAULT 0.075,
+    graduated_increment NUMERIC(6,4) NOT NULL DEFAULT 0.005,
+    graduated_every_months INTEGER NOT NULL DEFAULT 12,
     start_month INTEGER NOT NULL DEFAULT 1,
     start_year INTEGER NOT NULL DEFAULT 2026,
     due_date INTEGER DEFAULT NULL,
+    household_id INTEGER DEFAULT NULL,
+    display_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 CREATE TABLE kpr_rate_periods (
@@ -198,6 +203,26 @@ CREATE TABLE kpr_monthly_schedules (
     UNIQUE(simulation_id, month_number)
 );
 
+CREATE TABLE IF NOT EXISTS kpr_extra_payments (
+    id SERIAL PRIMARY KEY,
+    simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
+    amount INTEGER NOT NULL,
+    penalty_rate NUMERIC(6,4) NOT NULL DEFAULT 0,
+    penalty_amount INTEGER NOT NULL DEFAULT 0,
+    apply_month INTEGER NOT NULL,
+    reduction_type TEXT NOT NULL DEFAULT 'tenor' CHECK(reduction_type IN ('tenor', 'installment')),
+    old_remaining_balance INTEGER NOT NULL,
+    new_remaining_balance INTEGER NOT NULL,
+    old_remaining_months INTEGER NOT NULL,
+    new_remaining_months INTEGER NOT NULL,
+    old_installment INTEGER NOT NULL DEFAULT 0,
+    new_installment INTEGER NOT NULL DEFAULT 0,
+    total_interest_saved INTEGER NOT NULL DEFAULT 0,
+    original_end_date TEXT DEFAULT '',
+    new_end_date TEXT DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
 CREATE TABLE IF NOT EXISTS credit_cards (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
@@ -206,6 +231,8 @@ CREATE TABLE IF NOT EXISTS credit_cards (
     billing_date INTEGER NOT NULL DEFAULT 1,
     due_date INTEGER NOT NULL DEFAULT 15,
     credit_limit INTEGER DEFAULT 0,
+    household_id INTEGER DEFAULT NULL,
+    display_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 
@@ -235,7 +262,7 @@ CREATE TABLE IF NOT EXISTS credit_card_transactions (
 """
 
 TABLES_IN_ORDER = [
-    "credit_card_transactions", "credit_card_installments", "credit_cards",
+    "kpr_extra_payments", "credit_card_transactions", "credit_card_installments", "credit_cards",
     "kpr_monthly_schedules", "kpr_rate_periods", "kpr_simulations",
     "ai_messages", "ocr_jobs", "budgets",
     "household_members", "households", "transactions",

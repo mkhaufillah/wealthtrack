@@ -8,6 +8,7 @@ import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../features/auth/providers/auth_provider.dart';
 
 class KPRListScreen extends ConsumerStatefulWidget {
   const KPRListScreen({super.key});
@@ -154,6 +155,10 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
     final monthsElapsed = _monthsBetween(sim.startMonth, sim.startYear);
     final actualMonth = monthsElapsed.clamp(1, sim.tenorMonths);
 
+    // Owner badge check
+    final currentUser = ref.read(authProvider).user;
+    final isNotOwner = currentUser != null && sim.userId != currentUser.id;
+
     return Dismissible(
       key: ValueKey(sim.id),
       direction: DismissDirection.endToStart,
@@ -202,12 +207,33 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            sim.name.isNotEmpty ? sim.name : 'KPR Simulation',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  sim.name.isNotEmpty ? sim.name : 'KPR Simulation',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              if (isNotOwner)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.warning.withAlpha(30),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '🏠 Anggota',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 2),
                           Text(

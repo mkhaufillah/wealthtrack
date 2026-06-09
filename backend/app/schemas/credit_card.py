@@ -8,6 +8,7 @@ class CreditCardCreate(BaseModel):
     billing_date: int = Field(1, ge=1, le=31)
     due_date: int = Field(15, ge=1, le=31)
     credit_limit: int = 0
+    household_id: Optional[int] = None
 
 
 class CreditCardUpdate(BaseModel):
@@ -27,6 +28,8 @@ class CreditCardOut(BaseModel):
     credit_limit: int
     created_at: str
     active_installments: int = 0
+    household_id: Optional[int] = None
+    display_order: int = 0
 
 
 class CreditCardTransactionCreate(BaseModel):
