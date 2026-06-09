@@ -64,8 +64,8 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
           CreditCardModel.fromJson(res.data as Map<String, dynamic>);
       state = state.copyWith(isLoading: false, selectedCard: card);
     } catch (e) {
-      state = state.copyWith(
-          isLoading: false, error: _api.handleError(e).toString());
+      // Card might have been deleted — don't set error, just clear selection
+      state = state.copyWith(isLoading: false, selectedCard: null);
     }
   }
 
@@ -92,6 +92,7 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
         cards: state.cards.where((c) => c.id != id).toList(),
         selectedCard:
             state.selectedCard?.id == id ? null : state.selectedCard,
+        clearError: true,
       );
       _ref.read(homeRefreshProvider.notifier).state++;
       return true;

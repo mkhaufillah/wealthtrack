@@ -91,6 +91,7 @@ class KPRNotifier extends StateNotifier<KPRState> {
         selectedSimulation: state.selectedSimulation?.id == id
             ? null
             : state.selectedSimulation,
+        error: null,
       );
       _ref.read(homeRefreshProvider.notifier).state++;
       return true;
