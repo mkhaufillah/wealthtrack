@@ -22,7 +22,6 @@ class _KPRExtraPaymentScreenState
     extends ConsumerState<KPRExtraPaymentScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
-  final _penaltyController = TextEditingController(text: '2');
   final _monthController = TextEditingController();
 
   ExtraStep _step = ExtraStep.form;
@@ -31,7 +30,6 @@ class _KPRExtraPaymentScreenState
   @override
   void dispose() {
     _amountController.dispose();
-    _penaltyController.dispose();
     _monthController.dispose();
     super.dispose();
   }
@@ -40,13 +38,12 @@ class _KPRExtraPaymentScreenState
     if (!_formKey.currentState!.validate()) return;
 
     final amount = int.parse(_amountController.text);
-    final penalty = (double.parse(_penaltyController.text) / 100);
     final month = int.parse(_monthController.text);
 
     final preview = await ref.read(kprProvider.notifier).previewExtraPayment(
           simId: widget.simulationId,
           amount: amount,
-          penaltyRate: penalty,
+          penaltyRate: 0,
           applyMonth: month,
         );
 
@@ -59,7 +56,6 @@ class _KPRExtraPaymentScreenState
     if (_selectedOption == null) return;
 
     final amount = int.parse(_amountController.text);
-    final penalty = (double.parse(_penaltyController.text) / 100);
     final month = int.parse(_monthController.text);
     final type = _selectedOption == 0 ? 'installment' : 'tenor';
 
@@ -68,7 +64,7 @@ class _KPRExtraPaymentScreenState
         .createExtraPayment(
           simId: widget.simulationId,
           amount: amount,
-          penaltyRate: penalty,
+          penaltyRate: 0,
           applyMonth: month,
           reductionType: type,
         );
@@ -177,7 +173,7 @@ class _KPRExtraPaymentScreenState
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'Apply at Month Number',
-              hintText: 'e.g. 24',
+              hintText: 'e.g. 24 (1 — 180)',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -191,29 +187,7 @@ class _KPRExtraPaymentScreenState
               return null;
             },
           ),
-          const SizedBox(height: 16),
-
-          // Penalty Rate
-          TextFormField(
-            controller: _penaltyController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Penalty Rate (%)',
-              suffixText: '%',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: AppColors.surface,
-            ),
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Enter penalty rate';
-              final n = double.tryParse(v);
-              if (n == null || n < 0) return 'Must be 0 or more';
-              return null;
-            },
-          ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // Preview button
           SizedBox(

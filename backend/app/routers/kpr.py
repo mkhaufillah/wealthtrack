@@ -487,6 +487,16 @@ async def create_extra_payment(
     )
     existing_extras = [dict(r) for r in await cursor.fetchall()]
 
+    # Validate apply_month range
+    min_month = 1
+    if existing_extras:
+        min_month = max(ep["apply_month"] for ep in existing_extras)
+    if data.apply_month < min_month or data.apply_month > tenor_months:
+        raise HTTPException(
+            status_code=400,
+            detail=f"apply_month must be between {min_month} and {tenor_months}",
+        )
+
     # 3. Apply all existing extra payments in chronological order
     #    to get the current state before applying the new one
     current_schedule = original_schedule

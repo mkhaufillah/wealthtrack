@@ -485,7 +485,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
                 Expanded(
                   child: _statItem(
-                    'Tenor',
+                    'Tenor Left',
                     '${ep.oldRemainingMonths} → ${ep.newRemainingMonths} mo',
                   ),
                 ),
