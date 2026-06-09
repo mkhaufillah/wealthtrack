@@ -22,12 +22,14 @@ class KPRState {
     String? error,
     List<KPRSimulation>? simulations,
     KPRSimulation? selectedSimulation,
+    bool clearError = false,
+    bool clearSelection = false,
   }) =>
       KPRState(
         isLoading: isLoading ?? this.isLoading,
-        error: error ?? this.error,
+        error: clearError ? null : (error ?? this.error),
         simulations: simulations ?? this.simulations,
-        selectedSimulation: selectedSimulation ?? this.selectedSimulation,
+        selectedSimulation: clearSelection ? null : (selectedSimulation ?? this.selectedSimulation),
       );
 }
 
@@ -38,7 +40,7 @@ class KPRNotifier extends StateNotifier<KPRState> {
   KPRNotifier(this._api, this._ref) : super(const KPRState());
 
   Future<void> loadAll() async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final res = await _api.get('/kpr/simulations');
       final data = res.data;
@@ -53,7 +55,7 @@ class KPRNotifier extends StateNotifier<KPRState> {
   }
 
   Future<void> loadDetail(int id) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final res = await _api.get('/kpr/simulations/$id');
       final sim =
@@ -88,10 +90,8 @@ class KPRNotifier extends StateNotifier<KPRState> {
       state = state.copyWith(
         simulations:
             state.simulations.where((s) => s.id != id).toList(),
-        selectedSimulation: state.selectedSimulation?.id == id
-            ? null
-            : state.selectedSimulation,
-        error: null,
+        clearSelection: state.selectedSimulation?.id == id,
+        clearError: true,
       );
       _ref.read(homeRefreshProvider.notifier).state++;
       return true;
@@ -102,11 +102,11 @@ class KPRNotifier extends StateNotifier<KPRState> {
   }
 
   void clearError() {
-    state = state.copyWith(error: null);
+    state = state.copyWith(clearError: true);
   }
 
   void clearSelection() {
-    state = state.copyWith(selectedSimulation: null);
+    state = state.copyWith(clearSelection: true);
   }
 }
 

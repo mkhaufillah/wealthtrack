@@ -26,12 +26,13 @@ class CreditCardState {
     CreditCardModel? selectedCard,
     NextMonthProjection? projection,
     bool clearError = false,
+    bool clearSelection = false,
   }) =>
       CreditCardState(
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : (error ?? this.error),
         cards: cards ?? this.cards,
-        selectedCard: selectedCard ?? this.selectedCard,
+        selectedCard: clearSelection ? null : (selectedCard ?? this.selectedCard),
         projection: projection ?? this.projection,
       );
 }
@@ -65,7 +66,7 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
       state = state.copyWith(isLoading: false, selectedCard: card);
     } catch (e) {
       // Card might have been deleted — don't set error, just clear selection
-      state = state.copyWith(isLoading: false, selectedCard: null);
+      state = state.copyWith(isLoading: false, clearSelection: true);
     }
   }
 
@@ -90,8 +91,8 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
       await _api.delete('/credit-cards/$id');
       state = state.copyWith(
         cards: state.cards.where((c) => c.id != id).toList(),
-        selectedCard:
-            state.selectedCard?.id == id ? null : state.selectedCard,
+        clearSelection:
+            state.selectedCard?.id == id,
         clearError: true,
       );
       _ref.read(homeRefreshProvider.notifier).state++;
@@ -154,7 +155,7 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
   }
 
   void clearSelection() {
-    state = state.copyWith(selectedCard: null);
+    state = state.copyWith(clearSelection: true);
   }
 }
 
