@@ -747,9 +747,9 @@ async def _single_member_debt(
             ) AS current_month
         ) cm
         WHERE """ + (
-            "ks.household_id = ?" if household_id else "ks.user_id = ?"
+            "(ks.user_id = ? OR ks.household_id = ?)" if household_id else "ks.user_id = ?"
         ),
-        (household_id or user_id,),
+        (user_id, household_id) if household_id else (user_id,),
     )
     row = await cursor.fetchone()
     kpr_total = int(row["total_kpr"]) if row else 0
@@ -760,11 +760,11 @@ async def _single_member_debt(
            FROM credit_card_transactions cct
            JOIN credit_cards cc ON cc.id = cct.card_id
            WHERE """ + (
-               "cc.household_id = ?" if household_id else "cc.user_id = ?"
+               "(cc.user_id = ? OR cc.household_id = ?)" if household_id else "cc.user_id = ?"
            ) + """ AND cct.is_installment = 0
                AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
                AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
-        (household_id or user_id,),
+        (user_id, household_id) if household_id else (user_id,),
     )
     row = await cursor.fetchone()
     total_cc_txns = int(row["total_txns"]) if row else 0
@@ -777,13 +777,13 @@ async def _single_member_debt(
            FROM credit_card_installments cci
            JOIN credit_cards cc ON cc.id = cci.card_id
            WHERE """ + (
-               "cc.household_id = ?" if household_id else "cc.user_id = ?"
+               "(cc.user_id = ? OR cc.household_id = ?)" if household_id else "cc.user_id = ?"
            ) + """
                AND cci.total_months > (
                    (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
                    - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
                )""",
-        (household_id or user_id,),
+        (user_id, household_id) if household_id else (user_id,),
     )
     row = await cursor.fetchone()
     total_cc_installments = int(row["total_installments"]) if row else 0
@@ -793,16 +793,16 @@ async def _single_member_debt(
     # Count active KPR / CC
     cursor = await db.execute(
         "SELECT COUNT(*) AS cnt FROM kpr_simulations WHERE " +
-        ("household_id = ?" if household_id else "user_id = ?"),
-        (household_id or user_id,),
+        ("(user_id = ? OR household_id = ?)" if household_id else "user_id = ?"),
+        (user_id, household_id) if household_id else (user_id,),
     )
     kpr_count_row = await cursor.fetchone()
     kpr_count = kpr_count_row["cnt"] if kpr_count_row else 0
 
     cursor = await db.execute(
         """SELECT COUNT(*) AS cnt FROM credit_cards cc WHERE """ +
-        ("cc.household_id = ?" if household_id else "cc.user_id = ?"),
-        (household_id or user_id,),
+        ("(cc.user_id = ? OR cc.household_id = ?)" if household_id else "cc.user_id = ?"),
+        (user_id, household_id) if household_id else (user_id,),
     )
     cc_count_row = await cursor.fetchone()
     cc_count = cc_count_row["cnt"] if cc_count_row else 0
