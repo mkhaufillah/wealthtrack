@@ -1,6 +1,24 @@
 # Changelog
 
-## v0.6.2 — Hotfix: White Screen on Update, Stale Error After Delete (2026-06-09)
+## v0.6.2 — Test Coverage + Hotfixes (2026-06-09)
+
+### Test Coverage — Debt Tracker
+
+#### Backend — 6 missing endpoint tests added
+| File | Tests Added | Total Lines |
+|------|-------------|-------------|
+| `test_kpr.py` | `TestKprApiUpdate` (6 tests), `TestKprApiSchedule` (5 tests) | 590 |
+| `test_credit_cards.py` | `TestUpdateCreditCard` (5), `TestDeleteTransaction` (3), `TestListInstallments` (3), `TestDeleteInstallment` (3) | 667 |
+
+All 18 KPR + CC routes now have coverage. KPR engine fully covered (6 tests). CC transactions, installments, and projection covered.
+
+#### Mobile — 4 new test files (59 tests)
+| File | Tests |
+|------|-------|
+| `test/features/debt/models/kpr_model_test.dart` | 8 (fromJson/toJson, edge cases) |
+| `test/features/debt/models/credit_card_model_test.dart` | 14 (fromJson, null safety) |
+| `test/features/debt/providers/kpr_provider_test.dart` | 16 (loadAll, loadDetail, create, delete, clear) |
+| `test/features/debt/providers/credit_card_provider_test.dart` | 21 (CRUD, transactions, installments, projection) |
 
 ### Bugs Fixed
 

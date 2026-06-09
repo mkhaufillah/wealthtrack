@@ -359,3 +359,232 @@ class TestKprApiDelete:
             headers={"Authorization": f"Bearer {nahda_token}"},
         )
         assert resp.status_code == 403
+
+
+class TestKprApiUpdate:
+    """PUT /api/v1/kpr/simulations/{id} — Update KPR simulation metadata."""
+
+    async def test_requires_auth(self, client: AsyncClient):
+        """Returns 401 without token."""
+        resp = await client.put("/api/v1/kpr/simulations/1")
+        assert resp.status_code == 401
+
+    async def test_update_name(self, client: AsyncClient, filla_token: str):
+        """Update simulation name."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Old Name",
+                "property_price": 300000000,
+                "tenor_months": 60,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.08,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+
+        resp = await client.put(
+            f"/api/v1/kpr/simulations/{sim_id}",
+            json={"name": "New Name"},
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["name"] == "New Name"
+
+    async def test_update_property_price(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Update property_price, verify total_loan is recalculated."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Price Test",
+                "property_price": 500000000,
+                "down_payment": 50000000,
+                "tenor_months": 120,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.075,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+        assert create_resp.json()["total_loan"] == 450000000
+
+        resp = await client.put(
+            f"/api/v1/kpr/simulations/{sim_id}",
+            json={"property_price": 600000000},
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        # total_loan = 600000000 - 50000000 = 550000000
+        assert data["total_loan"] == 550000000
+
+    async def test_update_no_fields(self, client: AsyncClient, filla_token: str):
+        """Sending empty body returns 400."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "No Fields",
+                "property_price": 200000000,
+                "tenor_months": 60,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.07,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+
+        resp = await client.put(
+            f"/api/v1/kpr/simulations/{sim_id}",
+            json={},
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 400
+
+    async def test_not_found(self, client: AsyncClient, filla_token: str):
+        """Updating a non-existent simulation returns 404."""
+        resp = await client.put(
+            "/api/v1/kpr/simulations/99999",
+            json={"name": "Ghost"},
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 404
+
+    async def test_forbidden_other_user(
+        self, client: AsyncClient, filla_token: str, nahda_token: str
+    ):
+        """Cannot update another user's simulation."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Filla's Sim",
+                "property_price": 300000000,
+                "tenor_months": 60,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.08,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+
+        resp = await client.put(
+            f"/api/v1/kpr/simulations/{sim_id}",
+            json={"name": "Hacked"},
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert resp.status_code == 403
+
+
+class TestKprApiSchedule:
+    """GET /api/v1/kpr/simulations/{id}/schedule — Get schedule items."""
+
+    async def test_requires_auth(self, client: AsyncClient):
+        """Returns 401 without token."""
+        resp = await client.get("/api/v1/kpr/simulations/1/schedule")
+        assert resp.status_code == 401
+
+    async def test_full_schedule(self, client: AsyncClient, filla_token: str):
+        """Get full amortization schedule."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Schedule Test",
+                "property_price": 300000000,
+                "tenor_months": 12,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.06,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+
+        resp = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}/schedule",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        assert len(data) == 12
+        assert "month_number" in data[0]
+        assert "payment" in data[0]
+        assert "principal" in data[0]
+        assert "interest" in data[0]
+        assert "remaining_balance" in data[0]
+
+    async def test_single_month_filter(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Filter schedule to a single month."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Month Filter",
+                "property_price": 300000000,
+                "tenor_months": 12,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.06,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+
+        resp = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}/schedule",
+            params={"month": 1},
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, dict)  # single object, not list
+        assert data["month_number"] == 1
+
+    async def test_month_not_found(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """Requesting a month beyond tenor returns 404."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Out of Range",
+                "property_price": 300000000,
+                "tenor_months": 12,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.06,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+
+        resp = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}/schedule",
+            params={"month": 99},
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 404
+
+    async def test_forbidden_other_user(
+        self, client: AsyncClient, filla_token: str, nahda_token: str
+    ):
+        """Cannot access another user's schedule."""
+        create_resp = await client.post(
+            "/api/v1/kpr/simulations",
+            json={
+                "name": "Filla Private",
+                "property_price": 100000000,
+                "tenor_months": 12,
+                "interest_type": "fixed",
+                "base_interest_rate": 0.05,
+            },
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        sim_id = create_resp.json()["id"]
+
+        resp = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}/schedule",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert resp.status_code == 403

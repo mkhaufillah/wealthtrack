@@ -390,3 +390,278 @@ class TestDeleteCreditCard:
             f"/api/v1/credit-cards/{card_id}/transactions", headers=auth_headers
         )
         assert txn_resp.status_code == 404
+
+
+class TestUpdateCreditCard:
+    """PUT /api/v1/credit-cards/{card_id} — Update a credit card."""
+
+    async def test_requires_auth(self, client: AsyncClient):
+        """Returns 401 without token."""
+        resp = await client.put("/api/v1/credit-cards/1")
+        assert resp.status_code == 401
+
+    async def test_update_name(self, client: AsyncClient, auth_headers: dict):
+        """Update card name."""
+        card_resp = await client.post(
+            "/api/v1/credit-cards",
+            json={"name": "Old Card", "billing_date": 5, "due_date": 20},
+            headers=auth_headers,
+        )
+        card_id = card_resp.json()["id"]
+
+        resp = await client.put(
+            f"/api/v1/credit-cards/{card_id}",
+            json={"name": "New Card"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["name"] == "New Card"
+
+    async def test_update_billing_date(self, client: AsyncClient, auth_headers: dict):
+        """Update billing_date."""
+        card_resp = await client.post(
+            "/api/v1/credit-cards",
+            json={"name": "Date Test", "billing_date": 5, "due_date": 20},
+            headers=auth_headers,
+        )
+        card_id = card_resp.json()["id"]
+
+        resp = await client.put(
+            f"/api/v1/credit-cards/{card_id}",
+            json={"billing_date": 15},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["billing_date"] == 15
+
+    async def test_no_fields(self, client: AsyncClient, auth_headers: dict):
+        """Sending empty body returns 400."""
+        card_resp = await client.post(
+            "/api/v1/credit-cards",
+            json={"name": "No Fields", "billing_date": 5, "due_date": 20},
+            headers=auth_headers,
+        )
+        card_id = card_resp.json()["id"]
+
+        resp = await client.put(
+            f"/api/v1/credit-cards/{card_id}",
+            json={},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+
+    async def test_not_found(self, client: AsyncClient, auth_headers: dict):
+        """Updating a non-existent card returns 404."""
+        resp = await client.put(
+            "/api/v1/credit-cards/99999",
+            json={"name": "Ghost"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
+
+
+class TestDeleteTransaction:
+    """DELETE /api/v1/credit-cards/{card_id}/transactions/{txn_id} — Delete a transaction."""
+
+    async def test_requires_auth(self, client: AsyncClient):
+        """Returns 401 without token."""
+        resp = await client.delete("/api/v1/credit-cards/1/transactions/1")
+        assert resp.status_code == 401
+
+    async def test_delete_transaction(self, client: AsyncClient, auth_headers: dict):
+        """Delete a transaction and verify it's gone."""
+        card_resp = await client.post(
+            "/api/v1/credit-cards",
+            json={
+                "name": "Txn Delete",
+                "card_number_last4": "0001",
+                "billing_date": 5,
+                "due_date": 20,
+            },
+            headers=auth_headers,
+        )
+        card_id = card_resp.json()["id"]
+
+        txn_resp = await client.post(
+            f"/api/v1/credit-cards/{card_id}/transactions",
+            json={
+                "description": "Delete me",
+                "amount": 50000,
+                "transaction_date": "2026-06-01",
+            },
+            headers=auth_headers,
+        )
+        txn_id = txn_resp.json()["id"]
+
+        del_resp = await client.delete(
+            f"/api/v1/credit-cards/{card_id}/transactions/{txn_id}",
+            headers=auth_headers,
+        )
+        assert del_resp.status_code == 204
+
+        # Verify transaction is gone
+        list_resp = await client.get(
+            f"/api/v1/credit-cards/{card_id}/transactions",
+            headers=auth_headers,
+        )
+        assert len(list_resp.json()) == 0
+
+    async def test_not_found(self, client: AsyncClient, auth_headers: dict):
+        """Deleting a non-existent transaction returns 404."""
+        card_resp = await client.post(
+            "/api/v1/credit-cards",
+            json={
+                "name": "Card With No Txn",
+                "billing_date": 5,
+                "due_date": 20,
+            },
+            headers=auth_headers,
+        )
+        card_id = card_resp.json()["id"]
+
+        resp = await client.delete(
+            f"/api/v1/credit-cards/{card_id}/transactions/99999",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
+
+
+class TestListInstallments:
+    """GET /api/v1/credit-cards/{card_id}/installments — List installments."""
+
+    async def test_requires_auth(self, client: AsyncClient):
+        """Returns 401 without token."""
+        resp = await client.get("/api/v1/credit-cards/1/installments")
+        assert resp.status_code == 401
+
+    async def test_list_empty(self, client: AsyncClient, auth_headers: dict):
+        """Returns empty list when no installments exist."""
+        card_resp = await client.post(
+            "/api/v1/credit-cards",
+            json={
+                "name": "No Installments",
+                "card_number_last4": "0002",
+                "billing_date": 5,
+                "due_date": 20,
+            },
+            headers=auth_headers,
+        )
+        card_id = card_resp.json()["id"]
+
+        resp = await client.get(
+            f"/api/v1/credit-cards/{card_id}/installments",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        assert len(data) == 0
+
+    async def test_list_installments(self, client: AsyncClient, auth_headers: dict):
+        """Create an installment and verify it appears in the list."""
+        card_resp = await client.post(
+            "/api/v1/credit-cards",
+            json={
+                "name": "Installments List",
+                "card_number_last4": "0003",
+                "billing_date": 5,
+                "due_date": 20,
+            },
+            headers=auth_headers,
+        )
+        card_id = card_resp.json()["id"]
+
+        await client.post(
+            f"/api/v1/credit-cards/{card_id}/installments",
+            json={
+                "description": "Test Installment",
+                "total_amount": 12000000,
+                "monthly_amount": 1000000,
+                "total_months": 12,
+                "remaining_months": 10,
+                "start_month": "2026-01",
+            },
+            headers=auth_headers,
+        )
+
+        resp = await client.get(
+            f"/api/v1/credit-cards/{card_id}/installments",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["description"] == "Test Installment"
+        assert data[0]["monthly_amount"] == 1000000
+
+
+class TestDeleteInstallment:
+    """DELETE /api/v1/credit-cards/{card_id}/installments/{inst_id} — Delete an installment."""
+
+    async def test_requires_auth(self, client: AsyncClient):
+        """Returns 401 without token."""
+        resp = await client.delete("/api/v1/credit-cards/1/installments/1")
+        assert resp.status_code == 401
+
+    async def test_delete_installment(self, client: AsyncClient, auth_headers: dict):
+        """Delete an installment and verify it's gone."""
+        card_resp = await client.post(
+            "/api/v1/credit-cards",
+            json={
+                "name": "Inst Delete",
+                "card_number_last4": "0004",
+                "billing_date": 5,
+                "due_date": 20,
+            },
+            headers=auth_headers,
+        )
+        card_id = card_resp.json()["id"]
+
+        inst_resp = await client.post(
+            f"/api/v1/credit-cards/{card_id}/installments",
+            json={
+                "description": "Delete me",
+                "total_amount": 6000000,
+                "monthly_amount": 500000,
+                "total_months": 12,
+                "remaining_months": 12,
+                "start_month": "2026-01",
+            },
+            headers=auth_headers,
+        )
+        inst_id = inst_resp.json()["id"]
+
+        del_resp = await client.delete(
+            f"/api/v1/credit-cards/{card_id}/installments/{inst_id}",
+            headers=auth_headers,
+        )
+        assert del_resp.status_code == 204
+
+        # Verify installment is gone
+        list_resp = await client.get(
+            f"/api/v1/credit-cards/{card_id}/installments",
+            headers=auth_headers,
+        )
+        assert len(list_resp.json()) == 0
+
+    async def test_not_found(self, client: AsyncClient, auth_headers: dict):
+        """Deleting a non-existent installment returns 404."""
+        card_resp = await client.post(
+            "/api/v1/credit-cards",
+            json={
+                "name": "Card No Inst",
+                "billing_date": 5,
+                "due_date": 20,
+            },
+            headers=auth_headers,
+        )
+        card_id = card_resp.json()["id"]
+
+        resp = await client.delete(
+            f"/api/v1/credit-cards/{card_id}/installments/99999",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
