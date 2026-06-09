@@ -450,31 +450,70 @@ async def create_extra_payment(
     """Commit an extra payment, regenerate schedule, store record."""
     sim = await _get_simulation_for_user(db, simulation_id, current_user["id"])
 
-    # Load schedule from DB
+    # 1. Regenerate original schedule from KPR params (not from DB,
+    #    which may already have previous extra payments applied)
+    total_loan = sim["total_loan"]
+    tenor_months = sim["tenor_months"]
+    interest_type = sim["interest_type"]
+    base_rate = sim.get("base_interest_rate", 0.075)
+    grad_inc = sim.get("graduated_increment", 0.005)
+    grad_every = sim.get("graduated_every_months", 12)
+    start_month = sim.get("start_month", 1)
+    start_year = sim.get("start_year", 2026)
+
+    # Load rate periods if mix type
+    rate_periods = []
+    if interest_type == "mix":
+        cursor = await db.execute(
+            "SELECT * FROM kpr_rate_periods WHERE simulation_id = ? ORDER BY period_start",
+            (simulation_id,),
+        )
+        rate_periods = [RatePeriod(**dict(r)) for r in await cursor.fetchall()]
+
+    original_schedule = calculate_kpr(
+        total_loan=total_loan,
+        tenor_months=tenor_months,
+        rate_periods=rate_periods if rate_periods else None,
+        interest_type=interest_type,
+        base_interest_rate=base_rate,
+        graduated_increment=grad_inc,
+        graduated_every_months=grad_every,
+    )
+
+    # 2. Load existing extra payments sorted chronologically
     cursor = await db.execute(
-        """SELECT month_number, payment, principal, interest,
-                  remaining_balance, rate_type, interest_rate
-           FROM kpr_monthly_schedules
-           WHERE simulation_id = ? ORDER BY month_number""",
+        "SELECT * FROM kpr_extra_payments WHERE simulation_id = ? ORDER BY apply_month, id",
         (simulation_id,),
     )
-    rows = await cursor.fetchall()
-    if not rows:
-        raise HTTPException(status_code=400, detail="No schedule found.")
+    existing_extras = [dict(r) for r in await cursor.fetchall()]
 
-    schedule = [MonthlySchedule(**dict(r)) for r in rows]
+    # 3. Apply all existing extra payments in chronological order
+    #    to get the current state before applying the new one
+    current_schedule = original_schedule
+    for ep in existing_extras:
+        ep_result = apply_extra_payment(
+            schedule=current_schedule,
+            extra_amount=ep["amount"],
+            apply_month=ep["apply_month"],
+            penalty_rate=float(ep["penalty_rate"]),
+            reduction_type=ep["reduction_type"],
+            start_month=start_month,
+            start_year=start_year,
+        )
+        current_schedule = ep_result.schedule
 
-    # Calculate penalty
+    # 4. Apply penalty for the new extra payment
     penalty_amount = int(data.amount * data.penalty_rate)
 
+    # 5. Apply the new extra payment to the current schedule
     result = apply_extra_payment(
-        schedule=schedule,
+        schedule=current_schedule,
         extra_amount=data.amount,
         apply_month=data.apply_month,
         penalty_rate=data.penalty_rate,
         reduction_type=data.reduction_type,
-        start_month=sim.get("start_month", 1),
-        start_year=sim.get("start_year", 2026),
+        start_month=start_month,
+        start_year=start_year,
     )
 
     async with db.transaction():

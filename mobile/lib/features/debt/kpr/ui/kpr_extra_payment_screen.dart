@@ -284,16 +284,16 @@ class _KPRExtraPaymentScreenState
 
         // Option A — Kurangi Cicilan
         _buildOptionCard(
-          title: 'A. Kurangi Cicilan',
-          subtitle: 'Tenor tetap, angsuran lebih ringan',
+          title: 'A. Reduce Installment',
+          subtitle: 'Fixed tenor, lower monthly payment',
           isSelected: _selectedOption == 0,
           isDark: isDark,
           fields: {
-            'Cicilan Baru': formatCurrency(optA.newInstallment),
-            'Tenor Baru': '${optA.newTenor} bulan',
-            'Total Bunga': formatCurrency(optA.totalInterestPaid),
-            'Bunga Dihemat': formatCurrency(optA.interestSaved),
-            'Selesai': optA.endDate,
+            'New Installment': formatCurrency(optA.newInstallment),
+            'New Tenor': '${optA.newTenor} mo',
+            'Total Interest': formatCurrency(optA.totalInterestPaid),
+            'Interest Saved': formatCurrency(optA.interestSaved),
+            'End Date': optA.endDate,
           },
           onTap: () => setState(() => _selectedOption = 0),
         ),
@@ -301,16 +301,16 @@ class _KPRExtraPaymentScreenState
 
         // Option B — Kurangi Tenor
         _buildOptionCard(
-          title: 'B. Kurangi Tenor',
-          subtitle: 'Angsuran tetap, lunas lebih cepat',
+          title: 'B. Shorten Tenor',
+          subtitle: 'Fixed payment, pay off faster',
           isSelected: _selectedOption == 1,
           isDark: isDark,
           fields: {
-            'Cicilan Baru': formatCurrency(optB.newInstallment),
-            'Tenor Baru': '${optB.newTenor} bulan',
-            'Total Bunga': formatCurrency(optB.totalInterestPaid),
-            'Bunga Dihemat': formatCurrency(optB.interestSaved),
-            'Selesai': optB.endDate,
+            'New Installment': formatCurrency(optB.newInstallment),
+            'New Tenor': '${optB.newTenor} mo',
+            'Total Interest': formatCurrency(optB.totalInterestPaid),
+            'Interest Saved': formatCurrency(optB.interestSaved),
+            'End Date': optB.endDate,
           },
           onTap: () => setState(() => _selectedOption = 1),
         ),
@@ -337,7 +337,7 @@ class _KPRExtraPaymentScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Perbedaan antar opsi',
+                      'Difference',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -346,8 +346,8 @@ class _KPRExtraPaymentScreenState
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Cicilan: $installmentDiff/bulan lebih rendah (Opsi A)\n'
-                      'Tenor: $monthsSaved bulan lebih cepat lunas (Opsi B)',
+                      'Installment: $installmentDiff/month lower (Option A)\\n'
+                      'Tenor: $monthsSaved months faster (Option B)',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,

@@ -87,6 +87,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
   bool _shareWithHousehold = false;
   bool _hasHousehold = false;
   bool _householdCheckDone = false;
+  int? _householdId;
 
   // Focus nodes for amount fields
   final _propertyFocus = FocusNode();
@@ -190,11 +191,14 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
   Future<void> _checkHousehold() async {
     try {
       final api = ref.read(apiClientProvider);
-      await api.get('/households/me');
+      final res = await api.get('/households/me');
       if (mounted) {
+        final data = res.data as Map<String, dynamic>?;
+        final household = data?['household'] as Map<String, dynamic>?;
         setState(() {
           _hasHousehold = true;
           _householdCheckDone = true;
+          _householdId = household?['id'] as int?;
         });
       }
     } catch (_) {
@@ -361,7 +365,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       'start_month': _startMonth,
       'start_year': _startYear,
       if (_dueDate != null) 'due_date': _dueDate,
-      if (_shareWithHousehold) 'household_id': 1,
+      if (_shareWithHousehold && _householdId != null) 'household_id': _householdId,
     };
 
     if (_interestType == 'graduated') {

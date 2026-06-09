@@ -449,8 +449,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                   children: [
                     Text(
                       isTenor
-                          ? 'Kurangi Tenor'
-                          : 'Kurangi Cicilan',
+                          ? 'Shorten Tenor'
+                          : 'Reduce Installment',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -475,18 +475,18 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
               ],
             ),
-            const Divider(height: 20),
+            const Divider(height: 1),
             Row(
               children: [
                 Expanded(
                   child: _statItem(
-                      'Cicilan',
+                      'Installment',
                       '${formatCurrency(ep.oldInstallment)} → ${formatCurrency(ep.newInstallment)}'),
                 ),
                 Expanded(
                   child: _statItem(
                     'Tenor',
-                    '${ep.oldRemainingMonths} → ${ep.newRemainingMonths} bln',
+                    '${ep.oldRemainingMonths} → ${ep.newRemainingMonths} mo',
                   ),
                 ),
               ],
@@ -496,13 +496,13 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
               children: [
                 Expanded(
                   child: _statItem(
-                    'Selesai',
+                    'End Date',
                     '${ep.originalEndDate} → ${ep.newEndDate}',
                   ),
                 ),
                 Expanded(
                   child: _statItem(
-                    'Bunga Dihemat',
+                    'Interest Saved',
                     formatCurrency(ep.totalInterestSaving),
                     highlight: true,
                   ),
@@ -524,8 +524,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
                 child: Text(
                   isTenor
-                      ? 'Lunas $monthsSaved bulan lebih cepat 🎯'
-                      : 'Cicilan turun ${formatCurrency(paymentDiff)}/bulan 💰',
+                      ? 'Paid off $monthsSaved months faster 🎯'
+                      : 'Installment down ${formatCurrency(paymentDiff)}/month 💰',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
