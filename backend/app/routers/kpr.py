@@ -465,7 +465,7 @@ async def create_extra_payment(
     rate_periods = []
     if interest_type == "mix":
         cursor = await db.execute(
-            "SELECT * FROM kpr_rate_periods WHERE simulation_id = ? ORDER BY period_start",
+            "SELECT period_start, period_end, interest_rate, rate_type FROM kpr_rate_periods WHERE simulation_id = ? ORDER BY period_start",
             (simulation_id,),
         )
         rate_periods = [RatePeriod(**dict(r)) for r in await cursor.fetchall()]
