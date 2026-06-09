@@ -376,7 +376,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
       // Member separator
-      Divider(height: 12, color: AppColors.divider),
+      Divider(height: 24, color: AppColors.divider),
     ];
 
     // Private debts (current user only)
@@ -409,8 +409,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (showDivider) {
       items.add(Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Divider(height: 1, color: AppColors.divider),
+        padding: const EdgeInsets.symmetric(vertical: 0),
+        child: Divider(height: 24, color: AppColors.divider),
       ));
     }
 

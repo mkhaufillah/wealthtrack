@@ -197,8 +197,8 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                           },
                   ),
                   Divider(
-                    height: 1,
-                    color: theme.dividerColor.withOpacity(0.3),
+                    height: 24,
+                    color: AppColors.divider,
                   ),
                   ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.4),

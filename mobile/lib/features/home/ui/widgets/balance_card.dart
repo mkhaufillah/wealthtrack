@@ -23,7 +23,7 @@ class BalanceCard extends StatelessWidget {
             Text(formatCurrency(balance),
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
             const SizedBox(height: 16),
-            Divider(color: AppColors.divider),
+            Divider(height: 24, color: AppColors.divider),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,

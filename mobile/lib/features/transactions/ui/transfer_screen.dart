@@ -181,7 +181,7 @@ class _TransferBalanceScreenState
                   ],
                 ),
               ),
-            const Divider(height: 24),
+            Divider(height: 24, color: AppColors.divider),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
