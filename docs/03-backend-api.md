@@ -1,6 +1,6 @@
 # Backend API Specification — FastAPI
 
-**See also:** [Database Schema](02-database-schema.md) · [Backend Implementation](04-backend-implementation.md) · [Flutter Mobile](05-flutter-mobile.md) · [Transfer Balance](12-transfer-balance.md) · [Admin Category CRUD](17-admin-category-crud.md) · [P4 Plan](08-p4-plan.md)
+**See also:** [Database Schema](02-database-schema.md) · [Backend Implementation](04-backend-implementation.md) · [Flutter Mobile](05-flutter-mobile.md) · [Transfer Balance](12-transfer-balance.md) · [Admin Category CRUD](17-admin-category-crud.md) · [Credit Cards & KPR](03-backend-api.md#credit-cards) · [P4 Plan](08-p4-plan.md)
 
 
 
@@ -669,6 +669,75 @@ The response also includes an `income_categories` array (same structure as `cate
 
 Quick endpoint — shorthand for `/summaries/monthly?month=<current>`.
 
+### GET `/api/v1/summaries/debt`
+
+Current user's debt summary (personal only). Returns KPR outstanding and credit card debt.
+
+**Auth:** Bearer token
+
+```json
+// Response 200
+{
+  "kpr": {
+    "total_outstanding": 350000000,
+    "simulations_count": 1,
+    "details": [
+      {
+        "id": 1,
+        "name": "Rumah Impian",
+        "outstanding": 350000000,
+        "interest_type": "fixed",
+        "tenor_months": 240,
+        "remaining_months": 180
+      }
+    ]
+  },
+  "credit_cards": {
+    "total_debt": 5000000,
+    "cards_count": 1,
+    "details": [
+      {
+        "id": 1,
+        "name": "BCA",
+        "this_month_transactions": 3000000,
+        "active_installments_total": 2000000,
+        "credit_limit": 20000000
+      }
+    ]
+  },
+  "total_debt": 355000000
+}
+```
+
+### GET `/api/v1/summaries/debt/household`
+
+Household-wide debt summary. Includes debts from all household members (shared via `household_id`). Requires household membership.
+
+**Auth:** Bearer token
+
+```json
+// Response 200
+{
+  "kpr": {
+    "total_outstanding": 850000000,
+    "simulations_count": 2,
+    "by_owner": [
+      {"owner": "Filla", "total": 500000000, "count": 1},
+      {"owner": "Nahda", "total": 350000000, "count": 1}
+    ]
+  },
+  "credit_cards": {
+    "total_debt": 12000000,
+    "cards_count": 3,
+    "by_owner": [
+      {"owner": "Filla", "total": 5000000, "count": 1},
+      {"owner": "Nahda", "total": 7000000, "count": 2}
+    ]
+  },
+  "total_debt": 862000000
+}
+```
+
 ## Budgets
 
 ### GET `/api/v1/budgets?month=YYYY-MM`
@@ -868,6 +937,418 @@ Returns lifetime balance for Savings & Investment and Emergency Funds categories
 ```
 
 **Formula:** `balance = total_expense - total_income`. Savings & Investment balance includes: expense transactions (Tabungan & Investasi / Savings & Investment — money set aside) minus income transactions (Penarikan Tabungan & Investasi / Savings & Investment Disbursed — money withdrawn). Note: Hasil Investasi / Savings & Investment Return (dividends, capital gains) is EXCLUDED from this balance by design. Emergency Funds: expense (top up) minus income (disbursement). Both scoped to the authenticated user.
+
+## Credit Cards
+
+### POST `/api/v1/credit-cards`
+
+Create a new credit card.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "name": "BCA",
+  "card_number_last4": "1234",
+  "billing_date": 5,
+  "due_date": 12,
+  "credit_limit": 20000000,
+  "household_id": null
+}
+
+// Response 201
+{
+  "id": 1,
+  "name": "BCA",
+  "card_number_last4": "1234",
+  "billing_date": 5,
+  "due_date": 12,
+  "credit_limit": 20000000,
+  "user_id": 1,
+  "household_id": null,
+  "display_order": 0,
+  "active_installments": 0,
+  "this_month_transactions": 0
+}
+```
+
+### GET `/api/v1/credit-cards`
+
+List all credit cards (household-aware — includes shared cards from household members).
+
+**Auth:** Bearer token
+
+**Response 200:** Array of card objects (same shape as POST response).
+
+### GET `/api/v1/credit-cards/{id}`
+
+Get card detail.
+
+**Auth:** Bearer token
+
+**Response 200:** Card object + `this_month_transactions` (non-installment) + `active_installments` count.
+
+### PUT `/api/v1/credit-cards/{id}`
+
+Update card details.
+
+**Auth:** Bearer token
+
+```json
+// Request (all fields optional)
+{
+  "name": "BCA Updated",
+  "due_date": 15,
+  "credit_limit": 25000000
+}
+
+// Response 200 — Updated card object
+```
+
+### DELETE `/api/v1/credit-cards/{id}`
+
+Delete a credit card. Also deletes all associated transactions and installments (CASCADE).
+
+**Auth:** Bearer token
+
+**Response:** `204 No Content`
+
+### PUT `/api/v1/credit-cards/reorder`
+
+Reorder card display.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "order": [3, 1, 2]
+}
+
+// Response 200
+{"message": "Order updated"}
+```
+
+### POST `/api/v1/credit-cards/{id}/transactions`
+
+Add a non-installment transaction.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "amount": 500000,
+  "description": "Belanja bulanan"
+}
+
+// Response 201 — Created transaction
+```
+
+### PUT `/api/v1/credit-cards/{id}/transactions/{tid}`
+
+Update a transaction.
+
+**Auth:** Bearer token
+
+```json
+// Request (all fields optional)
+{
+  "amount": 450000,
+  "description": "Belanja bulanan (revisi)"
+}
+```
+
+### DELETE `/api/v1/credit-cards/{id}/transactions/{tid}`
+
+Delete a transaction.
+
+**Auth:** Bearer token
+
+**Response:** `204 No Content`
+
+### POST `/api/v1/credit-cards/{id}/installments`
+
+Add an installment plan.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "total_amount": 12000000,
+  "monthly_amount": 1000000,
+  "total_months": 12,
+  "start_month": "2026-06",
+  "description": "MacBook Pro"
+}
+
+// Response 201 — Created installment
+```
+
+### GET `/api/v1/credit-cards/{id}/installments`
+
+List active installments.
+
+**Auth:** Bearer token
+
+**Response 200:** Array of installment objects.
+
+### DELETE `/api/v1/credit-cards/{id}/installments/{iid}`
+
+Delete an installment.
+
+**Auth:** Bearer token
+
+**Response:** `204 No Content`
+
+### GET `/api/v1/credit-cards/{id}/projection`
+
+Get payment projection — combines this month's transactions + remaining installments.
+
+**Auth:** Bearer token
+
+```json
+// Response 200
+{
+  "card_id": 1,
+  "card_name": "BCA",
+  "this_month_total": 3000000,
+  "installments_total": 2000000,
+  "total_due": 5000000,
+  "credit_limit": 20000000,
+  "remaining_limit": 15000000
+}
+```
+
+## KPR / Mortgage
+
+Debt tracking with amortization schedules. Supports fixed, floating, graduated, and mix interest rates. Extra payments can reduce installment amount or shorten tenor.
+
+### POST `/api/v1/kpr/simulations`
+
+Create a new KPR simulation.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "name": "Rumah Impian",
+  "property_price": 700000000,
+  "down_payment": 200000000,
+  "total_loan": 500000000,
+  "tenor_months": 240,
+  "interest_type": "fixed",
+  "base_interest_rate": 0.0899,
+  "start_month": 1,
+  "start_year": 2026,
+  "due_date": 5,
+  "household_id": null,
+  "graduated_increment": null,
+  "graduated_every_months": null
+}
+
+// Response 201
+{
+  "id": 1,
+  "name": "Rumah Impian",
+  "property_price": 700000000,
+  "down_payment": 200000000,
+  "total_loan": 500000000,
+  "tenor_months": 240,
+  "interest_type": "fixed",
+  "base_interest_rate": 0.0899,
+  "installment": 4910000,
+  "start_month": 1,
+  "start_year": 2026,
+  "due_date": 5,
+  "user_id": 1,
+  "household_id": null,
+  "display_order": 0,
+  "created_at": "2026-06-01T..."
+}
+```
+
+**Interest types:**
+| Type | Behavior |
+|------|----------|
+| `fixed` | Constant rate throughout tenor |
+| `floating` | Rate = base_interest_rate, no monthly change (simplified) |
+| `graduated` | Increases by `graduated_increment` every `graduated_every_months` months |
+| `mix` | Combines fixed period then floating/graduated |
+
+### GET `/api/v1/kpr/simulations`
+
+List all simulations (household-aware).
+
+**Auth:** Bearer token
+
+**Response 200:** Array of simulation objects (same shape as POST).
+
+### GET `/api/v1/kpr/simulations/{id}`
+
+Get simulation detail + full amortization schedule.
+
+**Auth:** Bearer token
+
+**Response 200:** Simulation object with `schedule` array (monthly breakdown):
+
+```json
+{
+  "id": 1,
+  "name": "Rumah Impian",
+  "...": "...",
+  "schedule": [
+    {
+      "month_number": 1,
+      "installment": 4910000,
+      "principal": 1150000,
+      "interest": 3760000,
+      "remaining_balance": 498850000
+    }
+  ]
+}
+```
+
+### PUT `/api/v1/kpr/simulations/{id}`
+
+Update simulation parameters (regenerates schedule).
+
+**Auth:** Bearer token
+
+```json
+// Request (all fields optional)
+{
+  "name": "Rumah Impian (Refinance)",
+  "base_interest_rate": 0.075
+}
+```
+
+**Response 200:** Updated simulation with regenerated schedule.
+
+### DELETE `/api/v1/kpr/simulations/{id}`
+
+Delete simulation. Also deletes associated schedule and extra payments (CASCADE).
+
+**Auth:** Bearer token
+
+**Response:** `204 No Content`
+
+### PUT `/api/v1/kpr/simulations/reorder`
+
+Reorder simulation display.
+
+**Auth:** Bearer token
+
+```json
+{
+  "order": [3, 1, 2]
+}
+```
+
+### GET `/api/v1/kpr/simulations/{id}/schedule`
+
+Get schedule for a specific month.
+
+**Auth:** Bearer token
+
+**Query params:** `?month=12` (optional, default: current month)
+
+**Response 200:** Single month schedule entry or full array if `month` omitted.
+
+### POST `/api/v1/kpr/simulations/{id}/extra-payments/preview`
+
+Preview extra payment before committing. Returns both reduction options for comparison.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "amount": 50000000,
+  "apply_month": 24
+}
+
+// Response 200
+{
+  "option_installment": {
+    "reduction_type": "installment",
+    "apply_month": 24,
+    "new_installment": 4710000,
+    "new_tenor": 240,
+    "new_remaining_months": 217,
+    "total_interest_saved": 12000000
+  },
+  "option_tenor": {
+    "reduction_type": "tenor",
+    "apply_month": 24,
+    "new_installment": 4910000,
+    "new_tenor": 225,
+    "new_remaining_months": 202,
+    "total_interest_saved": 45000000
+  },
+  "comparison": {
+    "difference_installment": 200000,
+    "difference_tenor_months": 15,
+    "difference_interest_saved": 33000000
+  }
+}
+```
+
+### POST `/api/v1/kpr/simulations/{id}/extra-payments`
+
+Commit an extra payment.
+
+**Auth:** Bearer token
+
+```json
+// Request
+{
+  "amount": 50000000,
+  "apply_month": 24,
+  "reduction_type": "tenor"
+}
+
+// Response 201
+{
+  "id": 1,
+  "simulation_id": 1,
+  "amount": 50000000,
+  "apply_month": 24,
+  "reduction_type": "tenor",
+  "old_remaining_balance": 480000000,
+  "new_remaining_balance": 430000000,
+  "old_installment": 4910000,
+  "new_installment": 4910000,
+  "old_remaining_months": 217,
+  "new_remaining_months": 202,
+  "total_interest_saved": 45000000,
+  "created_at": "2026-06-01T..."
+}
+```
+
+**`apply_month` rules:**
+- Min: 1 (or last existing extra payment's `apply_month` if any)
+- Max: simulation's `tenor_months`
+- Must be >= all previous extra payments (can't go backwards)
+
+### GET `/api/v1/kpr/simulations/{id}/extra-payments`
+
+List extra payment history.
+
+**Auth:** Bearer token
+
+**Response 200:** Array of extra payment records.
+
+### DELETE `/api/v1/kpr/simulations/{id}/extra-payments/{eid}`
+
+Delete an extra payment. Regenerates original schedule from scratch, then re-applies remaining extra payments chronologically.
+
+**Auth:** Bearer token
+
+**Response:** `204 No Content`
 
 ## Exports
 
