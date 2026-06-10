@@ -304,7 +304,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      '🏠 Anggota',
+                                      '🏠 Member',
                                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning),
                                     ),
                                   ),

@@ -207,33 +207,12 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  sim.name.isNotEmpty ? sim.name : 'KPR Simulation',
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              if (isNotOwner)
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 6),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.warning.withAlpha(30),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      '🏠 Anggota',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning),
-                                    ),
-                                  ),
-                                ),
-                            ],
+                          Text(
+                            sim.name.isNotEmpty ? sim.name : 'KPR Simulation',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -243,6 +222,20 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                               color: AppColors.textSecondary,
                             ),
                           ),
+                          if (isNotOwner) ...[
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withAlpha(30),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '🏠 Member',
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
