@@ -1,12 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../providers/kpr_provider.dart';
 import '../../models/kpr_model.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../core/theme/app_theme.dart';
+
+/// Extracts raw integer amount from a formatted IDR string like "Rp 50.000".
+int _parseAmount(String text) {
+  final digits = text.replaceAll(RegExp(r'[^\d]'), '');
+  if (digits.isEmpty) return 0;
+  return int.tryParse(digits) ?? 0;
+}
+
+/// Formats raw digits into "Rp XXX.XXX" display format.
+String _formatIdrDisplay(String digits) {
+  if (digits.isEmpty) return '';
+  final buf = StringBuffer();
+  int count = 0;
+  for (int i = digits.length - 1; i >= 0; i--) {
+    if (count > 0 && count % 3 == 0) buf.write('.');
+    buf.write(digits[i]);
+    count++;
+  }
+  return 'Rp ${buf.toString().split('').reversed.join('')}';
+}
 
 enum ExtraStep { form, preview, confirm }
 
@@ -25,22 +44,19 @@ class _KPRExtraPaymentScreenState
   final _amountController = TextEditingController();
   final _monthController = TextEditingController();
   final _amountFocusNode = FocusNode();
+  bool _amountFocused = false;
 
   ExtraStep _step = ExtraStep.form;
-  int? _selectedOption; // 0 = Kurangi Cicilan, 1 = Kurangi Tenor
+  int? _selectedOption;
 
-  // Cache validation bounds from state
   int _minMonth = 1;
   int _maxMonth = 600;
 
   @override
   void initState() {
     super.initState();
-    // Format on unfocus using FocusNode listener
-    _amountFocusNode.addListener(() {
-      if (!_amountFocusNode.hasFocus) _formatAmountOnUnfocus();
-    });
-    // Load detail + extra payments for validation bounds
+    _amountFocusNode.addListener(_onAmountFocusChange);
+    _amountController.addListener(_onAmountTextChange);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(kprProvider.notifier).loadDetail(widget.simulationId);
       ref.read(kprProvider.notifier).loadExtraPayments(widget.simulationId);
@@ -49,10 +65,42 @@ class _KPRExtraPaymentScreenState
 
   @override
   void dispose() {
+    _amountController.removeListener(_onAmountTextChange);
+    _amountFocusNode.removeListener(_onAmountFocusChange);
     _amountController.dispose();
     _monthController.dispose();
     _amountFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onAmountFocusChange() {
+    setState(() => _amountFocused = _amountFocusNode.hasFocus);
+    _formatAmountOnFocusChange(_amountController, _amountFocused);
+  }
+
+  void _formatAmountOnFocusChange(TextEditingController ctrl, bool isFocused) {
+    if (isFocused) {
+      final raw = ctrl.text.replaceAll(RegExp(r'[^\d]'), '');
+      if (raw != ctrl.text) {
+        ctrl.value = TextEditingValue(
+          text: raw,
+          selection: TextSelection.collapsed(offset: raw.length),
+        );
+      }
+    } else {
+      final digits = ctrl.text.replaceAll(RegExp(r'[^\d]'), '');
+      if (digits.isNotEmpty) {
+        final formatted = _formatIdrDisplay(digits);
+        ctrl.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+      }
+    }
+  }
+
+  void _onAmountTextChange() {
+    // Keep only digits while editing
   }
 
   void _updateValidationBounds(KPRState state) {
@@ -65,25 +113,10 @@ class _KPRExtraPaymentScreenState
     _maxMonth = state.selectedSimulation?.tenorMonths ?? 600;
   }
 
-  /// Format raw number with thousand separators (e.g. "5000000" → "5,000,000")
-  /// for display while editing. The actual value is stored as pure number.
-  void _formatAmountOnUnfocus() {
-    final text = _amountController.text.replaceAll(',', '');
-    if (text.isEmpty) return;
-    final n = int.tryParse(text);
-    if (n == null) return;
-    final formatter = NumberFormat('#,###', 'id_ID');
-    _amountController.value = TextEditingValue(
-      text: formatter.format(n),
-      selection: TextSelection.collapsed(offset: formatter.format(n).length),
-    );
-  }
-
   Future<void> _preview() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Parse amount: strip thousand separators
-    final amount = int.parse(_amountController.text.replaceAll(',', ''));
+    final amount = _parseAmount(_amountController.text);
     final month = int.parse(_monthController.text);
 
     final preview = await ref.read(kprProvider.notifier).previewExtraPayment(
@@ -100,7 +133,7 @@ class _KPRExtraPaymentScreenState
   Future<void> _confirm() async {
     if (_selectedOption == null) return;
 
-    final amount = int.parse(_amountController.text.replaceAll(',', ''));
+    final amount = _parseAmount(_amountController.text);
     final month = int.parse(_monthController.text);
     final type = _selectedOption == 0 ? 'installment' : 'tenor';
 
@@ -140,7 +173,6 @@ class _KPRExtraPaymentScreenState
     final preview = state.extraPreview;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Update validation bounds whenever state changes
     _updateValidationBounds(state);
 
     return Scaffold(
@@ -195,6 +227,7 @@ class _KPRExtraPaymentScreenState
           // Amount
           TextFormField(
             controller: _amountController,
+            focusNode: _amountFocusNode,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'Extra Payment Amount (Rp)',
@@ -205,11 +238,10 @@ class _KPRExtraPaymentScreenState
               filled: true,
               fillColor: AppColors.surface,
             ),
-            focusNode: _amountFocusNode,
             validator: (v) {
               if (v == null || v.isEmpty) return 'Enter amount';
-              final n = int.tryParse(v.replaceAll(',', ''));
-              if (n == null || n < 1000) return 'Minimum Rp1,000';
+              final n = _parseAmount(v);
+              if (n == 0 || n < 1000) return 'Minimum Rp1,000';
               return null;
             },
           ),
@@ -280,7 +312,6 @@ class _KPRExtraPaymentScreenState
     final optA = preview.optionInstallment;
     final optB = preview.optionTenor;
 
-    // Format comparison values
     final installmentDiff = formatCurrency(
         (preview.comparison['installment_difference'] as num?)?.toInt() ?? 0);
     final monthsSaved =
@@ -309,7 +340,6 @@ class _KPRExtraPaymentScreenState
         ),
         const SizedBox(height: 20),
 
-        // Option A — Kurangi Cicilan
         _buildOptionCard(
           title: 'A. Reduce Installment',
           subtitle: 'Fixed tenor, lower monthly payment',
@@ -326,7 +356,6 @@ class _KPRExtraPaymentScreenState
         ),
         const SizedBox(height: 12),
 
-        // Option B — Kurangi Tenor
         _buildOptionCard(
           title: 'B. Shorten Tenor',
           subtitle: 'Fixed payment, pay off faster',
@@ -344,7 +373,6 @@ class _KPRExtraPaymentScreenState
 
         const SizedBox(height: 16),
 
-        // Comparison highlight
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -390,7 +418,6 @@ class _KPRExtraPaymentScreenState
 
         const SizedBox(height: 24),
 
-        // Confirm button
         SizedBox(
           width: double.infinity,
           height: 50,
@@ -484,7 +511,6 @@ class _KPRExtraPaymentScreenState
               ],
             ),
             const SizedBox(height: 12),
-            // Field rows
             ...fields.entries.map((e) => Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Row(

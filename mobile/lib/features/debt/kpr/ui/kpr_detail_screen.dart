@@ -418,7 +418,16 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     final startDateStr = '${monthNames[applyMonthDate]} $applyYear';
-    final endDateStr = ep.newEndDate.isNotEmpty ? ep.newEndDate : ep.originalEndDate;
+    // Convert "2040-12" → "Dec 2040"
+    String _fmtEndDate(String yyyyMm) {
+      if (yyyyMm.isEmpty) return '';
+      final parts = yyyyMm.split('-');
+      if (parts.length < 2) return yyyyMm;
+      final m = int.tryParse(parts[1]);
+      if (m == null || m < 1 || m > 12) return yyyyMm;
+      return '${monthNames[m]} ${parts[0]}';
+    }
+    final endDateStr = _fmtEndDate(ep.newEndDate.isNotEmpty ? ep.newEndDate : ep.originalEndDate);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),

@@ -580,7 +580,42 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
   void _addTransaction() {
     final descriptionCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
+    final amountFocusNode = FocusNode();
+    bool amountFocused = false;
     DateTime selectedDate = DateTime.now();
+
+    void formatAmountOnFocusChange(bool isFocused) {
+      if (isFocused) {
+        final raw = amountCtrl.text.replaceAll(RegExp(r'[^\d]'), '');
+        if (raw != amountCtrl.text) {
+          amountCtrl.value = TextEditingValue(
+            text: raw,
+            selection: TextSelection.collapsed(offset: raw.length),
+          );
+        }
+      } else {
+        final digits = amountCtrl.text.replaceAll(RegExp(r'[^\d]'), '');
+        if (digits.isNotEmpty) {
+          final buf = StringBuffer();
+          int count = 0;
+          for (int i = digits.length - 1; i >= 0; i--) {
+            if (count > 0 && count % 3 == 0) buf.write('.');
+            buf.write(digits[i]);
+            count++;
+          }
+          final formatted = 'Rp ${buf.toString().split('').reversed.join('')}';
+          amountCtrl.value = TextEditingValue(
+            text: formatted,
+            selection: TextSelection.collapsed(offset: formatted.length),
+          );
+        }
+      }
+    }
+
+    amountFocusNode.addListener(() {
+      amountFocused = amountFocusNode.hasFocus;
+      formatAmountOnFocusChange(amountFocused);
+    });
 
     showDialog(
       context: context,
@@ -602,9 +637,9 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
               const SizedBox(height: 16),
               TextField(
                 controller: amountCtrl,
+                focusNode: amountFocusNode,
                 decoration: const InputDecoration(
                   labelText: 'Amount',
-                  hintText: 'e.g. 50000',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
