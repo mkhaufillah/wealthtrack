@@ -24,6 +24,7 @@ class _KPRExtraPaymentScreenState
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _monthController = TextEditingController();
+  final _amountFocusNode = FocusNode();
 
   ExtraStep _step = ExtraStep.form;
   int? _selectedOption; // 0 = Kurangi Cicilan, 1 = Kurangi Tenor
@@ -35,6 +36,10 @@ class _KPRExtraPaymentScreenState
   @override
   void initState() {
     super.initState();
+    // Format on unfocus using FocusNode listener
+    _amountFocusNode.addListener(() {
+      if (!_amountFocusNode.hasFocus) _formatAmountOnUnfocus();
+    });
     // Load detail + extra payments for validation bounds
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(kprProvider.notifier).loadDetail(widget.simulationId);
@@ -46,6 +51,7 @@ class _KPRExtraPaymentScreenState
   void dispose() {
     _amountController.dispose();
     _monthController.dispose();
+    _amountFocusNode.dispose();
     super.dispose();
   }
 
@@ -199,9 +205,7 @@ class _KPRExtraPaymentScreenState
               filled: true,
               fillColor: AppColors.surface,
             ),
-            onFocusChange: (hasFocus) {
-              if (!hasFocus) _formatAmountOnUnfocus();
-            },
+            focusNode: _amountFocusNode,
             validator: (v) {
               if (v == null || v.isEmpty) return 'Enter amount';
               final n = int.tryParse(v.replaceAll(',', ''));
