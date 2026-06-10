@@ -69,8 +69,60 @@
 
 ### Test Counts
 
-- **Backend:** 312 tests (58 routes, ~5.4 tests/route)
+- **Backend:** 313 tests (58 routes, ~5.4 tests/route)
 - **Flutter:** 311 tests
+
+---
+
+## v0.7.1 — Extra Payment UX Polish + Household Debt Context + Penalty Cleanup (2026-06-10)
+
+### UX Polish
+
+**Thousand separator on amount inputs** — Konsisten pake `_formatIdrDisplay` (format "Rp 50.000" pake dots):
+- Extra payment amount field
+- Add transaction credit card amount field
+- On focus: raw digits aja — on unfocus: formatting diterapkan
+- Parsing pake `replaceAll(RegExp(r'[^\d]'), '')` — works with any formatting
+
+**Date format extra payment card:**
+- "Recalculation of installment amount and new tenor starts from **May 2026 — Dec 2040**"
+- Kedua tanggal pake month name (bukan "2040-12")
+
+**Member tag — "Anggota" → "Member" & posisi:**
+- KPR list: Member tag dipindah ke baris sendiri di bawah tenor, gak tumpang tindih sama Interest Badge
+- CC list: "Anggota" → "Member" (posisi aman karena gak ada badge lain)
+
+### Penalty Cleanup — Bersih Total
+
+- `penalty_rate` dan `penalty_amount` dihapus dari semua layer:
+  - DB: `DROP COLUMN` dari `kpr_extra_payments`
+  - Backend: schemas, engine, router — parameter & perhitungan dihapus
+  - Mobile: model, provider, screen — semua referensi dibersihkan
+  - Docs: semua dokumentasi penalty dihapus
+
+### AI Advisor — Debt Context Enriched
+
+- **Household-aware:** Query KPR & CC sekarang include household members pake pola `WHERE user_id = ? OR household_id IN (SELECT ...)` — sama kaya router
+- **Per-owner breakdown:** Tiap KPR/CC disebutin siapa pemiliknya
+- **Interest type:** Fixed/Floating/Graduated/Mix per KPR
+- **Extra payment count:** Disebutin jumlah extra payment yang udah dilakukan
+- Contoh output:
+  ```
+  • KPR: Rp350.000.000 (2 simulasi)
+      Filla: 1 simulasi (Fixed)
+      Nahda: 1 simulasi (Floating)
+      *2 extra payment telah dilakukan
+  ```
+
+### CI Fixes
+
+- **onFocusChange → FocusNode:** Flutter `stable-3.44.1` (versi CI) gak punya parameter `onFocusChange` di `TextFormField`. Diganti pake `FocusNode` + listener di `initState`.
+
+### Tests
+
+- **New:** `test_apply_month_after_tenor_months` — extra payment dengan `apply_month` melebihi `tenor_months` ditolak (400)
+- **New:** `test_apply_month_backwards` — extra payment dengan `apply_month` sebelum extra payment sebelumnya ditolak (400)
+- **Total:** 313 backend tests passing
 
 ---
 

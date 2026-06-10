@@ -926,6 +926,47 @@ class TestExtraPaymentAPI:
         assert resp.status_code == 403
 
 
+    async def test_apply_month_after_tenor_months(
+        self, client, auth_headers, filla_token
+    ):
+        """Extra payment with apply_month > tenor_months returns 400."""
+        sim_id = await self._create_sim(client, filla_token)
+
+        resp = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 50000000, "apply_month": 200,
+                  "reduction_type": "tenor"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+        assert "apply_month" in resp.text.lower()
+
+    async def test_apply_month_backwards(
+        self, client, auth_headers, filla_token
+    ):
+        """Extra payment with apply_month before last existing one returns 400."""
+        sim_id = await self._create_sim(client, filla_token)
+
+        # Commit first extra at month 24
+        resp1 = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 25000000, "apply_month": 24,
+                  "reduction_type": "tenor"},
+            headers=auth_headers,
+        )
+        assert resp1.status_code == 201
+
+        # Try to add second extra at month 12 (before month 24) — should fail
+        resp2 = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 25000000, "apply_month": 12,
+                  "reduction_type": "tenor"},
+            headers=auth_headers,
+        )
+        assert resp2.status_code == 400
+        assert "apply_month" in resp2.text.lower()
+
+
 # ──────────────────────────────────────────────
 # Household Debt — API Tests
 # ──────────────────────────────────────────────

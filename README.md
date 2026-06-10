@@ -1,6 +1,6 @@
 # WealthTrack — Personal Finance Tracker
 
-A personal finance tracker. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Redis + Meilisearch + Flutter + AI features. **v0.7.0** — Extra Payment KPR (Reduce Installment / Reduce Tenor) + Household Debt (shared family debt visibility).
+A personal finance tracker. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Redis + Meilisearch + Flutter + AI features. **v0.7.1** — Extra Payment UX Polish + Household Debt Context + Penalty Cleanup.
 
 ## Architecture
 
@@ -24,7 +24,7 @@ A personal finance tracker. Tracks daily expenses, income, budgets, and generate
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps)            │   │
-│  │  ├── test: pytest, 312 tests (Docker Postgres+Redis)         │   │
+│  │  ├── test: pytest, 313 tests (Docker Postgres+Redis)         │   │
 │  │  ├── deploy: git pull → restart systemd                      │   │
 │  │  └── build-apk: Flutter → release APK cleanup                │   │
 │  └──────────────────────────────────────────────────────────────┘   │
