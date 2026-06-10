@@ -407,26 +407,24 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
         if results:
             search_text = format_search_results(results)
 
-    # ── Debt summary ──
+    # ── Debt summary (household-aware) ──
+    # Include current user's debts + household members' debts (shared via household_id)
+    hh_where = "ks.user_id = ? OR ks.household_id IN (SELECT household_id FROM household_members WHERE user_id = ?)"
+    hh_params = (user_id, user_id)
+
     cursor = await db.execute(
-        """SELECT COALESCE(SUM(
+        f"""SELECT COALESCE(SUM(
             CASE
                 WHEN ks.due_date IS NOT NULL AND EXTRACT(DAY FROM CURRENT_DATE) >= ks.due_date THEN
-                    -- Payment already made this month → after-payment balance
                     COALESCE((
-                        SELECT kms.remaining_balance
-                        FROM kpr_monthly_schedules kms
-                        WHERE kms.simulation_id = ks.id
-                        AND kms.month_number = cm.current_month
+                        SELECT kms.remaining_balance FROM kpr_monthly_schedules kms
+                        WHERE kms.simulation_id = ks.id AND kms.month_number = cm.current_month
                     ), ks.total_loan)
                 ELSE
-                    -- Payment not yet made → before-payment balance (original logic)
                     CASE WHEN cm.current_month <= 1 THEN ks.total_loan
                     ELSE (
-                        SELECT kms.remaining_balance
-                        FROM kpr_monthly_schedules kms
-                        WHERE kms.simulation_id = ks.id
-                        AND kms.month_number = cm.current_month - 1
+                        SELECT kms.remaining_balance FROM kpr_monthly_schedules kms
+                        WHERE kms.simulation_id = ks.id AND kms.month_number = cm.current_month - 1
                     ) END
             END
         ), 0) AS total_kpr
@@ -438,57 +436,109 @@ async def _build_context(user_id: int, db, question: str = "") -> dict:
                 ks.tenor_months
             ) AS current_month
         ) cm
-        WHERE ks.user_id = ?""",
-        (user_id,),
+        WHERE {hh_where}""",
+        hh_params,
     )
     row = await cursor.fetchone()
     total_kpr = int(row["total_kpr"]) if row else 0
 
+    # KPR per-simulation details with owner
     cursor = await db.execute(
-        "SELECT COUNT(*) AS cnt FROM kpr_simulations WHERE user_id = ?",
-        (user_id,),
+        f"""SELECT ks.name, ks.total_loan, ks.interest_type, ks.tenor_months,
+                  ks.start_month, ks.start_year, ks.user_id, u.display_name AS owner,
+                  CASE WHEN ks.user_id = ? THEN 0 ELSE 1 END AS is_member,
+                  COALESCE((SELECT COUNT(*) FROM kpr_extra_payments kep WHERE kep.simulation_id = ks.id), 0) AS extra_payments
+           FROM kpr_simulations ks
+           JOIN users u ON u.id = ks.user_id
+           WHERE {hh_where}
+           ORDER BY ks.display_order ASC, ks.created_at DESC""",
+        (user_id, user_id, user_id),
     )
-    row = await cursor.fetchone()
-    kpr_count = row["cnt"] if row else 0
+    kpr_details = await cursor.fetchall()
+    kpr_count = len(kpr_details)
+
+    # Per-member KPR breakdown
+    kpr_member_map = {}
+    for k in kpr_details:
+        ow = k["owner"]
+        if ow not in kpr_member_map:
+            kpr_member_map[ow] = {"count": 0, "types": set()}
+        kpr_member_map[ow]["count"] += 1
+        kpr_member_map[ow]["types"].add(k["interest_type"])
+
+    # CC transactions this month (household-aware)
+    cc_hh_where = "cc.user_id = ? OR cc.household_id IN (SELECT household_id FROM household_members WHERE user_id = ?)"
+    cc_hh_params = (user_id, user_id)
 
     cursor = await db.execute(
-        """SELECT COALESCE(SUM(cct.amount), 0) AS total_txns
+        f"""SELECT COALESCE(SUM(cct.amount), 0) AS total_txns
            FROM credit_card_transactions cct
            JOIN credit_cards cc ON cc.id = cct.card_id
-           WHERE cc.user_id = ? AND cct.is_installment = 0
+           WHERE ({cc_hh_where}) AND cct.is_installment = 0
                AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
                AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
-        (user_id,),
+        cc_hh_params,
     )
     row = await cursor.fetchone()
     total_cc_txns = int(row["total_txns"]) if row else 0
 
+    # CC installments (household-aware)
     cursor = await db.execute(
-        """SELECT COUNT(*) AS total_active,
+        f"""SELECT COUNT(*) AS total_active,
                   COALESCE(SUM(cci.monthly_amount * GREATEST(0, cci.total_months - (
                       (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
                       - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
                   ))), 0) AS total_installments
            FROM credit_card_installments cci
            JOIN credit_cards cc ON cc.id = cci.card_id
-           WHERE cc.user_id = ?
+           WHERE ({cc_hh_where})
                AND cci.total_months > (
                    (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
                    - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
                )""",
-        (user_id,),
+        cc_hh_params,
     )
     row = await cursor.fetchone()
     total_cc_installments = int(row["total_installments"]) if row else 0
     cc_count = row["total_active"] if row else 0
+
+    # CC per-card details with owner
+    cursor = await db.execute(
+        f"""SELECT cc.name, cc.credit_limit, cc.user_id, u.display_name AS owner,
+                  CASE WHEN cc.user_id = ? THEN 0 ELSE 1 END AS is_member
+           FROM credit_cards cc
+           JOIN users u ON u.id = cc.user_id
+           WHERE {cc_hh_where}
+           ORDER BY cc.display_order ASC, cc.created_at DESC""",
+        (user_id, user_id, user_id),
+    )
+    cc_details = await cursor.fetchall()
+
     total_cc = total_cc_txns + total_cc_installments
     total_debt = total_kpr + total_cc
 
+    # Build debt context
     debt_parts = []
     if kpr_count > 0:
+        kpr_member_lines = []
+        for ow, info in sorted(kpr_member_map.items()):
+            types_str = "/".join(sorted(info["types"]))
+            kpr_member_lines.append(f"    {ow}: {info['count']} simulasi ({types_str})")
         debt_parts.append(f"• KPR: Rp{total_kpr:,} ({kpr_count} simulasi)")
+        debt_parts.extend(kpr_member_lines)
+        # Mention extra payments if any
+        total_extra = sum(k["extra_payments"] for k in kpr_details)
+        if total_extra > 0:
+            debt_parts.append(f"    *{total_extra} extra payment telah dilakukan")
     if cc_count > 0:
+        cc_member_lines = []
+        for c in cc_details:
+            label = f"    {c['owner']}: {c['name']}"
+            if c["is_member"]:
+                label += " (🏠 member)"
+            cc_member_lines.append(label)
         debt_parts.append(f"• Kartu Kredit: Rp{total_cc:,} (transaksi Rp{total_cc_txns:,} + cicilan Rp{total_cc_installments:,})")
+        debt_parts.extend(cc_member_lines)
     if debt_parts:
         debt_context = "\n".join(debt_parts)
         debt_context += f"\n• **Total Utang: Rp{total_debt:,}**"
