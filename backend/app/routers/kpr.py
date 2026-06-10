@@ -510,9 +510,6 @@ async def create_extra_payment(
         )
         current_schedule = ep_result.schedule
 
-    # No penalty — extra amount applies directly
-    penalty_amount = 0
-
     # 5. Apply the new extra payment to the current schedule
     result = apply_extra_payment(
         schedule=current_schedule,
@@ -527,13 +524,13 @@ async def create_extra_payment(
         # 1. Store the extra payment record
         cursor = await db.execute(
             """INSERT INTO kpr_extra_payments
-               (simulation_id, amount, penalty_amount, apply_month,
+               (simulation_id, amount, apply_month,
                 reduction_type, old_remaining_balance, new_remaining_balance,
                 old_remaining_months, new_remaining_months, old_installment,
                 new_installment, total_interest_saved, original_end_date, new_end_date)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                simulation_id, data.amount, penalty_amount,
+                simulation_id, data.amount,
                 data.apply_month, data.reduction_type,
                 result.old_remaining_balance, result.new_remaining_balance,
                 result.old_remaining_months, result.new_remaining_months,
@@ -569,7 +566,7 @@ async def create_extra_payment(
 
     # Re-fetch the record to get DB-generated created_at
     fetch_cursor = await db.execute(
-        """SELECT id, simulation_id, amount, penalty_amount,
+        """SELECT id, simulation_id, amount,
                   apply_month, reduction_type,
                   old_remaining_balance, new_remaining_balance,
                   old_remaining_months, new_remaining_months,
@@ -586,7 +583,6 @@ async def create_extra_payment(
             "id": extra_id,
             "simulation_id": simulation_id,
             "amount": data.amount,
-            "penalty_amount": penalty_amount,
             "apply_month": data.apply_month,
             "reduction_type": data.reduction_type,
             "old_remaining_balance": result.old_remaining_balance,
@@ -616,7 +612,7 @@ async def list_extra_payments(
     await _get_simulation_for_user(db, simulation_id, current_user["id"])
 
     cursor = await db.execute(
-        """SELECT id, simulation_id, amount, penalty_amount,
+        """SELECT id, simulation_id, amount,
                   apply_month, reduction_type,
                   old_remaining_balance, new_remaining_balance,
                   old_remaining_months, new_remaining_months,

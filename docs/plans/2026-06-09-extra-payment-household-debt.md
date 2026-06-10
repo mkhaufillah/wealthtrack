@@ -30,7 +30,7 @@ Extra payment (pembayaran ekstra / pelunasan sebagian) adalah fasilitas dari ban
 - Cicilan: M = P × (r × (1+r)^n) / ((1+r)^n - 1)
 
 **Sesudah extra payment (Opsi B — Kurangi Tenor):**
-- Pokok baru: P' = P - extra (penalty dihapus di v0.7.1)
+- Pokok baru: P' = P - extra
 - Cicilan tetap: M (sama)
 - Tenor baru: n' dihitung ulang dengan formula:
   - n' = log(M / (M - P' × r)) / log(1 + r)
@@ -79,7 +79,6 @@ CREATE TABLE IF NOT EXISTS kpr_extra_payments (
     id SERIAL PRIMARY KEY,
     simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
     amount INTEGER NOT NULL,                     -- Nominal extra payment (Rp)
-    penalty_amount INTEGER NOT NULL DEFAULT 0,   -- Nominal penalti (otomatis, selalu 0 sejak v0.7.1)
     apply_month INTEGER NOT NULL,                 -- Bulan ke berapa extra payment dilakukan
     reduction_type TEXT NOT NULL DEFAULT 'tenor' CHECK(reduction_type IN ('tenor', 'installment')),
     -- Hasil perhitungan (disimpan untuk referensi)
@@ -147,7 +146,6 @@ Response:
 {
     "id": 1,
     "amount": 50000000,
-    "penalty_amount": 0,
     "apply_month": 24,
     "reduction_type": "tenor",
     "old_remaining_balance": 400000000,
@@ -194,7 +192,7 @@ def apply_extra_payment(
 
 #### Algoritma Umum (shared):
 1. Ambil `remaining_balance` di bulan `apply_month` (sebelum bayar cicilan bulan itu)
-2. `new_balance = remaining_balance - extra_amount` (penalty dihapus di v0.7.1)
+2. `new_balance = remaining_balance - extra_amount`
 3. Ambil `current_installment` = cicilan per bulan sebelum extra payment
 4. Ambil `remaining_months` = sisa tenor sebelum extra payment
 
@@ -228,7 +226,7 @@ class ExtraPaymentComparison:
 
 #### KPR Detail Screen — Extra Payment Section
 - Tombol "Add Extra Payment" di detail screen
-- **Step 1:** Form input nominal, bulan ke-, penalty rate %
+- **Step 1:** Form input nominal dan bulan extra payment
 - **Step 2 (PREVIEW):** Tampilkan perbandingan dua opsi sekaligus (Opsi A vs Opsi B) — cicilan baru, tenor baru, bunga saved, end date
 - **Step 3:** User pilih opsi → tap "Confirm" → commit extra payment
 - List riwayat extra payment dengan label opsi yang dipilih

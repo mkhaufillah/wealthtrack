@@ -630,8 +630,8 @@ class TestExtraPaymentEngine:
         # Combined schedule = months before + remaining months = len original
         assert len(result.schedule) == len(schedule)
 
-    def test_extra_payment_no_penalty(self):
-        """Extra payment without penalty rate."""
+    def test_extra_payment_basic_tenor(self):
+        """Extra payment reduces remaining months."""
         schedule = self._make_schedule()
         from app.services.kpr_engine import apply_extra_payment
 
@@ -695,23 +695,6 @@ class TestExtraPaymentEngine:
         assert preview.option_tenor is not None
         assert preview.option_installment.new_installment < preview.option_tenor.new_installment
         assert preview.option_tenor.new_remaining_months < preview.option_installment.new_remaining_months
-
-    def test_extra_payment_high_penalty(self):
-        """High penalty rate reduces effective extra payment."""
-        schedule = self._make_schedule()
-        from app.services.kpr_engine import apply_extra_payment
-
-        result_low = apply_extra_payment(
-            schedule=schedule, extra_amount=50000000,
-            apply_month=24, reduction_type="tenor",
-        )
-        result_high = apply_extra_payment(
-            schedule=schedule, extra_amount=50000000,
-            apply_month=24, reduction_type="tenor",
-        )
-
-        assert result_high.new_remaining_months > result_low.new_remaining_months
-        assert result_high.total_interest_saved < result_low.total_interest_saved
 
     def test_extra_payment_multiple_applied(self):
         """Multiple extra payments stack correctly."""

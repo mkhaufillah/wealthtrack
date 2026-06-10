@@ -1,5 +1,5 @@
 """
-Migration v0.7.1: Remove penalty_rate column from kpr_extra_payments.
+Migration v0.7.1: Remove penalty_rate and penalty_amount columns from kpr_extra_payments.
 
 Usage: python3 migrate_v0_7_1.py
 """
@@ -27,6 +27,11 @@ try:
         "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS penalty_rate;"
     ], check=True, capture_output=True, text=True)
     print("✓ Column penalty_rate dropped successfully")
+    subprocess.run([
+        'psql', db_url, '-c',
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS penalty_amount;"
+    ], check=True, capture_output=True, text=True)
+    print("✓ Column penalty_amount dropped successfully")
 except subprocess.CalledProcessError as e:
     print(f"ERROR: {e.stderr}")
     sys.exit(1)

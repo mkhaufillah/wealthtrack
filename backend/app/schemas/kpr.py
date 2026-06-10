@@ -98,7 +98,6 @@ class ExtraPaymentOut(BaseModel):
     id: int
     simulation_id: int
     amount: int
-    penalty_amount: int
     apply_month: int
     reduction_type: str
     old_remaining_balance: int
