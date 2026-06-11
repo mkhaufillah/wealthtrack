@@ -66,8 +66,9 @@ async def check_rate_limit(
 
     result = await redis.eval(
         _SLIDING_WINDOW_LUA,
-        keys=[redis_key],
-        args=[max_requests, window_sec, now],
+        1,
+        redis_key,
+        max_requests, window_sec, now,
     )
 
     allowed, current_count = result  # [1, count] or [0, count]
