@@ -705,6 +705,10 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           ],
         ),
       ),
-    );
+    ).whenComplete(() {
+      descriptionCtrl.dispose();
+      amountCtrl.dispose();
+      amountFocusNode.dispose();
+    });
   }
 }

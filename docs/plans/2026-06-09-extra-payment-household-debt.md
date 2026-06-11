@@ -18,7 +18,7 @@ Extra payment (pembayaran ekstra / pelunasan sebagian) adalah fasilitas dari ban
 3. Ada dua opsi konsekuensi:
    - **Opsi A — Kurangi Cicilan:** Tenor tetap, angsuran bulanan turun (karena pokok berkurang)
    - **Opsi B — Kurangi Tenor:** Angsuran tetap, masa kredit selesai lebih cepat
-4. Biasanya ada **penalti** 2-3% dari nominal extra payment (tergantung bank)
+4. Biasanya ada penalti 2-3% dari nominal extra payment (tergantung bank) — *tidak diimplementasikan sejak v0.7.1*
 5. Beberapa bank punya aturan: minimal 5x cicilan, maksimal 1x per tahun
 
 ### Perhitungan Matematis
@@ -67,7 +67,7 @@ Sebelum commit, user bisa lihat perbandingan kedua opsi:
 #### Input
 - Nominal extra payment
 - Bulan ke berapa extra dilakukan
-- Penalty rate (%) — default sesuai bank
+- Penalty rate (%) — default sesuai bank *(tidak diimplementasikan sejak v0.7.1)*
 - Pilihan opsi: Kurangi Cicilan / Kurangi Tenor
 
 ### Database Changes

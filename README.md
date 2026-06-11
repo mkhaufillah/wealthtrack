@@ -69,7 +69,7 @@ A personal finance tracker. Tracks daily expenses, income, budgets, and generate
 │   ├── scripts/
 │   │   ├── bulk_index_meilisearch.py
 │   │   └── ci_release_setup.py
-│   └── tests/                 # 312 tests (pytest + pytest-asyncio)
+│   └── tests/                 # 313 tests (pytest + pytest-asyncio)
 ├── mobile/                    # Flutter project
 ├── docs/                      # Planning & reference docs
 │   ├── 01-project-overview.md

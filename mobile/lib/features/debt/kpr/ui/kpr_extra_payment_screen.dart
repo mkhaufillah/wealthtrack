@@ -231,7 +231,6 @@ class _KPRExtraPaymentScreenState
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'Extra Payment Amount (Rp)',
-              prefixText: 'Rp ',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

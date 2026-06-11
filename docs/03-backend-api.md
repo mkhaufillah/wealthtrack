@@ -1274,25 +1274,22 @@ Preview extra payment before committing. Returns both reduction options for comp
 // Response 200
 {
   "option_installment": {
-    "reduction_type": "installment",
-    "apply_month": 24,
     "new_installment": 4710000,
     "new_tenor": 240,
-    "new_remaining_months": 217,
-    "total_interest_saved": 12000000
+    "total_interest_paid": 157500000,
+    "interest_saved": 12000000,
+    "end_date": "2040-05-01"
   },
   "option_tenor": {
-    "reduction_type": "tenor",
-    "apply_month": 24,
     "new_installment": 4910000,
     "new_tenor": 225,
-    "new_remaining_months": 202,
-    "total_interest_saved": 45000000
+    "total_interest_paid": 145000000,
+    "interest_saved": 45000000,
+    "end_date": "2038-02-01"
   },
   "comparison": {
-    "difference_installment": 200000,
-    "difference_tenor_months": 15,
-    "difference_interest_saved": 33000000
+    "installment_difference": 200000,
+    "months_saved_difference": 15
   }
 }
 ```
@@ -1320,12 +1317,14 @@ Commit an extra payment.
   "reduction_type": "tenor",
   "old_remaining_balance": 480000000,
   "new_remaining_balance": 430000000,
-  "old_installment": 4910000,
-  "new_installment": 4910000,
   "old_remaining_months": 217,
   "new_remaining_months": 202,
+  "old_installment": 4910000,
+  "new_installment": 4910000,
   "total_interest_saved": 45000000,
-  "created_at": "2026-06-01T..."
+  "original_end_date": "2042-06-01",
+  "new_end_date": "2040-06-01",
+  "created_at": "2026-06-10T07:58:36.000Z"
 }
 ```
 

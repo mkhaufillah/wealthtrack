@@ -83,6 +83,18 @@ async def create_simulation(
     total_loan = data.property_price - data.down_payment
     user_id = current_user["id"]
 
+    # Verify household_id belongs to the user if sharing
+    if data.household_id is not None:
+        cursor = await db.execute(
+            "SELECT 1 FROM household_members WHERE user_id = ? AND household_id = ?",
+            (user_id, data.household_id),
+        )
+        if not await cursor.fetchone():
+            raise HTTPException(
+                status_code=403,
+                detail="You are not a member of this household",
+            )
+
     # Convert API rate periods to engine dataclasses
     rate_periods = [
         RatePeriod(
@@ -201,6 +213,7 @@ async def list_simulations(
                ks.id, ks.user_id, ks.name, ks.property_price, ks.down_payment,
                ks.total_loan, ks.tenor_months, ks.interest_type, ks.created_at,
                ks.start_month, ks.start_year, ks.due_date,
+               ks.household_id, ks.display_order,
                COALESCE(agg.total_interest, 0) AS total_interest,
                COALESCE(agg.monthly_payment, 0) AS monthly_payment,
                COALESCE(agg.current_month_number, 1) AS current_month_number,
@@ -213,11 +226,11 @@ async def list_simulations(
                    SUM(interest) AS total_interest,
                    MAX(CASE WHEN month_number = 1 THEN payment ELSE 0 END) AS monthly_payment,
                    MAX(CASE WHEN month_number = (
-                       SELECT LEAST(
+                       SELECT GREATEST(1, LEAST(
                            (EXTRACT(YEAR FROM CURRENT_DATE) - ks2.start_year) * 12
                            + (EXTRACT(MONTH FROM CURRENT_DATE) - ks2.start_month) + 1,
                            ks2.tenor_months
-                       )
+                       ))
                        FROM kpr_simulations ks2 WHERE ks2.id = kms.simulation_id
                    ) THEN payment ELSE 0 END) AS current_month_payment,
                    MAX(CASE WHEN month_number = (
@@ -234,11 +247,11 @@ async def list_simulations(
                        WHERE ks3.id = kms.simulation_id
                    ) THEN remaining_balance ELSE 0 END) AS current_remaining_balance,
                    (
-                       SELECT LEAST(
+                       SELECT GREATEST(1, LEAST(
                            (EXTRACT(YEAR FROM CURRENT_DATE) - ks3.start_year) * 12
                            + (EXTRACT(MONTH FROM CURRENT_DATE) - ks3.start_month) + 1,
                            ks3.tenor_months
-                       )
+                       ))
                        FROM kpr_simulations ks3 WHERE ks3.id = kms.simulation_id
                    ) AS current_month_number
                FROM kpr_monthly_schedules kms
@@ -407,6 +420,12 @@ async def preview_extra_payment_endpoint(
         for r in rows
     ]
 
+    if data.apply_month < 1 or data.apply_month > len(schedule):
+        raise HTTPException(
+            status_code=400,
+            detail=f"apply_month must be between 1 and {len(schedule)}",
+        )
+
     preview = preview_extra_payment(
         schedule=schedule,
         extra_amount=data.amount,
@@ -510,7 +529,14 @@ async def create_extra_payment(
         )
         current_schedule = ep_result.schedule
 
-    # 5. Apply the new extra payment to the current schedule
+    # 5. Validate new apply_month against current schedule length
+    if data.apply_month > len(current_schedule):
+        raise HTTPException(
+            status_code=400,
+            detail=f"apply_month {data.apply_month} exceeds current schedule length ({len(current_schedule)}) after existing extra payments",
+        )
+
+    # 6. Apply the new extra payment to the current schedule
     result = apply_extra_payment(
         schedule=current_schedule,
         extra_amount=data.amount,
