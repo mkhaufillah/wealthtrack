@@ -73,10 +73,7 @@ async def get_simulation(
     except KPRServiceError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
-    return KPRSimulationDetailOut(
-        **result,
-        schedule=[KPRScheduleItemOut(**s) for s in result["schedule"]],
-    )
+    return KPRSimulationDetailOut(**result)
 
 
 # ── Update simulation metadata ──────────────────────────────────────

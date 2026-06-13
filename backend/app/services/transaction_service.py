@@ -211,10 +211,7 @@ class TransactionService:
             params.append(date_to)
 
         order = _ORDER_MAP.get(sort, f"{_DATE_COALESCE} DESC")
-        join_clause = (
-            "FROM transactions t "
-            "JOIN household_members hm2 ON hm2.user_id = t.user_id"
-        )
+        join_clause = "JOIN household_members hm2 ON hm2.user_id = t.user_id"
 
         cursor = await self.db.execute(
             f"SELECT COUNT(*) {join_clause} WHERE {' AND '.join(where)}", params
