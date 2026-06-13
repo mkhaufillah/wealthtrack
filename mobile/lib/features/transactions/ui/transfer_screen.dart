@@ -425,7 +425,7 @@ class _TransferBalanceScreenState
                         onPressed:
                             (_recipients.isEmpty || isSubmitting) ? null : _submit,
                         icon: isSubmitting
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(

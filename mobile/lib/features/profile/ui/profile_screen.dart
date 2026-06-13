@@ -293,7 +293,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             }
                           },
                     icon: joining
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
@@ -848,7 +848,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 FilledButton(
                   onPressed: state.savingProfile ? null : _saveProfile,
                   child: state.savingProfile
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 16,
                           height: 16,
                           child:
@@ -998,7 +998,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         }
                       },
                       child: changing
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(
