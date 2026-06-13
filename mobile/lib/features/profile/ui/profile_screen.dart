@@ -375,7 +375,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             }
                           },
                     child: creating
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
