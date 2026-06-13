@@ -104,7 +104,9 @@ cursor = await db.execute(
 
 ## Hermes Skill Integration
 
-### finance_db.py — Seed Categories
+### finance_db.py — Seed Categories (Original Implementation)
+
+> **Note:** As of the admin-category-crud feature, keywords are now **DB-backed** via the `categories.keywords` column. The hardcoded `INCOME_CATEGORIES` / `EXPENSE_CATEGORIES` dicts in `finance_db.py` have been replaced by `load_keywords_from_db()`. This section describes the original approach for historical context.
 
 **File:** `~/.hermes/skills/productivity/financial-tracker/scripts/finance_db.py`
 
@@ -122,9 +124,11 @@ EXPENSE_CATEGORIES = [
 ]
 ```
 
-### finance_db.py — Keyword Classification
+### finance_db.py — Keyword Classification (Original Implementation)
 
-Keywords added to `EXPENSE_KEYWORDS` and `INCOME_KEYWORDS` so transactions added via the Hermes CLI (`python finance_db.py add ...`) auto-classify as "Transfer":
+> **Note:** Keywords are now loaded from the `categories` table at runtime via `load_keywords_from_db()`. The hardcoded dicts below existed prior to the admin-category-crud feature.
+
+Keywords added to `EXPENSE_KEYWORDS` and `INCOME_KEYWORDS` so transactions added via the Hermes CLI originally auto-classified as "Transfer":
 
 ```python
 EXPENSE_KEYWORDS = {
@@ -293,5 +297,5 @@ On successful transfer, `context.pop(true)` returns to the calling screen and tr
 
 | File | Change |
 |------|--------|
-| `finance_db.py` | +"Transfer" in `INCOME_CATEGORIES`, `EXPENSE_CATEGORIES`, `EXPENSE_KEYWORDS`, `INCOME_KEYWORDS` |
+| `finance_db.py` | +"Transfer" in `INCOME_CATEGORIES`, `EXPENSE_CATEGORIES`, `EXPENSE_KEYWORDS`, `INCOME_KEYWORDS` (original — now DB-backed via admin-category-crud) |
 | `household_report.py` | +icon mapping `"Transfer" → "🔄"` |

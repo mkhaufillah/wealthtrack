@@ -690,7 +690,7 @@ Backend (passthrough, no change) ──────── translateCategory()
 
 **Does NOT affect:**
 - Database `categories` table
-- `finance_db.py` keyword classification
+- `finance_db.py` keyword classification (now DB-backed via admin-category-crud)
 - Hermes cron scripts or Daily Finance Summary
 - Backend API responses (still returns Indonesian names)
 

@@ -1,1320 +1,621 @@
-# Backend Implementation — Step by Step
+# Backend Architecture Reference
 
-> **⚠️ STALE** — This document reflects early development (v0.1–0.2 era). The current architecture uses service-layer separation and Postgres/asyncpg. See [API Docs](03-backend-api.md) and [WealthTrack Development](../wealthtrack/wealthtrack-development) skill for current patterns. · [P4 Plan](08-p4-plan.md)
+**See also:** [Project Overview](01-project-overview.md) · [Database Schema](02-database-schema.md) · [Backend API](03-backend-api.md) · [Deployment](07-deployment.md)
 
-> ⚠️ **Historical reference.** This guide covers the original backend build process. The source files in `backend/` are the authoritative reference — code examples here may lag behind the latest features (e.g., Meilisearch integration, Redis rate limiter, CORS restriction, Redis auth).
->
-> **Current production changes since this guide was written:**
-> - **CORS**: Now restricted to explicit origins (no wildcard)
-> - **Redis**: `requirepass` enabled — connection includes password
-> - **PostgreSQL**: 32-char password, localhost-only access
-> - **Host binding**: `127.0.0.1:8080` (not `0.0.0.0`) — behind Nginx
-> - **CI/CD**: Self-hosted GitHub runner (no SSH secrets)
-> See [Deployment](07-deployment.md) for the authoritative current setup.
+This document describes the **current production architecture** of the WealthTrack backend (v0.7.1). Source files in `backend/` remain the authoritative reference.
 
-This doc is designed for an AI agent (Claude Code, Codex, etc.) to execute sequentially.
+---
 
-## Prerequisites
+## Overview
 
-- Python 3.11+ installed
-- `uv` installed (preferred over pip)
-- VPS running Linux (proven)
-- PostgreSQL 18+ with `wealthtrack` database created
+WealthTrack's backend is a **FastAPI** application (Python 3.11+) using **asyncpg** for PostgreSQL with raw SQL (no ORM). It serves a Flutter mobile client and the Hermes AI agent via 12 API routers. Most business logic is inlined in the routers; two standalone engine modules (`kpr_engine.py`, `web_search.py`) handle computationally intensive or cross-cutting logic.
 
-## Step 1: Create Python Virtual Environment
+**Stack at a glance:**
 
-```bash
-cd ~/dev/wealthtrack
-uv venv .venv
-source .venv/bin/activate
-```
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Framework | FastAPI 0.115+ | HTTP routing, dependency injection, OpenAPI docs |
+| Database | PostgreSQL 16 + asyncpg | Relational data, connection pooling |
+| Search | Meilisearch 1.12 | Full-text transaction search |
+| Cache / Rate-limiting | Redis 7 | In-memory rate limiting (Lua sliding window) |
+| AI Inference | OpenCode Go API | AI Advisor (DeepSeek Flash V4) + OCR (Kimi K2.5 vision) |
+| Web Search | Brave Search API | Real-time financial data for AI Advisor |
+| Reverse Proxy | Nginx | TLS termination, static file serving |
+| CI/CD | Self-hosted GitHub runner | Automated deploy via `deploy.sh` |
 
-## Step 2: Install Dependencies
+---
 
-`backend/requirements.txt` — Using loose `>=` constraints (check actual file for current versions).
+## Project Structure
 
 ```
-fastapi>=0.115.0
-uvicorn[standard]>=0.34.0
-asyncpg>=0.29.0
-pydantic>=2.10.0
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
-python-multipart>=0.0.19
-pydantic-settings>=2.7.0
-slowapi>=0.1.9
-bcrypt==4.0.1
-pytest>=8.0.0
-pytest-asyncio>=0.24.0
-httpx>=0.28.0
-openpyxl>=3.1.0
-
-# — v0.5.0 additions —
-redis>=5.0
-
-# — v0.5.1 additions —
-meilisearch>=0.30.0
+backend/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                 # FastAPI app factory, lifespan, CORS, router registration
+│   ├── database.py             # asyncpg pool manager, CursorWrapper, _init_schema(), get_db()
+│   │
+│   ├── core/
+│   │   ├── config.py           # Pydantic-Settings, env loading (backend/.env, ~/.hermes/.env)
+│   │   ├── security.py         # JWT encode/decode, bcrypt hashing, get_current_user()
+│   │   ├── rate_limiter.py     # Redis-backed sliding window rate limiter (Lua script)
+│   │   ├── limiter.py          # SlowAPI Limiter instance for IP-based rate limiting
+│   │   ├── email.py            # SMTP email sending, OTP generation
+│   │   ├── redis.py            # Redis connection manager (async singleton)
+│   │   └── meilisearch.py      # Meilisearch client init, index CRUD, async search wrappers
+│   │
+│   ├── routers/                # 12 route modules, each → APIRouter
+│   │   ├── auth.py             # /auth (send-otp, register, login, me, password, delete)
+│   │   ├── categories.py       # /categories (list, admin CRUD)
+│   │   ├── transactions.py     # /transactions (CRUD, transfer, search via Meilisearch)
+│   │   ├── summaries.py        # /summaries (daily, monthly, household, cycle-aware)
+│   │   ├── budgets.py          # /budgets (CRUD, summary, suggestions, health projection)
+│   │   ├── exports.py          # /exports (yearly Excel download)
+│   │   ├── households.py       # /households (create, join, members, invite codes)
+│   │   ├── health.py           # /health (API + DB + Redis status)
+│   │   ├── credit_cards.py     # /credit-cards (CRUD, transactions, installments, projections)
+│   │   ├── ocr.py              # /ocr (process, process-and-save, pending-count)
+│   │   ├── kpr.py              # /kpr (simulations, schedule, extra payments)
+│   │   └── ai_advisor.py       # /ai (advise — streaming financial advice)
+│   │
+│   ├── schemas/                # Pydantic models for request/response validation
+│   │   ├── user.py, category.py, transaction.py, budget.py
+│   │   ├── household.py, credit_card.py, kpr.py, ocr.py
+│   │   └── __init__.py
+│   │
+│   ├── services/               # Standalone engine modules
+│   │   ├── kpr_engine.py       # Pure-Python amortization calculator
+│   │   └── web_search.py       # Brave Search API client + keyword detection
+│   │
+│   ├── utils/
+│   │   ├── cycle.py            # Billing cycle date range (custom cycle_start_day)
+│   │   └── budget_ai.py        # Budget health projection logic
+│   │
+│   └── prompts/
+│       └── ai_advisor.py       # (reserved for extracted prompt templates)
+│
+├── tests/                      # pytest + pytest-asyncio (313 tests)
+│   ├── conftest.py             # Test fixtures, seed data, DB setup
+│   ├── test_auth.py            # Registration, login, OTP flow
+│   ├── test_transactions.py    # CRUD, ownership, transfers
+│   ├── test_budgets.py         # CRUD, suggestions, health
+│   ├── test_ai_advisor.py      # AI context building
+│   ├── test_ocr.py             # OCR processing
+│   ├── test_health.py          # Health check
+│   ├── test_households.py      # Household management
+│   ├── test_categories.py      # Category CRUD
+│   ├── test_credit_cards.py    # Credit card + installment logic
+│   ├── test_kpr.py             # KPR simulations + extra payments
+│   ├── test_summaries.py       # Summary endpoints
+│   ├── test_exports.py         # Excel export
+│   ├── test_budget_health.py   # Budget health projection
+│   ├── test_budget_suggestions.py
+│   └── test_new_endpoints.py   # Catch-all for new additions
+│
+├── scripts/
+│   └── migrate_v0_7_1.py       # Schema migration helper
+│
+├── requirements.txt
+├── Dockerfile
+└── .env.example
 ```
 
-Install:
+---
 
-```bash
-source .venv/bin/activate
-uv pip install -r backend/requirements.txt
-```
+## Application Lifespan & Startup
 
-## Step 3: Database Config
-
-`backend/app/core/config.py`
+`backend/app/main.py` defines the FastAPI application with a **lifespan** context manager:
 
 ```python
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pathlib import Path
-
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=[".env", str(Path.home() / ".hermes" / ".env")],
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-
-    APP_NAME: str = "WealthTrack API"
-    VERSION: str = "0.1.0"
-    DEBUG: bool = True
-
-    # PostgreSQL connection
-    DATABASE_URL: str = "postgresql://wealthtrack:***@localhost:5432/wealthtrack"
-
-    SECRET_KEY: str = "change-me-in-production-use-env"  # override via .env
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_DAYS: int = 30
-
-    # JSON string — parsed via cors_origins_list property
-    CORS_ORIGINS: str = (
-        '["http://localhost:8080", "http://127.0.0.1:8080", "https://wealthtrack.filla.id"]'
-    )
-
-    # AI Provider keys
-    OPENCODE_GO_API_KEY: str = ""
-    OPENROUTER_API_KEY: str = ""
-    BRAVE_SEARCH_API_KEY: str = ""
-
-    @property
-    def cors_origins_list(self) -> list[str]:
-        import json
-        return json.loads(self.CORS_ORIGINS)
-
-settings = Settings()
-
-# Ensure SECRET_KEY is not the default in production
-if settings.SECRET_KEY == "change-me-in-production-use-env":
-    import warnings
-    warnings.warn(
-        "⚠️  SECRET_KEY is still the default! Set a real key in backend/.env for production."
-    )
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_pool()           # Create asyncpg pool, run _init_schema()
+    await init_redis()          # Connect to Redis
+    await init_meilisearch()    # Ensure Meilisearch index exists
+    yield
+    # Shutdown — cancel background tasks, close connections
+    for task in set(background_tasks):
+        task.cancel()
+    if background_tasks:
+        done, pending = await asyncio.wait(background_tasks, timeout=10.0)
+    background_tasks.clear()
+    await close_pool()
+    await close_redis()
+    close_meilisearch()
 ```
 
-## Step 4: Database Initialization
+### Database Initialization (`_init_schema()`)
 
-Before starting FastAPI, ensure PostgreSQL is running and the `wealthtrack` database exists.
-Schema creation is handled automatically via asyncpg pool initialization in `main.py` — tables are created with `IF NOT EXISTS` on first connection.
+Located in `backend/app/database.py`. On every application start, `_init_schema()` executes a large `SCHEMA_SQL` string containing all `CREATE TABLE IF NOT EXISTS` statements, followed by `ALTER TABLE ADD COLUMN IF NOT EXISTS` for columns added in later iterations. This means:
 
-> **Note:** The old `backend/app/migrate_db.py` has been removed.
-> All schema management is handled automatically via `_init_schema()` in `database.py` — tables and indexes are created with `IF NOT EXISTS` on pool initialization.
+- **No separate migration tool** — the schema stays in sync automatically.
+- **Idempotent** — safe to run on every restart.
+- **Migrations** use `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` statements appended to `SCHEMA_SQL` (e.g., `kpr_simulations.household_id`, `credit_cards.household_id`).
 
-<!-- end migration script removal -->
+Tables created:
+- `users`, `email_verifications`, `categories`
+- `transactions`, `budgets`, `households`, `household_members`
+- `ocr_jobs`, `ai_messages`
+- `kpr_simulations`, `kpr_rate_periods`, `kpr_monthly_schedules`, `kpr_extra_payments`
+- `credit_cards`, `credit_card_transactions`, `credit_card_installments`
 
-<!-- begin database layer -->
-## Step 5: Database Layer
+---
 
-`backend/app/database.py`
+## Connection Pooling
+
+The database module maintains a global **asyncpg connection pool** wrapped in a `CursorWrapper` that provides a cursor-like API.
+
+### CursorWrapper
+
+The `CursorWrapper` class (`backend/app/database.py`) wraps an asyncpg connection and provides:
 
 ```python
-import asyncpg
-from contextlib import asynccontextmanager
-from pathlib import Path
-
-from app.core.config import settings
-
-pool: asyncpg.Pool | None = None
-
-async def get_pool() -> asyncpg.Pool:
-    global pool
-    if pool is None:
-        pool = await asyncpg.create_pool(
-            settings.DATABASE_URL, min_size=2, max_size=10
-        )
-    return pool
-
-async def get_db():
-    """Dependency: yields asyncpg connection from pool."""
-    p = await get_pool()
-    async with p.acquire() as conn:
-        yield conn
+await db.execute(sql, params)   # Returns self for chaining
+await cursor.fetchone()         # Returns first row or None
+await cursor.fetchall()         # Returns list of rows
+cursor.lastrowid                # Returns last inserted id (via RETURNING)
+async for row in cursor:        # Iterates over fetched rows
+await db.close()                # Releases connection back to pool
 ```
 
-## Step 6: Security Module
+Key features:
+- **`?` placeholder to `$1, $2, ...` conversion** — transparently translates SQLite-style `?` to PostgreSQL `$N` positional parameters.
+- **Auto `RETURNING id`** — appends `RETURNING id` to INSERT statements that don't have one, enabling `lastrowid`.
+- **`.transaction()` context manager** — wraps multiple statements in a single PostgreSQL transaction with automatic rollback on failure.
+- **Auto-commit** — each standalone `execute()` is auto-committed (single-statement transactions).
 
-`backend/app/core/security.py`
-
-```python
-from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
-from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
-from app.core.config import settings
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-security = HTTPBearer()
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
-
-def create_access_token(user_id: int, username: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
-    payload = {
-        "sub": str(user_id),
-        "username": username,
-        "exp": expire,
-    }
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-
-def decode_token(token: str) -> dict:
-    try:
-        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict:
-    """Dependency: returns user dict from token."""
-    payload = decode_token(credentials.credentials)
-    return {"id": int(payload["sub"]), "username": payload["username"]}
-```
-
-## Step 7: Create Pydantic Schemas
-
-`backend/app/schemas/user.py`
+### Pool Settings
 
 ```python
-from pydantic import BaseModel, Field
-
-class UserRegister(BaseModel):
-    username: str = Field(min_length=3, max_length=32)
-    display_name: str = Field(min_length=1, max_length=64)
-    password: str = Field(min_length=6, max_length=128)
-
-class UserLogin(BaseModel):
-    username: str
-    password: str
-
-class UserOut(BaseModel):
-    id: int
-    username: str
-    display_name: str
-    role: str
-    created_at: str
-
-class TokenOut(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    expires_in: int
-```
-
-`backend/app/schemas/transaction.py`
-
-```python
-from pydantic import BaseModel, Field
-from typing import Optional
-
-class TransactionCreate(BaseModel):
-    type: str = Field(pattern="^(expense|income)$")
-    category_id: int
-    amount: int = Field(gt=0)
-    description: str = Field(default="", max_length=255)
-    note: str = Field(default="", max_length=500)
-    date: str  # YYYY-MM-DD
-
-class TransactionUpdate(BaseModel):
-    amount: Optional[int] = Field(default=None, gt=0)
-    description: Optional[str] = None
-    note: Optional[str] = None
-    category_id: Optional[int] = None
-    date: Optional[str] = None
-
-class CategoryBrief(BaseModel):
-    id: int
-    name: str
-    icon: str
-
-class UserBrief(BaseModel):
-    id: int
-    display_name: str
-
-class TransactionOut(BaseModel):
-    id: int
-    amount: int
-    type: str
-    description: str
-    note: str
-    date: str
-    category: CategoryBrief
-    user: UserBrief
-    created_at: str
-    updated_at: str
-
-class PaginationMeta(BaseModel):
-    page: int
-    per_page: int
-    total: int
-    total_pages: int
-
-class PaginatedTransactions(BaseModel):
-    data: list[TransactionOut]
-    meta: PaginationMeta
-```
-
-`backend/app/schemas/category.py`
-
-```python
-from pydantic import BaseModel
-
-class CategoryOut(BaseModel):
-    id: int
-    name: str
-    type: str
-    icon: str
-    is_default: bool
-```
-
-## Step 8: Create Routers
-
-`backend/app/routers/auth.py`
-
-```python
-from fastapi import APIRouter, Depends, HTTPException, status
-import asyncpg
-
-from app.database import get_db
-from app.core.security import hash_password, verify_password, create_access_token, get_current_user
-from app.schemas.user import UserRegister, UserLogin, UserOut, TokenOut
-from app.core.config import settings
-
-router = APIRouter(prefix="/auth", tags=["auth"])
-
-@router.post("/register", status_code=201)
-async def register(data: UserRegister, db: asyncpg.Connection = Depends(get_db)):
-    row = await db.fetchrow("SELECT id FROM users WHERE username = $1", data.username)
-    if row:
-        raise HTTPException(status_code=409, detail="Username already exists")
-    pw_hash = hash_password(data.password)
-    user_id = await db.fetchval(
-        "INSERT INTO users (username, display_name, password_hash) VALUES ($1, $2, $3) RETURNING id",
-        data.username, data.display_name, pw_hash,
-    )
-    return {"id": user_id, "username": data.username, "display_name": data.display_name}
-
-@router.post("/login")
-async def login(data: UserLogin, db: asyncpg.Connection = Depends(get_db)):
-    row = await db.fetchrow("SELECT * FROM users WHERE username = $1", data.username)
-    if not row or not verify_password(data.password, row["password_hash"]):
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-    token = create_access_token(row["id"], row["username"])
-    return TokenOut(
-        access_token=token,
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_DAYS * 86400,
-    )
-
-@router.get("/me")
-async def me(current_user: dict = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
-    row = await db.fetchrow(
-        "SELECT id, username, display_name, role, created_at FROM users WHERE id = $1",
-        current_user["id"],
-    )
-    return dict(row)
-```
-
-`backend/app/routers/categories.py`
-
-```python
-from fastapi import APIRouter, Depends, Query
-import asyncpg
-from typing import Optional
-
-from app.database import get_db
-from app.core.security import get_current_user
-
-router = APIRouter(prefix="/categories", tags=["categories"])
-
-@router.get("")
-async def list_categories(
-    type: Optional[str] = Query(None, pattern="^(expense|income)$"),
-    db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    if type:
-        rows = await db.fetch(
-            "SELECT * FROM categories WHERE type = $1 ORDER BY sort_order", type
-        )
-    else:
-        rows = await db.fetch("SELECT * FROM categories ORDER BY type, sort_order")
-    return [dict(r) for r in rows]
-```
-
-`backend/app/routers/transactions.py`
-
-```python
-from fastapi import APIRouter, Depends, HTTPException, Query
-import asyncpg
-from typing import Optional
-
-from app.database import get_db
-from app.core.security import get_current_user
-from app.schemas.transaction import TransactionCreate, TransactionUpdate, PaginatedTransactions, PaginationMeta
-
-router = APIRouter(prefix="/transactions", tags=["transactions"])
-
-
-def _format_txn(row, cat_name="", cat_icon="", display_name=""):
-    # PostgreSQL row is already dict-like — no conversion needed
-    r = dict(row)
-    return {
-        "id": r["id"],
-        "amount": int(r["amount"]),
-        "type": r["type"],
-        "description": r.get("description", "") or "",
-        "note": r.get("note", "") or "",
-        "date": r.get("date") or r["created_at"][:10],
-        "category": {
-            "id": r["category_id"],
-            "name": cat_name or r.get("category_name", "") or "",
-            "icon": cat_icon or "",
-        },
-        "user": {
-            "id": r.get("user_id", 1) or 1,
-            "display_name": display_name or r.get("user_display_name", ""),
-        },
-        "created_at": r["created_at"],
-        "updated_at": r.get("updated_at", r["created_at"]),
-    }
-
-@router.get("", response_model=PaginatedTransactions)
-async def list_transactions(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(50, ge=1, le=100),
-    type: Optional[str] = Query(None, pattern="^(expense|income)$"),
-    category_id: Optional[int] = None,
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
-    sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
-    db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    where = ["t.user_id = ?"]
-    params: list = [current_user["id"]]
-    if type:
-        where.append("t.type = ?")
-        params.append(type)
-    if category_id:
-        where.append("t.category_id = ?")
-        params.append(category_id)
-    if date_from:
-        where.append("COALESCE(t.date, substr(t.created_at,1,10)) >= ?")
-        params.append(date_from)
-    if date_to:
-        where.append("COALESCE(t.date, substr(t.created_at,1,10)) <= ?")
-        params.append(date_to)
-
-    order_map = {
-        "date": "COALESCE(t.date, substr(t.created_at,1,10)) ASC",
-        "-date": "COALESCE(t.date, substr(t.created_at,1,10)) DESC",
-        "amount": "t.amount ASC",
-        "-amount": "t.amount DESC",
-    }
-    order = order_map.get(sort, "COALESCE(t.date, substr(t.created_at,1,10)) DESC")
-
-    cursor = await db.execute(
-        f"SELECT COUNT(*) FROM transactions t WHERE {' AND '.join(where)}", params
-    )
-    total = (await cursor.fetchone())[0]
-
-    offset = (page - 1) * per_page
-    cursor = await db.execute(
-        f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
-                   t.description, t.note, t.date, t.user_id, t.created_at,
-                   c.name AS cat_name, c.icon AS cat_icon,
-                   u.display_name AS user_display_name
-            FROM transactions t
-            LEFT JOIN categories c ON t.category_id = c.id
-            LEFT JOIN users u ON t.user_id = u.id
-            WHERE {' AND '.join(where)}
-            ORDER BY {order}
-            LIMIT ? OFFSET ?""",
-        params + [per_page, offset],
-    )
-    rows = await cursor.fetchall()
-
-    data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "") for r in rows]
-
-    return PaginatedTransactions(
-        data=data,
-        meta=PaginationMeta(
-            page=page,
-            per_page=per_page,
-            total=total,
-            total_pages=max(1, (total + per_page - 1) // per_page),
-        ),
-    )
-
-@router.post("", status_code=201)
-async def create_transaction(
-    data: TransactionCreate,
-    db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    cursor = await db.execute("SELECT id, name FROM categories WHERE id = ?", (data.category_id,))
-    cat = await cursor.fetchone()
-    if not cat:
-        raise HTTPException(status_code=404, detail="Category not found")
-
-    cursor = await db.execute(
-        """INSERT INTO transactions (user_id, category_id, category_name, type, amount, description, note, date)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (current_user["id"], data.category_id, cat["name"], data.type, data.amount, data.description, data.note, data.date),
-    )
-    await db.commit()
-    new_id = cursor.lastrowid
-    cursor = await db.execute("SELECT * FROM transactions WHERE id = ?", (new_id,))
-    row = await cursor.fetchone()
-    return _format_txn(row, cat["name"], "", current_user["username"])
-
-@router.get("/{txn_id}")
-async def get_transaction(
-    txn_id: int,
-    db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    cursor = await db.execute(
-        "SELECT * FROM transactions WHERE id = ? AND user_id = ?", (txn_id, current_user["id"])
-    )
-    row = await cursor.fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    c = await (await db.execute(
-        "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
-    )).fetchone()
-    return _format_txn(row, c["name"] if c else "", "", current_user["username"])
-
-@router.put("/{txn_id}")
-async def update_transaction(
-    txn_id: int,
-    data: TransactionUpdate,
-    db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    cursor = await db.execute(
-        "SELECT id FROM transactions WHERE id = ? AND user_id = ?", (txn_id, current_user["id"])
-    )
-    if not await cursor.fetchone():
-        raise HTTPException(status_code=404, detail="Transaction not found")
-
-    updates = {}
-    for field in ["amount", "description", "note", "category_id", "date"]:
-        val = getattr(data, field, None)
-        if val is not None:
-            if field == "category_id":
-                c = await (await db.execute(
-                    "SELECT name FROM categories WHERE id = ?", (val,)
-                )).fetchone()
-                if not c:
-                    raise HTTPException(status_code=404, detail="Category not found")
-                updates["category_id"] = val
-                updates["category_name"] = c["name"]
-            else:
-                updates[field] = val
-    if not updates:
-        raise HTTPException(status_code=400, detail="No fields to update")
-
-    set_clause = ", ".join(f"{k} = ?" for k in updates)
-    await db.execute(
-        f"UPDATE transactions SET {set_clause} WHERE id = ?",
-        list(updates.values()) + [txn_id],
-    )
-    await db.commit()
-
-    cursor = await db.execute("SELECT * FROM transactions WHERE id = ?", (txn_id,))
-    row = await cursor.fetchone()
-    c = await (await db.execute(
-        "SELECT id, name, icon FROM categories WHERE id = ?", (row["category_id"],)
-    )).fetchone()
-    return _format_txn(row, c["name"] if c else "", "", current_user["username"])
-
-@router.delete("/{txn_id}", status_code=204)
-async def delete_transaction(
-    txn_id: int,
-    db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    cursor = await db.execute(
-        "SELECT id FROM transactions WHERE id = ? AND user_id = ?", (txn_id, current_user["id"])
-    )
-    if not await cursor.fetchone():
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    await db.execute("DELETE FROM transactions WHERE id = ?", (txn_id,))
-    await db.commit()
-```
-
-### GET /transactions/household — List household transactions
-
-```python
-@router.get("/household", response_model=PaginatedTransactions)
-async def list_household_transactions(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(100, ge=1, le=200),
-    type: Optional[str] = Query(None, pattern="^(expense|income)$"),
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
-    sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
-    db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    # Get user's household
-    cursor = await db.execute(
-        "SELECT household_id FROM household_members WHERE user_id = ?",
-        (current_user["id"],),
-    )
-    hm = await cursor.fetchone()
-    if not hm:
-        raise HTTPException(status_code=404, detail="Not a member of any household")
-    household_id = hm["household_id"]
-
-    where = ["hm2.household_id = ?"]
-    params: list = [household_id]
-    if type:
-        where.append("t.type = ?")
-        params.append(type)
-    if date_from:
-        where.append("COALESCE(t.date, substr(t.created_at,1,10)) >= ?")
-        params.append(date_from)
-    if date_to:
-        where.append("COALESCE(t.date, substr(t.created_at,1,10)) <= ?")
-        params.append(date_to)
-
-    # Sort
-    sort_col = "t.date" if "date" in sort else "t.amount"
-    sort_dir = "DESC" if sort.startswith("-") else "ASC"
-
-    # Count
-    cursor = await db.execute(
-        f"SELECT COUNT(*) FROM transactions t "
-        f"JOIN household_members hm2 ON hm2.user_id = t.user_id "
-        f"WHERE {' AND '.join(where)}", params
-    )
-    total = (await cursor.fetchone())[0]
-    total_pages = max(1, (total + per_page - 1) // per_page)
-
-    # Fetch
-    offset = (page - 1) * per_page
-    cursor = await db.execute(
-        f"SELECT t.*, u.display_name as user_display_name, "
-        f"c.name as category_name, c.icon as category_icon "
-        f"FROM transactions t "
-        f"JOIN household_members hm2 ON hm2.user_id = t.user_id "
-        f"JOIN users u ON t.user_id = u.id "
-        f"LEFT JOIN categories c ON t.category_id = c.id "
-        f"WHERE {' AND '.join(where)} "
-        f"ORDER BY {sort_col} {sort_dir} LIMIT ? OFFSET ?",
-        params + [per_page, offset],
-    )
-    rows = await cursor.fetchall()
-
-    return {
-        "data": [_format_txn(r) for r in rows],
-        "meta": {"page": page, "per_page": per_page, "total": total, "total_pages": total_pages},
-    }
-```
-
-`backend/app/routers/summaries.py`
-
-```python
-from fastapi import APIRouter, Depends, Query
-import asyncpg
-from datetime import date
-from typing import Optional
-
-from app.database import get_db
-from app.core.security import get_current_user
-
-router = APIRouter(prefix="/summaries", tags=["summaries"])
-
-@router.get("/daily")
-async def daily_summary(
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
-    db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    today = date.today().isoformat()
-    d_from = date_from or today
-    d_to = date_to or today
-
-    cursor = await db.execute(
-        """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
-           FROM transactions t
-           WHERE t.user_id = ? AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-           GROUP BY t.type""",
-        (current_user["id"], d_from, d_to),
-    )
-    rows = await cursor.fetchall()
-    income = 0
-    expense = 0
-    for r in rows:
-        if r["type"] == "income":
-            income = r["total"]
-        else:
-            expense = r["total"]
-
-    cursor = await db.execute(
-        """SELECT c.id, c.name, c.icon, SUM(t.amount) as total, COUNT(*) as count
-           FROM transactions t JOIN categories c ON t.category_id = c.id
-           WHERE t.user_id = ? AND COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-             AND t.type = 'expense'
-           GROUP BY c.id ORDER BY total DESC""",
-        (current_user["id"], d_from, d_to),
-    )
-    by_cat = await cursor.fetchall()
-    categories = []
-    for r in by_cat:
-        pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
-        categories.append({
-            "category_id": r["id"], "category_name": r["name"],
-            "icon": r["icon"] or "", "total": r["total"],
-            "count": r["count"], "percentage": pct,
-        })
-
-    return {
-        "date_from": d_from, "date_to": d_to,
-        "total_income": int(income), "total_expense": int(expense),
-        "balance": int(income - expense), "by_category": categories,
-    }
-
-
-@router.get("/household")
-async def household_summary(
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
-    db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    """Household-wide summary across ALL users. Requires authentication."""
-    today = date.today().isoformat()
-    d_from = date_from or today
-    d_to = date_to or today
-
-    # Combined totals (all users)
-    cursor = await db.execute(
-        """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
-           FROM transactions t
-           WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-           GROUP BY t.type""",
-        (d_from, d_to),
-    )
-    rows = await cursor.fetchall()
-    income = 0
-    expense = 0
-    for r in rows:
-        if r["type"] == "income":
-            income = r["total"]
-        else:
-            expense = r["total"]
-
-    # By category (all users)
-    cursor = await db.execute(
-        """SELECT c.id, c.name, c.icon, SUM(t.amount) as total, COUNT(*) as count
-           FROM transactions t JOIN categories c ON t.category_id = c.id
-           WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-             AND t.type = 'expense'
-           GROUP BY c.id ORDER BY total DESC""",
-        (d_from, d_to),
-    )
-    by_cat = await cursor.fetchall()
-    categories = []
-    for r in by_cat:
-        pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
-        categories.append({
-            "category_id": r["id"], "category_name": r["name"],
-            "icon": r["icon"] or "", "total": r["total"],
-            "count": r["count"], "percentage": pct,
-        })
-
-    # By user
-    cursor = await db.execute(
-        """SELECT t.user_id, u.display_name,
-                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense,
-                  COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income
-           FROM transactions t JOIN users u ON t.user_id = u.id
-           WHERE COALESCE(t.date, substr(t.created_at,1,10)) >= ?
-             AND COALESCE(t.date, substr(t.created_at,1,10)) <= ?
-           GROUP BY t.user_id ORDER BY total_expense DESC""",
-        (d_from, d_to),
-    )
-    by_user = await cursor.fetchall()
-    users = [{
-        "user_id": r["user_id"], "display_name": r["display_name"],
-        "total_expense": int(r["total_expense"]), "total_income": int(r["total_income"]),
-    } for r in by_user]
-
-    return {
-        "date_from": d_from, "date_to": d_to,
-        "total_income": int(income), "total_expense": int(expense),
-        "balance": int(income - expense),
-        "by_category": categories, "by_user": users,
-    }
-```
-
-`backend/app/routers/budgets.py`
-
-```python
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
-
-from app.database import get_db
-from app.core.security import get_current_user
-
-router = APIRouter(prefix="/budgets", tags=["budgets"])
-
-class BudgetCreate(BaseModel):
-    month: str  # YYYY-MM
-    category_id: int
-    amount: int
-
-@router.get("")
-async def list_budgets(
-    month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
-    db=Depends(get_db),
-    user=Depends(get_current_user),
-):
-    cursor = await db.execute(
-        "SELECT b.*, c.icon as category_icon FROM budgets b "
-        "LEFT JOIN categories c ON b.category_id = c.id "
-        "WHERE b.user_id = ? AND b.month = ? ORDER BY c.sort_order",
-        (user["id"], month),
-    )
-    rows = await cursor.fetchall()
-    return [dict(r) for r in rows]
-
-@router.post("", status_code=201)
-async def upsert_budget(data: BudgetCreate, db=Depends(get_db), user=Depends(get_current_user)):
-    cursor = await db.execute(
-        "SELECT id FROM budgets WHERE user_id = ? AND month = ? AND category_id = ?",
-        (user["id"], data.month, data.category_id),
-    )
-    existing = await cursor.fetchone()
-    if existing:
-        await db.execute(
-            "UPDATE budgets SET budget_amount = ? WHERE id = ?",
-            (data.amount, existing["id"]),
-        )
-        budget_id = existing["id"]
-    else:
-        cursor = await db.execute(
-            "INSERT INTO budgets (user_id, month, category_id, budget_amount) VALUES (?, ?, ?, ?)",
-            (user["id"], data.month, data.category_id, data.amount),
-        )
-        budget_id = cursor.lastrowid
-    await db.commit()
-    cursor = await db.execute(
-        "SELECT b.*, c.icon as category_icon FROM budgets b "
-        "LEFT JOIN categories c ON b.category_id = c.id WHERE b.id = ?",
-        (budget_id,),
-    )
-    return dict(await cursor.fetchone())
-
-@router.delete("/{budget_id}", status_code=204)
-async def delete_budget(budget_id: int, db=Depends(get_db), user=Depends(get_current_user)):
-    cursor = await db.execute(
-        "SELECT id FROM budgets WHERE id = ? AND user_id = ?",
-        (budget_id, user["id"]),
-    )
-    if not await cursor.fetchone():
-        raise HTTPException(status_code=404, detail="Budget not found")
-    await db.execute("DELETE FROM budgets WHERE id = ?", (budget_id,))
-    await db.commit()
-
-@router.get("/summary")
-async def budget_summary(
-    month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
-    db=Depends(get_db),
-    user=Depends(get_current_user),
-):
-    cursor = await db.execute("""
-        SELECT b.category_id, c.name as category_name, c.icon as category_icon,
-               b.budget_amount,
-               COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as actual_spent
-        FROM budgets b
-        LEFT JOIN categories c ON b.category_id = c.id
-        LEFT JOIN transactions t ON t.category_id = b.category_id
-            AND t.user_id = b.user_id
-            AND substr(t.date, 1, 7) = b.month
-        WHERE b.user_id = ? AND b.month = ?
-        GROUP BY b.id
-        ORDER BY c.sort_order
-    """, (user["id"], month))
-    rows = await cursor.fetchall()
-    result = []
-    for r in rows:
-        d = dict(r)
-        d["percentage"] = round((d["actual_spent"] / d["budget_amount"]) * 100, 1) if d["budget_amount"] > 0 else 0
-        d["remaining"] = max(0, d["budget_amount"] - d["actual_spent"])
-        result.append(d)
-    return result
-```
-
-`backend/app/routers/households.py`
-
-```python
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-import secrets
-import string
-
-from app.database import get_db
-from app.core.security import get_current_user
-
-router = APIRouter(prefix="/households", tags=["households"])
-
-class HouseholdCreate(BaseModel):
-    name: str
-
-class JoinHousehold(BaseModel):
-    invite_code: str
-
-def _generate_invite_code():
-    return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
-
-@router.post("", status_code=201)
-async def create_household(data: HouseholdCreate, db=Depends(get_db), user=Depends(get_current_user)):
-    code = _generate_invite_code()
-    cursor = await db.execute(
-        "INSERT INTO households (name, invite_code, created_by) VALUES (?, ?, ?)",
-        (data.name, code, user["id"]),
-    )
-    h_id = cursor.lastrowid
-    await db.execute(
-        "INSERT INTO household_members (household_id, user_id, role) VALUES (?, ?, 'admin')",
-        (h_id, user["id"]),
-    )
-    await db.commit()
-    return {"id": h_id, "name": data.name, "invite_code": code, "created_by": user["id"]}
-
-@router.post("/join")
-async def join_household(data: JoinHousehold, db=Depends(get_db), user=Depends(get_current_user)):
-    cursor = await db.execute(
-        "SELECT id FROM households WHERE invite_code = ?", (data.invite_code,)
-    )
-    household = await cursor.fetchone()
-    if not household:
-        raise HTTPException(status_code=404, detail="Invalid invite code")
-    await db.execute(
-        "INSERT OR IGNORE INTO household_members (household_id, user_id, role) VALUES (?, ?, 'member')",
-        (household["id"], user["id"]),
-    )
-    await db.commit()
-    return {"message": "Joined household successfully", "household_id": household["id"]}
-
-@router.get("/me")
-async def get_household(db=Depends(get_db), user=Depends(get_current_user)):
-    cursor = await db.execute("""
-        SELECT h.*, hm.user_id, u.display_name, hm.role
-        FROM households h
-        JOIN household_members hm ON h.id = hm.household_id
-        JOIN users u ON hm.user_id = u.id
-        WHERE hm.user_id = ?
-    """, (user["id"],))
-    rows = await cursor.fetchall()
-    if not rows:
-        raise HTTPException(status_code=404, detail="Not a member of any household")
-    members = [{"user_id": r["user_id"], "display_name": r["display_name"], "role": r["role"]} for r in rows]
-    return {"id": rows[0]["id"], "name": rows[0]["name"], "invite_code": rows[0]["invite_code"], "members": members}
-
-@router.get("/invite-code")
-async def get_invite_code(db=Depends(get_db), user=Depends(get_current_user)):
-    cursor = await db.execute("""
-        SELECT h.invite_code FROM households h
-        JOIN household_members hm ON h.id = hm.household_id
-        WHERE hm.user_id = ?
-    """, (user["id"],))
-    row = await cursor.fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Not a member of any household")
-    return {"invite_code": row["invite_code"]}
-```
-
-`backend/app/routers/exports.py`
-
-```python
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
-import io
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
-from datetime import datetime
-
-from app.database import get_db
-from app.core.security import get_current_user
-
-router = APIRouter(prefix="/exports", tags=["exports"])
-
-MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
-
-@router.get("/yearly/{year}")
-async def export_yearly(year: int, db=Depends(get_db), user=Depends(get_current_user)):
-    wb = openpyxl.Workbook()
-    wb.remove(wb.active)  # Remove default sheet
-
-    for month in range(1, 13):
-        ws = wb.create_sheet(f"{MONTHS_ID[month-1]} {year}")
-        headers = ["Date", "Type", "Category", "Amount", "Description", "Note", "Owner"]
-        ws.append(headers)
-        for cell in ws[1]:
-            cell.font = Font(bold=True, color="FFFFFF")
-            cell.fill = PatternFill(start_color="1A1A2E", end_color="1A1A2E", fill_type="solid")
-            cell.alignment = Alignment(horizontal="center")
-
-        cursor = await db.execute("""
-            SELECT t.date, t.type, c.name as category, t.amount,
-                   t.description, t.note, u.display_name as owner
-            FROM transactions t
-            LEFT JOIN categories c ON t.category_id = c.id
-            LEFT JOIN users u ON t.user_id = u.id
-            WHERE t.user_id = ? AND substr(t.date, 1, 7) = ?
-            ORDER BY t.date
-        """, (user["id"], f"{year}-{month:02d}"))
-        rows = await cursor.fetchall()
-
-        total_income = 0
-        total_expense = 0
-        for r in rows:
-            d = dict(r)
-            ws.append([d["date"], d["type"], d["category"], d["amount"],
-                       d["description"], d["note"], d["owner"]])
-            if d["type"] == "income":
-                total_income += d["amount"]
-            else:
-                total_expense += d["amount"]
-
-        ws.append([])
-        ws.append(["Total Income", "", "", total_income])
-        ws.append(["Total Expense", "", "", total_expense])
-        ws.append(["Balance", "", "", total_income - total_expense])
-
-        ws.column_dimensions["A"].width = 14
-        ws.column_dimensions["B"].width = 10
-        ws.column_dimensions["C"].width = 18
-        ws.column_dimensions["D"].width = 14
-        ws.column_dimensions["E"].width = 30
-        ws.column_dimensions["F"].width = 30
-        ws.column_dimensions["G"].width = 14
-
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
-
-    return StreamingResponse(
-        output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=transactions_{year}.xlsx"},
-    )
-```
-
-`backend/app/routers/ocr.py`
-
-```python
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from pydantic import BaseModel
-import httpx
-import base64
-import json
-import re
-
-from app.database import get_db
-from app.core.config import settings
-from app.core.security import get_current_user
-
-router = APIRouter(prefix="/ocr", tags=["ocr"])
-
-@router.post("/process")
-async def ocr_process(file: UploadFile = File(...), user=Depends(get_current_user)):
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File must be an image")
-    
-    contents = await file.read()
-    b64 = base64.b64encode(contents).decode()
-    
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            "https://api.opencode.ai/zen/go/v1/chat/completions",
-            headers={"Authorization": f"Bearer {settings.OPENCODE_GO_API_KEY}"},
-            json={
-                "model": "kimi-k2.5",
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": "Extract the total amount, date, description, and items from this receipt. Return JSON."},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
-                    ],
-                }],
-            },
-        )
-        data = resp.json()
-    
-    # Parse response and return structured data
-    return {
-        "amount": 50000,
-        "description": "Parsed receipt data",
-        "date": "2026-05-26",
-        "confidence": 0.95,
-    }
-```
-
-`backend/app/routers/ai_advisor.py`
-
-```python
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from typing import Optional, AsyncGenerator
-import httpx
-import json
-import asyncio
-
-from app.database import get_db
-from app.core.config import settings
-from app.core.security import get_current_user
-from app.services.web_search import _should_search, search_web, format_search_results
-
-router = APIRouter(prefix="/ai", tags=["ai"])
-
-class AdviseRequest(BaseModel):
-    question: str
-    model: str = "flash"
-    history: list = []
-
-async def _build_context(user_id: int, db) -> str:
-    # Fetch financial summary for AI context
-    cursor = await db.execute("SELECT display_name FROM users WHERE id = ?", (user_id,))
-    user = await cursor.fetchone()
-    # ... context building logic ...
-    return f"User: {user['display_name']}"
-
-@router.post("/advise")
-async def advise(data: AdviseRequest, db=Depends(get_db), user=Depends(get_current_user)):
-    context = await _build_context(user["id"], db)
-    should_search = _should_search(data.question)
-    search_results = []
-    if should_search:
-        search_results = await search_web(data.question)
-    
-    # Call AI model and return response
-    return {"answer": "Financial advice here...", "model_used": data.model}
-
-@router.post("/advise/stream")
-async def advise_stream(data: AdviseRequest, db=Depends(get_db), user=Depends(get_current_user)):
-    # SSE streaming implementation
-    return StreamingResponse(...)
-```
-
-`backend/app/routers/health.py`
-
-```python
-from fastapi import APIRouter, Depends
-import asyncpg
-
-from app.database import get_db
-
-router = APIRouter(prefix="/health", tags=["health"])
-
-@router.get("")
-async def health_check(db: asyncpg.Connection = Depends(get_db)):
-    try:
-        await db.fetchval("SELECT 1")
-        return {"status": "healthy"}
-    except Exception:
-        return {"status": "degraded"}
-```
-
-## Step 9: Wire Everything in main.py
-
-`backend/app/main.py`
-
-```python
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-from app.core.config import settings
-from app.routers import auth, categories, transactions, summaries, budgets, households, exports, ocr, ai_advisor, health
-
-app = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+pool = await asyncpg.create_pool(
+    dsn=settings.DATABASE_URL,
+    min_size=2,
+    max_size=10,
+    command_timeout=30,
 )
-
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(categories.router, prefix="/api/v1")
-app.include_router(transactions.router, prefix="/api/v1")
-app.include_router(summaries.router, prefix="/api/v1")
-app.include_router(budgets.router, prefix="/api/v1")
-app.include_router(households.router, prefix="/api/v1")
-app.include_router(exports.router, prefix="/api/v1")
-app.include_router(ocr.router, prefix="/api/v1")
-app.include_router(ai_advisor.router, prefix="/api/v1")
-app.include_router(health.router, prefix="/api/v1")
 ```
 
-## Step 10: Run Server
+- **`min_size=2`**: Two connections always ready.
+- **`max_size=10`**: Up to 10 concurrent connections under load.
+- Every router endpoint uses `Depends(get_db)` to get a pooled connection wrapped in `CursorWrapper`.
 
-`backend/run.sh`
+### Redis Connection
 
-```bash
-#!/bin/bash
-cd "$(dirname "$0")/.."
-source .venv/bin/activate
-cd backend
-uvicorn app.main:app --host 127.0.0.1 --port 8080 --reload
-```
-
-```bash
-chmod +x backend/run.sh
-./backend/run.sh
-```
-
-> `--host 127.0.0.1` — localhost only, not exposed to the public.
-> Nginx will reverse-proxy to this port.
-
-## Step 12: Verify
-
-```bash
-# Health check (from VPS)
-curl http://127.0.0.1:8080/docs
-
-# Test login
-curl -X POST "http://127.0.0.1:8080/api/v1/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"username": "filla", "password": "password123"}'
-
-# Test list categories (should show 15 existing categories)
-TOKEN="<token_from_login>"
-curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/api/v1/categories"
-
-# Test list transactions (should show 27 existing transactions)
-curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/api/v1/transactions"
-
-# Test add transaction
-curl -X POST "http://127.0.0.1:8080/api/v1/transactions" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"type":"expense","category_id":1,"amount":25000,"description":"Test from API","note":"","date":"2026-05-26"}'
-
-# Test daily summary
-curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/api/v1/summaries/daily"
-```
-
-## Security & Hardening
-
-### JWT Secret Key
-
-The app reads `SECRET_KEY` from `backend/.env`. If the file doesn't exist, it uses a hardcoded default (`change-me-in-production-use-env`) and logs a warning.
-
-**Generate a key on first deploy:**
-```bash
-cd ~/dev/wealthtrack
-python3 -c "import secrets
-f=open('backend/.env','w')
-f.write(f'SECRET_KEY={secrets.token_hex(32)}\nDEBUG=True\nACCESS_TOKEN_EXPIRE_DAYS=30\n')
-f.close()"
-```
-
-The `.env` file is in `.gitignore`. A `.env.example` is checked into the repo as a template.
-
-### Global Error Handler
-
-`backend/app/main.py` registers a catch-all exception handler for 500 errors:
+Redis is used for rate-limiting and is connected via `redis.asyncio`:
 
 ```python
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    return JSONResponse(
-        status_code=500,
-        content={
-            "detail": {
-                "code": "INTERNAL_ERROR",
-                "message": "An unexpected error occurred",
-            }
-        },
-    )
+# backend/app/core/redis.py
+async def get_redis() -> aioredis.Redis:
+    if _redis is None:
+        _redis = aioredis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
+    return _redis
 ```
 
-This ensures unexpected crashes return a consistent JSON response instead of raw tracebacks. FastAPI's built-in `HTTPException` handling is not affected — 400/401/404/409 errors still return their specific messages.
+---
 
-### Rate Limiting (Auth)
+## Router Architecture (12 Routers)
 
-Login and register endpoints are rate-limited using `slowapi` to prevent brute-force attacks:
+All routers are registered in `main.py` under the `/api/v1` prefix:
 
-- **POST /auth/register** — 5 requests/minute per IP
-- **POST /auth/login** — 10 requests/minute per IP
+| Router | Prefix | Key Endpoints | Notes |
+|--------|--------|--------------|-------|
+| `auth.py` | `/auth` | `POST /send-otp`, `POST /register`, `POST /login`, `GET /me`, `PUT /me`, `PUT /password`, `DELETE /me` | OTP email verification, JWT, account deletion (cascading) |
+| `categories.py` | `/categories` | `GET /`, `POST /`, `PUT /{id}`, `DELETE /{id}` | Admin CRUD, keyword management |
+| `transactions.py` | `/transactions` | CRUD, `POST /transfer`, `GET /search`, `GET /unbudgeted` | Meilisearch-powered search, cross-user transfer |
+| `summaries.py` | `/summaries` | `GET /daily`, `GET /current-month`, `GET /monthly`, `GET /household` | Cycle-aware summaries, paginated daily breakdown |
+| `budgets.py` | `/budgets` | CRUD, `GET /summary`, `GET /suggestions`, `GET /health` | Budget health projection, AI-powered suggestions |
+| `exports.py` | `/exports` | `GET /yearly?year=2026` | Excel download (XLSX) grouped by month |
+| `households.py` | `/households` | `POST /`, `POST /join`, `GET /me`, `POST /invite`, `DELETE /{user_id}` | Invite codes, member management |
+| `health.py` | `/health` | `GET /` | Returns `status`, `database`, `redis` state |
+| `credit_cards.py` | `/credit-cards` | CRUD, `GET /next-month-projection`, card transactions, installments | Household-aware ownership |
+| `ocr.py` | `/ocr` | `POST /process`, `POST /process-and-save`, `GET /pending-count` | Vision AI + background auto-save |
+| `kpr.py` | `/kpr` | CRUD simulations, `GET /.../schedule`, extra payment preview/commit | Pure-python amortization engine |
+| `ai_advisor.py` | `/ai` | `POST /advise` (streaming) | Context builder, web search, model routing |
 
-Configured in `app/core/limiter.py` and wired in `app/main.py` via `SlowAPIMiddleware`. Returns `429 Too Many Requests` when exceeded.
+Each router follows the same pattern:
+1. Accept request via Pydantic schema.
+2. Execute business logic inline (or call `kpr_engine.py` / `web_search.py`).
+3. Return Pydantic response model.
 
-### Health Check
+---
 
-A **GET /api/v1/health** endpoint is available for monitoring / load balancer probes:
+## Authentication & Security
 
-```python
-@router.get("/health")
-async def health_check(db):
-    # Returns {"status": "ok", "database": "connected"}
-    # or {"status": "degraded", "database": "unreachable"}
+### OTP-Based Registration Flow
+
+WealthTrack uses **email OTP** for registration (not traditional username/password signup):
+
+```
+1. POST /auth/send-otp  →  Server generates 6-digit OTP, stores in email_verifications table
+2. User receives email with OTP (expires in 10 minutes)
+3. POST /auth/register   →  Server verifies OTP, marks as used, creates user + hashed password
 ```
 
-The endpoint pings the PostgreSQL database and reports connectivity status. No authentication required — designed for external monitoring tools.
+### JWT Flow
+
+1. **Login** (`POST /auth/login`) — verifies username + bcrypt password, issues JWT.
+2. **Token payload**: `sub` (user_id), `username`, `role`, `exp` (30 days).
+3. **Protected endpoints** use `Depends(get_current_user)` which decodes the Bearer token via `HTTPBearer`.
+4. **Role-based access**: Some endpoints check `current_user["role"] == "admin"`.
+
+### Rate Limiting
+
+Two-layer approach:
+
+1. **SlowAPI** (IP-based) — used for auth endpoints: `3/minute` for OTP, `5/minute` for register, `10/minute` for login.
+2. **Redis sliding window Lua script** — used for OCR (30/day) and AI Advisor (20/day). Atomic check-and-add prevents TOCTOU races.
 
 ### CORS
 
-CORS origins are restricted by default to localhost and `https://wealthtrack.filla.id`. Override via `CORS_ORIGINS` env var:
-
-```bash
-CORS_ORIGINS='["https://app.domain.com"]'
+Restricted to explicit origins (no wildcard):
+```
+CORS_ORIGINS=["https://wealthtrack.filla.id","http://localhost:8080","null"]
 ```
 
-Parsed from a JSON string in `config.py` via the `cors_origins_list` property.
+### Password Security
 
-### SQL Best Practices
+- bcrypt hashing via `passlib.CryptContext`.
+- Passwords never stored in plaintext.
+- Token expiry: 30 days (configurable via `ACCESS_TOKEN_EXPIRE_DAYS`).
 
-All queries use **specific column names** instead of `SELECT *`:
-- Only fetch columns that are actually used in the response
-- Reduces memory overhead and prevents accidental data leakage
-- Makes query intent explicit (e.g., login only fetches `id, username, password_hash`)
+---
 
-## Next Steps After Backend Works
+## Rate Limiting — Redis Sliding Window
 
-1. Setup nginx reverse proxy (see `docs/07-deployment.md`)
-2. Update Hermes cron (see `docs/06-hermes-integration.md`)
-3. Build Flutter mobile app (see `docs/05-flutter-mobile.md`)
+`backend/app/core/rate_limiter.py` implements a Redis-backed sliding window rate limiter using an atomic Lua script:
+
+```lua
+local key = KEYS[1]
+local max = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+local window_start = now - window
+
+redis.call('zremrangebyscore', key, 0, window_start)
+local count = redis.call('zcard', key)
+
+if count >= max then
+    return {0, count}
+end
+
+redis.call('zadd', key, now, tostring(now))
+redis.call('expire', key, window * 2)
+return {1, count + 1}
+```
+
+Usage in endpoints:
+
+```python
+from app.core.rate_limiter import check_rate_limit
+
+await check_rate_limit(
+    key=f"ocr:user_{user_id}",
+    max_requests=30,
+    window_sec=86400,  # 24 hours
+    error_message="OCR rate limit: max 30/day",
+)
+```
+
+---
+
+## Meilisearch Integration
+
+Full-text search across transactions is powered by **Meilisearch** running on the same VPS (port 7700).
+
+### Index Configuration
+
+```python
+INDEX_NAME = "transactions"
+SEARCHABLE_ATTRIBUTES = ["description"]
+FILTERABLE_ATTRIBUTES = ["user_id", "type", "category_id", "date"]
+SORTABLE_ATTRIBUTES = ["date", "amount"]
+```
+
+### How It Works
+
+1. **Indexing**: After every transaction insert/update, the router calls `index_document()` from `app.core.meilisearch` to sync the document (runs in a thread pool via `anyio.to_thread.run_sync`).
+2. **Querying**: `GET /api/v1/transactions/search?q=...` searches Meilisearch and returns matching transaction IDs, then fetches full rows from PostgreSQL.
+3. **Deletion**: `delete_document()` removes the document from the index when a transaction is deleted.
+4. **Bulk operations**: `bulk_index_documents()` and `clear_index()` are available for migration scripts.
+
+### Key files
+
+- `backend/app/core/meilisearch.py` — Client initialization, index creation, all CRUD operations.
+- All Meilisearch calls are synchronous and wrapped in `anyio.to_thread.run_sync()` for async compatibility.
+
+---
+
+## OCR Scanner (`/ocr`)
+
+### Architecture
+
+```
+[Mobile: camera/gallery image]
+        │
+        ▼
+[Backend POST /ocr/process (multipart/form-data)]
+  ├── 1. Rate limit check (Redis: 30/day per user)
+  ├── 2. Validate image: magic bytes (JPEG/PNG/WebP), size < 10MB
+  ├── 3. Compress: resize to max 1200px, re-encode as JPEG quality 85
+  ├── 4. Base64-encode and send to OpenCode Go API
+  │     - Model: kimi-k2.5 (vision capable)
+  │     - Prompt includes valid categories from DB
+  │
+  ├── 5. Parse JSON response
+  ├── 6. Validate category against PostgreSQL (not AI hallucination)
+  ├── 7. Return OCR result → mobile pre-fills Add Transaction form
+  └── 8. (Optional) process-and-save → background task auto-creates transaction
+```
+
+### Image Validation
+
+Before sending to the vision API, the backend validates:
+- **Magic bytes** — checks `\xff\xd8\xff` (JPEG), `\x89PNG\r\n\x1a\n` (PNG), `RIFF` (WebP).
+- **File size** — rejects images > 10 MB.
+- **Compression** — resizes if longest side > 1200px, re-encodes as JPEG quality 85.
+- **Supported MIME**: `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif`.
+
+### Background Auto-Save
+
+`POST /ocr/process-and-save` runs the OCR pipeline as a background `asyncio.Task`:
+- Creates an `ocr_jobs` record with status `processing`.
+- Saves the raw image to disk (`settings.OCR_IMAGE_DIR`).
+- Runs vision API with retry (5 attempts, exponential backoff for 429).
+- On success, automatically creates a transaction and updates the job status to `completed`.
+- On failure, updates the job status to `failed` with an error message.
+
+### Rate Limiting
+
+- **30 OCR scans/day per user** (Redis sliding window).
+- **Per-user queue** — only one processing job allowed at a time (rejects with 429).
+- **System-wide semaphore** — max 2 concurrent Vision API calls across all users.
+
+---
+
+## KPR Engine
+
+`backend/app/services/kpr_engine.py` is a **pure-Python amortization calculator** with no external dependencies.
+
+### Supported Interest Types
+
+| Type | Description |
+|------|-------------|
+| `fixed` | Single fixed annual rate throughout loan term |
+| `floating` | Single floating rate throughout (no automatic adjustment) |
+| `graduated` | Rate increases by `graduated_increment` every `graduated_every_months` periods |
+| `mix` | Custom rate periods defined by the user (e.g., 3 years fixed → floating) |
+
+### Core Algorithm
+
+The engine implements the standard amortization formula:
+
+```
+M = P * (r * (1+r)^n) / ((1+r)^n - 1)
+```
+
+Where `M` = monthly payment, `P` = principal, `r` = monthly interest rate, `n` = number of months.
+
+All calculations use `Decimal` for exact integer (IDR) arithmetic.
+
+### Features
+
+- `calculate_kpr()` — Returns full `list[MonthlySchedule]` for the entire loan term.
+- `simulate_summary()` — Aggregates total payment, total interest, monthly payment.
+- `apply_extra_payment()` — Applies extra payment at a specific month with two reduction options:
+  - **Opsi A (installment)**: Keep same tenor, recalculate lower monthly payment.
+  - **Opsi B (tenor)**: Keep same payment, shorten tenor.
+- `preview_extra_payment()` — Shows both options side-by-side without side effects.
+
+### Database Integration
+
+The KPR router (`/kpr`) persists simulations in three tables:
+- `kpr_simulations` — Metadata (property price, loan amount, tenor, interest type).
+- `kpr_rate_periods` — Rate periods for "mix" interest type.
+- `kpr_monthly_schedules` — Full amortization schedule (one row per month).
+- `kpr_extra_payments` — Record of applied extra payments with before/after state.
+
+Household sharing: Simulations can be shared with household members via `household_id`.
+
+---
+
+## AI Advisor (`/ai/advise`)
+
+### Architecture
+
+```
+[Mobile: user asks financial question]
+        │
+        ▼
+[Backend POST /api/v1/ai/advise]
+  ├── 1. Build context — query DB for user's financial summary
+  │     - Current cycle income/expense/balance
+  │     - Per-category breakdown with member attribution
+  │     - 6-cycle trend (cycle-aware, not calendar month)
+  │     - Budget vs actual with health projection
+  │     - Recent transactions (last 15)
+  │     - All-time category balances (S&I, Dana Darurat)
+  │     - Household-level debt summary (KPR + CC)
+  │     - Per-member activity summary
+  │
+  ├── 2. (Optional) Web search — Brave Search API
+  │     - Triggered by keyword matching in _should_search()
+  │     - 160+ high-confidence keywords (financial terms, market data)
+  │     - Results injected as [Hasil Pencarian Web] section
+  │
+  ├── 3. Route to model:
+  │     - Default: DeepSeek Flash V4 (via OpenCode Go API /zen/go/v1)
+  │     - Admin users only: Claude Opus (via OpenRouter)
+  │
+  ├── 4. Stream response → mobile chat UI (SSE-style)
+  │
+  └── 5. Rate-limit: 20 queries/day per user (Redis sliding window)
+```
+
+### Key files
+
+- `backend/app/routers/ai_advisor.py` — Streaming endpoint (893 lines), context builder, prompt construction.
+- `backend/app/services/web_search.py` — Brave Search API client with comprehensive keyword detection.
+- `backend/app/utils/cycle.py` — Billing cycle date range utilities.
+- `backend/app/utils/budget_ai.py` — Budget health projection engine.
+- `backend/app/prompts/ai_advisor.py` — Reserved for extracted system prompt templates.
+
+### Debt Context
+
+The context builder is **household-aware** — it queries KPR simulations and credit card data across all household members, computing:
+- Total outstanding KPR balance (per-simulation, per-member).
+- Current-month credit card transactions (non-installment).
+- Active installment plans with remaining amounts.
+- Per-member debt breakdown with interest type categorization.
+
+---
+
+## Web Search (`web_search.py`)
+
+`backend/app/services/web_search.py` provides the Brave Search API integration for the AI Advisor.
+
+### Keyword Detection
+
+Two-tier system:
+- **HIGH_CONFIDENCE** (160+ terms) — Always triggers web search. Covers: monetary policy, currency rates, stock market, gold prices, KPR, credit cards, inflation, crypto, etc.
+- **MEDIUM_KEYWORDS** — Triggers search on any match. Covers: trending terms, recommendations, comparisons, predictions, guides.
+
+### API Client
+
+```python
+async def search_web(query: str, count: int = 5) -> list[dict]:
+    # Returns [{"title", "snippet", "url"}, ...]
+    # Returns empty list on error or missing API key
+```
+
+Results are formatted as `[Hasil Pencarian Web]` section and injected into the AI Advisor prompt.
+
+---
+
+## Testing
+
+WealthTrack uses **pytest** + **pytest-asyncio** with a dedicated PostgreSQL test database.
+
+### Test Infrastructure
+
+- **15 test files** with **313 test functions** across all 12 routers.
+- `conftest.py` provides:
+  - `TEST_DB_URL` — separate test database (default: `wealthtrack_test`).
+  - Drop-all-tables + re-create at module setup.
+  - Seed data: 2 default users, 8 categories, 5 transactions.
+  - `ASGITransport`-based `AsyncClient` for HTTP-free FastAPI testing.
+  - Token generation helpers (`create_access_token`).
+- All tests run against a real PostgreSQL database (no mocking).
+
+### Running Tests
+
+```bash
+cd ~/dev/wealthtrack
+source .venv/bin/activate
+pytest backend/tests/ -v --asyncio-mode=auto
+```
+
+### Test Coverage
+
+| Test File | Focus |
+|-----------|-------|
+| `test_auth.py` | Registration, login, OTP verification, password change, account deletion |
+| `test_transactions.py` | CRUD, ownership enforcement, transfers, search |
+| `test_budgets.py` | CRUD, month-scoped queries, suggestions, health |
+| `test_summaries.py` | Cycle-aware daily/monthly/household summaries |
+| `test_ai_advisor.py` | Context building, prompt construction |
+| `test_ocr.py` | Image validation, processing, background auto-save |
+| `test_kpr.py` | Simulation CRUD, schedule calculation, extra payments |
+| `test_credit_cards.py` | Card CRUD, transactions, installments, projections |
+| `test_households.py` | Create, join, invite codes, member management |
+| `test_categories.py` | Category CRUD, keyword management |
+| `test_exports.py` | Excel generation, data formatting |
+| `test_health.py` | Health check endpoint responses |
+| `test_budget_health.py` | Budget health projection logic |
+| `test_budget_suggestions.py` | AI-powered budget suggestions |
+| `test_new_endpoints.py` | Catch-all for new additions |
+
+---
+
+## Environment Variables
+
+All configuration is loaded via **pydantic-settings** from two `.env` files (in order of precedence):
+
+1. `backend/.env` — Primary config (checked into `.gitignore`).
+2. `~/.hermes/.env` — Hermes fallback (shared secrets).
+
+```bash
+# Application
+APP_NAME=WealthTrack API
+VERSION=0.5.0
+DEBUG=False
+
+# JWT
+SECRET_KEY=...                              # Random 32-byte hex, default warns if unchanged
+ACCESS_TOKEN_EXPIRE_DAYS=30
+ALGORITHM=HS256
+
+# CORS — restricted (no wildcard)
+CORS_ORIGINS=["https://wealthtrack.filla.id","http://localhost:8080","null"]
+
+# Database
+DATABASE_URL=postgresql://wealthtrack:***@localhost:5432/wealthtrack
+
+# Redis
+REDIS_URL=redis://:<password>@localhost:6379/0
+
+# Search
+MEILISEARCH_URL=http://localhost:7700
+MEILISEARCH_MASTER_KEY=...                  # Random 32-char
+
+# OCR & AI Advisor
+OPENCODE_GO_API_KEY=sk-...                  # From OpenCode Go
+
+# AI Advisor — optional premium model
+OPENROUTER_API_KEY=sk-or-...                # For Claude Opus (admin only)
+
+# AI Advisor — optional web search
+BRAVE_SEARCH_API_KEY=...                    # Brave Search for real-time data
+
+# SMTP (OTP email)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=...                           # SMTP login username
+SMTP_PASSWORD=...                           # SMTP login password
+EMAIL_FROM=wealthtrack@example.com          # Sender email address
+EMAIL_FROM_NAME=WealthTrack                 # Sender display name
+
+# OCR storage
+OCR_IMAGE_DIR=/var/data/wealthtrack/ocr     # Where uploaded images are saved
+```
+
+---
+
+## Key Design Decisions
+
+1. **Inline business logic in routers** — Unlike a traditional service-layer pattern, most business logic lives directly in the router files. Only computationally intensive or cross-cutting logic is extracted to `services/` (`kpr_engine.py`, `web_search.py`). This keeps the codebase simple and avoids over-abstracting for a team of one.
+
+2. **CursorWrapper adapter** — Provides a cursor-like API on top of asyncpg (with `?` → `$N` placeholder conversion, auto `RETURNING id`, `.transaction()` support). This simplifies the migration path from SQLite during development.
+
+3. **Auto-schema init** — `_init_schema()` runs `CREATE TABLE IF NOT EXISTS` and `ALTER TABLE ADD COLUMN IF NOT EXISTS` on every startup. No migration tooling needed for schema changes.
+
+4. **Async everywhere** — FastAPI + asyncpg + httpx (for AI calls) — fully asynchronous, non-blocking I/O.
+
+5. **Redis for rate limiting** — In-memory dicts are unreliable across restarts; Redis provides persistence and works across multiple workers. The Lua script ensures atomic check-and-add operations.
+
+6. **Category keywords as JSON** — Categories have a `keywords TEXT` column storing a JSON array. This is populated via admin CRUD and used by OCR for category validation.
+
+7. **No ORM** — Raw asyncpg queries with manual mapping. Keeps full control over SQL and performance.
+
+8. **Cycle-aware financial periods** — Users can set a custom `cycle_start_day` (e.g., 25th) so their financial period runs from day N of month M to day N-1 of month M+1, instead of the fixed calendar month.
+
+9. **Household-aware data model** — KPR simulations and credit cards can be shared across household members via `household_id`. Summaries and AI context aggregate data across all members.
+
+---
+
+## Deployment
+
+See [Deployment](07-deployment.md) for the full CI/CD pipeline. Key points:
+
+- **Host binding**: `127.0.0.1:8080` (behind Nginx).
+- **Process manager**: systemd service for FastAPI + Uvicorn.
+- **CI/CD**: Self-hosted GitHub runner triggers `deploy.sh` on push to `main`.
+- **Health check**: `GET /api/v1/health` returns `{"status": "ok", "database": "connected", "redis": "connected"}`.
