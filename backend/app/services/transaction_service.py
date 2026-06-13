@@ -214,7 +214,8 @@ class TransactionService:
         join_clause = "JOIN household_members hm2 ON hm2.user_id = t.user_id"
 
         cursor = await self.db.execute(
-            f"SELECT COUNT(*) {join_clause} WHERE {' AND '.join(where)}", params
+            f"SELECT COUNT(*) FROM ({_SELECT_TXN} {join_clause} WHERE {' AND '.join(where)}) AS sub",
+            params,
         )
         total = (await cursor.fetchone())[0]
 
