@@ -1,8 +1,6 @@
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from pydantic import BaseModel
 
 # kept for test mock compatibility (test_ocr.py monkeypatches app.routers.ocr.httpx)
 import httpx  # noqa: F401
@@ -10,6 +8,8 @@ import httpx  # noqa: F401
 from app.core.security import get_current_user
 from app.core.rate_limiter import check_rate_limit
 from app.database import get_db
+
+from app.schemas.ocr import OcrResult, OcrAutoSaveResult, OcrPendingCount
 
 from app.services.ocr_service import (
     OcrService,
@@ -36,32 +36,6 @@ async def _check_rate_limit(user_id: int):
         window_sec=86400,
         error_message="OCR rate limit: max 30/day",
     )
-
-
-# ── Pydantic response models ──────────────────────────────────────────
-
-
-class OcrResult(BaseModel):
-    amount: Optional[int] = None
-    description: Optional[str] = None
-    date: Optional[str] = None  # YYYY-MM-DD
-    category_name: Optional[str] = None
-    type: Optional[str] = None  # "expense" or "income"
-    note: Optional[str] = None
-    raw_text: str = ""
-
-
-class OcrAutoSaveResult(BaseModel):
-    job_id: int
-    transaction_id: Optional[int] = None
-    status: str = "processing"
-
-
-class OcrPendingCount(BaseModel):
-    count: int
-    error: Optional[str] = None
-    has_failure: bool = False
-    failed_job_id: Optional[int] = None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────

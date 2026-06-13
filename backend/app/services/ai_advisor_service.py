@@ -870,3 +870,20 @@ async def delete_chat_messages(user_id: int, db: CursorWrapper) -> None:
         "DELETE FROM ai_messages WHERE user_id = ?",
         (user_id,),
     )
+
+
+# ── Router helpers (moved from ai_advisor.py for clean separation) ────
+
+
+def ensure_api_key_configured():
+    """Check that the AI API key is configured. Returns None or raises ValueError."""
+    if not settings.OPENCODE_GO_API_KEY:
+        raise ValueError("AI advisor not configured")
+
+
+def check_model_access(req_model: str, current_user: dict) -> None:
+    """Check model access restrictions. Raises ValueError if access denied."""
+    if req_model == "opus" and current_user.get("role") != "admin":
+        raise ValueError(
+            "Advanced model is only available for the primary account holder"
+        )

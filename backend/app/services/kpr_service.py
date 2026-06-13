@@ -13,6 +13,7 @@ from app.database import CursorWrapper
 from app.schemas.kpr import (
     KPRSimulationCreate,
     KPRSimulationUpdate,
+    KPRSimulationOut,
     ExtraPaymentPreviewRequest,
     ExtraPaymentCreate,
 )
@@ -34,7 +35,6 @@ class KPRServiceError(Exception):
         self.status_code = status_code
         super().__init__(message)
 
-
 class KPRService:
     """Business logic for KPR simulations and extra payments."""
 
@@ -46,14 +46,18 @@ class KPRService:
     ) -> dict:
         """Fetch a simulation row and verify ownership.
 
-        Raises KPRServiceError with 404 or 403 status if not found/not authorised.
+        Returns dict of the simulation row.
+
+        Raises KPRServiceError:
+            404 — simulation not found
+            403 — not owned by user or user's household
         """
         cursor = await db.execute(
-            "SELECT * FROM kpr_simulations WHERE id = ?", (sim_id,),
+            "SELECT * FROM kpr_simulations WHERE id = ?", (sim_id,)
         )
         sim = await cursor.fetchone()
         if not sim:
-            raise KPRServiceError("Simulation not found", status_code=404)
+            raise KPRServiceError("Simulation not found", 404)
         sim = dict(sim)
         if sim["user_id"] == user_id:
             return sim
@@ -65,7 +69,32 @@ class KPRService:
             )
             if await cursor.fetchone():
                 return sim
-        raise KPRServiceError("Not your simulation", status_code=403)
+        raise KPRServiceError("Not your simulation", 403)
+
+    @staticmethod
+    def convert_sim_row(row: dict) -> KPRSimulationOut:
+        """Map a DB row dict to KPRSimulationOut with default handling."""
+        cmn = row.get("current_month_number", 1)
+        crb = row.get("current_remaining_balance", 0)
+        # If month 1, remaining balance = total_loan (no payment made yet)
+        if cmn <= 1 and crb == 0:
+            crb = row.get("total_loan", 0)
+        return KPRSimulationOut(
+            id=row["id"],
+            user_id=row["user_id"],
+            name=row["name"],
+            property_price=row["property_price"],
+            down_payment=row["down_payment"],
+            total_loan=row["total_loan"],
+            tenor_months=row["tenor_months"],
+            interest_type=row["interest_type"],
+            created_at=row["created_at"],
+            start_month=row.get("start_month", 1),
+            start_year=row.get("start_year", 2026),
+            current_month_number=row.get("current_month_number", 1),
+            current_month_payment=row.get("current_month_payment", 0),
+            current_remaining_balance=crb,
+        )
 
     # ── Simulation CRUD ────────────────────────────────────────
 

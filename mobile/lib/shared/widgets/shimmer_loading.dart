@@ -19,8 +19,8 @@ class ShimmerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor = isDark ? AppColors.darkSurface : AppColors.surface;
-    final highlightColor = isDark ? AppColors.darkCard : const Color(0xFFEEEEEE);
+    final baseColor = AppColors.surface;
+    final highlightColor = isDark ? AppColors.darkCard : AppColors.divider;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -30,7 +30,7 @@ class ShimmerCard extends StatelessWidget {
         padding: padding ?? const EdgeInsets.all(16),
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
         ),
       ),

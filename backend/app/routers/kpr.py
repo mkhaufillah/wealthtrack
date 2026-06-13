@@ -19,30 +19,6 @@ from app.services.kpr_service import KPRService, KPRServiceError
 router = APIRouter(prefix="/kpr", tags=["kpr"])
 
 
-def _convert_sim_row(row: dict) -> KPRSimulationOut:
-    cmn = row.get("current_month_number", 1)
-    crb = row.get("current_remaining_balance", 0)
-    # If month 1, remaining balance = total_loan (no payment made yet)
-    if cmn <= 1 and crb == 0:
-        crb = row.get("total_loan", 0)
-    return KPRSimulationOut(
-        id=row["id"],
-        user_id=row["user_id"],
-        name=row["name"],
-        property_price=row["property_price"],
-        down_payment=row["down_payment"],
-        total_loan=row["total_loan"],
-        tenor_months=row["tenor_months"],
-        interest_type=row["interest_type"],
-        created_at=row["created_at"],
-        start_month=row.get("start_month", 1),
-        start_year=row.get("start_year", 2026),
-        current_month_number=row.get("current_month_number", 1),
-        current_month_payment=row.get("current_month_payment", 0),
-        current_remaining_balance=crb,
-    )
-
-
 # ── Create simulation ───────────────────────────────────────────────
 
 
@@ -121,7 +97,7 @@ async def update_simulation(
     except KPRServiceError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
-    return _convert_sim_row(refetched)
+    return KPRService.convert_sim_row(refetched)
 
 
 # ── Delete simulation ───────────────────────────────────────────────

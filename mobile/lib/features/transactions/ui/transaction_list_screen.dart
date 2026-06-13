@@ -166,7 +166,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                               fontSize: 14,
                               color: selected.isEmpty
                                   ? AppColors.textSecondary.withOpacity(0.4)
-                                  : (isDarkSheet ? Colors.white : AppColors.accent),
+                                  : (isDarkSheet ? AppColors.surface : AppColors.accent),
                             )),
                       ),
                     ],
@@ -185,7 +185,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         )),
                     controlAffinity: ListTileControlAffinity.leading,
                     activeColor: AppColors.accent,
-                    checkColor: Colors.white,
+                    checkColor: AppColors.surface,
                     onChanged: allSelected
                         ? null
                         : (_) {
@@ -217,7 +217,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                               style: const TextStyle(fontSize: 22)),
                           controlAffinity: ListTileControlAffinity.leading,
                           activeColor: AppColors.accent,
-                          checkColor: Colors.white,
+                          checkColor: AppColors.surface,
                           onChanged: (_) {
                             setSheetState(() {
                               if (selected.contains(catId)) {
@@ -246,7 +246,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         // Pass empty list = all (no filter)
                         notifier.setCategoryFilter(allSelected ? [] : selected);
                       },
-                      child: const Text('Apply', style: TextStyle(color: Colors.white, fontSize: 15)),
+                      child: Text('Apply', style: TextStyle(color: AppColors.surface, fontSize: 15)),
                     ),
                   ),
                 ],
@@ -306,16 +306,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                 final isDark = Theme.of(ctx).brightness == Brightness.dark;
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: () {
-                      final hash = name.hashCode;
-                      final idx = hash.abs() % Colors.primaries.length;
-                      return isDark
-                          ? Colors.primaries[idx].shade200.withOpacity(0.3)
-                          : Colors.primaries[idx].shade50;
-                    }(),
+                    backgroundColor: AppColors.avatarColor(name).withOpacity(0.2),
                     child: Text(name[0].toUpperCase(),
                       style: TextStyle(
-                        color: isDark ? Colors.white : Colors.primaries[name.hashCode.abs() % Colors.primaries.length].shade700,
+                        color: isDark ? AppColors.surface : AppColors.avatarColor(name),
                         fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -524,7 +518,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   ActionChip(
                     avatar: Icon(Icons.category_outlined, size: 16,
                         color: state.selectedCategoryIds.isNotEmpty
-                            ? (isDark ? Colors.white : AppColors.accent)
+                            ? (isDark ? AppColors.surface : AppColors.accent)
                             : AppColors.textSecondary),
                     label: Text(
                       state.selectedCategoryIds.isNotEmpty
@@ -532,7 +526,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                           : 'Categories',
                       style: TextStyle(fontSize: 12,
                           color: state.selectedCategoryIds.isNotEmpty
-                              ? (isDark ? Colors.white : AppColors.accent)
+                              ? (isDark ? AppColors.surface : AppColors.accent)
                               : AppColors.textSecondary),
                     ),
                     backgroundColor: isDark && state.selectedCategoryIds.isNotEmpty
@@ -541,7 +535,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     onPressed: _showCategoryFilterSheet,
                     side: BorderSide(
                       color: state.selectedCategoryIds.isNotEmpty
-                          ? (isDark ? Colors.white38 : AppColors.accent)
+                          ? (isDark ? AppColors.surface.withOpacity(0.38) : AppColors.accent)
                           : AppColors.divider,
                     ),
                   ),
@@ -667,7 +661,7 @@ class _FilterChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected ? Colors.white : AppColors.textSecondary,
+            color: selected ? AppColors.surface : AppColors.textSecondary,
           ),
         ),
       ),

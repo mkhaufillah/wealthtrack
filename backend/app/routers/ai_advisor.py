@@ -9,7 +9,6 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from app.core.config import settings
 from app.core.limiter import limiter
 from app.core.security import get_current_user
 from app.database import get_db
@@ -25,26 +24,13 @@ from app.services.ai_advisor_service import (
     start_chat,
     get_chat_messages,
     delete_chat_messages,
+    ensure_api_key_configured,
+    check_model_access,
 )
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 logger = logging.getLogger(__name__)
-
-
-def _check_api_key():
-    """Validate that the AI API key is configured. Returns None or raises 500."""
-    if not settings.OPENCODE_GO_API_KEY:
-        raise HTTPException(status_code=500, detail="AI advisor not configured")
-
-
-def _check_model_access(req_model: str, current_user: dict):
-    """Check model access restrictions. Returns None or raises 403."""
-    if req_model == "opus" and current_user["role"] != "admin":
-        raise HTTPException(
-            status_code=403,
-            detail="Advanced model is only available for the primary account holder",
-        )
 
 
 # ── Non-streaming advise ──────────────────────────────────────────────
@@ -58,8 +44,12 @@ async def financial_advise(
     db=Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    _check_api_key()
-    _check_model_access(req.model, current_user)
+    try:
+        ensure_api_key_configured()
+        check_model_access(req.model, current_user)
+    except ValueError as e:
+        status = 403 if "Admin" in str(e) or "primary" in str(e) else 500
+        raise HTTPException(status_code=status, detail=str(e))
 
     messages = await build_messages(req, current_user, db)
     try:
@@ -81,8 +71,12 @@ async def financial_advise_stream(
     db=Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    _check_api_key()
-    _check_model_access(req.model, current_user)
+    try:
+        ensure_api_key_configured()
+        check_model_access(req.model, current_user)
+    except ValueError as e:
+        status = 403 if "Admin" in str(e) or "primary" in str(e) else 500
+        raise HTTPException(status_code=status, detail=str(e))
 
     messages = await build_messages(req, current_user, db)
 
@@ -116,8 +110,12 @@ async def ai_chat(
     db=Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    _check_api_key()
-    _check_model_access(req.model, current_user)
+    try:
+        ensure_api_key_configured()
+        check_model_access(req.model, current_user)
+    except ValueError as e:
+        status = 403 if "Admin" in str(e) or "primary" in str(e) else 500
+        raise HTTPException(status_code=status, detail=str(e))
 
     user_msg_id, ai_msg_id = await start_chat(req, current_user, db)
     return ChatResponse(user_message_id=user_msg_id, ai_message_id=ai_msg_id)

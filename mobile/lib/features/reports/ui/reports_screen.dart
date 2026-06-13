@@ -589,20 +589,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     minHeight: 8,
                     backgroundColor: AppColors.divider,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      cat.categoryName.contains('Makan')
-                          ? Colors.orange
-                          : cat.categoryName.contains('Transport')
-                              ? Colors.blue
-                              : cat.categoryName.contains('Housing') ||
-                                        cat.categoryName.contains('Rumah')
-                                    ? Colors.purple
-                                    : cat.categoryName.contains('Health') ||
-                                              cat.categoryName.contains('Kesehatan')
-                                          ? Colors.red
-                                          : cat.categoryName.contains('Entertainment') ||
-                                                    cat.categoryName.contains('Hiburan')
-                                                ? Colors.teal
-                                                : Colors.indigo,
+                      AppColors.chartPalette[
+                        cat.categoryName.hashCode.abs() % AppColors.chartPalette.length
+                      ],
                     ),
                   ),
                 ),
@@ -647,17 +636,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: u.displayName == 'Nahda'
-                      ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
-                      : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
+                  backgroundColor: AppColors.avatarColor(u.displayName).withOpacity(0.2),
                   child: Text(
                     u.displayName.isNotEmpty ? u.displayName[0] : '?',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : (u.displayName == 'Nahda'
-                          ? Colors.pink.shade700
-                          : Colors.blue.shade700),
+                      color: isDark ? AppColors.surface : AppColors.avatarColor(u.displayName),
                     ),
                   ),
                 ),
@@ -682,9 +667,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           minHeight: 8,
                           backgroundColor: AppColors.divider,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            u.displayName == 'Nahda'
-                                ? (isDark ? Colors.pink.shade300.withOpacity(0.7) : Colors.pink.shade300)
-                                : (isDark ? Colors.blue.shade300.withOpacity(0.7) : Colors.blue.shade300),
+                            AppColors.avatarColor(u.displayName).withOpacity(0.7),
                           ),
                         ),
                       ),
@@ -828,20 +811,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     minHeight: 8,
                     backgroundColor: AppColors.divider,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      cat.categoryName.contains('Makan')
-                          ? Colors.orange
-                          : cat.categoryName.contains('Transport')
-                              ? Colors.blue
-                              : cat.categoryName.contains('Housing') ||
-                                        cat.categoryName.contains('Rumah')
-                                    ? Colors.purple
-                                    : cat.categoryName.contains('Health') ||
-                                              cat.categoryName.contains('Kesehatan')
-                                          ? Colors.red
-                                          : cat.categoryName.contains('Entertainment') ||
-                                                    cat.categoryName.contains('Hiburan')
-                                                ? Colors.teal
-                                                : Colors.indigo,
+                      AppColors.chartPalette[
+                        cat.categoryName.hashCode.abs() % AppColors.chartPalette.length
+                      ],
                     ),
                   ),
                 ),
@@ -1056,7 +1028,4 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
 // ─── Chart Widgets ──────────────────────────────────────────
 
-final List<Color> chartColors = [
-  Colors.orange, Colors.blue, Colors.purple, Colors.red, Colors.teal,
-  Colors.green, Colors.pink, Colors.indigo, Colors.amber, Colors.cyan,
-];
+final List<Color> chartColors = AppColors.chartPalette;

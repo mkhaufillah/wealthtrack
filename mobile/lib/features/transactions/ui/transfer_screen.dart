@@ -111,12 +111,12 @@ class _TransferBalanceScreenState
           colorScheme: isDark
               ? ColorScheme.dark(
                   primary: AppColors.darkPrimary,
-                  onPrimary: Colors.white,
+                  onPrimary: AppColors.surface,
                   surface: AppColors.darkSurface,
                 )
               : ColorScheme.light(
                   primary: AppColors.primary,
-                  onPrimary: Colors.white,
+                  onPrimary: AppColors.surface,
                   surface: AppColors.surface,
                 ),
         ),
@@ -252,7 +252,7 @@ class _TransferBalanceScreenState
       appBar: AppBar(
         title: const Text('Transfer Balance'),
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.surface,
       ),
       body: _loadingMembers
           ? const Center(child: CircularProgressIndicator())
@@ -281,19 +281,13 @@ class _TransferBalanceScreenState
                         padding: const EdgeInsets.all(16),
                         child: Row(children: [
                           CircleAvatar(
-                            backgroundColor: () {
-                              final hash = (currentUser?.displayName ?? '').hashCode;
-                              final idx = hash.abs() % Colors.primaries.length;
-                              return isDark
-                                  ? Colors.primaries[idx].shade200.withOpacity(0.3)
-                                  : Colors.primaries[idx].shade50;
-                            }(),
+                            backgroundColor: AppColors.avatarColor(currentUser?.displayName ?? '').withOpacity(0.2),
                             child: Text(
                               (currentUser?.displayName ?? '?')[0]
                                   .toUpperCase(),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : Colors.primaries[(currentUser?.displayName ?? '').hashCode.abs() % Colors.primaries.length].shade700),
+                                  color: isDark ? AppColors.surface : AppColors.avatarColor(currentUser?.displayName ?? '')),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -385,19 +379,13 @@ class _TransferBalanceScreenState
                                   children: [
                                     CircleAvatar(
                                       radius: 16,
-                                      backgroundColor: () {
-                                        final hash = r.displayName.hashCode;
-                                        final idx = hash.abs() % Colors.primaries.length;
-                                        return isDark
-                                            ? Colors.primaries[idx].shade200.withOpacity(0.3)
-                                            : Colors.primaries[idx].shade50;
-                                      }(),
+                                      backgroundColor: AppColors.avatarColor(r.displayName).withOpacity(0.2),
                                       child: Text(
                                         r.displayName[0].toUpperCase(),
                                         style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
-                                            color: isDark ? Colors.white : Colors.primaries[r.displayName.hashCode.abs() % Colors.primaries.length].shade700),
+                                            color: isDark ? AppColors.surface : AppColors.avatarColor(r.displayName)),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -441,7 +429,7 @@ class _TransferBalanceScreenState
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                    strokeWidth: 2, color: AppColors.surface),
                               )
                             : const Icon(Icons.send_rounded),
                         label: Text(isSubmitting
@@ -455,18 +443,18 @@ class _TransferBalanceScreenState
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.red.shade900.withOpacity(0.4) : Colors.red.shade50,
+                          color: isDark ? AppColors.highlight.withOpacity(0.4) : AppColors.highlight.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
                             Icon(Icons.error_outline,
-                                color: isDark ? Colors.red.shade200 : Colors.red, size: 20),
+                                color: AppColors.highlight, size: 20),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(state.error!,
                                   style: TextStyle(
-                                      color: isDark ? Colors.red.shade200 : Colors.red, fontSize: 13)),
+                                      color: AppColors.highlight, fontSize: 13)),
                             ),
                           ],
                         ),
