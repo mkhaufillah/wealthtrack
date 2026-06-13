@@ -22,6 +22,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   Timer? _debounceTimer;
+  Timer? _ocrPollTimer;
 
   @override
   void initState() {
@@ -36,11 +37,19 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     });
     _scrollController.addListener(_onScroll);
     Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());
+
+    // Poll OCR status every 8s while pending items exist
+    _ocrPollTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (ref.read(ocrPendingCountProvider).pendingCount > 0) {
+        ref.read(ocrPendingCountProvider.notifier).load();
+      }
+    });
   }
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _ocrPollTimer?.cancel();
     _searchController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -306,10 +315,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                 final isDark = Theme.of(ctx).brightness == Brightness.dark;
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.avatarColor(name).withOpacity(0.2),
+                    backgroundColor: AppColors.avatarColor(name).withOpacity(isDark ? 0.3 : 0.15),
                     child: Text(name[0].toUpperCase(),
                       style: TextStyle(
-                        color: isDark ? AppColors.surface : AppColors.avatarColor(name),
+                        color: isDark ? Colors.white : AppColors.avatarColor(name),
                         fontWeight: FontWeight.w600),
                     ),
                   ),

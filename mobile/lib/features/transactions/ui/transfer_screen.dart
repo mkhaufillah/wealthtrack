@@ -281,13 +281,13 @@ class _TransferBalanceScreenState
                         padding: const EdgeInsets.all(16),
                         child: Row(children: [
                           CircleAvatar(
-                            backgroundColor: AppColors.avatarColor(currentUser?.displayName ?? '').withOpacity(0.2),
+                            backgroundColor: AppColors.avatarColor(currentUser?.displayName ?? '').withOpacity(isDark ? 0.3 : 0.15),
                             child: Text(
                               (currentUser?.displayName ?? '?')[0]
                                   .toUpperCase(),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? AppColors.surface : AppColors.avatarColor(currentUser?.displayName ?? '')),
+                                  color: isDark ? Colors.white : AppColors.avatarColor(currentUser?.displayName ?? '')),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -379,13 +379,13 @@ class _TransferBalanceScreenState
                                   children: [
                                     CircleAvatar(
                                       radius: 16,
-                                      backgroundColor: AppColors.avatarColor(r.displayName).withOpacity(0.2),
+                                      backgroundColor: AppColors.avatarColor(r.displayName).withOpacity(isDark ? 0.3 : 0.15),
                                       child: Text(
                                         r.displayName[0].toUpperCase(),
                                         style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
-                                            color: isDark ? AppColors.surface : AppColors.avatarColor(r.displayName)),
+                                            color: isDark ? Colors.white : AppColors.avatarColor(r.displayName)),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
