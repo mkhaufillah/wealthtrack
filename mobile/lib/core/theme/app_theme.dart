@@ -49,6 +49,30 @@ class AppColors {
       _brightness == Brightness.dark ? darkAccent : _accent;
   static Color get highlight =>
       _brightness == Brightness.dark ? darkHighlight : _highlight;
+
+  /// Brightness-aware card background color.
+  static Color get card =>
+      _brightness == Brightness.dark ? darkCard : _surface;
+
+  /// Consistent chart palette for category breakdowns and avatar fallbacks.
+  static const List<Color> chartPalette = [
+    Color(0xFFE94560), // red
+    Color(0xFF0F3460), // navy
+    Color(0xFF2ECC71), // green
+    Color(0xFFF39C12), // amber
+    Color(0xFF3498DB), // blue
+    Color(0xFF9B59B6), // purple
+    Color(0xFF1ABC9C), // teal
+    Color(0xFFE67E22), // orange
+    Color(0xFF34495E), // dark blue-grey
+    Color(0xFF16A085), // dark teal
+  ];
+
+  /// Deterministic avatar color from a hash of the user name.
+  static Color avatarColor(String name) {
+    final hash = name.hashCode.abs();
+    return chartPalette[hash % chartPalette.length];
+  }
 }
 
 class AppTheme {

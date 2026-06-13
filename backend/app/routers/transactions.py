@@ -1,47 +1,58 @@
+"""Transaction router — thin HTTP adapter.
+
+Delegates all business logic to TransactionService.
+"""
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-import asyncpg
 from typing import Optional
 
 from app.database import get_db, CursorWrapper
+from app.core.security import get_current_user
+from app.schemas.transaction import (
+    TransactionCreate,
+    TransactionUpdate,
+    PaginatedTransactions,
+    TransferOwnerIn,
+    TransferRequest,
+    TransferResponse,
+)
+from app.services.transaction_service import (
+    TransactionService,
+    TransactionNotFoundError,
+    CategoryNotFoundError,
+    NotHouseholdMemberError,
+    ForbiddenError,
+    NoFieldsToUpdateError,
+    InvalidOperationError,
+)
 
 logger = logging.getLogger(__name__)
-from app.core.security import get_current_user
-from app.core.meilisearch import (
-    index_document,
-    delete_document,
-    search_descriptions,
-    get_total_count as meili_total_count,
-)
-from app.schemas.transaction import TransactionCreate, TransactionUpdate, PaginatedTransactions, PaginationMeta, TransferOwnerIn, TransferRequest, TransferResponse
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
-def _format_txn(row, cat_name="", cat_icon="", cat_name_en="", display_name=""):
-    # Convert asyncpg Record to dict for safe access
-    r = dict(row)
-    return {
-        "id": r["id"],
-        "amount": int(r["amount"]),
-        "type": r["type"],
-        "description": r.get("description", "") or "",
-        "note": r.get("note", "") or "",
-        "date": r.get("date") or r["created_at"][:10],
-        "category": {
-            "id": r["category_id"],
-            "name": cat_name or r.get("category_name", "") or "",
-            "icon": cat_icon or "",
-            "name_en": cat_name_en or "",
-        },
-        "user": {
-            "id": r.get("user_id", 1) or 1,
-            "display_name": display_name or r.get("user_display_name", ""),
-        },
-        "created_at": r["created_at"],
-        "updated_at": r.get("updated_at", r["created_at"]),
-    }
+def _handle_service_error(exc: Exception) -> None:
+    """Convert service-layer exceptions to HTTP exceptions."""
+    if isinstance(exc, TransactionNotFoundError):
+        raise HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, CategoryNotFoundError):
+        raise HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, NotHouseholdMemberError):
+        raise HTTPException(status_code=404, detail=exc.detail)
+    if isinstance(exc, ForbiddenError):
+        raise HTTPException(status_code=403, detail=exc.detail)
+    if isinstance(exc, InvalidOperationError):
+        raise HTTPException(status_code=400, detail=exc.detail)
+    if isinstance(exc, NoFieldsToUpdateError):
+        raise HTTPException(status_code=400, detail=str(exc))
+    # Re-raise unexpected errors
+    raise
+
+
+def _get_service(db: CursorWrapper) -> TransactionService:
+    return TransactionService(db)
 
 
 @router.get("/household", response_model=PaginatedTransactions)
@@ -56,69 +67,19 @@ async def list_household_transactions(
     current_user: dict = Depends(get_current_user),
 ):
     """Get transactions of all household members."""
-    cursor = await db.execute(
-        "SELECT household_id FROM household_members WHERE user_id = ?",
-        (current_user["id"],),
-    )
-    hm = await cursor.fetchone()
-    if not hm:
-        raise HTTPException(status_code=404, detail="Not a member of any household")
-    household_id = hm["household_id"]
-
-    where = ["hm2.household_id = ?"]
-    params: list = [household_id]
-    if type:
-        where.append("t.type = ?")
-        params.append(type)
-    if date_from:
-        where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?")
-        params.append(date_from)
-    if date_to:
-        where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?")
-        params.append(date_to)
-
-    order_map = {
-        "date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) ASC",
-        "-date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC",
-        "amount": "t.amount ASC",
-        "-amount": "t.amount DESC",
-    }
-    order = order_map.get(sort, "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC")
-
-    join_clause = "FROM transactions t JOIN household_members hm2 ON hm2.user_id = t.user_id"
-
-    cursor = await db.execute(
-        f"SELECT COUNT(*) {join_clause} WHERE {' AND '.join(where)}", params
-    )
-    total = (await cursor.fetchone())[0]
-
-    offset = (page - 1) * per_page
-    cursor = await db.execute(
-        f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
-                   t.description, t.note, t.date, t.user_id, t.created_at,
-                   c.name AS cat_name, c.icon AS cat_icon,
-                   c.name_en AS cat_name_en,
-                   u.display_name AS user_display_name
-            {join_clause}
-            LEFT JOIN categories c ON t.category_id = c.id
-            LEFT JOIN users u ON t.user_id = u.id
-            WHERE {' AND '.join(where)}
-            ORDER BY {order}
-            LIMIT ? OFFSET ?""",
-        params + [per_page, offset],
-    )
-    rows = await cursor.fetchall()
-    data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "") for r in rows]
-
-    return PaginatedTransactions(
-        data=data,
-        meta=PaginationMeta(
+    try:
+        svc = _get_service(db)
+        return await svc.list_household_transactions(
+            user_id=current_user["id"],
             page=page,
             per_page=per_page,
-            total=total,
-            total_pages=max(1, (total + per_page - 1) // per_page),
-        ),
-    )
+            type=type,
+            date_from=date_from,
+            date_to=date_to,
+            sort=sort,
+        )
+    except Exception as e:
+        _handle_service_error(e)
 
 
 @router.get("", response_model=PaginatedTransactions)
@@ -135,223 +96,23 @@ async def list_transactions(
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    user_id = current_user["id"]
-
-    # ── If search query provided, use Meilisearch ──
-    if q and q.strip():
-        q = q.strip()
-
-        # Build Meilisearch filters
-        meili_filters: list[str] = [f"user_id = {user_id}"]
-        if type:
-            meili_filters.append(f'type = "{type}"')
-        if category_ids:
-            ids = [int(x.strip()) for x in category_ids.split(",") if x.strip().isdigit()]
-            if ids:
-                meili_filters.append(f"category_id IN [{', '.join(str(i) for i in ids)}]")
-        elif category_id:
-            meili_filters.append(f"category_id = {category_id}")
-        if date_from:
-            meili_filters.append(f'date >= "{date_from}"')
-        if date_to:
-            meili_filters.append(f'date <= "{date_to}"')
-
-        # Map sort to Meilisearch format
-        sort_map = {
-            "date": ["date:asc"],
-            "-date": ["date:desc"],
-            "amount": ["amount:asc"],
-            "-amount": ["amount:desc"],
-            "name": ["description:asc"],
-            "-name": ["description:desc"],
-        }
-        meili_sort = sort_map.get(sort)
-
-        offset = (page - 1) * per_page
-
-        # Get total count and matching IDs from Meilisearch
-        try:
-            total = await meili_total_count(q, meili_filters or None)
-            matching_ids = await search_descriptions(
-                q,
-                filters=meili_filters or None,
-                sort=meili_sort,
-                offset=offset,
-                limit=per_page,
-            )
-        except Exception:
-            # Meilisearch unavailable — fall back to SQL LIKE
-            where = ["t.user_id = ?"]
-            params_fallback: list = [user_id]
-            if type:
-                where.append("t.type = ?")
-                params_fallback.append(type)
-            if category_ids:
-                ids_fb = [int(x.strip()) for x in category_ids.split(",") if x.strip().isdigit()]
-                if ids_fb:
-                    placeholders_fb = ",".join("?" for _ in ids_fb)
-                    where.append(f"t.category_id IN ({placeholders_fb})")
-                    params_fallback.extend(ids_fb)
-            elif category_id:
-                where.append("t.category_id = ?")
-                params_fallback.append(category_id)
-            if date_from:
-                where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?")
-                params_fallback.append(date_from)
-            if date_to:
-                where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?")
-                params_fallback.append(date_to)
-            where.append("t.description LIKE ?")
-            params_fallback.append(f"%{q}%")
-
-            order_map_fallback = {
-                "date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) ASC",
-                "-date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC",
-                "amount": "t.amount ASC",
-                "-amount": "t.amount DESC",
-                "name": "t.description ASC",
-                "-name": "t.description DESC",
-            }
-            order_fb = order_map_fallback.get(sort, "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC")
-
-            cursor = await db.execute(
-                f"SELECT COUNT(*) FROM transactions t WHERE {' AND '.join(where)}", params_fallback
-            )
-            total = (await cursor.fetchone())[0]
-
-            cursor = await db.execute(
-                f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
-                           t.description, t.note, t.date, t.user_id, t.created_at,
-                           c.name AS cat_name, c.icon AS cat_icon,
-                           c.name_en AS cat_name_en,
-                           u.display_name AS user_display_name
-                    FROM transactions t
-                    LEFT JOIN categories c ON t.category_id = c.id
-                    LEFT JOIN users u ON t.user_id = u.id
-                    WHERE {' AND '.join(where)}
-                    ORDER BY {order_fb}
-                    LIMIT ? OFFSET ?""",
-                params_fallback + [per_page, offset],
-            )
-            rows = await cursor.fetchall()
-            data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "") for r in rows]
-
-            return PaginatedTransactions(
-                data=data,
-                meta=PaginationMeta(
-                    page=page,
-                    per_page=per_page,
-                    total=total,
-                    total_pages=max(1, (total + per_page - 1) // per_page),
-                ),
-            )
-
-        if not matching_ids:
-            return PaginatedTransactions(
-                data=[],
-                meta=PaginationMeta(
-                    page=page, per_page=per_page, total=0, total_pages=0
-                ),
-            )
-
-        # Fetch from PostgreSQL with the matching IDs (preserve Meilisearch order)
-        placeholders = ",".join("?" for _ in matching_ids)
-        order_clause = (
-            f"array_position(ARRAY[{placeholders}]::int[], t.id)"
-        )  # Preserve Meilisearch relevance order
-
-        cursor = await db.execute(
-            f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
-                       t.description, t.note, t.date, t.user_id, t.created_at,
-                       c.name AS cat_name, c.icon AS cat_icon,
-                       c.name_en AS cat_name_en,
-                       u.display_name AS user_display_name
-                FROM transactions t
-                LEFT JOIN categories c ON t.category_id = c.id
-                LEFT JOIN users u ON t.user_id = u.id
-                WHERE t.id IN ({placeholders})
-                ORDER BY {order_clause}""",
-            *matching_ids, *matching_ids,
-        )
-        rows = await cursor.fetchall()
-        data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "") for r in rows]
-
-        return PaginatedTransactions(
-            data=data,
-            meta=PaginationMeta(
-                page=page,
-                per_page=per_page,
-                total=total,
-                total_pages=max(1, (total + per_page - 1) // per_page),
-            ),
-        )
-
-    # ── No search query — use SQL as before ──
-    where = ["t.user_id = ?"]
-    params: list = [user_id]
-    if type:
-        where.append("t.type = ?")
-        params.append(type)
-    if category_id:
-        where.append("t.category_id = ?")
-        params.append(category_id)
-    if date_from:
-        where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?")
-        params.append(date_from)
-    if date_to:
-        where.append("COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?")
-        params.append(date_to)
-
-    if category_ids:
-        ids = [int(x.strip()) for x in category_ids.split(",") if x.strip().isdigit()]
-        if ids:
-            placeholders = ",".join("?" for _ in ids)
-            where.append(f"t.category_id IN ({placeholders})")
-            params.extend(ids)
-
-    order_map = {
-        "date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) ASC",
-        "-date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC",
-        "amount": "t.amount ASC",
-        "-amount": "t.amount DESC",
-        "name": "t.description ASC",
-        "-name": "t.description DESC",
-    }
-    order = order_map.get(sort, "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC")
-
-    cursor = await db.execute(
-        f"SELECT COUNT(*) FROM transactions t WHERE {' AND '.join(where)}", params
-    )
-    total = (await cursor.fetchone())[0]
-
-    offset = (page - 1) * per_page
-    cursor = await db.execute(
-        f"""SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
-                   t.description, t.note, t.date, t.user_id, t.created_at,
-                   c.name AS cat_name, c.icon AS cat_icon,
-                   c.name_en AS cat_name_en,
-                   u.display_name AS user_display_name
-            FROM transactions t
-            LEFT JOIN categories c ON t.category_id = c.id
-            LEFT JOIN users u ON t.user_id = u.id
-            WHERE {' AND '.join(where)}
-            ORDER BY {order}
-            LIMIT ? OFFSET ?""",
-        params + [per_page, offset],
-    )
-    rows = await cursor.fetchall()
-
-    data = [_format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "") for r in rows]
-
-    return PaginatedTransactions(
-        data=data,
-        meta=PaginationMeta(
+    """List user's transactions with optional search."""
+    try:
+        svc = _get_service(db)
+        return await svc.list_transactions(
+            user_id=current_user["id"],
             page=page,
             per_page=per_page,
-            total=total,
-            total_pages=max(1, (total + per_page - 1) // per_page),
-        ),
-    )
+            type=type,
+            category_id=category_id,
+            date_from=date_from,
+            date_to=date_to,
+            sort=sort,
+            q=q,
+            category_ids=category_ids,
+        )
+    except Exception as e:
+        _handle_service_error(e)
 
 
 @router.post("", status_code=201)
@@ -360,44 +121,12 @@ async def create_transaction(
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    cursor = await db.execute(
-        "SELECT id, name, name_en, icon FROM categories WHERE id = ?", (data.category_id,)
-    )
-    cat = await cursor.fetchone()
-    if not cat:
-        raise HTTPException(status_code=404, detail="Category not found")
-
-    cursor = await db.execute(
-        """INSERT INTO transactions
-           (user_id, category_id, category_name, type, amount, description, note, date)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (
-            current_user["id"],
-            data.category_id,
-            cat["name"],
-            data.type,
-            data.amount,
-            data.description,
-            data.note,
-            data.date,
-        ),
-    )
-    # auto-committed
-    new_id = cursor.lastrowid
-    cursor = await db.execute(
-        "SELECT id, type, amount, category_id, category_name, description, note, date, user_id, created_at FROM transactions WHERE id = ?", (new_id,)
-    )
-    row = await cursor.fetchone()
-    # Fetch display_name from users table
-    u = await (await db.execute("SELECT display_name FROM users WHERE id = ?", (current_user["id"],))).fetchone()
-
-    # Index in Meilisearch
+    """Create a new transaction."""
     try:
-        await index_document(dict(row))
+        svc = _get_service(db)
+        return await svc.create_transaction(data, current_user["id"])
     except Exception as e:
-        logger.warning("Meilisearch indexing error in create_transaction: %s", e)
-
-    return _format_txn(row, cat["name"], cat["icon"], cat["name_en"] or "", u["display_name"] if u else "")
+        _handle_service_error(e)
 
 
 @router.get("/{txn_id}")
@@ -406,19 +135,12 @@ async def get_transaction(
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    cursor = await db.execute(
-        "SELECT t.id, t.type, t.amount, t.category_id, t.category_name, t.description, t.note, t.date, t.user_id, t.created_at, u.display_name AS user_display_name FROM transactions t LEFT JOIN users u ON t.user_id = u.id WHERE t.id = ? AND t.user_id = ?",
-        (txn_id, current_user["id"]),
-    )
-    row = await cursor.fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    c = await (
-        await db.execute(
-            "SELECT id, name, name_en, icon FROM categories WHERE id = ?", (row["category_id"],)
-        )
-    ).fetchone()
-    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", c["name_en"] if c else "")
+    """Get a single transaction by ID."""
+    try:
+        svc = _get_service(db)
+        return await svc.get_transaction(txn_id, current_user["id"])
+    except Exception as e:
+        _handle_service_error(e)
 
 
 @router.put("/{txn_id}")
@@ -428,56 +150,12 @@ async def update_transaction(
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    cursor = await db.execute(
-        "SELECT id FROM transactions WHERE id = ? AND user_id = ?",
-        (txn_id, current_user["id"]),
-    )
-    if not await cursor.fetchone():
-        raise HTTPException(status_code=404, detail="Transaction not found")
-
-    updates = {}
-    for field in ["type", "amount", "description", "note", "category_id", "date"]:
-        val = getattr(data, field, None)
-        if val is not None:
-            if field == "category_id":
-                c = await (
-                    await db.execute(
-                        "SELECT name FROM categories WHERE id = ?", (val,)
-                    )
-                ).fetchone()
-                if not c:
-                    raise HTTPException(status_code=404, detail="Category not found")
-                updates["category_id"] = val
-                updates["category_name"] = c["name"]
-            else:
-                updates[field] = val
-    if not updates:
-        raise HTTPException(status_code=400, detail="No fields to update")
-
-    set_clause = ", ".join(f"{k} = ?" for k in updates)
-    await db.execute(
-        f"UPDATE transactions SET {set_clause} WHERE id = ?",
-        list(updates.values()) + [txn_id],
-    )
-    # auto-committed
-
-    cursor = await db.execute(
-        "SELECT t.id, t.type, t.amount, t.category_id, t.category_name, t.description, t.note, t.date, t.user_id, t.created_at, u.display_name AS user_display_name FROM transactions t LEFT JOIN users u ON t.user_id = u.id WHERE t.id = ?", (txn_id,)
-    )
-    row = await cursor.fetchone()
-    c = await (
-        await db.execute(
-            "SELECT id, name, name_en, icon FROM categories WHERE id = ?", (row["category_id"],)
-        )
-    ).fetchone()
-
-    # Index in Meilisearch
+    """Update an existing transaction."""
     try:
-        await index_document(dict(row))
+        svc = _get_service(db)
+        return await svc.update_transaction(txn_id, data, current_user["id"])
     except Exception as e:
-        logger.warning("Meilisearch indexing error in update_transaction: %s", e)
-
-    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", c["name_en"] if c else "")
+        _handle_service_error(e)
 
 
 @router.put("/{txn_id}/owner")
@@ -488,78 +166,11 @@ async def transfer_owner(
     current_user: dict = Depends(get_current_user),
 ):
     """Transfer transaction ownership to another household member."""
-    # 1. Fetch transaction
-    cursor = await db.execute(
-        "SELECT id, user_id FROM transactions WHERE id = ?",
-        (txn_id,),
-    )
-    txn = await cursor.fetchone()
-    if not txn:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-
-    # 2. Only current owner OR household admin can transfer
-    cursor = await db.execute(
-        "SELECT hm.role, hm.household_id FROM household_members hm WHERE hm.user_id = ?",
-        (current_user["id"],),
-    )
-    hm = await cursor.fetchone()
-    if not hm:
-        raise HTTPException(status_code=404, detail="Not a member of any household")
-
-    is_admin = hm["role"] == "admin"
-    is_owner = txn["user_id"] == current_user["id"]
-
-    if not (is_owner or is_admin):
-        raise HTTPException(
-            status_code=403,
-            detail="Only the transaction owner or a household admin can transfer ownership",
-        )
-
-    household_id = hm["household_id"]
-
-    # 3. Validate target user exists in the same household
-    cursor = await db.execute(
-        "SELECT user_id FROM household_members WHERE user_id = ? AND household_id = ?",
-        (data.user_id, household_id),
-    )
-    if not await cursor.fetchone():
-        raise HTTPException(
-            status_code=400,
-            detail="Target user is not a member of your household",
-        )
-
-    # 4. Perform transfer
-    await db.execute(
-        "UPDATE transactions SET user_id = ? WHERE id = ?",
-        (data.user_id, txn_id),
-    )
-    # auto-committed
-
-    # 5. Return updated transaction
-    cursor = await db.execute(
-        """SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
-                  t.description, t.note, t.date, t.user_id, t.created_at,
-                  u.display_name AS user_display_name
-           FROM transactions t
-           LEFT JOIN users u ON t.user_id = u.id
-           WHERE t.id = ?""",
-        (txn_id,),
-    )
-    row = await cursor.fetchone()
-    c = await (
-        await db.execute(
-            "SELECT id, name, name_en, icon FROM categories WHERE id = ?",
-            (row["category_id"],),
-        )
-    ).fetchone()
-
-    # Index in Meilisearch (user_id changed)
     try:
-        await index_document(dict(row))
+        svc = _get_service(db)
+        return await svc.transfer_owner(txn_id, data, current_user["id"])
     except Exception as e:
-        logger.warning("Meilisearch indexing error in transfer_owner: %s", e)
-
-    return _format_txn(row, c["name"] if c else "", c["icon"] if c else "", c["name_en"] if c else "")
+        _handle_service_error(e)
 
 
 @router.post("/transfer", response_model=TransferResponse, status_code=201)
@@ -569,150 +180,11 @@ async def transfer_balance(
     current_user: dict = Depends(get_current_user),
 ):
     """Transfer balance to household members. Creates paired expense/income transactions."""
-    user_id = current_user["id"]
-
-    # 1. Verify user is in a household
-    cursor = await db.execute(
-        "SELECT household_id, role FROM household_members WHERE user_id = ?",
-        (user_id,),
-    )
-    member = await cursor.fetchone()
-    if not member:
-        raise HTTPException(status_code=400, detail="Not a member of any household")
-    household_id = member["household_id"]
-
-    # 2. Verify all recipients are in the same household
-    recipient_ids = [t.user_id for t in req.transfers]
-    placeholders = ",".join("?" * len(recipient_ids))
-    cursor = await db.execute(
-        f"SELECT user_id FROM household_members WHERE household_id = ? AND user_id IN ({placeholders})",
-        (household_id, *recipient_ids),
-    )
-    valid_ids = {r["user_id"] for r in await cursor.fetchall()}
-    for rid in recipient_ids:
-        if rid not in valid_ids:
-            raise HTTPException(
-                status_code=400,
-                detail=f"User {rid} is not a member of your household",
-            )
-
-    # 3. Ensure the special transfer categories exist
-    cursor = await db.execute(
-        "SELECT id, name, name_en, icon FROM categories WHERE name = ? AND type = ?",
-        ("Transfer", "expense"),
-    )
-    expense_cat = await cursor.fetchone()
-    if not expense_cat:
-        await db.execute(
-            "INSERT INTO categories (name, type, icon, is_default) VALUES (?, ?, ?, ?)",
-            ("Transfer", "expense", "🔄", 1),
-        )
-        cursor = await db.execute(
-            "SELECT id, name, name_en, icon FROM categories WHERE name = ? AND type = ?",
-            ("Transfer", "expense"),
-        )
-        expense_cat = await cursor.fetchone()
-
-    cursor = await db.execute(
-        "SELECT id, name, name_en, icon FROM categories WHERE name = ? AND type = ?",
-        ("Transfer", "income"),
-    )
-    income_cat = await cursor.fetchone()
-    if not income_cat:
-        await db.execute(
-            "INSERT INTO categories (name, type, icon, is_default) VALUES (?, ?, ?, ?)",
-            ("Transfer", "income", "🔄", 1),
-        )
-        cursor = await db.execute(
-            "SELECT id, name, name_en, icon FROM categories WHERE name = ? AND type = ?",
-            ("Transfer", "income"),
-        )
-        income_cat = await cursor.fetchone()
-
-    expense_cat_id = expense_cat["id"]
-    expense_cat_name = expense_cat["name"]
-    expense_cat_name_en = expense_cat["name_en"] or ""
-    expense_cat_icon = expense_cat["icon"]
-    income_cat_id = income_cat["id"]
-    income_cat_name = income_cat["name"]
-    income_cat_name_en = income_cat["name_en"] or ""
-    income_cat_icon = income_cat["icon"]
-
-    # Get sender's display name
-    cursor = await db.execute(
-        "SELECT display_name FROM users WHERE id = ?", (user_id,)
-    )
-    sender_row = await cursor.fetchone()
-    sender_name = sender_row["display_name"] if sender_row else current_user["username"]
-
-    # 4. Create transactions
-    results = []
-    for t in req.transfers:
-        # Get recipient's display name
-        cursor = await db.execute(
-            "SELECT display_name FROM users WHERE id = ?", (t.user_id,)
-        )
-        recipient = await cursor.fetchone()
-        recipient_name = recipient["display_name"] if recipient else f"User {t.user_id}"
-
-        # Sender expense
-        cursor = await db.execute(
-            "INSERT INTO transactions (type, amount, category_id, category_name, description, date, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            ("expense", t.amount, expense_cat_id, expense_cat_name,
-             f"Transfer to {recipient_name}", req.date, user_id),
-        )
-        expense_id = cursor.lastrowid
-
-        # Recipient income
-        cursor = await db.execute(
-            "INSERT INTO transactions (type, amount, category_id, category_name, description, date, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            ("income", t.amount, income_cat_id, income_cat_name,
-             f"Transfer from {sender_name}", req.date, t.user_id),
-        )
-        income_id = cursor.lastrowid
-
-        # Fetch both with JOINs for _format_txn
-        cursor = await db.execute(
-            """SELECT t.*, c.name AS cat_name, c.icon AS cat_icon,
-                      c.name_en AS cat_name_en,
-                      u.display_name AS user_display_name
-               FROM transactions t
-               LEFT JOIN categories c ON t.category_id = c.id
-               LEFT JOIN users u ON t.user_id = u.id
-               WHERE t.id = ?""",
-            (expense_id,),
-        )
-        exp_row = await cursor.fetchone()
-
-        cursor = await db.execute(
-            """SELECT t.*, c.name AS cat_name, c.icon AS cat_icon,
-                      c.name_en AS cat_name_en,
-                      u.display_name AS user_display_name
-               FROM transactions t
-               LEFT JOIN categories c ON t.category_id = c.id
-               LEFT JOIN users u ON t.user_id = u.id
-               WHERE t.id = ?""",
-            (income_id,),
-        )
-        inc_row = await cursor.fetchone()
-
-        # Index both in Meilisearch
-        try:
-            await index_document(dict(exp_row))
-            await index_document(dict(inc_row))
-        except Exception as e:
-            logger.warning("Meilisearch indexing error in transfer_balance: %s", e)
-
-        results.append({
-            "sender_expense": _format_txn(exp_row, expense_cat_name, expense_cat_icon,
-                                          expense_cat_name_en,
-                                          exp_row["user_display_name"] or ""),
-            "recipient_income": _format_txn(inc_row, income_cat_name, income_cat_icon,
-                                            income_cat_name_en,
-                                            inc_row["user_display_name"] or ""),
-        })
-    # auto-committed
-    return {"transactions": results}
+    try:
+        svc = _get_service(db)
+        return await svc.transfer_balance(req, current_user["id"])
+    except Exception as e:
+        _handle_service_error(e)
 
 
 @router.delete("/{txn_id}", status_code=204)
@@ -721,27 +193,10 @@ async def delete_transaction(
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    cursor = await db.execute(
-        "SELECT id FROM transactions WHERE id = ? AND user_id = ?",
-        (txn_id, current_user["id"]),
-    )
-    if not await cursor.fetchone():
-        raise HTTPException(status_code=404, detail="Transaction not found")
-
-    # Delete associated OCR jobs before deleting transaction
-    cursor = await db.execute(
-        "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='ocr_jobs'"
-    )
-    if await cursor.fetchone():
-        await db.execute(
-            "DELETE FROM ocr_jobs WHERE transaction_id = ?",
-            (txn_id,),
-        )
-    await db.execute("DELETE FROM transactions WHERE id = ?", (txn_id,))
-    # auto-committed
-
-    # Remove from Meilisearch
+    """Delete a transaction."""
     try:
-        await delete_document(txn_id)
+        svc = _get_service(db)
+        await svc.delete_transaction(txn_id, current_user["id"])
+        return None
     except Exception as e:
-        logger.warning("Meilisearch delete error in delete_transaction: %s", e)
+        _handle_service_error(e)
