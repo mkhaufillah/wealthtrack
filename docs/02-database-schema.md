@@ -2,8 +2,7 @@
 
 **See also:** [Project Overview](01-project-overview.md) · [Backend API](03-backend-api.md) · [Backend Implementation](04-backend-implementation.md) · [P4 Plan](08-p4-plan.md)
 
-> ⚠️ **v0.5.2+** Schema is auto-created on app startup — no manual SQL needed.
-> This doc documents the current PostgreSQL schema.
+> **⚠️ STALE** — This document reflects the SQLite/early schema design and has not been updated for PostgreSQL. Use `backend/app/database.py` as the authoritative schema reference. See [Project Overview](01-project-overview.md) for current version info.
 
 ## Database
 

@@ -1,6 +1,6 @@
 # Backend Implementation — Step by Step
 
-**See also:** [Project Overview](01-project-overview.md) · [Database Schema](02-database-schema.md) · [Backend API](03-backend-api.md) · [P4 Plan](08-p4-plan.md)
+> **⚠️ STALE** — This document reflects early development (v0.1–0.2 era). The current architecture uses service-layer separation and Postgres/asyncpg. See [API Docs](03-backend-api.md) and [WealthTrack Development](../wealthtrack/wealthtrack-development) skill for current patterns. · [P4 Plan](08-p4-plan.md)
 
 > ⚠️ **Historical reference.** This guide covers the original backend build process. The source files in `backend/` are the authoritative reference — code examples here may lag behind the latest features (e.g., Meilisearch integration, Redis rate limiter, CORS restriction, Redis auth).
 >
