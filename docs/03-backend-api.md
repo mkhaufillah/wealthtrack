@@ -1374,7 +1374,7 @@ Export yearly transactions as an Excel (.xlsx) file.
 
 ### POST `/api/v1/ocr/process`
 
-Upload a receipt image for OCR extraction. Uses vision AI (Kimi K2.6) to parse receipt data.
+Upload a receipt image for OCR extraction. Uses vision AI (Kimi K2.5) to parse receipt data.
 
 **Auth:** Bearer token
 

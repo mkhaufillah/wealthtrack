@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
 
     APP_NAME: str = "WealthTrack API"
-    VERSION: str = "0.5.0"
+    VERSION: str = "0.7.1"
     DEBUG: bool = False
 
     # PostgreSQL — primary database

@@ -4,7 +4,7 @@
 
 WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expenses, income, budgets, and generates periodic summaries.
 
-Current version: **v0.7.0** — Extra Payment KPR (Reduce Installment / Reduce Tenor) + Household Debt (shared family debt visibility).
+Current version: **v0.7.1** — Extra Payment UX Polish (thousand separator, date format) + Household Debt Context + Penalty Cleanup.
 
 ## Related Documents
 
@@ -12,7 +12,7 @@ Current version: **v0.7.0** — Extra Payment KPR (Reduce Installment / Reduce T
 - [Backend API](03-backend-api.md) — endpoint reference & auth flow
 - [Backend Implementation](04-backend-implementation.md) — step-by-step build guide
 - [Flutter Mobile](05-flutter-mobile.md) — mobile app design & architecture
-- [Hermes Integration](06-hermes-integration.md) — connecting Hermes cron & skill
+- [Brave Search Integration](06-brave-search-integration.md) — Brave Search API integration
 - [Deployment](07-deployment.md) — VPS setup, nginx, CI/CD, self-hosted runner
 - [P4 Plan](08-p4-plan.md) — updated feature roadmap: charts, budgets, export, OCR, AI advisor, change owner
 - [Dark Mode](09-dark-mode.md) — dark theme implementation for Flutter
@@ -24,7 +24,7 @@ Current version: **v0.7.0** — Extra Payment KPR (Reduce Installment / Reduce T
 - [Improvement Plan AI & OCR](15-improvement-plan-ai-ocr.md) — AI Advisor & OCR improvements roadmap
 - [OCR Scanner](16-ocr-scanner.md) — receipt scanning with vision AI
 - [Admin Category CRUD](17-admin-category-crud.md) — category management for admin
-- [Extra Payment KPR & Household Debt](plans/2026-06-09-extra-payment-household-debt.md) — planned for v0.7.0
+- [Extra Payment KPR & Household Debt](plans/2026-06-09-extra-payment-household-debt.md) — implemented in v0.7.0
 
 ## Architecture
 
@@ -94,7 +94,7 @@ Current version: **v0.7.0** — Extra Payment KPR (Reduce Installment / Reduce T
 │   │   ├── requirements.txt
 │   │   └── run.sh
 │   ├── scripts/                # Bulk indexing, CI setup
-│   └── tests/                  # 221 tests (pytest-asyncio)
+│   └── tests/                  # 313 tests (pytest-asyncio)
 ├── mobile/                     # Flutter project
 ├── docs/                       # Planning docs (this directory)
 ├── deploy/                     # Systemd service, nginx config, deploy script

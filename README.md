@@ -77,7 +77,7 @@ A personal finance tracker. Tracks daily expenses, income, budgets, and generate
 │   ├── 03-backend-api.md
 │   ├── 04-backend-implementation.md
 │   ├── 05-flutter-mobile.md
-│   ├── 06-hermes-integration.md
+│   ├── 06-brave-search-integration.md
 │   ├── 07-deployment.md
 │   ├── 08-p4-plan.md
 │   └── ...                    # Feature-specific docs

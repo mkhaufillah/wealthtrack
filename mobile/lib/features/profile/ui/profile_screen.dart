@@ -196,7 +196,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               '$day',
                               style: TextStyle(
                                 fontWeight: isSelected ? FontWeight.bold : null,
-                                color: isSelected ? Colors.white : null,
+                                color: isSelected ? AppColors.surface : null,
                               ),
                             ),
                           ),
@@ -296,7 +296,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
                           )
                         : const Icon(Icons.person_add_rounded),
                     label: Text(joining ? 'Joining...' : 'Join'),
@@ -378,7 +378,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
                           )
                         : const Text('Create'),
                   ),
@@ -545,17 +545,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             CircleAvatar(
               radius: 30,
-              backgroundColor: user?.displayName == 'Nahda'
-                  ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
-                  : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
+              backgroundColor: AppColors.avatarColor(user?.displayName ?? '').withOpacity(isDark ? 0.3 : 0.15),
               child: Text(
                 (user?.displayName ?? '?')[0].toUpperCase(),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : (user?.displayName == 'Nahda'
-                      ? Colors.pink.shade700
-                      : Colors.blue.shade700),
+                  color: isDark ? Colors.white : AppColors.avatarColor(user?.displayName ?? ''),
                 ),
               ),
             ),
@@ -604,18 +600,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: user?.displayName == 'Nahda'
-                          ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
-                          : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
+                      color: AppColors.avatarColor(user?.displayName ?? '').withOpacity(isDark ? 0.3 : 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       user?.role ?? '-',
                       style: TextStyle(
                         fontSize: 11,
-                        color: isDark ? Colors.white : (user?.displayName == 'Nahda'
-                            ? Colors.pink.shade700
-                            : Colors.blue.shade700),
+                        color: isDark ? Colors.white : AppColors.avatarColor(user?.displayName ?? ''),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -719,11 +711,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50,
+                      color: AppColors.avatarColor('admin').withOpacity(isDark ? 0.3 : 0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text('admin',
-                        style: TextStyle(fontSize: 10, color: isDark ? Colors.white : Colors.blue.shade700)),
+                        style: TextStyle(fontSize: 10, color: isDark ? Colors.white : AppColors.avatarColor('admin'))),
                   ),
                 ],
               ],
@@ -767,17 +759,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         CircleAvatar(
                           radius: 10,
-                          backgroundColor: m['display_name'] == 'Nahda'
-                              ? (isDark ? Colors.pink.shade200.withOpacity(0.3) : Colors.pink.shade50)
-                              : (isDark ? Colors.blue.shade200.withOpacity(0.3) : Colors.blue.shade50),
+                          backgroundColor: AppColors.avatarColor(m['display_name'] as String? ?? '').withOpacity(isDark ? 0.3 : 0.15),
                           child: Text(
                             (m['display_name'] as String? ?? '?')[0],
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : (m['display_name'] == 'Nahda'
-                                  ? Colors.pink.shade700
-                                  : Colors.blue.shade700),
+                              color: isDark ? Colors.white : AppColors.avatarColor(m['display_name'] as String? ?? ''),
                             ),
                           ),
                         ),
@@ -864,7 +852,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           width: 16,
                           height: 16,
                           child:
-                              CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
                         )
                       : const Text('Save'),
                 ),
@@ -1014,7 +1002,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2, color: AppColors.surface),
                             )
                           : const Text('Change Password'),
                     ),
@@ -1123,7 +1111,7 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
         TextButton(onPressed: widget.onCancel, child: const Text('Cancel')),
         FilledButton(
           onPressed: _canConfirm ? widget.onConfirm : null,
-          style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+          style: FilledButton.styleFrom(backgroundColor: AppColors.highlight),
           child: const Text('Delete Permanently'),
         ),
       ],

@@ -83,8 +83,8 @@ class MockAsyncClient:
 
 
 def _install_ai_mock(monkeypatch, post_result=None, stream_result=None, stream_raise=None):
-    """Install MockAsyncClient as httpx.AsyncClient in app.routers.ai_advisor."""
-    import app.routers.ai_advisor as ai_module
+    """Install MockAsyncClient as httpx.AsyncClient in app.services.ai_advisor_service."""
+    import app.services.ai_advisor_service as ai_svc
 
     class InstallableMockClient(MockAsyncClient):
         def __init__(self, *args, **kwargs):
@@ -102,7 +102,7 @@ def _install_ai_mock(monkeypatch, post_result=None, stream_result=None, stream_r
 
                 self.stream_handler = _stream_handler
 
-    monkeypatch.setattr(ai_module.httpx, "AsyncClient", InstallableMockClient)
+    monkeypatch.setattr(ai_svc.httpx, "AsyncClient", InstallableMockClient)
 
 
 def _setup_api_key():
@@ -378,7 +378,7 @@ class TestFinancialAdviseStream:
         """Malformed SSE lines (e.g. non-JSON data) are skipped gracefully."""
         saved = _setup_api_key()
         try:
-            import app.routers.ai_advisor as ai_module
+            import app.services.ai_advisor_service as ai_svc
 
             class MalformedStream:
                 def __init__(self):
@@ -411,7 +411,7 @@ class TestFinancialAdviseStream:
 
                     return StreamContext()
 
-            monkeypatch.setattr(ai_module.httpx, "AsyncClient", MalformedStreamClient)
+            monkeypatch.setattr(ai_svc.httpx, "AsyncClient", MalformedStreamClient)
 
             resp = await client.post(
                 "/api/v1/ai/advise/stream",
@@ -434,7 +434,7 @@ class TestFinancialAdviseStream:
         """Streaming API returns non-200 status → error in SSE."""
         saved = _setup_api_key()
         try:
-            import app.routers.ai_advisor as ai_module
+            import app.services.ai_advisor_service as ai_svc
 
             class ErrorStream:
                 def __init__(self):
@@ -463,7 +463,7 @@ class TestFinancialAdviseStream:
 
                     return StreamContext()
 
-            monkeypatch.setattr(ai_module.httpx, "AsyncClient", ErrorStreamClient)
+            monkeypatch.setattr(ai_svc.httpx, "AsyncClient", ErrorStreamClient)
 
             resp = await client.post(
                 "/api/v1/ai/advise/stream",
