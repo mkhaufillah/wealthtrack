@@ -21,7 +21,7 @@
 | P6 | **CI/CD Hardening** | — | See deployment docs | ✅ Done — self-hosted runner, NOPASSWD sudo, Telegram v2 |
 | — | **Transfer Balance** | 1 hr | Household members (ready) | ✅ Done — see [03-backend-api.md](03-backend-api.md) |
 
-**Dropped:** Categories CRUD — static is sufficient.
+**Dropped (originally):** Categories CRUD — static was sufficient at P4 planning time. **Subsequently implemented** via admin category CRUD feature (see [17-admin-category-crud.md](17-admin-category-crud.md)).
 
 ---
 

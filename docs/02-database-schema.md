@@ -1,17 +1,16 @@
 # Database Schema — WealthTrack
 
-**See also:** [Project Overview](01-project-overview.md) · [Backend API](03-backend-api.md) · [Backend Implementation](04-backend-implementation.md) · [P4 Plan](08-p4-plan.md)
-
-> **Source of truth:** `app/database.py` — schema is auto-created on app startup via `_init_schema()` (idempotent). No manual SQL migrations needed.
+> **Source of truth:** `backend/app/database.py` — schema is auto-created on app startup via `_init_schema()` (idempotent). All `CREATE TABLE`, `CREATE INDEX`, and `ALTER TABLE` statements live in the `SCHEMA_SQL` constant.
 
 ## Database
 
 | Item | Value |
 |------|-------|
-| Engine | PostgreSQL 18 |
+| Engine | PostgreSQL (via asyncpg) |
 | Connection | asyncpg pool (`DATABASE_URL` env var) |
 | Pool | min 2, max 10 connections |
-| Cache / Queue | Redis 8.8.0 — rate limiting, OCR queue, AI cache |
+| Cache / Queue | Redis — rate limiting, OCR queue, AI cache |
+| Search | Meilisearch — full-text transaction search |
 
 ## Tables (16 total)
 
@@ -247,7 +246,7 @@ CREATE INDEX IF NOT EXISTS idx_household_members_household ON household_members(
 | role | `TEXT` | `NOT NULL DEFAULT 'member'` |
 | joined_at | `TEXT` | `NOT NULL DEFAULT TO_CHAR(NOW(), ...)` |
 
-**Primary Key:** `(user_id, household_id)` — composite, no separate `id` column.
+**Primary Key:** `(user_id, household_id)` — composite, no separate `id` column. This means the `CursorWrapper.lastrowid` path gracefully falls through when `RETURNING id` fails with `UndefinedColumnError`, executing the INSERT normally.
 
 **Foreign Keys:**
 - `user_id` → `users(id)`
@@ -510,6 +509,8 @@ CREATE INDEX IF NOT EXISTS idx_kpr_extra_payments_sim ON kpr_extra_payments(simu
 **Foreign Keys:**
 - `simulation_id` → `kpr_simulations(id) ON DELETE CASCADE`
 
+> **Note:** The `penalty_rate` and `penalty_amount` columns were removed from this table in v0.7.1. See `backend/scripts/migrate_v0_7_1.py` for the migration.
+
 ---
 
 ### `credit_cards`
@@ -657,6 +658,8 @@ CREATE INDEX IF NOT EXISTS idx_cc_installments_card ON credit_card_installments(
 | `installment_id` | `credit_card_transactions` | `credit_card_installments` | *(none)* |
 | `card_id` | `credit_card_installments` | `credit_cards` | `CASCADE` |
 
+---
+
 ## Migration ALTER TABLE Statements
 
 These `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` statements are executed at startup alongside `CREATE TABLE IF NOT EXISTS` — they add columns to existing tables without breaking production data.
@@ -677,6 +680,17 @@ ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS household_id  INTEGER REFERENC
 ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
 ```
 
+### Removed Columns (v0.7.1)
+
+The `penalty_rate` and `penalty_amount` columns were removed from `kpr_extra_payments` in version 0.7.1. See `backend/scripts/migrate_v0_7_1.py` for the migration script:
+
+```python
+ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS penalty_rate;
+ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS penalty_amount;
+```
+
+---
+
 ## `_init_schema()` Execution
 
 The entire schema — all `CREATE TABLE`, `CREATE INDEX`, and `ALTER TABLE` statements — is defined in a single `SCHEMA_SQL` string constant (lines 188–432 of `app/database.py`). The `_init_schema()` function splits this string on `;` and executes each non-empty, non-comment statement individually:
@@ -695,9 +709,116 @@ async def _init_schema(conn):
 
 This runs once at startup inside `init_pool()` on the first acquired connection. Errors are non-fatal (logged but don't crash startup), making the process fully idempotent for both fresh installs and upgrades.
 
+---
+
+## Household-Aware Query Pattern
+
+The app supports household (group) financial management. When a user belongs to a household, certain queries must include data from all household members rather than just the current user.
+
+The pattern is used in `transactions.py`, `summaries.py`, `kpr.py`, `credit_cards.py`, and `ai_advisor.py`:
+
+1. **Lookup the user's household** — query `household_members` for the current user's `household_id`
+2. **Join through `household_members`** — use `JOIN household_members hm2 ON hm2.user_id = t.user_id` to scope the query to all members of the same household
+3. **Filter by household** — add `hm2.household_id = ?` to the WHERE clause
+
+Example from `transactions.py`:
+
+```python
+# Get user's household
+cursor = await db.execute(
+    "SELECT household_id FROM household_members WHERE user_id = ?",
+    (current_user["id"],),
+)
+hm = await cursor.fetchone()
+if not hm:
+    raise HTTPException(status_code=404, detail="Not a member of any household")
+household_id = hm["household_id"]
+
+# Query all household members' transactions
+join_clause = "FROM transactions t JOIN household_members hm2 ON hm2.user_id = t.user_id"
+where = ["hm2.household_id = ?"]
+params = [household_id]
+```
+
+The same pattern is used for KPR simulations and credit cards (which have their own `household_id` FK columns) — in those cases, the filter is simply `WHERE household_id = ?` without the join.
+
+---
+
 ## Amount Format
 
 All monetary amounts are stored as `INTEGER` (in IDR, no decimals). Display formatting is done in Flutter / Hermes output.
+
+---
+
+## Redis-Based Rate Limiter
+
+The rate limiter at `backend/app/core/rate_limiter.py` uses a Redis-backed **sliding window** implemented as an atomic Lua script:
+
+- **Key pattern:** `ratelimit:{key}` (e.g., `ratelimit:ocr:user_42`, `ratelimit:ai:user_42`)
+- **Data structure:** Redis Sorted Set (ZSET) — each request is a member with its timestamp as score
+- **Atomicity:** The Lua script (`_SLIDING_WINDOW_LUA`) atomically removes expired entries (score < `now - window`), counts remaining entries, and either rejects or adds the new entry — preventing TOCTOU race conditions
+
+```lua
+local key = KEYS[1]
+local max = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+local window_start = now - window
+
+redis.call('zremrangebyscore', key, 0, window_start)
+local count = redis.call('zcard', key)
+
+if count >= max then
+    return {0, count}
+end
+
+redis.call('zadd', key, now, tostring(now))
+local new_count = count + 1
+redis.call('expire', key, window * 2)
+return {1, new_count}
+```
+
+Usage:
+- OCR endpoint: `rate_limit("ocr", max_requests=10, window_sec=86400)` — 10 per day
+- AI advisor: `rate_limit("ai", max_requests=30, window_sec=60)` — 30 per minute
+- The decorator and function raise `HTTPException(status_code=429)` when the limit is exceeded
+
+---
+
+## Meilisearch Full-Text Search Index
+
+Defined in `backend/app/core/meilisearch.py`:
+
+| Setting | Value |
+|---------|-------|
+| Index name | `"transactions"` |
+| Primary key | `id` |
+| Searchable attributes | `["description"]` |
+| Filterable attributes | `["user_id", "type", "category_id", "date"]` |
+| Sortable attributes | `["date", "amount"]` |
+
+**Document structure indexed per transaction:**
+
+```json
+{
+  "id": 123,
+  "description": "Grocery shopping",
+  "type": "expense",
+  "amount": 150000,
+  "category_id": 5,
+  "user_id": 42,
+  "date": "2026-06-13"
+}
+```
+
+**Lifecycle:**
+- On transaction create/update → `index_document(txn_dict)` is called from the transaction router
+- On transaction delete → `delete_document(txn_id)` is called
+- All calls run via `anyio.to_thread.run_sync()` to avoid blocking the async event loop
+- A `bulk_index_documents()` helper is available for migration/seed scripts (sync)
+- Search results return transaction IDs via `search_descriptions(q, filters, sort, offset, limit)`
+
+---
 
 ## Backup
 

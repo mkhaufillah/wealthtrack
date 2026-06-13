@@ -23,14 +23,3 @@ The AI Advisor uses Brave Search API to fetch real-time financial data (e.g., cu
 - `~/.hermes/.env` — fallback (Hermes env), so WealthTrack can reuse an existing key
 
 If no key is found, the AI Advisor still works but without web search capabilities.
-
-### Transfer Categories
-
-Two special categories named "Transfer" were added for the transfer balance feature:
-
-| id | name | type | icon |
-|----|------|------|------|
-| 16 | Transfer | expense | 🔄 |
-| 17 | Transfer | income | 🔄 |
-
-These are auto-created by the backend at startup via `POST /api/v1/transactions/transfer`.
