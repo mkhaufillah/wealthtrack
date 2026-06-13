@@ -603,7 +603,7 @@ class KPRService:
                     new_installment, total_interest_saved, original_end_date, new_end_date)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    simulation_id, data.amount,
+                    sim_id, data.amount,
                     data.apply_month, data.reduction_type,
                     result.old_remaining_balance, result.new_remaining_balance,
                     result.old_remaining_months, result.new_remaining_months,
