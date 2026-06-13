@@ -14,6 +14,7 @@ Environment:
 import argparse
 import json
 import os
+import re
 import sys
 from PIL import Image
 
@@ -104,7 +105,7 @@ def resize_and_save(img, size_px, output_path):
     # Convert to RGB for non-alpha formats
     output_path = str(output_path)
     resized.save(output_path, "PNG")
-    print(f"  ✓ {output_path} ({size_px}x{size_px})")
+    print(f"  V {output_path} ({size_px}x{size_px})")
 
 
 def generate_android_legacy(img, project_root):
@@ -160,14 +161,14 @@ def generate_android_adaptive(img, project_root):
         os.makedirs(fg_dir, exist_ok=True)
         fg_path = os.path.join(fg_dir, "ic_launcher_foreground.png")
         content.save(fg_path, "PNG")
-        print(f"  ✓ {fg_path} ({adaptive_size}x{adaptive_size}, foreground)")
+        print(f"  V {fg_path} ({adaptive_size}x{adaptive_size}, foreground)")
 
         # Save background (solid color)
     # Resize background
         bg_scaled = bg_img.resize((adaptive_size, adaptive_size), Image.Resampling.LANCZOS)
         bg_path = os.path.join(fg_dir, "ic_launcher_background.png")
         bg_scaled.save(bg_path, "PNG")
-        print(f"  ✓ {bg_path} ({adaptive_size}x{adaptive_size}, background)")
+        print(f"  V {bg_path} ({adaptive_size}x{adaptive_size}, background)")
 
     # Create adaptive icon XML definitions
     anydpi_dir = os.path.join(base, "mipmap-anydpi-v26")
@@ -183,7 +184,7 @@ def generate_android_adaptive(img, project_root):
         path = os.path.join(anydpi_dir, name)
         with open(path, "w") as f:
             f.write(adaptive_xml)
-        print(f"  ✓ {path}")
+        print(f"  V {path}")
 
 
 def generate_ios_icons(img, project_root):
@@ -227,37 +228,43 @@ def generate_ios_icons(img, project_root):
     contents_path = os.path.join(appiconset, "Contents.json")
     with open(contents_path, "w") as f:
         json.dump(contents, f, indent=2)
-    print(f"  ✓ {contents_path}")
+    print(f"  V {contents_path}")
 
 
 def update_pubspec(project_root):
-    """Ensure assets are registered in pubspec.yaml."""
+    """Ensure assets/logo.png is registered in pubspec.yaml, without duplicates."""
     pubspec_path = os.path.join(project_root, "pubspec.yaml")
     with open(pubspec_path, "r") as f:
         content = f.read()
 
-    if "assets:" in content and "assets/logo.png" in content:
-        print("  ✓ assets already in pubspec.yaml")
+    if "assets/logo.png" in content:
+        print("  V assets/logo.png already in pubspec.yaml")
         return
 
-    # Add assets section before the last line
-    assets_block = """
-flutter:
-  uses-material-design: true
-  assets:
-    - assets/logo.png
-"""
-    if "flutter:" in content:
-        # Replace flutter section
-        import re
+    # Find the existing assets: line and append logo.png
+    # Match the assets: line through to end of its list (indented items following it)
+    if re.search(r"^  assets:", content, re.MULTILINE):
+        # Already has an assets section -- append to it
         content = re.sub(
-            r"flutter:\n  uses-material-design: true",
-            assets_block.strip(),
+            r"^(  assets:.*?)(?=\n\S|\Z)",
+            lambda m: m.group(1) + "\n    - assets/logo.png",
             content,
+            count=1,
+            flags=re.DOTALL,
         )
-        with open(pubspec_path, "w") as f:
-            f.write(content)
-        print(f"  ✓ Updated {pubspec_path}")
+    else:
+        # No assets section -- add one inside the flutter: block
+        # Find the flutter: block and add assets after uses-material-design
+        content = re.sub(
+            r"(  uses-material-design: true\n)",
+            lambda m: m.group(1) + "  assets:\n    - assets/logo.png\n",
+            content,
+            count=1,
+        )
+
+    with open(pubspec_path, "w") as f:
+        f.write(content)
+    print(f"  V Updated {pubspec_path}")
 
 
 def main():
@@ -305,7 +312,7 @@ def main():
     if "ios" in platforms:
         ios_dir = os.path.join(project_root, "ios")
         if not os.path.exists(ios_dir):
-            print(f"\n4. Skipping iOS icons — '{ios_dir}' not found")
+            print(f"\n4. Skipping iOS icons -- '{ios_dir}' not found")
         else:
             print("\n4. Generating iOS icons...")
             generate_ios_icons(img, project_root)
@@ -313,7 +320,7 @@ def main():
     print("\n5. Updating pubspec.yaml...")
     update_pubspec(project_root)
 
-    print("\n✅ All icons generated!")
+    print("\nDone! All icons generated.")
     print("\nNext steps on your development machine:")
     print("  1. Run: flutter pub get")
     print("  2. Run: flutter build apk --debug  (or flutter build ios)")
