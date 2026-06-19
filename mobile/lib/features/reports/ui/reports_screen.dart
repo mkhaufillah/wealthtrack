@@ -636,13 +636,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: AppColors.avatarColor(u.displayName).withOpacity(0.2),
+                  backgroundColor: AppColors.avatarColor(u.displayName).withOpacity(isDark ? 0.3 : 0.15),
                   child: Text(
                     u.displayName.isNotEmpty ? u.displayName[0] : '?',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.surface : AppColors.avatarColor(u.displayName),
+                      color: isDark ? Colors.white : AppColors.avatarColor(u.displayName),
                     ),
                   ),
                 ),

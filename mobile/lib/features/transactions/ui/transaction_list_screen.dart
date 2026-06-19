@@ -173,9 +173,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         child: Text('Clear',
                             style: TextStyle(
                               fontSize: 14,
-                              color: selected.isEmpty
-                                  ? AppColors.textSecondary.withOpacity(0.4)
-                                  : (isDarkSheet ? AppColors.surface : AppColors.accent),
+                              color: AppColors.accent,
                             )),
                       ),
                     ],
@@ -670,7 +668,7 @@ class _FilterChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected ? AppColors.surface : AppColors.textSecondary,
+            color: selected ? Colors.white : AppColors.textSecondary,
           ),
         ),
       ),
