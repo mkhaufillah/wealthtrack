@@ -73,7 +73,7 @@ backend/
 │   └── prompts/
 │       └── ai_advisor.py       # (reserved for extracted prompt templates)
 │
-├── tests/                      # pytest + pytest-asyncio (313 tests)
+├── tests/                      # pytest + pytest-asyncio (313 backend, 290 Flutter, 603 total)
 │   ├── conftest.py             # Test fixtures, seed data, DB setup
 │   ├── test_auth.py            # Registration, login, OTP flow
 │   ├── test_transactions.py    # CRUD, ownership, transfers

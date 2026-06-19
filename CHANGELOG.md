@@ -70,7 +70,8 @@
 ### Test Counts
 
 - **Backend:** 313 tests (58 routes, ~5.4 tests/route)
-- **Flutter:** 311 tests
+- **Flutter:** 290 tests
+- **Total:** 603 tests
 
 ---
 

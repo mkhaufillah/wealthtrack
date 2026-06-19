@@ -95,7 +95,7 @@ Current version: **v0.7.1** — Extra Payment UX Polish (thousand separator, dat
 │   │   └── run.sh
 │   ├── scripts/                # Bulk indexing, CI setup
 │   └── tests/                  # 313 tests (pytest-asyncio)
-├── mobile/                     # Flutter project
+├── mobile/                     # Flutter project (290 tests)
 ├── docs/                       # Planning docs (this directory)
 ├── deploy/                     # Systemd service, nginx config, deploy script
 ├── .github/workflows/          # CI/CD pipelines

@@ -26,7 +26,7 @@ A personal finance tracker. Tracks daily expenses, income, budgets, and generate
 │  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps)            │   │
 │  │  ├── test: pytest, 313 tests (Docker Postgres+Redis)         │   │
 │  │  ├── deploy: git pull → restart systemd                      │   │
-│  │  └── build-apk: Flutter → release APK cleanup                │   │
+│  │  └── build-apk: Flutter 290 tests → APK release              │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
