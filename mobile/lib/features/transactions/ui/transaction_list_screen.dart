@@ -656,11 +656,13 @@ class _FilterChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: selected
-              ? (isDark ? AppColors.accent.withOpacity(0.85) : AppColors.accent)
+              ? AppColors.accent
               : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? Colors.transparent : AppColors.divider,
+            color: isDark
+                ? AppColors.surface.withOpacity(selected ? 0.3 : 0.15)
+                : (selected ? Colors.transparent : AppColors.divider),
           ),
         ),
         child: Text(
