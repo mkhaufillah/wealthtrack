@@ -182,9 +182,9 @@ class OcrService:
             OcrApiKeyError: API key is not configured.
             OcrBusyError: User already has a processing job.
         """
-        api_key = settings.OPENCODE_GO_API_KEY
-        if not api_key:
-            raise OcrApiKeyError()
+        # Validate image first so non-image requests fail fast (400)
+        # regardless of API key availability
+        self._validate_image(content_type, file_bytes)
 
         # Per-user queue: reject if user already has a processing job
         cursor = await self.db.execute(
@@ -198,7 +198,9 @@ class OcrService:
                 "Please wait for it to complete."
             )
 
-        self._validate_image(content_type, file_bytes)
+        api_key = settings.OPENCODE_GO_API_KEY
+        if not api_key:
+            raise OcrApiKeyError()
 
         # Save image to disk
         ocr_dir = Path(settings.OCR_IMAGE_DIR)
@@ -519,37 +521,38 @@ class OcrService:
                                 "max_tokens": 4096,
                             },
                         )
+                except (httpx.TimeoutException, httpx.RequestError) as exc:
+                    last_exc = exc
+                    wait = (2 ** attempt) + _random.uniform(0, 1)
+                    await asyncio.sleep(wait)
+                    continue
 
-                    if vision_resp.status_code == 429 and attempt < 4:
-                        base_wait = 2**attempt  # 1, 2, 4, 8s
-                        jitter = _random.uniform(0.5, 1.5)
-                        await asyncio.sleep(base_wait * jitter)
-                        continue
-                    break
+                if vision_resp is None:
+                    continue
 
-                except (httpx.TimeoutException, httpx.RequestError) as e:
-                    last_exc = e
-                    if attempt < 4:
-                        await asyncio.sleep(2**attempt)
-                        continue
-                    raise OcrVisionApiError(f"Vision API request failed: {last_exc}")
+                if vision_resp.status_code == 429:
+                    last_exc = OcrVisionApiError(
+                        "Vision API rate limit exceeded. Please wait and try again.",
+                        status_code=429,
+                    )
+                    wait = (2 ** attempt) + _random.uniform(1, 3)
+                    await asyncio.sleep(wait)
+                    continue
+                elif vision_resp.status_code in (401, 503):
+                    raise OcrVisionApiError(
+                        f"Vision API error: HTTP {vision_resp.status_code}"
+                    )
+                elif vision_resp.status_code != 200:
+                    raise OcrVisionApiError(
+                        f"Vision API error: HTTP {vision_resp.status_code}"
+                    )
 
-        if vision_resp is None:
-            raise OcrVisionApiError("Vision API request failed: no response")
+                body = vision_resp.json()
+                content = body["choices"][0]["message"]["content"].strip()
+                content = re.sub(r"^```(?:json)?\s*", "", content)
+                content = re.sub(r"\s*```$", "", content)
+                return content
 
-        if vision_resp.status_code == 429:
-            raise OcrVisionApiError(
-                f"Vision API rate limit (attempt {attempt + 1}/5)"
-            )
-        elif vision_resp.status_code == 401:
-            raise OcrVisionApiError("Vision API unauthorized — check API key")
-        elif vision_resp.status_code != 200:
-            raise OcrVisionApiError(
-                f"Vision API error: HTTP {vision_resp.status_code} "
-                f"(attempt {attempt + 1}/5)"
-            )
-
-        content = vision_resp.json()["choices"][0]["message"]["content"].strip()
-        content = re.sub(r"^```(?:json)?\s*", "", content)
-        content = re.sub(r"\s*```$", "", content)
-        return content
+        if last_exc:
+            raise last_exc
+        raise OcrVisionApiError("Vision API retries exhausted — no response")
