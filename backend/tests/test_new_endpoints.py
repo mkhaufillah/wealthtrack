@@ -15,6 +15,7 @@ import zlib
 
 import httpx
 import pytest
+import os
 from httpx import AsyncClient
 
 
@@ -90,6 +91,7 @@ class TestOcrProcessAndSave:
         assert resp.status_code == 400
         assert "too large" in resp.json()["detail"].lower()
 
+    @pytest.mark.skipif(not os.getenv("OPENCODE_GO_API_KEY"), reason="OPENCODE_GO_API_KEY not set")
     async def test_successful_creation(self, client: AsyncClient, filla_token: str):
         """Valid image creates OCR job and returns job_id immediately."""
         png_data = _make_tiny_png()
