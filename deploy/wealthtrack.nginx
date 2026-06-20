@@ -18,7 +18,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
-    # Reverse proxy to FastAPI
+    # Reverse proxy to FastAPI (Docker container on port 8080)
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
@@ -34,11 +34,5 @@ server {
         # SSE streaming (AI Advisor)
         proxy_read_timeout 120s;
         proxy_buffering off;
-    }
-
-    # Static files (optional, for frontend)
-    location /static/ {
-        alias /home/filla/dev/wealthtrack/backend/static/;
-        expires 30d;
     }
 }
