@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.7.2 — Dockerization & GitHub-Hosted Runners (2026-06-21)
+
+### Infrastructure & Deployment
+- **Dockerized Backend:** Replaced native `systemd` deployment with a containerized deployment (`python:3.11-slim` Docker image).
+- **GitHub-Hosted Runners:** Migrated CI/CD workflows (`build-apk.yml`, `deploy-backend.yml`) from self-hosted runners to GitHub-hosted ephemeral `ubuntu-latest` runners.
+- **SSH Deployment:** Deploys are now executed via `appleboy/ssh-action` to build and restart the Docker container on the VPS.
+- **Network Host:** Docker container uses `--network host` to maintain seamless connectivity to local PostgreSQL and Redis instances on the VPS.
+- **Removed Self-Hosted Runner:** Cleaned up documentation and dependencies related to the outdated self-hosted runner.
+
+---
 ## v0.7.0 — Extra Payment KPR + Household Debt (2026-06-09)
 
 ### Extra Payment KPR

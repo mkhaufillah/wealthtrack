@@ -1,34 +1,35 @@
 # WealthTrack — Personal Finance Tracker
 
-A personal finance tracker. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Redis + Meilisearch + Flutter + AI features. **v0.7.1** — Extra Payment UX Polish + Household Debt Context + Penalty Cleanup.
+A personal finance tracker. Tracks daily expenses, income, budgets, and generates periodic summaries. Built with FastAPI + PostgreSQL + Redis + Meilisearch + Flutter + AI features. **v0.7.2** — Dockerization & GitHub-Hosted Runners.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    VPS — 2.27.165.90 (self-hosted)                  │
-│                                                                     │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────┐ │
-│  │  Nginx       │──►│  FastAPI     │──►│  PostgreSQL  │   │Redis │ │
-│  │  :443 (SSL)  │   │  :8080       │   │  :5432       │   │:6379 │ │
-│  │  wealthtrack │   │  (localhost) │   │  wealthtrack │   │(auth)│ │
-│  │  .filla.id   │   └──────┬───────┘   └──────────────┘   └──────┘ │
-│  └──────────────┘          │                                        │
-│                            │ HTTP/JSON                              │
-│                            ▼                                        │
-│                     ┌──────────────┐   ┌──────────────────────┐    │
-│                     │  Flutter     │   │  Meilisearch 1.45.2  │    │
-│                     │  Mobile      │   │  :7700 (full-text)   │    │
-│                     │  (Android)   │   └──────────────────────┘    │
-│                     └──────────────┘                                │
-│                                                                     │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps)            │   │
-│  │  ├── test: pytest, 313 tests (Docker Postgres+Redis)         │   │
-│  │  ├── deploy: git pull → restart systemd                      │   │
-│  │  └── build-apk: Flutter 290 tests → APK release              │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    VPS — 2.27.165.90 (self-hosted)                      │
+│                                                                         │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────┐ │
+│  │  Nginx       │──►│  Docker      │──►│  PostgreSQL  │   │  Redis   │ │
+│  │  :443 (SSL)  │   │  Container   │   │  :5432       │   │  :6379   │ │
+│  │  wealthtrack │   │  :8080       │   │  (localhost  │   │  (auth)  │ │
+│  │  .filla.id   │   └──────┬───────┘   │   only)      │   └──────────┘ │
+│  └──────────────┘          │            └──────────────┘                │
+│                            │                        ┌──────────────┐   │
+│                       HTTP/JSON                     │ Meilisearch  │   │
+│                            │                        │ :7700 (FT)   │   │
+│                            ▼                        └──────────────┘   │
+│                     ┌──────────────┐                                   │
+│                     │   Flutter    │                                   │
+│                     │   Mobile     │                                   │
+│                     │  (Android)   │                                   │
+│                     └──────────────┘                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                ▲
+                                │ SSH Deploy
+                   ┌────────────┴─────────────┐
+                   │  GitHub Actions Runner   │
+                   │  (ubuntu-latest)         │
+                   └──────────────────────────┘
 ```
 
 ## Tech Stack
@@ -42,7 +43,7 @@ A personal finance tracker. Tracks daily expenses, income, budgets, and generate
 | Mobile | Flutter (Android + iOS later) | Cross-platform, one codebase |
 | Auth | JWT (username/password + email OTP) | Self-contained, no Firebase |
 | Server | VPS self-hosted, Ubuntu 22.04 | Already running, no extra cost |
-| CI/CD | GitHub Actions + Self-Hosted Runner | All workflows on self-hosted VPS (test, deploy, build APK) |
+| CI/CD | GitHub Actions (ubuntu-latest) | All workflows on GitHub-hosted runner (test, deploy, APK build) |
 | Domain | wealthtrack.filla.id | Nginx reverse proxy, Let's Encrypt SSL |
 
 ## Project Structure
@@ -81,7 +82,7 @@ A personal finance tracker. Tracks daily expenses, income, budgets, and generate
 │   ├── 07-deployment.md
 │   ├── 08-p4-plan.md
 │   └── ...                    # Feature-specific docs
-├── deploy/                    # Systemd service, nginx config, deploy script
+├── deploy/                    # Nginx config, deploy script
 ├── .github/workflows/         # CI/CD pipelines
 └── README.md
 ```
@@ -92,8 +93,8 @@ A personal finance tracker. Tracks daily expenses, income, budgets, and generate
 
 | Workflow | Trigger | Jobs | Notifications |
 |----------|---------|------|---------------|
-| `deploy-backend.yml` | Push to `main` (backend/), workflow_dispatch | `test` → `deploy` (both self-hosted) | 🚀 Started → ✅/❌ Tests → ✅/❌ Deploy |
-| `build-apk.yml` | Push to `main` (mobile/), workflow_dispatch | Build APK on self-hosted runner | ✅/❌ APK result |
+| `deploy-backend.yml` | Push to `main` (backend/), workflow_dispatch | `test` → `deploy` via SSH | 🚀 Started → ✅/❌ Tests → ✅/❌ Deploy |
+| `build-apk.yml` | Push to `main` (mobile/), workflow_dispatch | Build APK | ✅/❌ APK result |
 
 ### Telegram Notifications (v2)
 
@@ -132,7 +133,7 @@ Every CI run sends **start + result notifications** to Keluarga Super Sapi → t
 2. **PostgreSQL connection pooling** — asyncpg pool (min 2, max 10) for concurrent reads + writes.
 3. **Auto schema init** — Tables + indexes created with `IF NOT EXISTS` on startup. Zero manual migration.
 4. **JWT auth** — Stateless. Token stored in Flutter Secure Storage.
-5. **Self-hosted runner** — Deploys on git push without SSH secrets. NOPASSWD sudo for systemctl only.
+5. **GitHub-hosted CI runner** — deploys via SSH action instead of self-hosted runners. Dockerized backend deployment.
 6. **Redis with auth** — Rate limiting and OCR queue survive server restarts. No open access.
 7. **Meilisearch for full-text search** — Inverted index scales to millions of transactions.
 8. **Hermes talks directly to DB** — Not through FastAPI. Co-located on same VPS.
@@ -150,17 +151,17 @@ Every CI run sends **start + result notifications** to Keluarga Super Sapi → t
 || P7 — Debt Tracker | KPR Calculator + Credit Card Management + Android Widget | ✅ Done |
 ||| P8 — Home Polishing | Refresh, spacing, projection, due_date, white screen fix | ✅ Done |
 ||| P9 — Extra Payment KPR + Household Debt | Extra Payment (Option A: Reduce Installment, Option B: Reduce Tenor), preview comparison, household debt aggregation | ✅ Done |
+||| P10 — Dockerization | Migrate to GitHub-hosted runners, Dockerize backend | ✅ Done |
 
 ## Deployment
 
 | Service | Status | Port | Access |
 |---------|--------|------|--------|
-| FastAPI (WealthTrack) | systemd | 127.0.0.1:8080 | Nginx reverse proxy |
+| Docker Container | Docker | 127.0.0.1:8080 | Nginx reverse proxy |
 | PostgreSQL 18 | systemd | 127.0.0.1:5432 | Localhost only |
 | Redis 8.8.0 | systemd | 127.0.0.1:6379 | Password protected |
 | Meilisearch 1.45.2 | systemd | 127.0.0.1:7700 | Master key protected |
 | Nginx | systemd | 0.0.0.0:80,443 | Public (SSL via Let's Encrypt) |
-| GitHub Runner | systemd | Outbound only | Self-hosted, no inbound ports |
 
 See [Deployment Guide](docs/07-deployment.md) for full setup instructions.
 

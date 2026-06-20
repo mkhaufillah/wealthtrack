@@ -4,7 +4,7 @@
 
 WealthTrack is a personal finance tracker for Filla & Nahda. Tracks daily expenses, income, budgets, and generates periodic summaries.
 
-Current version: **v0.7.1** — Extra Payment UX Polish (thousand separator, date format) + Household Debt Context + Penalty Cleanup.
+Current version: **v0.7.2** — Dockerized Backend & GitHub-hosted Runners Migration.
 
 ## Related Documents
 
@@ -13,7 +13,7 @@ Current version: **v0.7.1** — Extra Payment UX Polish (thousand separator, dat
 - [Backend Implementation](04-backend-implementation.md) — step-by-step build guide
 - [Flutter Mobile](05-flutter-mobile.md) — mobile app design & architecture
 - [Brave Search Integration](06-brave-search-integration.md) — Brave Search API integration
-- [Deployment](07-deployment.md) — VPS setup, nginx, CI/CD, self-hosted runner
+- [Deployment](07-deployment.md) — VPS setup, nginx, CI/CD, docker
 - [P4 Plan](08-p4-plan.md) — updated feature roadmap: charts, budgets, export, OCR, AI advisor, change owner
 - [Dark Mode](09-dark-mode.md) — dark theme implementation for Flutter
 - [Edit Transaction](10-edit-transaction.md) — edit flow & UI states
@@ -33,9 +33,9 @@ Current version: **v0.7.1** — Extra Payment UX Polish (thousand separator, dat
 │                    VPS — 2.27.165.90 (self-hosted)                      │
 │                                                                         │
 │  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────┐ │
-│  │  Nginx       │──►│  FastAPI     │──►│  PostgreSQL  │   │  Redis   │ │
-│  │  :443 (SSL)  │   │  :8080       │   │  :5432       │   │  :6379   │ │
-│  │  wealthtrack │   │  (localhost) │   │  (localhost  │   │  (auth)  │ │
+│  │  Nginx       │──►│  Docker      │──►│  PostgreSQL  │   │  Redis   │ │
+│  │  :443 (SSL)  │   │  Container   │   │  :5432       │   │  :6379   │ │
+│  │  wealthtrack │   │  :8080       │   │  (localhost  │   │  (auth)  │ │
 │  │  .filla.id   │   └──────┬───────┘   │   only)      │   └──────────┘ │
 │  └──────────────┘          │            └──────────────┘                │
 │                            │                        ┌──────────────┐   │
@@ -43,11 +43,17 @@ Current version: **v0.7.1** — Extra Payment UX Polish (thousand separator, dat
 │                            │                        │ :7700 (FT)   │   │
 │                            ▼                        └──────────────┘   │
 │                     ┌──────────────┐                                   │
-│                     │   Flutter    │    ┌─────────────────────────┐    │
-│                     │   Mobile     │    │ GitHub Actions Runner   │    │
-│                     │  (Android)   │    │ (self-hosted, systemd)  │    │
-│                     └──────────────┘    └─────────────────────────┘    │
+│                     │   Flutter    │                                   │
+│                     │   Mobile     │                                   │
+│                     │  (Android)   │                                   │
+│                     └──────────────┘                                   │
 └─────────────────────────────────────────────────────────────────────────┘
+                                ▲
+                                │ SSH Deploy
+                   ┌────────────┴─────────────┐
+                   │  GitHub Actions Runner   │
+                   │  (ubuntu-latest)         │
+                   └──────────────────────────┘
 ```
 
 ## Tech Stack
@@ -61,7 +67,7 @@ Current version: **v0.7.1** — Extra Payment UX Polish (thousand separator, dat
 | Mobile | Flutter | Cross-platform, one codebase |
 | Auth | JWT (username/password + email OTP) | Self-contained, no Firebase dependency |
 | Server | VPS — 2.27.165.90 (Ubuntu 22.04) | Already running, no extra cost |
-| CI/CD | GitHub Actions + Self-Hosted Runner | All workflows on self-hosted runner (test, deploy, APK build) |
+| CI/CD | GitHub Actions (ubuntu-latest) | All workflows on GitHub-hosted runner (test, deploy, APK build) |
 
 ## Single Source of Truth
 
@@ -92,12 +98,12 @@ Current version: **v0.7.1** — Extra Payment UX Polish (thousand separator, dat
 │   │   │                       # AI advisor, health, admin categories
 │   │   ├── services/           # OCR processing, web search, AI logic
 │   │   ├── requirements.txt
-│   │   └── run.sh
+│   │   └── Dockerfile          # Docker image definition
 │   ├── scripts/                # Bulk indexing, CI setup
 │   └── tests/                  # 313 tests (pytest-asyncio)
 ├── mobile/                     # Flutter project (290 tests)
 ├── docs/                       # Planning docs (this directory)
-├── deploy/                     # Systemd service, nginx config, deploy script
+├── deploy/                     # Nginx config, deploy script
 ├── .github/workflows/          # CI/CD pipelines
 └── README.md
 ```
@@ -128,8 +134,9 @@ Current version: **v0.7.1** — Extra Payment UX Polish (thousand separator, dat
 | P2 — Hermes Integration | Update existing cron script, input from chat | ✅ Done |
 | P3 — Flutter MVP | Login, dashboard, add transaction, list transactions | ✅ Done |
 | P4 — Polish | Charts, budgets, export, OCR, AI advisor, change owner | ✅ Done |
-| P5 — Hardening | CI/CD self-hosted runner, CORS/Redis/DB security, Telegram v2 | ✅ Done |
+| P5 — Hardening | CI/CD runners, CORS/Redis/DB security, Telegram v2 | ✅ Done |
 | P6 — Audit Cleanup | 29 findings audited, 20 fixed, 2 cancelled, 0 bugs | ✅ Done |
+| P7 — Dockerization | Migrate to GitHub-hosted runners, Dockerize backend | ✅ Done |
 
 ## Key Design Decisions
 
@@ -140,4 +147,4 @@ Current version: **v0.7.1** — Extra Payment UX Polish (thousand separator, dat
 5. **Hermes talks directly to DB** — not through FastAPI. It's co-located on the same VPS.
 6. **Meilisearch for full-text search** — inverted index, not SQL LIKE. Scales to millions of transactions.
 7. **Redis for ephemeral state** — rate limiting and OCR queue state. Password-protected.
-8. **Self-hosted CI runner** — deploys without SSH secrets. NOPASSWD sudo for systemctl only.
+8. **GitHub-hosted CI runner** — deploys via SSH action instead of self-hosted runners.

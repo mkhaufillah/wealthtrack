@@ -2,7 +2,7 @@
 
 **See also:** [Backend Implementation](04-backend-implementation.md) · [Backend API](03-backend-api.md) · [Flutter Mobile](05-flutter-mobile.md) · [P4 Plan](08-p4-plan.md)
 
-> **⚠️ v0.5.4 update:** Deployment is fully automated via self-hosted GitHub Actions runner. SSH-based deployment has been replaced. This doc reflects the current state (including audit fixes from v0.5.4).
+> **⚠️ v0.7.2 update:** Backend is now Dockerized and deployment is handled by GitHub-hosted runners (`ubuntu-latest`) via SSH.
 
 ## Architecture on VPS
 
@@ -17,7 +17,8 @@
                           |  Reverse Proxy                                                │
                           |        │                                                      │
                           |        ▼                                                      │
-                          |  FastAPI :8080 (localhost only)                               │
+                          |  Docker Container (wealthtrack-backend)                       │
+                          |  --network host (binds to :8080)                              │
                           |     │          ▲                  ▲                           │
                           |     │          │                  │                           │
                           |     ▼          │                  │                           │
@@ -27,71 +28,39 @@
                           |  │  (localhost     │   │  (localhost) │   │  (auth req)  │   │
                           |  │   only)         │   │              │   │              │   │
                           |  └─────────────────┘   └──────────────┘   └──────────────┘   │
-                          |                                                               │
-                          |  ┌──────────────────────────────────────────────────────┐     │
-                          |  │  GitHub Actions Self-Hosted Runner (wealthtrack-vps) │     │
-                          |  │  systemd service: actions.runner.wealthtrack-...     │     │
-                          |  │  Outbound connection to GitHub — no inbound ports    │     │
-                          │  │  ├── test → pytest 313 tests (Docker Postgres+Redis)       │     │
-                          │  │  ├── deploy → git pull → uv pip install → sudo systemctl │     │
-                          │  │  ├── build-apk → Flutter 290 tests → APK release         │     │
-                          │  │  └── Verify → health check                               │     │
-                          |  └──────────────────────────────────────────────────────┘     │
-                          |                                                               │
-                          |  ┌─────────────────────────────────────┐                      │
-                          |  │  Flutter Mobile (via internet)      │                      │
-                          |  │  ──► https://wealthtrack.filla.id   │──► Nginx ──► FastAPI │
-                          |  └─────────────────────────────────────┘                      │
-                          |                                                               │
                           └───────────────────────────────────────────────────────────────┘
+                                   ▲
+                                   │ SSH Deploy
+                          ┌────────┴─────────────────────────────────────────────┐
+                          │  GitHub Actions (ubuntu-latest)                      │
+                          │  ├── test → pytest 313 tests (Docker Postgres+Redis) │
+                          │  ├── deploy → SSH → docker build & run               │
+                          │  └── build-apk → Flutter 290 tests → APK release     │
+                          └──────────────────────────────────────────────────────┘
 ```
 
 ## Key Differences from Earlier Setup
 
-| Aspect | Old (before v0.5.4) | New (current) |
+| Aspect | Old (before v0.7.2) | New (current) |
 |--------|---------------------|---------------|
-| Deployment method | SSH via appleboy/ssh-action (port 2222) | Self-hosted GitHub Actions runner |
-| GitHub secrets for VPS | `VPS_HOST`, `VPS_SSH_KEY`, `VPS_USER`, `SUDO_PASSWORD` | **All removed** — 0 SSH secrets |
-| sudo for systemctl | SUDO_PASSWORD passed via secret → `echo password \| sudo -S` | **NOPASSWD** — `/etc/sudoers.d/wealthtrack` allows `systemctl restart wealthtrack` |
-| Telegram notifications | Only on success/failure of deploy job | 🚀 Start + ✅/❌ Tests + ✅/❌ Deploy (4 notifications per run) |
-| CORS | `["*"]` (wildcard — allowed any origin) | `["https://wealthtrack.filla.id", "http://localhost:8080", "null"]` |
-| Redis auth | No password — open access on localhost | `requirepass` enabled in `/etc/redis/redis.conf` |
-| PostgreSQL password | Weak (`wealthtrack123`) | 32-character random alphanumeric |
-| PostgreSQL access | Tailscale network (100.64.0.0/10) allowed | `localhost` only — Tailscale removed from `pg_hba.conf` |
+| Runner | Self-hosted GitHub Actions runner | GitHub-hosted `ubuntu-latest` |
+| Application Host | Native via systemd + virtualenv | Docker Container (`python:3.11-slim`) |
+| Deployment method | `systemctl restart wealthtrack` | SSH via `appleboy/ssh-action` |
+| GitHub secrets for VPS | None | `SERVER_HOST`, `SERVER_USER`, `SERVER_SSH_KEY` |
 
-## Systemd Service
+## Docker Container (Replaces Systemd)
 
-Config file at `deploy/wealthtrack.service`:
+The backend is now fully containerized. A Docker container handles the application running on port 8080.
 
-```ini
-[Unit]
-Description=WealthTrack API
-After=network.target redis.service
-Wants=redis.service
-
-[Service]
-Type=simple
-User=hermes
-WorkingDirectory=/home/hermes/dev/wealthtrack/backend
-Environment=PATH=/home/hermes/.local/bin:/home/hermes/dev/wealthtrack/.venv/bin
-ExecStart=/home/hermes/dev/wealthtrack/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8080
-Restart=on-failure
-RestartSec=5
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Install:
+To manually deploy on the server:
 ```bash
-sudo cp deploy/wealthtrack.service /etc/systemd/system/wealthtrack.service
-sudo systemctl daemon-reload
-sudo systemctl enable wealthtrack
-sudo systemctl start wealthtrack
-sudo systemctl status wealthtrack
+cd ~/dev/wealthtrack/backend
+docker build -t wealthtrack-backend .
+docker stop wealthtrack-backend 2>/dev/null || true
+docker rm wealthtrack-backend 2>/dev/null || true
+docker run -d --name wealthtrack-backend --network host --restart unless-stopped $([ -f .env ] && echo "--env-file .env") wealthtrack-backend
 ```
+*Note: We use `--network host` so the container can resolve `localhost` natively to the host PostgreSQL and Redis instances without modifying the connection strings.*
 
 ## Nginx Reverse Proxy
 
@@ -210,49 +179,30 @@ sudo systemctl status postgresql redis meilisearch wealthtrack --no-pager
 
 ## CI/CD Pipeline
 
-### Self-Hosted Runner (wealthtrack-vps)
+### GitHub-Hosted Runner (`ubuntu-latest`)
 
-A GitHub Actions self-hosted runner registered on the VPS, running as a systemd service. The runner communicates **outbound** to GitHub — no ports need to be open on the VPS for deployment.
-
-**Runner setup:**
-```bash
-# Download and configure runner (one-time)
-cd /home/hermes/actions-runner
-./config.sh --url https://github.com/mkhaufillah/wealthtrack --token <token>
-sudo ./svc.sh install
-sudo ./svc.sh start
-
-# Check status
-sudo systemctl status actions.runner.wealthtrack-wealthtrack.wealthtrack-vps.service
-```
+Deployments are handled by GitHub's ephemeral `ubuntu-latest` runners. The test database (PostgreSQL and Redis) are spun up as service containers during the test job. 
 
 ### Deploy Flow (git push → live)
 
 1. **Push to `main`** triggers workflows
-2. **Cleanup phase** (self-hosted runner): removes any stale Docker containers on ports 5433/6380 left from previous runs.
-3. **Test phase** (self-hosted runner): runs 313 pytest tests (backend) with PostgreSQL 18 + Redis 7 service containers (Docker). Tests use `wealthtrack_test` database on port 5433, Redis on port 6380.
-4. **Deploy phase** (self-hosted runner): on test success, the runner:
+2. **Test phase** (GitHub runner): runs 313 pytest tests (backend) with PostgreSQL 18 + Redis 7 service containers (Docker).
+3. **Deploy phase** (GitHub runner): on test success, the runner connects via SSH (`appleboy/ssh-action`):
    - `git pull` on the VPS
-   - `uv pip install -r backend/requirements.txt`
-   - `sudo systemctl restart wealthtrack` (NOPASSWD)
+   - Builds new Docker image
+   - Restarts Docker container `wealthtrack-backend` on the VPS
    - HTTP health check (retries 12×, 10s apart)
 4. **Notifications**: Telegram messages at every stage (start, test result, deploy result)
 
 **Workflow trigger paths:** `backend/**`, `deploy/**`, `.github/workflows/deploy-backend.yml`
 
-### NOPASSWD Sudo Security
-
-Only a **single systemd command** is allowed without password via `/etc/sudoers.d/wealthtrack`:
-```
-hermes ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart wealthtrack
-```
-
-No other `sudo` commands are available to the runner without a password. The secret `SUDO_PASSWORD` no longer exists in GitHub.
-
-### Remaining Secrets (5 total)
+### Required Secrets
 
 | Secret | Purpose |
 |--------|---------|
+| `SERVER_HOST` | VPS IP address for SSH deploy |
+| `SERVER_USER` | VPS username for SSH deploy |
+| `SERVER_SSH_KEY` | Private SSH key for VPS deployment |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token for CI notifications |
 | `KEYSTORE_BASE64` | Keystore file (base64) for APK signing |
 | `KEY_ALIAS` | Keystore alias for APK signing |
@@ -271,9 +221,9 @@ All notifications go to **Keluarga Super Sapi → topic Deployment** (`chat_id=-
 
 ### Flutter APK Build
 
-Triggered by `build-apk.yml` on push to `main` with `mobile/**` changes or manual `workflow_dispatch`. Runs on the self-hosted runner with pre-installed Android SDK + JDK 17.
+Triggered by `build-apk.yml` on push to `main` with `mobile/**` changes or manual `workflow_dispatch`. Runs on GitHub-hosted runner (`ubuntu-latest`).
 
-- Builds release APK (~27MB) on self-hosted runner
+- Builds release APK (~27MB)
 - Signs with uploaded keystore
 - Uploads artifact (retention: 1 day)
 - Falls back to GitHub Release if artifact storage is full
@@ -284,7 +234,7 @@ Triggered by `build-apk.yml` on push to `main` with `mobile/**` changes or manua
 
 | Detail | Value |
 |--------|-------|
-| Test runner | Self-hosted runner (wealthtrack-vps) |
+| Test runner | GitHub-hosted runner (`ubuntu-latest`) |
 | Test database | `wealthtrack_test` on PostgreSQL 18 container (port 5433) |
 | Redis for tests | `redis:7-alpine` container (port 6380, no auth) |
 | Test count | **603 total** (313 backend + 290 Flutter) |
@@ -303,7 +253,7 @@ curl -s -o /dev/null -w "%{http_code}" https://wealthtrack.filla.id/api/v1/healt
 
 ```bash
 # Service logs
-journalctl -u wealthtrack -n 50 --no-pager
+docker logs -f wealthtrack-backend
 
 # Redis
 redis-cli -a '<password>' ping  # → PONG
@@ -314,9 +264,6 @@ curl -s http://localhost:7700/health  # → {"status":"available"}
 # Nginx
 sudo nginx -t
 sudo systemctl status nginx
-
-# Self-hosted runner
-sudo systemctl status actions.runner.wealthtrack-wealthtrack.wealthtrack-vps.service
 
 # Full endpoint health check
 curl -s https://wealthtrack.filla.id/api/v1/health | python3 -m json.tool
@@ -332,7 +279,7 @@ curl -s https://wealthtrack.filla.id/api/v1/health | python3 -m json.tool
 - [x] Schema auto-created on startup
 - [x] Nginx config installed, SSL active
 - [x] Firewall: 80+443 open
-- [x] Self-hosted runner registered and online
-- [x] NOPASSWD sudo configured (systemctl restart wealthtrack only)
+- [x] Docker installed and running
+- [x] SSH credentials configured in GitHub Secrets
 - [x] Telegram notifications working (start + result)
 - [x] Backup cron installed

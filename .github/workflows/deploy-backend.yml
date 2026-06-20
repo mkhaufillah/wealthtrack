@@ -20,20 +20,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Pre-cleanup: kill stale containers before test services start ──
-  cleanup:
-    runs-on: [self-hosted, linux]
-    steps:
-      - name: 🧹 Cleanup stale test containers
-        run: |
-          echo "→ Removing any leftover containers on test ports..."
-          docker rm -f $(docker ps -a -q --filter "publish=5433") 2>/dev/null || true
-          docker rm -f $(docker ps -a -q --filter "publish=6380") 2>/dev/null || true
-          echo "✅ Cleanup done"
-
   test:
-    needs: cleanup
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
@@ -63,7 +51,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: 🚀 Notify — CI started
         run: |
@@ -74,7 +62,7 @@ jobs:
             -d text="<b>🚀 WealthTrack CI</b>%0A<code>${GITHUB_SHA::7}</code> — tests running... ⏳" || true
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -101,37 +89,33 @@ jobs:
 
   deploy:
     needs: test
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          clean: false
-
-      - name: Pull & update dependencies
-        run: |
-          set -e
-          cd ~/dev/wealthtrack
-          git pull origin main
-          source .venv/bin/activate
-          uv pip install -q -r backend/requirements.txt
-
-      - name: Restart service (NOPASSWD sudo)
-        run: sudo systemctl restart wealthtrack
-
-      - name: Health check
-        run: |
-          echo "→ Waiting for service to be ready..."
-          for i in $(seq 1 12); do
-            if curl -sf http://127.0.0.1:8080/api/v1/health > /dev/null 2>&1; then
-              echo "✅ Service is healthy"
-              exit 0
-            fi
-            echo "  Attempt $i/12 — not ready yet, waiting 10s..."
-            sleep 10
-          done
-          echo "❌ Service failed to respond after 12 attempts"
-          exit 1
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/dev/wealthtrack
+            git pull origin main
+            cd backend
+            docker compose up -d --build
+            docker image prune -f
+            
+            echo "→ Waiting for service to be ready..."
+            for i in $(seq 1 12); do
+              if curl -sf http://127.0.0.1:8080/api/v1/health > /dev/null 2>&1; then
+                echo "✅ Service is healthy"
+                exit 0
+              fi
+              echo "  Attempt $i/12 — not ready yet, waiting 10s..."
+              sleep 10
+            done
+            echo "❌ Service failed to respond after 12 attempts"
+            exit 1
 
       - name: ✅ Notify — deploy success
         if: success()

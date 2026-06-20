@@ -41,19 +41,20 @@ else
 fi
 
 # ════════════════════════════════════════════════════
-# 1. Systemd Service
+# 1. Docker Build & Run (Replacing Systemd)
 # ════════════════════════════════════════════════════
 echo ""
-echo "[1/7] Installing systemd service..."
-SERVICE_FILE="/etc/systemd/system/wealthtrack.service"
-if [ -f "$SERVICE_FILE" ] && systemctl is-enabled wealthtrack &>/dev/null; then
-    echo "  ✓ systemd service already installed & enabled — skipping"
-else
-    sudo cp deploy/wealthtrack.service "$SERVICE_FILE"
-    sudo systemctl daemon-reload
-    sudo systemctl enable wealthtrack
-    echo "  ✓ systemd service installed"
+echo "[1/7] Building and running Docker container..."
+if ! command -v docker &>/dev/null; then
+    echo "  ! Docker is not installed. Please install Docker first: https://docs.docker.com/engine/install/"
+    exit 1
 fi
+
+cd backend
+docker compose up -d --build
+docker image prune -f
+cd ..
+echo "  ✓ Docker container running"
 
 # ════════════════════════════════════════════════════
 # 2. Nginx Config (HTTP-only — SSL added by certbot in step 3)
@@ -89,18 +90,11 @@ else
 fi
 
 # ════════════════════════════════════════════════════
-# 4. Start Service
+# 4. Verify Docker Container
 # ════════════════════════════════════════════════════
 echo ""
-echo "[4/7] Starting WealthTrack service..."
-if service_running wealthtrack; then
-    echo "  ✓ wealthtrack service already running — restarting..."
-    sudo systemctl restart wealthtrack
-else
-    sudo systemctl start wealthtrack
-fi
-sleep 2
-sudo systemctl status wealthtrack --no-pager
+echo "[4/7] Verifying WealthTrack container..."
+docker ps --filter "name=wealthtrack-backend"
 
 # ════════════════════════════════════════════════════
 # 6. Firewall

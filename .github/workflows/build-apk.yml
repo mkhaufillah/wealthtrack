@@ -11,9 +11,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   TG_CHAT_ID: "-1003997003114"
   TG_TOPIC_ID: "3"
-  ANDROID_HOME: /opt/android-sdk
-  ANDROID_SDK_ROOT: /opt/android-sdk
-  JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
 permissions:
   contents: write
@@ -26,13 +23,20 @@ concurrency:
 
 jobs:
   build:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: mobile
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
       - name: 🚀 Notify — APK build started
         run: |
@@ -41,6 +45,12 @@ jobs:
             -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
             -d parse_mode="HTML" \
             -d text="<b>📱 WealthTrack APK</b>%0A<code>${GITHUB_SHA::7}</code> — building... ⏳" || true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -89,17 +99,9 @@ jobs:
           echo "--- Manifest content ---"
           cat android/app/src/main/AndroidManifest.xml
 
-      - name: Cache pip packages
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-pillow
-          restore-keys: |
-            pip-${{ runner.os }}-
-
       - name: Generate app icons
         run: |
-          pip install --break-system-packages Pillow
+          pip install Pillow
           python3 generate_icons.py --platforms android
 
       - name: Install dependencies
@@ -138,7 +140,7 @@ jobs:
         id: upload-artifact
         continue-on-error: true
         timeout-minutes: 10
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: wealthtrack-release
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
@@ -176,12 +178,3 @@ jobs:
             -d message_thread_id="${{ env.TG_TOPIC_ID }}" \
             -d parse_mode="HTML" \
             -d text="<b>❌ WealthTrack APK</b>%0ABuild APK <code>${GITHUB_SHA::7}</code> gagal!%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Lihat logs</a>" || true
-
-      - name: 🧹 Cleanup build artifacts
-        if: always()
-        run: |
-          echo "Cleaning up APK build artifacts..."
-          rm -rf build/
-          rm -rf .dart_tool/
-          rm -rf .packages .flutter-plugins .flutter-plugins-dependencies
-          echo "✅ Cleanup done — $(df -h . | tail -1 | awk '{print $4}') free"
