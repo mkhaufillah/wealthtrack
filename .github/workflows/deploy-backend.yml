@@ -90,29 +90,33 @@ jobs:
 
   deploy:
     needs: test
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
-      - name: Deploy via Docker Compose
-        working-directory: /home/hermes/dev/wealthtrack/backend
-        run: |
-          set -e
-          cd /home/hermes/dev/wealthtrack
-          git pull origin main
-          cd backend
-          docker compose up -d --build
-          docker image prune -f
-
-          echo "→ Waiting for service to be ready..."
-          for i in $(seq 1 12); do
-            if curl -sf http://127.0.0.1:8080/api/v1/health > /dev/null 2>&1; then
-              echo "✅ Service is healthy"
-              exit 0
-            fi
-            echo "  Attempt $i/12 — not ready yet, waiting 10s..."
-            sleep 10
-          done
-          echo "❌ Service failed to respond after 12 attempts"
-          exit 1
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            cd /home/hermes/dev/wealthtrack
+            git pull origin main
+            cd backend
+            docker compose up -d --build
+            docker image prune -f
+            
+            echo "→ Waiting for service to be ready..."
+            for i in $(seq 1 12); do
+              if curl -sf http://127.0.0.1:8080/api/v1/health > /dev/null 2>&1; then
+                echo "✅ Service is healthy"
+                exit 0
+              fi
+              echo "  Attempt $i/12 — not ready yet, waiting 10s..."
+              sleep 10
+            done
+            echo "❌ Service failed to respond after 12 attempts"
+            exit 1
 
       - name: ✅ Notify — deploy success
         if: success()
