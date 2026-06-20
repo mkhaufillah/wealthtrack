@@ -11,6 +11,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
   WEALTHTRACK_TEST_DATABASE_URL: postgresql://wealthtrack_test:wealthtrack_test123@localhost:5433/wealthtrack_test
   TG_CHAT_ID: "-1003997003114"
   TG_TOPIC_ID: "3"
