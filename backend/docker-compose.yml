@@ -1,0 +1,9 @@
+services:
+  wealthtrack-backend:
+    build: .
+    container_name: wealthtrack-backend
+    network_mode: "host"
+    restart: unless-stopped
+    volumes:
+      - ./static:/app/static
+      - ./.env:/app/.env
