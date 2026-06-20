@@ -30,8 +30,7 @@ jobs:
         working-directory: mobile
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -48,7 +47,7 @@ jobs:
             -d text="<b>📱 WealthTrack APK</b>%0A<code>${GITHUB_SHA::7}</code> — building... ⏳" || true
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
           cache: 'pip'

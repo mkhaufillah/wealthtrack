@@ -52,7 +52,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: 🚀 Notify — CI started
         run: |
@@ -63,7 +63,7 @@ jobs:
             -d text="<b>🚀 WealthTrack CI</b>%0A<code>${GITHUB_SHA::7}</code> — tests running... ⏳" || true
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: 'pip'
