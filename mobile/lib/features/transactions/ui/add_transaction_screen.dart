@@ -367,7 +367,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'This may take a few seconds',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
