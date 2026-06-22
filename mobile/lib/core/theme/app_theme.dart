@@ -109,20 +109,20 @@ class AppTheme {
           secondary: AppColors._accent,
           surface: AppColors._surface,
           error: AppColors._highlight,
-          onPrimary: AppColors.surface,
-          onSecondary: AppColors.surface,
+          onPrimary: AppColors._surface,
+          onSecondary: AppColors._surface,
           onSurface: AppColors._textPrimary,
         ),
         cardColor: AppColors._surface,
         dividerColor: AppColors._divider,
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors._primary,
-          foregroundColor: AppColors.surface,
+          foregroundColor: AppColors._surface,
           elevation: 0,
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors._accent,
-          foregroundColor: AppColors.surface,
+          foregroundColor: AppColors._surface,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -144,7 +144,7 @@ class AppTheme {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors._accent,
-            foregroundColor: AppColors.surface,
+            foregroundColor: AppColors._surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -170,8 +170,8 @@ class AppTheme {
           secondary: AppColors.darkAccent,
           surface: AppColors.darkSurface,
           error: AppColors.darkHighlight,
-          onPrimary: AppColors.surface,
-          onSecondary: AppColors.surface,
+          onPrimary: AppColors.darkSurface,
+          onSecondary: AppColors.darkSurface,
           onSurface: AppColors.darkTextPrimary,
         ),
         cardColor: AppColors.darkSurface,
@@ -183,7 +183,7 @@ class AppTheme {
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors.darkAccent,
-          foregroundColor: AppColors.surface,
+          foregroundColor: AppColors.darkSurface,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -208,7 +208,7 @@ class AppTheme {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.darkAccent,
-            foregroundColor: AppColors.surface,
+            foregroundColor: AppColors.darkSurface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),

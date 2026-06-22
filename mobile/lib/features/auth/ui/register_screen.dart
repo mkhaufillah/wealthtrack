@@ -186,8 +186,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _sendingOtp ? null : _sendOtp,
                       icon: _sendingOtp
-                          ? const SizedBox(
-                              width: 18, height: 18,
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
                             )
                           : const Icon(Icons.email_outlined),
@@ -217,7 +218,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     child: ElevatedButton(
                       onPressed: !_registering ? _register : null,
                       child: _registering
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
