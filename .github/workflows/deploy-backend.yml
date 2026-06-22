@@ -102,7 +102,9 @@ jobs:
           script: |
             set -e
             cd /home/vps/apps/wealthtrack
-            git pull origin main
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
             cd backend
             docker compose up -d --build
             docker image prune -f
@@ -114,7 +116,7 @@ jobs:
                 exit 0
               fi
               echo "  Attempt $i/12 — not ready yet, waiting 10s..."
-              sleep 10
+              sleep 30
             done
             echo "❌ Service failed to respond after 12 attempts"
             exit 1
