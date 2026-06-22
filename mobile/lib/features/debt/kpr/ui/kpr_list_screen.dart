@@ -169,7 +169,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
           color: AppColors.highlight,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete_outline, color: AppColors.surface, size: 28),
+        child: Icon(Icons.delete_outline, color: AppColors.surface, size: 28),
       ),
       confirmDismiss: (_) => _confirmDelete(sim),
       child: GestureDetector(

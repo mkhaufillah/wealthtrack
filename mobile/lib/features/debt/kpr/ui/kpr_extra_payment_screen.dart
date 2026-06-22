@@ -501,7 +501,7 @@ class _KPRExtraPaymentScreenState
                       color: AppColors.accent,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.check,
+                    child: Icon(Icons.check,
                         size: 16, color: AppColors.surface),
                   ),
               ],

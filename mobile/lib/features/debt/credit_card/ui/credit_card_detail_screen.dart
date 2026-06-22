@@ -108,7 +108,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
             ? TabBar(
                 controller: _tabController,
                 labelColor: AppColors.surface,
-                unselectedLabelColor: AppColors.surface60,
+                unselectedLabelColor: AppColors.surface.withOpacity(0.6),
                 indicatorColor: AppColors.surface,
                 indicatorWeight: 2,
                 dividerColor: Colors.transparent,

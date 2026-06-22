@@ -624,7 +624,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                   child: FilledButton.icon(
                     onPressed: _isSaving ? null : _save,
                     icon: _isSaving
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18, height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                         : const Icon(Icons.save_outlined, size: 18),
