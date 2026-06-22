@@ -133,17 +133,17 @@ Keywords added to `EXPENSE_KEYWORDS` and `INCOME_KEYWORDS` so transactions added
 ```python
 EXPENSE_KEYWORDS = {
     ...
-    "Transfer": ["transfer ke", "transfer untuk"],
+    "Transfer": ["transfer to", "transfer for"],
 }
 
 INCOME_KEYWORDS = {
     ...
-    "Transfer": ["transfer dari"],
+    "Transfer": ["transfer from"],
     ...
 }
 ```
 
-**Resolution order:** Existing categories are checked first — a description like "transfer gaji bulan ini" still correctly classifies as "Gaji" because `INCOME_KEYWORDS["Gaji"]` is checked before `INCOME_KEYWORDS["Transfer"]`.
+**Resolution order:** Existing categories are checked first — a description like "transfer this month's salary" still correctly classifies as "Salary" because `INCOME_KEYWORDS["Salary"]` is checked before `INCOME_KEYWORDS["Transfer"]`.
 
 ### household_report.py — Icon Mapping
 

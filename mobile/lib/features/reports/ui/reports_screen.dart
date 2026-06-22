@@ -616,7 +616,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildHouseholdSplit(HouseholdReport hh) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -636,13 +635,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: AppColors.avatarColor(u.displayName).withOpacity(isDark ? 0.3 : 0.15),
+                  backgroundColor: AppColors.avatarBackground(u.displayName),
                   child: Text(
                     u.displayName.isNotEmpty ? u.displayName[0] : '?',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : AppColors.avatarColor(u.displayName),
+                      color: AppColors.avatarText(u.displayName),
                     ),
                   ),
                 ),

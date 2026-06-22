@@ -342,7 +342,6 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   }
 
   Widget _buildMessage(_ChatMessage msg) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Align(
       alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -390,11 +389,11 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                           strong: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                           code: TextStyle(
                             fontSize: 13,
-                            color: isDark ? const Color(0xFFE0E0E0) : const Color(0xFF333333),
-                            backgroundColor: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F0F0),
+                            color: AppColors.textPrimary,
+                            backgroundColor: AppColors.divider,
                           ),
                           codeblockDecoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                            color: AppColors.background,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           blockquoteDecoration: BoxDecoration(

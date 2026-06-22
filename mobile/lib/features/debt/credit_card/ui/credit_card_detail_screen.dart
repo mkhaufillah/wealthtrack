@@ -82,7 +82,6 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(creditCardProvider);
     final card = state.selectedCard;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     ref.listen<int>(homeRefreshProvider, (prev, next) {
       if (prev != next) {
@@ -151,14 +150,13 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                     )
                   : Column(
                       children: [
-                        _buildCardInfoHeader(card, isDark),
+                        _buildCardInfoHeader(card),
                         if (state.projection != null)
                           _buildProjectionSummary(
                             state.projection!.perCard
                                 .where((p) => p['card_id'] == card?.id)
                                 .firstOrNull,
                             state.projection!,
-                            isDark,
                             card: card,
                           ),
                         Expanded(
@@ -181,7 +179,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
     );
   }
 
-  Widget _buildCardInfoHeader(CreditCardModel card, bool isDark) {
+  Widget _buildCardInfoHeader(CreditCardModel card) {
     final maskedNumber = card.cardNumberLast4.isNotEmpty
         ? '**** **** **** ${card.cardNumberLast4}'
         : null;
@@ -191,9 +189,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isDark
-              ? [AppColors.darkSurface, AppColors.darkCard]
-              : [AppColors.primary, AppColors.accent],
+          colors: AppColors.creditCardGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -208,7 +204,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.darkTextPrimary : Colors.white70,
+                color: AppColors.textSecondary,
                 fontFamily: 'monospace',
                 letterSpacing: 2,
               ),
@@ -218,20 +214,10 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           Row(
             children: [
               Expanded(
-                child: _headerInfoItem(
-                  'Billing Date',
-                  _ordinalSuffix(card.billingDate),
-                  Icons.calendar_today,
-                  isDark,
-                ),
+                child: _headerInfoItem('Billing Date', _ordinalSuffix(card.billingDate), Icons.calendar_today),
               ),
               Expanded(
-                child: _headerInfoItem(
-                  'Due Date',
-                  _ordinalSuffix(card.dueDate),
-                  Icons.event,
-                  isDark,
-                ),
+                child: _headerInfoItem('Due Date', _ordinalSuffix(card.dueDate), Icons.event),
               ),
             ],
           ),
@@ -239,12 +225,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           Row(
             children: [
               Expanded(
-                child: _headerInfoItem(
-                  'Credit Limit',
-                  formatCurrency(card.creditLimit),
-                  Icons.credit_card,
-                  isDark,
-                ),
+                child: _headerInfoItem('Credit Limit', formatCurrency(card.creditLimit), Icons.credit_card),
               ),
               const Expanded(child: SizedBox()),
             ],
@@ -254,9 +235,9 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
     );
   }
 
-  Widget _headerInfoItem(String label, String value, IconData icon, bool isDark) {
-    final textColor = isDark ? AppColors.darkTextPrimary : Colors.white;
-    final subTextColor = isDark ? AppColors.darkTextSecondary : Colors.white70;
+  Widget _headerInfoItem(String label, String value, IconData icon) {
+    final textColor = isDark ? AppColors.textPrimary : Colors.white;
+    final subTextColor = AppColors.textSecondary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,7 +265,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
     );
   }
 
-  Widget _buildProjectionSummary(Map<String, dynamic>? cardProjection, NextMonthProjection projection, bool isDark, {CreditCardModel? card}) {
+  Widget _buildProjectionSummary(Map<String, dynamic>? cardProjection, NextMonthProjection projection, {CreditCardModel? card}) {
     final totalForCard = cardProjection?['total'] as int? ?? projection.totalExpected;
     final perCardCount = card?.installments
             ?.where((inst) => inst.remainingMonths > 0)
@@ -320,7 +301,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                   '${perCardCount} installments · ${formatCurrency(totalForCard)} expected',
                   style: TextStyle(
                     fontSize: 13,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],

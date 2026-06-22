@@ -4,36 +4,36 @@
 > **Target:** PR into `main`
 > **Status:** ✅ Plan — Ready for execution
 
-**Goal:** Pisahkan semua business logic dari routers ke service layer (backend), dan terapkan full theme + konsistensi Riverpod (Flutter).
+**Goal:** Separate all business logic from routers to the service layer (backend), and implement full theme + Riverpod consistency (Flutter).
 
-**Prinsip:**
-- Router cuma pegang HTTP request/response + dependency injection
-- Service pegang semua DB queries, validasi, transformasi
-- Tidak ada `cursor.execute` di router (kecuali yang genuinely infrastructur)
-- Flutter: zero hardcoded colors, semua pake `AppColors`
+**Principles:**
+- Routers only handle HTTP request/response + dependency injection
+- Services handle all DB queries, validation, and transformation
+- No `cursor.execute` in routers (except for genuinely infrastructure-related ones)
+- Flutter: zero hardcoded colors, all using `AppColors`
 
 ---
 
-## Phase 1: Backend — Ekstraksi Router → Service
+## Phase 1: Backend — Router → Service Extraction
 
 ### 1.1 `health.py` — Extract to `HealthService`
 
-**Objective:** Pindahkan DB `SELECT 1` dan Redis ping dari router ke service.
+**Objective:** Move the DB `SELECT 1` and Redis ping from the router to the service.
 
 **Files:**
 - Create: `backend/app/services/health_service.py`
 - Modify: `backend/app/routers/health.py`
 
-**Langkah:**
-1. Buat `HealthService` class dengan `check()` method
-2. Router tinggal panggil `await service.check(db, redis)`
-3. Test: `curl /api/v1/health` tetep return 200
+**Steps:**
+1. Create a `HealthService` class with a `check()` method
+2. The router simply calls `await service.check(db, redis)`
+3. Test: `curl /api/v1/health` still returns 200
 
 ---
 
-### 1.2 `ocr.py` — Pindahkan model + validasi duplikat
+### 1.2 `ocr.py` — Move models + duplicate validation
 
-**Objective:** Pindahkan Pydantic models dari `routers/ocr.py` ke `schemas/ocr.py`. Hapus validasi duplikat (content_type, size) dari router — sudah ada di `OcrService`.
+**Objective:** Move Pydantic models from `routers/ocr.py` to `schemas/ocr.py`. Remove duplicate validation (content_type, size) from the router — it is already in `OcrService`.
 
 **Files:**
 - Create: `backend/app/schemas/ocr.py`
@@ -43,21 +43,21 @@ Models to move: `OcrResult`, `OcrAutoSaveResult`, `OcrPendingCount`
 
 ---
 
-### 1.3 `ai_advisor.py` — Pindahkan helper functions ke service
+### 1.3 `ai_advisor.py` — Move helper functions to service
 
-**Objective:** Pindahkan `_check_api_key()` dan `_check_model_access()` ke `ai_advisor_service.py`.
+**Objective:** Move `_check_api_key()` and `_check_model_access()` to `ai_advisor_service.py`.
 
 **Files:**
 - Modify: `backend/app/services/ai_advisor_service.py`
 - Modify: `backend/app/routers/ai_advisor.py`
 
-Check functions jadi method di service atau module-level function yang di-import router dari service.
+Check functions become methods in the service or module-level functions that the router imports from the service.
 
 ---
 
-### 1.4 `kpr.py` — Pindahkan `_convert_sim_row()` ke service
+### 1.4 `kpr.py` — Move `_convert_sim_row()` to service
 
-**Objective:** Pindahkan response transformation helper ke `KPRService` sebagai static/instance method.
+**Objective:** Move the response transformation helper to `KPRService` as a static/instance method.
 
 **Files:**
 - Modify: `backend/app/services/kpr_service.py`
@@ -67,32 +67,32 @@ Check functions jadi method di service atau module-level function yang di-import
 
 ## Phase 2: Flutter — Hardcoded Color → AppColors
 
-### 2.1 AppColors: tambah palette yang kurang
+### 2.1 AppColors: add missing palette
 
-**Objective:** Tambah `card`, `chartPalette`, dan `avatarColor` helper.
+**Objective:** Add `card`, `chartPalette`, and `avatarColor` helpers.
 
 **Files:**
 - Modify: `mobile/lib/core/theme/app_theme.dart`
 
-### 2.2 `profile_screen.dart` — Migrasi 4 avatar blocks
+### 2.2 `profile_screen.dart` — Migrate 4 avatar blocks
 
-**Objective:** Ganti `Colors.pink.shade200`, `Colors.blue.shade200`, `Colors.white` → `AppColors`
+**Objective:** Replace `Colors.pink.shade200`, `Colors.blue.shade200`, `Colors.white` → `AppColors`
 
-### 2.3 `reports_screen.dart` — Migrasi category→color maps
+### 2.3 `reports_screen.dart` — Migrate category→color maps
 
-**Objective:** Ganti `Colors.orange/blue/purple/red/teal/indigo` → `AppColors`
+**Objective:** Replace `Colors.orange/blue/purple/red/teal/indigo` → `AppColors`
 
-### 2.4 `transaction_list_screen.dart` — Migrasi `Colors.primaries`
+### 2.4 `transaction_list_screen.dart` — Migrate `Colors.primaries`
 
-**Objective:** Ganti `Colors.primaries[idx].shade` → `AppColors`
+**Objective:** Replace `Colors.primaries[idx].shade` → `AppColors`
 
-### 2.5 `transfer_screen.dart` — Migrasi `Colors.primaries`
+### 2.5 `transfer_screen.dart` — Migrate `Colors.primaries`
 
-**Objective:** Sama dengan 2.4
+**Objective:** Same as 2.4
 
 ### 2.6 `shimmer_loading.dart` — Fix redundant brightness check
 
-**Objective:** `isDark ? darkSurface : surface` → `surface` aja (udah brightness-aware)
+**Objective:** `isDark ? darkSurface : surface` → just `surface` (already brightness-aware)
 
 ---
 
@@ -100,7 +100,7 @@ Check functions jadi method di service atau module-level function yang di-import
 
 - [ ] Backend engine tests (no DB): `pytest tests/test_kpr.py::TestKprEngine -q`
 - [ ] Health endpoint: `curl http://localhost:8080/api/v1/health` → 200
-- [ ] Flutter: `flutter analyze` di mobile/ — zero new errors
+- [ ] Flutter: `flutter analyze` in mobile/ — zero new errors
 - [ ] Flutter: `flutter test` — existing tests pass
 
 ## Files Changed (Expected)

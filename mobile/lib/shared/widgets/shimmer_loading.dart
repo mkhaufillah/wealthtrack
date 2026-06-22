@@ -18,9 +18,8 @@ class ShimmerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final baseColor = AppColors.surface;
-    final highlightColor = isDark ? AppColors.darkCard : AppColors.divider;
+    final highlightColor = AppColors.divider;
 
     return Shimmer.fromColors(
       baseColor: baseColor,

@@ -177,18 +177,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isSelected
-                                ? (Theme.of(context).brightness == Brightness.dark
-                                    ? AppColors.darkPrimary
-                                    : AppColors.primary)
-                                : null,
+                            color: isSelected ? AppColors.primary : null,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: isSelected
-                                  ? (Theme.of(context).brightness == Brightness.dark
-                                      ? AppColors.darkPrimary
-                                      : AppColors.primary)
-                                  : AppColors.divider,
+                              color: isSelected ? AppColors.primary : AppColors.divider,
                             ),
                           ),
                           child: Center(
@@ -534,7 +526,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildUserCard(dynamic user) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -545,13 +536,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             CircleAvatar(
               radius: 30,
-              backgroundColor: AppColors.avatarColor(user?.displayName ?? '').withOpacity(isDark ? 0.3 : 0.15),
+              backgroundColor: AppColors.avatarBackground(user?.displayName ?? ''),
               child: Text(
                 (user?.displayName ?? '?')[0].toUpperCase(),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppColors.avatarColor(user?.displayName ?? ''),
+                  color: AppColors.avatarText(user?.displayName ?? ''),
                 ),
               ),
             ),
@@ -600,14 +591,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.avatarColor(user?.displayName ?? '').withOpacity(isDark ? 0.3 : 0.15),
+                      color: AppColors.avatarBackground(user?.displayName ?? ''),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       user?.role ?? '-',
                       style: TextStyle(
                         fontSize: 11,
-                        color: isDark ? Colors.white : AppColors.avatarColor(user?.displayName ?? ''),
+                        color: AppColors.avatarText(user?.displayName ?? ''),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -622,7 +613,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildHouseholdSection(ProfileState state) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (state.loadingHousehold) {
       return const Center(
         child: Padding(
@@ -711,11 +701,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: AppColors.avatarColor('admin').withOpacity(isDark ? 0.3 : 0.15),
+                      color: AppColors.avatarBackground('admin'),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text('admin',
-                        style: TextStyle(fontSize: 10, color: isDark ? Colors.white : AppColors.avatarColor('admin'))),
+                        style: TextStyle(fontSize: 10, color: AppColors.avatarText('admin'))),
                   ),
                 ],
               ],
@@ -752,20 +742,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               const SizedBox(height: 4),
               ...state.members.map<Widget>((m) {
-                    final isDark = Theme.of(context).brightness == Brightness.dark;
                     return Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 10,
-                          backgroundColor: AppColors.avatarColor(m['display_name'] as String? ?? '').withOpacity(isDark ? 0.3 : 0.15),
+                          backgroundColor: AppColors.avatarBackground(m['display_name'] as String? ?? ''),
                           child: Text(
                             (m['display_name'] as String? ?? '?')[0],
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : AppColors.avatarColor(m['display_name'] as String? ?? ''),
+                              color: AppColors.avatarText(m['display_name'] as String? ?? ''),
                             ),
                           ),
                         ),

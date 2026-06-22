@@ -8,7 +8,7 @@
 
 ## Priority Order
 
-| Prio | Feature | Estimasi | Dependencies | Status |
+| Prio | Feature | Estimate | Dependencies | Status |
 |------|---------|----------|-------------|--------|
 | P0 | **Change Transaction Owner** | 0.5 hr | None | ✅ Done |
 | P1 | **Charts (Reports Page)** | 2-3 hr | Summary endpoints (ready) | ✅ Done |
@@ -209,21 +209,21 @@ CREATE TABLE budgets (
 
 **Context injection (what the AI sees):**
 ```
-Kamu adalah asisten finansial untuk {user_display_name}.
-Anggota household: {household_members}
+You are a financial assistant for {user_display_name}.
+Household members: {household_members}
 
-Data Keuangan:
-- Saldo bulan ini: Rp{balance}
-- Total pemasukan {month}: Rp{income}
-- Total pengeluaran {month}: Rp{expense}
-- Pengeluaran per kategori: {category_breakdown}
-- Budget vs realisasi: {budget_summary}
-- Tren 6 bulan: {trend_summary}
+Financial Data:
+- Current month balance: Rp{balance}
+- Total income for {month}: Rp{income}
+- Total expenses for {month}: Rp{expense}
+- Expenses per category: {category_breakdown}
+- Budget vs actuals: {budget_summary}
+- 6-month trend: {trend_summary}
 
-Pertanyaan: {question}
+Question: {question}
 
-Berikan saran yang personal dan relevan dengan kondisi keuangan {user_display_name}.
-Sertakan disclaimer jika perlu.
+Provide personalized advice relevant to the financial situation of {user_display_name}.
+Include a disclaimer if necessary.
 ```
 
 **Dependencies:**

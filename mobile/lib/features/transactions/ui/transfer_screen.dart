@@ -100,28 +100,11 @@ class _TransferBalanceScreenState
   }
 
   Future<void> _pickDate() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: isDark
-              ? ColorScheme.dark(
-                  primary: AppColors.darkPrimary,
-                  onPrimary: AppColors.surface,
-                  surface: AppColors.darkSurface,
-                )
-              : ColorScheme.light(
-                  primary: AppColors.primary,
-                  onPrimary: AppColors.surface,
-                  surface: AppColors.surface,
-                ),
-        ),
-        child: child!,
-      ),
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
@@ -245,7 +228,6 @@ class _TransferBalanceScreenState
     final state = ref.watch(transferBalanceProvider);
     final currentUser = ref.watch(authProvider).user;
     final isSubmitting = state.isSubmitting;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -281,13 +263,13 @@ class _TransferBalanceScreenState
                         padding: const EdgeInsets.all(16),
                         child: Row(children: [
                           CircleAvatar(
-                            backgroundColor: AppColors.avatarColor(currentUser?.displayName ?? '').withOpacity(isDark ? 0.3 : 0.15),
+                            backgroundColor: AppColors.avatarBackground(currentUser?.displayName ?? ''),
                             child: Text(
                               (currentUser?.displayName ?? '?')[0]
                                   .toUpperCase(),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : AppColors.avatarColor(currentUser?.displayName ?? '')),
+                                  color: AppColors.avatarText(currentUser?.displayName ?? '')),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -379,13 +361,13 @@ class _TransferBalanceScreenState
                                   children: [
                                     CircleAvatar(
                                       radius: 16,
-                                      backgroundColor: AppColors.avatarColor(r.displayName).withOpacity(isDark ? 0.3 : 0.15),
+                                      backgroundColor: AppColors.avatarBackground(r.displayName),
                                       child: Text(
                                         r.displayName[0].toUpperCase(),
                                         style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
-                                            color: isDark ? Colors.white : AppColors.avatarColor(r.displayName)),
+                                            color: AppColors.avatarText(r.displayName)),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -443,7 +425,7 @@ class _TransferBalanceScreenState
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.highlight.withOpacity(0.4) : AppColors.highlight.withOpacity(0.1),
+                          color: AppColors.highlightBackground,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(

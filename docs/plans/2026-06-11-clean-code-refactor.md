@@ -1,14 +1,14 @@
 # Clean Code Refactor — WealthTrack
 
 > **Branch:** `refactor/clean-code`
-> **Target:** PR ke `main`
+> **Target:** PR to `main`
 
-**Goal:** Pisahkan business logic dari router ke service layer (backend) dan replace semua hardcoded color ke AppColors (Flutter). Zero behavioral change — semua test harus tetap passing.
+**Goal:** Separate business logic from the router to the service layer (backend) and replace all hardcoded colors with AppColors (Flutter). Zero behavioral change — all tests must remain passing.
 
-**Prinsip:**
-- Router cuma handle HTTP (validasi, routing, response formatting)
-- Service handle business logic (pure Python, gak depend on FastAPI)
-- Data layer handle DB queries
+**Principles:**
+- Router only handles HTTP (validation, routing, response formatting)
+- Service handles business logic (pure Python, no dependency on FastAPI)
+- Data layer handles DB queries
 - Flutter: every color goes through `AppColors.*` — no bare `Colors.white`, no `Color(0x...)`
 
 ---
@@ -17,7 +17,7 @@
 
 ### Task 1.1: Create base service pattern & data layer
 
-**Objective:** Buat `backend/app/services/base.py` sebagai base class untuk semua service, dan `backend/app/data/` untuk repository layer.
+**Objective:** Create `backend/app/services/base.py` as the base class for all services, and `backend/app/data/` for the repository layer.
 
 **Files:**
 - Create: `backend/app/data/__init__.py`
@@ -41,7 +41,7 @@ class BaseService:
 
 ### Task 1.2: Extract KPR service
 
-**Objective:** Pindahin logic KPR dari `routers/kpr.py` ke `services/kpr_service.py`.
+**Objective:** Move KPR logic from `routers/kpr.py` to `services/kpr_service.py`.
 
 **Files:**
 - Create: `backend/app/services/kpr_service.py`
@@ -61,7 +61,7 @@ class BaseService:
 
 ### Task 1.3: Extract Credit Cards service
 
-**Objective:** Pindahin logic CC dari `routers/credit_cards.py` ke `services/credit_card_service.py`.
+**Objective:** Move CC logic from `routers/credit_cards.py` to `services/credit_card_service.py`.
 
 **Files:**
 - Create: `backend/app/services/credit_card_service.py`
@@ -69,7 +69,7 @@ class BaseService:
 
 ### Task 1.4: Extract Transaction service
 
-**Objective:** Pindahin logic transaksi dari `routers/transactions.py` ke `services/transaction_service.py`.
+**Objective:** Move transaction logic from `routers/transactions.py` to `services/transaction_service.py`.
 
 **Files:**
 - Create: `backend/app/services/transaction_service.py`
@@ -77,7 +77,7 @@ class BaseService:
 
 ### Task 1.5: Extract Budget service
 
-**Objective:** Pindahin logic budget dari `routers/budgets.py` ke `services/budget_service.py`.
+**Objective:** Move budget logic from `routers/budgets.py` to `services/budget_service.py`.
 
 **Files:**
 - Create: `backend/app/services/budget_service.py`
@@ -85,7 +85,7 @@ class BaseService:
 
 ### Task 1.6: Extract Summary/Household Debt service
 
-**Objective:** Pindahin logic summary & debt dari `routers/summaries.py` ke `services/summary_service.py`.
+**Objective:** Move summary & debt logic from `routers/summaries.py` to `services/summary_service.py`.
 
 **Files:**
 - Create: `backend/app/services/summary_service.py`
@@ -93,7 +93,7 @@ class BaseService:
 
 ### Task 1.7: Extract AI Advisor service
 
-**Objective:** Pindahin logic AI advisor dari `routers/ai_advisor.py` ke `services/ai_advisor_service.py`.
+**Objective:** Move AI advisor logic from `routers/ai_advisor.py` to `services/ai_advisor_service.py`.
 
 **Files:**
 - Create: `backend/app/services/ai_advisor_service.py`
@@ -101,7 +101,7 @@ class BaseService:
 
 ### Task 1.8: Extract remaining services (OCR, Auth, Households, Categories, Exports)
 
-**Objective:** Pindahin logic dari router kecil ke service masing-masing.
+**Objective:** Move logic from smaller routers to their respective services.
 
 **Files:**
 - Create: `backend/app/services/ocr_service.py`
@@ -109,11 +109,11 @@ class BaseService:
 - Create: `backend/app/services/household_service.py`
 - Create: `backend/app/services/category_service.py`
 - Create: `backend/app/services/export_service.py`
-- Modify: masing-masing router file
+- Modify: respective router files
 
 ### Task 1.9: Verify backend tests pass
 
-**Objective:** Jalankan backend test suite — engine tests harus 7/7 passing, API tests (kalau ada DB) juga passing.
+**Objective:** Run the backend test suite — engine tests must be 7/7 passing, API tests (if there is a DB) must also pass.
 
 ---
 
@@ -121,7 +121,7 @@ class BaseService:
 
 ### Task 2.1: Extract chart color constants
 
-**Objective:** Pindahin chart color palette dan avatar color logic ke AppColors biar gak duplikasi.
+**Objective:** Move the chart color palette and avatar color logic to AppColors to avoid duplication.
 
 **Files:**
 - Modify: `mobile/lib/core/theme/app_theme.dart`
@@ -130,7 +130,7 @@ class BaseService:
 
 ### Task 2.2: Fix hardcoded Color() in shimmer & AI advisor
 
-**Objective:** Ganti `Color(0xFFEEEEEE)` di shimmer dan `Color(0x...)` di AI advisor code block dengan AppColors.
+**Objective:** Replace `Color(0xFFEEEEEE)` in shimmer and `Color(0x...)` in the AI advisor code block with AppColors.
 
 **Files:**
 - Modify: `mobile/lib/shared/widgets/shimmer_loading.dart`
@@ -138,7 +138,7 @@ class BaseService:
 
 ### Task 2.3: Replace Colors.white with AppColors in all screens
 
-**Objective:** Ganti semua `Colors.white`, `Colors.white70`, `Colors.white60`, `Colors.white38`, `Colors.black87`, `Colors.black54` dengan AppColors yang sesuai.
+**Objective:** Replace all `Colors.white`, `Colors.white70`, `Colors.white60`, `Colors.white38`, `Colors.black87`, `Colors.black54` with the appropriate AppColors.
 
 **Screens to fix (~40+ occurrences):**
 - `add_transaction_screen.dart` (7×)
@@ -161,7 +161,7 @@ class BaseService:
 
 ### Task 2.4: Fix semantic Colors.red references
 
-**Objective:** Ganti `Colors.red`, `Colors.redAccent`, `Colors.red.shade*` dengan AppColors semantic alias.
+**Objective:** Replace `Colors.red`, `Colors.redAccent`, `Colors.red.shade*` with AppColors semantic aliases.
 
 **Files:**
 - Modify: `mobile/lib/features/transactions/ui/transfer_screen.dart`
@@ -169,7 +169,7 @@ class BaseService:
 
 ### Task 2.5: Verify Flutter analysis passes
 
-**Objective:** `flutter analyze` harus clean.
+**Objective:** `flutter analyze` must be clean.
 
 ---
 
@@ -186,4 +186,4 @@ class BaseService:
 
 ### Task 3.2: Push branch & create PR
 
-**Objective:** Push `refactor/clean-code` ke origin, buka PR ke `main`.
+**Objective:** Push `refactor/clean-code` to origin, open a PR to `main`.

@@ -5,10 +5,7 @@ import '../../../../shared/utils/currency_formatter.dart';
 import '../../models/report_model.dart';
 
 /// Color palette used across all charts
-const List<Color> chartColors = [
-  Colors.orange, Colors.blue, Colors.purple, Colors.red, Colors.teal,
-  Colors.green, Colors.pink, Colors.indigo, Colors.amber, Colors.cyan,
-];
+final List<Color> chartColors = AppColors.chartPalette;
 
 /// Donut/pie chart — category breakdown of expenses.
 Widget buildPieChartSection(List<CategoryBreakdown> categories) {

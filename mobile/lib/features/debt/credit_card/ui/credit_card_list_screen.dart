@@ -66,7 +66,6 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(creditCardProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Compute summary values
     final totalLimit = state.cards.fold<int>(0, (sum, c) => sum + c.creditLimit);
@@ -94,7 +93,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                           children: [
                             SizedBox(
                               height: MediaQuery.of(context).size.height * 0.6,
-                              child: _buildEmptyState(isDark),
+                              child: _buildEmptyState(),
                             ),
                           ],
                         )
@@ -104,9 +103,9 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                           itemCount: state.cards.length + 1, // +1 for summary header
                           itemBuilder: (_, i) {
                             if (i == 0) {
-                              return _buildSummaryHeader(totalLimit, totalActiveInstallments, isDark);
+                              return _buildSummaryHeader(totalLimit, totalActiveInstallments);
                             }
-                            return _buildCard(state.cards[i - 1], isDark);
+                            return _buildCard(state.cards[i - 1]);
                           },
                         ),
                 ),
@@ -117,12 +116,12 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
     );
   }
 
-  Widget _buildSummaryHeader(int totalLimit, int totalActiveInstallments, bool isDark) {
+  Widget _buildSummaryHeader(int totalLimit, int totalActiveInstallments) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.divider.withAlpha(80)),
       ),
@@ -141,21 +140,11 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
           Row(
             children: [
               Expanded(
-                child: _summaryItem(
-                  'Total Credit Limit',
-                  formatCurrency(totalLimit),
-                  Icons.credit_card_outlined,
-                  isDark,
-                ),
+                child: _summaryItem('Total Credit Limit', formatCurrency(totalLimit), Icons.credit_card_outlined),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _summaryItem(
-                  'Active Installments',
-                  totalActiveInstallments.toString(),
-                  Icons.receipt_long_outlined,
-                  isDark,
-                ),
+                child: _summaryItem('Active Installments', totalActiveInstallments.toString(), Icons.receipt_long_outlined),
               ),
             ],
           ),
@@ -164,7 +153,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
     );
   }
 
-  Widget _summaryItem(String label, String value, IconData icon, bool isDark) {
+  Widget _summaryItem(String label, String value, IconData icon) {
     return Row(
       children: [
         Icon(icon, size: 20, color: AppColors.accent),
@@ -193,7 +182,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -224,7 +213,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
     );
   }
 
-  Widget _buildCard(CreditCardModel card, bool isDark) {
+  Widget _buildCard(CreditCardModel card) {
     final maskedNumber = card.cardNumberLast4.isNotEmpty
         ? '**** **** **** ${card.cardNumberLast4}'
         : 'No number';

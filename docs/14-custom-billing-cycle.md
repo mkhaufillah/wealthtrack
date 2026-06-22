@@ -7,7 +7,7 @@
 
 ## Overview
 
-Allows users to set a custom "cycle start day" (e.g., the 25th) so financial summaries and reports reflect periods like **25 Apr – 24 Mei** instead of the fixed calendar month (1st–last day). The AI Financial Advisor also uses this context for accurate recommendations.
+Allows users to set a custom "cycle start day" (e.g., the 25th) so financial summaries and reports reflect periods like **25 Apr – 24 May** instead of the fixed calendar month (1st–last day). The AI Financial Advisor also uses this context for accurate recommendations.
 
 Default is `1` (standard calendar month). Valid range: 1–28.
 
@@ -94,7 +94,7 @@ All summary endpoints now accept `?use_cycle=true`:
 The `_build_context()` function now:
 1. Reads user's `cycle_start_day` from DB
 2. Uses `get_cycle_range()` to compute d_from/d_to
-3. Injects cycle label into system prompt: `"Data Keuangan Periode 25 Apr – 24 Mei 2026:"`
+3. Injects cycle label into system prompt: `"Financial Data for the Period 25 Apr – 24 May 2026:"`
 
 ---
 
@@ -110,7 +110,7 @@ The `_build_context()` function now:
 | `backend/app/routers/summaries.py` | All endpoints: `use_cycle` param, `get_cycle_range()`, `cycle-info` endpoint |
 | `backend/app/routers/ai_advisor.py` | `_build_context()` uses cycle range, injects cycle label in prompt |
 | `backend/app/routers/budgets.py` | `/summary` — cycle-aware with `?use_cycle=true`. Each budget uses its own `cycle_on`. Response: `{"items","uncategorized_expenses"}` showing spending outside budget. |
-| `backend/app/routers/transactions.py` | Transfer description: "Transfer to/from" instead of "Transfer ke/dari" for English consistency. |
+| `backend/app/routers/transactions.py` | Transfer description: "Transfer to/from" instead of "Transfer to/from" for English consistency. |
 | `backend/app/core/config.py` | Env file resolved by absolute path, not relative CWD |
 
 ### Mobile (Flutter)
@@ -163,10 +163,10 @@ The `_build_context()` function now:
 
 | cycle_start_day | Today (May 28) | Period Display |
 |----------------|----------------|----------------|
-| 1 (default) | Any day | "Mei 2026" |
-| 15 | May 28 | "15 Mei – 14 Jun 2026" |
-| 25 | May 28 | "25 Mei – 24 Jun 2026" |
-| 25 | May 2 | "25 Apr – 24 Mei 2026" |
+| 1 (default) | Any day | "May 2026" |
+| 15 | May 28 | "15 May – 14 Jun 2026" |
+| 25 | May 28 | "25 May – 24 Jun 2026" |
+| 25 | May 2 | "25 Apr – 24 May 2026" |
 
 ---
 

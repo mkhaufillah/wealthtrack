@@ -171,7 +171,6 @@ class _KPRExtraPaymentScreenState
   Widget build(BuildContext context) {
     final state = ref.watch(kprProvider);
     final preview = state.extraPreview;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     _updateValidationBounds(state);
 
@@ -192,13 +191,13 @@ class _KPRExtraPaymentScreenState
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: _step == ExtraStep.form
-                  ? _buildForm(isDark)
-                  : _buildPreview(isDark, preview, state),
+                  ? _buildForm()
+                  : _buildPreview(preview, state),
             ),
     );
   }
 
-  Widget _buildForm(bool isDark) {
+  Widget _buildForm() {
     return Form(
       key: _formKey,
       child: Column(
@@ -298,7 +297,7 @@ class _KPRExtraPaymentScreenState
   }
 
   Widget _buildPreview(
-      bool isDark, ExtraPaymentPreview? preview, KPRState state) {
+      ExtraPaymentPreview? preview, KPRState state) {
     if (preview == null) {
       return Center(
         child: Text(
@@ -343,7 +342,6 @@ class _KPRExtraPaymentScreenState
           title: 'A. Reduce Installment',
           subtitle: 'Fixed tenor, lower monthly payment',
           isSelected: _selectedOption == 0,
-          isDark: isDark,
           fields: {
             'New Installment': formatCurrency(optA.newInstallment),
             'New Tenor': '${optA.newTenor} mo',
@@ -359,7 +357,6 @@ class _KPRExtraPaymentScreenState
           title: 'B. Shorten Tenor',
           subtitle: 'Fixed payment, pay off faster',
           isSelected: _selectedOption == 1,
-          isDark: isDark,
           fields: {
             'New Installment': formatCurrency(optB.newInstallment),
             'New Tenor': '${optB.newTenor} mo',
@@ -447,7 +444,7 @@ class _KPRExtraPaymentScreenState
     required String title,
     required String subtitle,
     required bool isSelected,
-    required bool isDark,
+    
     required Map<String, String> fields,
     required VoidCallback onTap,
   }) {

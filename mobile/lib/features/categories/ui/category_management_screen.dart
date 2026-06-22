@@ -174,7 +174,6 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(categoryManagementProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Group by type
     final expense = state.categories.where((c) => c['type'] == 'expense').toList();
@@ -198,9 +197,9 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
                     children: [
-                      _buildSection('Expense', expense, isDark),
+                      _buildSection('Expense', expense),
                       const SizedBox(height: 24),
-                      _buildSection('Income', income, isDark),
+                      _buildSection('Income', income),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -208,7 +207,7 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
     );
   }
 
-  Widget _buildSection(String title, List<Map<String, dynamic>> cats, bool isDark) {
+  Widget _buildSection(String title, List<Map<String, dynamic>> cats) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -221,7 +220,7 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
           ),
         ),
         const SizedBox(height: 8),
-        ...cats.map((cat) => _buildCategoryTile(cat, isDark)),
+        ...cats.map((cat) => _buildCategoryTile(cat)),
         if (cats.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -236,7 +235,7 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
     );
   }
 
-  Widget _buildCategoryTile(Map<String, dynamic> cat, bool isDark) {
+  Widget _buildCategoryTile(Map<String, dynamic> cat) {
     final nameEn = cat['name_en'] as String? ?? '';
     final icon = cat['icon'] as String? ?? '';
     final isDefault = cat['is_default'] == true;

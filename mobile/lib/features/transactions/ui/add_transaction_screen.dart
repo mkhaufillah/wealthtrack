@@ -350,10 +350,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   }
 
   Widget _buildScanOverlay() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AbsorbPointer(
       child: Container(
-        color: isDark ? Colors.black87 : Colors.black54,
+        color: AppColors.textPrimary,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -370,7 +369,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               const SizedBox(height: 8),
               const Text(
                 'This may take a few seconds',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
             ],
           ),

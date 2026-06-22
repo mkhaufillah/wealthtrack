@@ -152,7 +152,6 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           builder: (ctx, setSheetState) {
             final allSelected = selected.length == cats.length;
             final theme = Theme.of(ctx);
-            final isDarkSheet = theme.brightness == Brightness.dark;
             return Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -310,13 +309,13 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               ...available.map((member) {
                 final name = member['display_name'] as String? ?? 'User #${member['user_id']}';
                 final role = member['role'] as String? ?? 'member';
-                final isDark = Theme.of(ctx).brightness == Brightness.dark;
+                
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.avatarColor(name).withOpacity(isDark ? 0.3 : 0.15),
+                    backgroundColor: AppColors.avatarBackground(name),
                     child: Text(name[0].toUpperCase(),
                       style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.avatarColor(name),
+                        color: AppColors.avatarText(name),
                         fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -385,7 +384,6 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     final state = ref.watch(transactionListProvider);
     final notifier = ref.read(transactionListProvider.notifier);
     final ocrState = ref.watch(ocrPendingCountProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Auto-refresh when OCR pending drops to 0
     ref.listen<OcrState>(ocrPendingCountProvider, (previous, next) {
@@ -503,21 +501,18 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     label: 'All',
                     selected: state.typeFilter == 'all',
                     onTap: () => notifier.setTypeFilter('all'),
-                    isDark: isDark,
                   ),
                   const SizedBox(width: 8),
                   _FilterChip(
                     label: 'Expense',
                     selected: state.typeFilter == 'expense',
                     onTap: () => notifier.setTypeFilter('expense'),
-                    isDark: isDark,
                   ),
                   const SizedBox(width: 8),
                   _FilterChip(
                     label: 'Income',
                     selected: state.typeFilter == 'income',
                     onTap: () => notifier.setTypeFilter('income'),
-                    isDark: isDark,
                   ),
                   const SizedBox(width: 12),
 
@@ -525,7 +520,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   ActionChip(
                     avatar: Icon(Icons.category_outlined, size: 16,
                         color: state.selectedCategoryIds.isNotEmpty
-                            ? (isDark ? AppColors.surface : AppColors.accent)
+                            ? AppColors.accent
                             : AppColors.textSecondary),
                     label: Text(
                       state.selectedCategoryIds.isNotEmpty
@@ -533,16 +528,14 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                           : 'Categories',
                       style: TextStyle(fontSize: 12,
                           color: state.selectedCategoryIds.isNotEmpty
-                              ? (isDark ? AppColors.surface : AppColors.accent)
+                              ? AppColors.accent
                               : AppColors.textSecondary),
                     ),
-                    backgroundColor: isDark && state.selectedCategoryIds.isNotEmpty
-                        ? AppColors.surface
-                        : AppColors.surface,
+                    backgroundColor: AppColors.surface,
                     onPressed: _showCategoryFilterSheet,
                     side: BorderSide(
                       color: state.selectedCategoryIds.isNotEmpty
-                          ? (isDark ? AppColors.surface.withOpacity(0.38) : AppColors.accent)
+                          ? AppColors.accent
                           : AppColors.divider,
                     ),
                   ),
@@ -639,12 +632,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
-  final bool isDark;
   final VoidCallback onTap;
   const _FilterChip({
     required this.label,
     required this.selected,
-    required this.isDark,
     required this.onTap,
   });
 

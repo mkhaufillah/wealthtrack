@@ -75,7 +75,6 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(kprProvider);
     final sim = state.selectedSimulation;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -112,11 +111,11 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                         children: [
-                          _buildSummaryCards(sim, isDark),
+                          _buildSummaryCards(sim),
                           const SizedBox(height: 16),
-                          _buildExtraPaymentSection(sim, state, isDark),
+                          _buildExtraPaymentSection(sim, state),
                           const SizedBox(height: 16),
-                          _buildScheduleSection(sim, isDark),
+                          _buildScheduleSection(sim),
                         ],
                       ),
                     ),
@@ -125,7 +124,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
 
   // ─── Summary Cards ──────────────────────────────────────
 
-  Widget _buildSummaryCards(KPRSimulation sim, bool isDark) {
+  Widget _buildSummaryCards(KPRSimulation sim) {
     final monthlyPayment = sim.summary?['monthly_payment'] as int? ??
         _estimateMonthlyPaymentFromSchedule(sim.schedule);
     final totalInterest = sim.summary?['total_interest'] as int? ??
@@ -142,7 +141,6 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           icon: Icons.home_outlined,
           label: 'Property Price',
           value: formatCurrency(sim.propertyPrice),
-          isDark: isDark,
         ),
         const SizedBox(height: 10),
 
@@ -154,7 +152,6 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 icon: Icons.account_balance_outlined,
                 label: 'Loan Amount',
                 value: formatCurrency(sim.totalLoan),
-                isDark: isDark,
               ),
             ),
             const SizedBox(width: 10),
@@ -164,7 +161,6 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 label: 'Monthly Payment',
                 value: formatCurrency(monthlyPayment),
                 accent: true,
-                isDark: isDark,
               ),
             ),
           ],
@@ -180,7 +176,6 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 label: 'Total Interest',
                 value: formatCurrency(totalInterest),
                 valueColor: AppColors.highlight,
-                isDark: isDark,
               ),
             ),
             const SizedBox(width: 10),
@@ -189,7 +184,6 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 icon: Icons.account_balance_wallet_outlined,
                 label: 'Total Payment',
                 value: formatCurrency(totalPayment),
-                isDark: isDark,
               ),
             ),
           ],
@@ -208,7 +202,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     required String value,
     bool accent = false,
     Color? valueColor,
-    required bool isDark,
+    
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -337,7 +331,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
   // ─── Extra Payment Section ──────────────────────────────
 
   Widget _buildExtraPaymentSection(
-      KPRSimulation sim, KPRState state, bool isDark) {
+      KPRSimulation sim, KPRState state) {
     final extras = state.extraPayments;
 
     return Column(
@@ -397,12 +391,12 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             ),
           )
         else
-          ...extras.map((ep) => _buildExtraPaymentCard(ep, sim, isDark)),
+          ...extras.map((ep) => _buildExtraPaymentCard(ep, sim)),
       ],
     );
   }
 
-  Widget _buildExtraPaymentCard(ExtraPaymentRecord ep, KPRSimulation sim, bool isDark) {
+  Widget _buildExtraPaymentCard(ExtraPaymentRecord ep, KPRSimulation sim) {
     final isTenor = ep.reductionType == 'tenor';
     final monthsSaved = ep.oldRemainingMonths - ep.newRemainingMonths;
     final paymentDiff = ep.oldInstallment - ep.newInstallment;
@@ -620,7 +614,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
 
   // ─── Schedule Section ──────────────────────────────────
 
-  Widget _buildScheduleSection(KPRSimulation sim, bool isDark) {
+  Widget _buildScheduleSection(KPRSimulation sim) {
     final schedule = sim.schedule;
     if (schedule == null || schedule.isEmpty) {
       return Container(
@@ -682,7 +676,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         const SizedBox(height: 12),
         ...yearKeys.map((yearIdx) {
           final items = yearMap[yearIdx]!;
-          return _buildYearTile(yearIdx, items, isDark, startTotalMonths, now);
+          return _buildYearTile(yearIdx, items, startTotalMonths, now);
         }),
       ],
     );
@@ -787,7 +781,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBackground.withOpacity(0.5) : AppColors.background,
+                color: AppColors.background.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(

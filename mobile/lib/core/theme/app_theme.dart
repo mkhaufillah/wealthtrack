@@ -73,6 +73,30 @@ class AppColors {
     final hash = name.hashCode.abs();
     return chartPalette[hash % chartPalette.length];
   }
+
+  /// Brightness-aware avatar background
+  static Color avatarBackground(String name) {
+    return avatarColor(name).withOpacity(_brightness == Brightness.dark ? 0.3 : 0.15);
+  }
+
+  /// Brightness-aware avatar text
+  static Color avatarText(String name) {
+    return _brightness == Brightness.dark ? Colors.white : avatarColor(name);
+  }
+
+  /// Brightness-aware highlight background for error containers
+  static Color get highlightBackground =>
+      highlight.withOpacity(_brightness == Brightness.dark ? 0.4 : 0.1);
+
+  /// Brightness-aware credit card gradient
+  static List<Color> get creditCardGradient => _brightness == Brightness.dark
+      ? [darkSurface, darkCard]
+      : [_primary, _accent];
+
+  /// Brightness-aware selected color for category picker
+  static Color get categoryPickerSelected => _brightness == Brightness.dark
+      ? darkTextPrimary.withOpacity(0.12)
+      : _primary.withOpacity(0.3);
 }
 
 class AppTheme {

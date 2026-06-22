@@ -69,7 +69,6 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(kprProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -91,7 +90,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                           children: [
                             SizedBox(
                               height: MediaQuery.of(context).size.height * 0.6,
-                              child: _buildEmptyState(isDark),
+                              child: _buildEmptyState(),
                             ),
                           ],
                         )
@@ -100,7 +99,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                           itemCount: state.simulations.length,
                           itemBuilder: (_, i) =>
-                              _buildSimulationCard(state.simulations[i], isDark),
+                              _buildSimulationCard(state.simulations[i]),
                         ),
                 ),
       floatingActionButton: FloatingActionButton(
@@ -110,7 +109,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -141,7 +140,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
     );
   }
 
-  Widget _buildSimulationCard(KPRSimulation sim, bool isDark) {
+  Widget _buildSimulationCard(KPRSimulation sim) {
     final monthlyPayment = sim.monthlyPayment;
     final totalInterest = sim.totalInterest;
     final monthlyPaymentStr = monthlyPayment > 0
