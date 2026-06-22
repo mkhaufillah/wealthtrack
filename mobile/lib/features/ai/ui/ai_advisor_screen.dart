@@ -308,7 +308,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                   CircleAvatar(
                     backgroundColor: _isLoading ? AppColors.textSecondary : AppColors.accent,
                     child: IconButton(
-                      icon: const Icon(Icons.send, color: AppColors.surface, size: 18),
+                      icon: Icon(Icons.send, color: AppColors.surface, size: 18),
                       onPressed: _isLoading ? null : () => _send(),
                     ),
                   ),
@@ -356,7 +356,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
           ),
         ),
         child: msg.isUser
-            ? Text(msg.text, style: const TextStyle(color: AppColors.surface, fontSize: 14))
+            ? Text(msg.text, style: TextStyle(color: AppColors.surface, fontSize: 14))
             : msg.status == 'processing' && msg.text.isEmpty
                 ? Row(
                     mainAxisSize: MainAxisSize.min,
