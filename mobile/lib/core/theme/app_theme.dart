@@ -81,7 +81,7 @@ class AppColors {
 
   /// Brightness-aware avatar text
   static Color avatarText(String name) {
-    return _brightness == Brightness.dark ? AppColors.surface : avatarColor(name);
+    return avatarColor(name);
   }
 
   /// Brightness-aware highlight background for error containers
@@ -116,8 +116,8 @@ class AppTheme {
         cardColor: AppColors._surface,
         dividerColor: AppColors._divider,
         appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors._primary,
-          foregroundColor: AppColors._surface,
+          backgroundColor: AppColors._background,
+          foregroundColor: AppColors._textPrimary,
           elevation: 0,
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(

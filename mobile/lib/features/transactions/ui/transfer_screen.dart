@@ -231,11 +231,7 @@ class _TransferBalanceScreenState
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Transfer Balance'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.surface,
-      ),
+      appBar: AppBar(title: const Text('Transfer Balance')),
       body: _loadingMembers
           ? const Center(child: CircularProgressIndicator())
           : _allMembers.isEmpty

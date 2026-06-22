@@ -702,7 +702,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       ),
       child: Theme(
         data: Theme.of(context).copyWith(
-          dividerColor: Colors.transparent,
+          dividerColor: AppColors.divider,
           colorScheme: Theme.of(context).colorScheme.copyWith(
             primary: AppColors.accent,
           ),

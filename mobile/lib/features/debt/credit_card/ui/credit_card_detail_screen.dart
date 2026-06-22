@@ -107,11 +107,11 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         bottom: card != null
             ? TabBar(
                 controller: _tabController,
-                labelColor: AppColors.surface,
-                unselectedLabelColor: AppColors.surface.withOpacity(0.6),
-                indicatorColor: AppColors.surface,
+                labelColor: AppColors.textPrimary,
+                unselectedLabelColor: AppColors.textPrimary.withOpacity(0.6),
+                indicatorColor: AppColors.textPrimary,
                 indicatorWeight: 2,
-                dividerColor: Colors.transparent,
+                dividerColor: AppColors.divider,
                 indicatorSize: TabBarIndicatorSize.label,
                 tabs: const [
                   Tab(text: 'Transactions'),
