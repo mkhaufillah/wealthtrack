@@ -111,7 +111,7 @@ jobs:
             
             echo "→ Waiting for service to be ready..."
             for i in $(seq 1 12); do
-              if curl -sf http://127.0.0.1:8080/api/v1/health > /dev/null 2>&1; then
+              if curl -sf http://127.0.0.1:8000/api/v1/health > /dev/null 2>&1; then
                 echo "✅ Service is healthy"
                 exit 0
               fi
