@@ -280,7 +280,7 @@ class _KPRExtraPaymentScreenState
               onPressed: _preview,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -421,7 +421,7 @@ class _KPRExtraPaymentScreenState
             onPressed: _selectedOption != null ? _confirm : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accent,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.surface,
               disabledBackgroundColor: AppColors.textSecondary.withOpacity(0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -502,7 +502,7 @@ class _KPRExtraPaymentScreenState
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.check,
-                        size: 16, color: Colors.white),
+                        size: 16, color: AppColors.surface),
                   ),
               ],
             ),

@@ -188,7 +188,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       icon: _sendingOtp
                           ? const SizedBox(
                               width: 18, height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
                             )
                           : const Icon(Icons.email_outlined),
                       label: Text(_sendingOtp ? 'Sending...' : 'Send OTP'),
@@ -221,7 +221,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
+                                  strokeWidth: 2, color: AppColors.surface))
                           : const Text('Register'),
                     ),
                   ),

@@ -120,45 +120,47 @@ class OcrResult(BaseModel):
 
 OCR logic is in the `_scanReceipt()` method (lines 83-166).
 
-#### Scan Loading Overlay
+#### Background Processing Flow
+
+OCR scanning utilizes a background processing architecture:
+
+1. **Upload:** User selects an image source (Camera/Gallery) and it is uploaded to `/ocr/process-and-save`.
+2. **Background Polling:** The app clears any previous OCR error banner and triggers `ocrPendingCountProvider` to poll for status.
+3. **Navigation:** The user is immediately navigated back to the `/transactions` screen.
+4. **Auto-Save:** The transaction is saved directly to the database by the backend upon successful processing, without requiring the user to wait and submit the form manually.
+
+*Note: The `_buildScanOverlay()` method and `_isScanning` state (shown below) remain in the codebase as a legacy/fallback structure, but are superseded by the background flow.*
 
 ```dart
-Widget _buildScanOverlay() {
+  Widget _buildScanOverlay() {
     return AbsorbPointer(
       child: Container(
-        color: isDark ? Colors.black87 : Colors.black54,
+        color: AppColors.textPrimary,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
-              SizedBox(height: 20),
-              Text('Processing your receipt...',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+              const SizedBox(
+                width: 48, height: 48,
+                child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.surface),
               ),
-              SizedBox(height: 8),
-              Text('This may take a few seconds',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+              const SizedBox(height: 20),
+              const Text(
+                'Processing your receipt...',
+                style: TextStyle(color: AppColors.surface, fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This may take a few seconds',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
             ],
           ),
         ),
       ),
     );
-}
+  }
 ```
-
-State: `_isScanning` boolean — true during upload + backend processing.
-
-#### Form Population
-
-On successful scan, form fields are auto-filled:
-- **Amount** → `_amountCtrl.text`
-- **Description** → `_descCtrl.text`
-- **Date** → `_selectedDate` (if valid date returned)
-- **Type** → toggles expense/income if `type = "income"`
-- **Category** → auto-selected if `category_name` matches a known category; falls back to "Lainnya" with matching type if no match
-- **Note** → auto-filled into note text field
 
 ---
 

@@ -230,7 +230,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                       Icon(
                         _useAdvancedModel ? Icons.auto_awesome : Icons.flash_on,
                         size: 14,
-                        color: _useAdvancedModel ? Colors.white : AppColors.textSecondary,
+                        color: _useAdvancedModel ? AppColors.surface : AppColors.textSecondary,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -238,7 +238,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: _useAdvancedModel ? Colors.white : AppColors.textSecondary,
+                          color: _useAdvancedModel ? AppColors.surface : AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -308,7 +308,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                   CircleAvatar(
                     backgroundColor: _isLoading ? AppColors.textSecondary : AppColors.accent,
                     child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white, size: 18),
+                      icon: const Icon(Icons.send, color: AppColors.surface, size: 18),
                       onPressed: _isLoading ? null : () => _send(),
                     ),
                   ),
@@ -356,7 +356,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
           ),
         ),
         child: msg.isUser
-            ? Text(msg.text, style: const TextStyle(color: Colors.white, fontSize: 14))
+            ? Text(msg.text, style: const TextStyle(color: AppColors.surface, fontSize: 14))
             : msg.status == 'processing' && msg.text.isEmpty
                 ? Row(
                     mainAxisSize: MainAxisSize.min,

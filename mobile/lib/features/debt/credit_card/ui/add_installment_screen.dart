@@ -291,7 +291,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               icon: _isSaving
                   ? const SizedBox(
                       width: 18, height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                   : const Icon(Icons.save_outlined, size: 18),
               label: const Text('Save'),
               style: FilledButton.styleFrom(

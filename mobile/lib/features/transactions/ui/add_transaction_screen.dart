@@ -191,10 +191,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const Icon(Icons.check_circle, color: AppColors.surface, size: 20),
               const SizedBox(width: 8),
               Text(_isEditing ? 'Transaction updated' : 'Transaction recorded',
-                  style: const TextStyle(color: Colors.white)),
+                  style: const TextStyle(color: AppColors.surface)),
             ],
           ),
           backgroundColor: AppColors.success,
@@ -211,10 +211,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error, color: Colors.white, size: 20),
+              const Icon(Icons.error, color: AppColors.surface, size: 20),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(msg, style: const TextStyle(color: Colors.white)),
+                child: Text(msg, style: const TextStyle(color: AppColors.surface)),
               ),
             ],
           ),
@@ -336,7 +336,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _save,
                 child: _isSaving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                     : Text(_isEditing ? 'Update' : 'Save'),
               ),
             ),
@@ -359,12 +359,12 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             children: [
               const SizedBox(
                 width: 48, height: 48,
-                child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.surface),
               ),
               const SizedBox(height: 20),
               const Text(
                 'Processing your receipt...',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                style: TextStyle(color: AppColors.surface, fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Text(

@@ -207,7 +207,7 @@ final localChatStorageProvider = Provider<LocalChatStorage>((ref) => LocalChatSt
 | 2.5 | Backend | **No confidence score returned** — OCR returns parsed fields without any confidence indicator. User can't tell if the scan was reliable. | **P3** | ~20 min | Backend |
 | 2.6 | Backend | **No multi-language support** — System prompt only asks for English output. Indonesian receipts (common in Indonesia) may parse poorly. | **P2** | ~10 min | Backend |
 | 2.7 | Mobile | **No OCR-specific provider/service** — `_scanReceipt()` is inline in `AddTransactionScreen` with direct `api.uploadFile()` call. Not testable in isolation. | **P1** | ~30 min | Mobile |
-| 2.8 | Mobile | **No loading indicator** — `_isScanning = true` is set but no visual loading shown (spinner/progress bar) during upload + processing. | **P1** | ~10 min | Mobile |
+| 2.8 | Mobile | **No loading indicator** — `_isScanning = true` is set but no visual loading shown. | **P1** | ~10 min | **RESOLVED** — Superseded by background polling. |
 | 2.9 | Mobile | **No image preview** — User can't see which image was selected before/after upload. Could show a thumbnail. | **P2** | ~15 min | Mobile |
 | 2.10 | Mobile | **No retry on network failure** — Error is shown once; user has to re-trigger scan from scratch. | **P2** | ~15 min | Mobile |
 | 2.11 | Test | **No mobile OCR upload flow test** — Tests only verify bottom sheet UI (camera/gallery options), not the actual upload + result parsing flow. | **P1** | ~45 min | Test |
@@ -282,30 +282,11 @@ final ocrProvider = FutureProvider.family<OcrResult, String>((ref, imagePath) as
 
 ### 2.8 [P1] Scan Loading Indicator
 
-**Problem:** `_isScanning` state is set but no loading UI is shown in the form. The user sees nothing while waiting.
+**Status:** ✅ RESOLVED (Superseded)
 
-**Fix:** Show a loading overlay on the form:
-```dart
-if (_isScanning) {
-  return Stack(
-    children: [
-      // form fields (disabled)
-      // Loading overlay
-      Container(
-        color: Colors.black26,
-        child: Center(
-          child: Column(
-            children: [
-              CircularProgressIndicator(),
-              Text('Scanning receipt...'),
-            ],
-          ),
-        ),
-      ),
-    ],
-  );
-}
-```
+**Problem:** Previously, `_isScanning` state was set but no loading UI was shown in the form while waiting for the OCR upload to complete.
+
+**Fix (Implemented):** The OCR upload flow has been completely refactored to use a fire-and-forget background processing architecture. There is no longer a need for a blocking loading overlay on the form. Instead, the upload triggers the `ocrPendingCountProvider` and returns the user to the transaction list immediately, displaying a non-blocking background task banner.
 
 ---
 

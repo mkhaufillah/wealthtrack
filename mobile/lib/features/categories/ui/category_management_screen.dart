@@ -245,7 +245,7 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isDark ? AppColors.background : AppColors.primary.withOpacity(0.1),
+          backgroundColor: AppColors.background,
           child: Text(icon.isNotEmpty ? icon : '📦', style: const TextStyle(fontSize: 20)),
         ),
         title: Text(

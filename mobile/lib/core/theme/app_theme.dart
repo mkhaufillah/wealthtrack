@@ -81,7 +81,7 @@ class AppColors {
 
   /// Brightness-aware avatar text
   static Color avatarText(String name) {
-    return _brightness == Brightness.dark ? Colors.white : avatarColor(name);
+    return _brightness == Brightness.dark ? AppColors.surface : avatarColor(name);
   }
 
   /// Brightness-aware highlight background for error containers
@@ -109,20 +109,20 @@ class AppTheme {
           secondary: AppColors._accent,
           surface: AppColors._surface,
           error: AppColors._highlight,
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
+          onPrimary: AppColors.surface,
+          onSecondary: AppColors.surface,
           onSurface: AppColors._textPrimary,
         ),
         cardColor: AppColors._surface,
         dividerColor: AppColors._divider,
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors._primary,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.surface,
           elevation: 0,
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors._accent,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.surface,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -144,7 +144,7 @@ class AppTheme {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors._accent,
-            foregroundColor: Colors.white,
+            foregroundColor: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -170,8 +170,8 @@ class AppTheme {
           secondary: AppColors.darkAccent,
           surface: AppColors.darkSurface,
           error: AppColors.darkHighlight,
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
+          onPrimary: AppColors.surface,
+          onSecondary: AppColors.surface,
           onSurface: AppColors.darkTextPrimary,
         ),
         cardColor: AppColors.darkSurface,
@@ -183,7 +183,7 @@ class AppTheme {
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors.darkAccent,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.surface,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -208,7 +208,7 @@ class AppTheme {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.darkAccent,
-            foregroundColor: Colors.white,
+            foregroundColor: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),

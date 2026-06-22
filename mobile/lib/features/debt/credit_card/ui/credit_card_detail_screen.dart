@@ -107,9 +107,9 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         bottom: card != null
             ? TabBar(
                 controller: _tabController,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white60,
-                indicatorColor: Colors.white,
+                labelColor: AppColors.surface,
+                unselectedLabelColor: AppColors.surface60,
+                indicatorColor: AppColors.surface,
                 indicatorWeight: 2,
                 dividerColor: Colors.transparent,
                 indicatorSize: TabBarIndicatorSize.label,
@@ -236,7 +236,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
   }
 
   Widget _headerInfoItem(String label, String value, IconData icon) {
-    final textColor = isDark ? AppColors.textPrimary : Colors.white;
+    final textColor = AppColors.textPrimary;
     final subTextColor = AppColors.textSecondary;
 
     return Column(

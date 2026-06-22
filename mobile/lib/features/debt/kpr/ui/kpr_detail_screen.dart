@@ -685,7 +685,6 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
   Widget _buildYearTile(
     int yearIndex,
     List<KPRScheduleItem> items,
-    bool isDark,
     int startTotalMonths,
     DateTime now,
   ) {
