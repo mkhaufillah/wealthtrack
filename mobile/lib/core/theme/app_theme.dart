@@ -7,6 +7,7 @@ class AppColors {
   static const Color _textPrimary = Color(0xFF1A1A2E);
   static const Color _textSecondary = Color(0xFF7F8C8D);
   static const Color _divider = Color(0xFFE8E8E8);
+  static const Color _card = Color(0xFFCFD5E3);
 
   // ─── Dark palette ────────────────────────────────────
   static const Color darkBackground = Color(0xFF0D1117);
@@ -91,7 +92,7 @@ class AppColors {
   /// Brightness-aware credit card gradient
   static List<Color> get creditCardGradient => _brightness == Brightness.dark
       ? [darkSurface, darkCard]
-      : [_primary, _accent];
+      : [_surface, _card];
 
   /// Brightness-aware selected color for category picker
   static Color get categoryPickerSelected => _brightness == Brightness.dark
