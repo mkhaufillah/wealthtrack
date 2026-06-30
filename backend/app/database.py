@@ -469,13 +469,13 @@ async def get_db():
         await pool.release(conn)
 
 
-async def get_db_bg() -> CursorWrapper:
+async def get_db_bg():
     """Create a standalone background connection.
 
     Unlike get_db() (request-scoped), this returns an unbounded connection
     that the caller must close explicitly via wrapper.close().
     """
     if pool is None:
-        raise RuntimeError("Database pool not initialized.")
+        return None
     conn = await pool.acquire()
     return CursorWrapper(conn, pool)
