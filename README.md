@@ -62,7 +62,7 @@ A personal finance tracker. Tracks daily expenses, income, budgets, and generate
 │   │   │   └── meilisearch.py # Meilisearch async client wrapper
 │   │   ├── routers/           # Auth, transactions, categories, budgets,
 │   │   │                      # summaries, households, exports, OCR,
-│   │   │                      # ai_advisor, health
+│   │   │                      # ai_advisor, health, mcp
 │   │   ├── schemas/           # Pydantic models for API
 │   │   ├── services/          # OCR, web_search, AI logic
 │   │   ├── requirements.txt
@@ -81,6 +81,7 @@ A personal finance tracker. Tracks daily expenses, income, budgets, and generate
 │   ├── 06-brave-search-integration.md
 │   ├── 07-deployment.md
 │   ├── 08-p4-plan.md
+│   │   ├── mcp-integration.md
 │   └── ...                    # Feature-specific docs
 ├── deploy/                    # Nginx config, deploy script
 ├── .github/workflows/         # CI/CD pipelines
