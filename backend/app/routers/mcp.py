@@ -164,15 +164,18 @@ async def mcp_jsonrpc(
         arguments = params.get("arguments", {})
 
         if tool_name == "get_current_balance":
-            service = SummaryService(db)
-            summary = await service.get_household_summary(current_user["id"])
-            tool_result = {
-                "balance": summary.get("balance", 0),
-                "currency": "IDR",
-                "as_of": summary.get("date_to"),
-                "total_income": summary.get("total_income", 0),
-                "total_expense": summary.get("total_expense", 0),
-            }
+            try:
+                service = SummaryService(db)
+                summary = await service.get_household_summary(current_user["id"])
+                tool_result = {
+                    "balance": summary.get("balance", 0),
+                    "currency": "IDR",
+                    "as_of": summary.get("date_to"),
+                    "total_income": summary.get("total_income", 0),
+                    "total_expense": summary.get("total_expense", 0),
+                }
+            except Exception as e:
+                tool_result = {"error": str(e), "balance": 0}
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
