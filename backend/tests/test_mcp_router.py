@@ -112,6 +112,12 @@ def test_mcp_call_get_current_balance():
 
 def test_mcp_call_list_recent_transactions():
     """TDD test for tools/call list_recent_transactions wired to TransactionService."""
+    # Ensure override is set for this test
+    from app.core.security import get_current_user
+    def override_get_current_user():
+        return {"id": 1, "username": "testuser", "role": "user", "household_id": 1}
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    
     payload = {
         "jsonrpc": "2.0",
         "id": 4,
