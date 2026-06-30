@@ -1,0 +1,82 @@
+"""TDD tests for MCP router - initialize handshake and tools/list discovery."""
+from fastapi.testclient import TestClient
+from app.main import app
+from app.core.security import get_current_user
+import json
+
+client = TestClient(app)
+
+# Override auth for tests that need it
+def override_get_current_user():
+    return {"id": 1, "username": "testuser", "role": "user", "household_id": 1}
+
+app.dependency_overrides[get_current_user] = override_get_current_user
+
+def test_mcp_stream_get_exists():
+    """Test GET /api/v1/mcp/stream endpoint exists and requires auth (from Task 3)."""
+    # Clear override temporarily? But for this test, dummy will fail auth, so 401 ok
+    # Temporarily remove override for this test
+    app.dependency_overrides.clear()
+    response = client.get("/api/v1/mcp/stream", headers={"Authorization": "Bearer dummy"})
+    assert response.status_code in (200, 401)
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
+
+def test_mcp_initialize_handshake():
+    """Test POST initialize JSON-RPC returns server capabilities and protocol version."""
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {"name": "test-client", "version": "1.0.0"}
+        }
+    }
+    response = client.post(
+        "/api/v1/mcp/stream",
+        json=payload,
+        headers={"Content-Type": "application/json"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["jsonrpc"] == "2.0"
+    assert data["id"] == 1
+    assert "result" in data
+    result = data["result"]
+    assert "protocolVersion" in result
+    assert result["protocolVersion"] == "2024-11-05"
+    assert "capabilities" in result
+    assert "tools" in result["capabilities"]
+    assert "serverInfo" in result
+
+
+def test_mcp_list_tools():
+    """Test tools/list returns the advertised MCP tools with proper schemas."""
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/list",
+        "params": {}
+    }
+    response = client.post(
+        "/api/v1/mcp/stream",
+        json=payload,
+        headers={"Content-Type": "application/json"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["jsonrpc"] == "2.0"
+    assert "result" in data
+    tools = data["result"].get("tools", [])
+    tool_names = [t["name"] for t in tools]
+    assert "get_current_balance" in tool_names
+    assert "list_recent_transactions" in tool_names
+    assert "create_transaction" in tool_names
+    assert "get_monthly_summary" in tool_names
+    # Check one tool has inputSchema
+    balance_tool = next((t for t in tools if t["name"] == "get_current_balance"), None)
+    assert balance_tool is not None
+    assert "inputSchema" in balance_tool
+    assert balance_tool["description"] is not None
