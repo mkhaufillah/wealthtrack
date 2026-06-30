@@ -111,7 +111,6 @@ async def mcp_stream(request: Request, current_user: dict = Depends(get_current_
 async def mcp_jsonrpc(
     request: Request,
     current_user: dict = Depends(get_current_user),
-    db: CursorWrapper = Depends(get_db),
 ):
     """Handle JSON-RPC 2.0 requests over the MCP endpoint (initialize, tools/list, tools/call, etc.)."""
     if not settings.MCP_ENABLED:
