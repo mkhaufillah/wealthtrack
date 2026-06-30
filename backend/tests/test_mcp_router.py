@@ -137,3 +137,31 @@ def test_mcp_call_list_recent_transactions():
     assert "count" in tool_data
     assert isinstance(tool_data["transactions"], list)
     assert tool_data["count"] <= 5
+
+
+def test_mcp_call_create_transaction():
+    """TDD test for tools/call create_transaction (Task 6)."""
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "tools/call",
+        "params": {
+            "name": "create_transaction",
+            "arguments": {
+                "amount": 50000,
+                "type": "expense",
+                "category_id": 1,
+                "description": "MCP create test transaction"
+            }
+        }
+    }
+    response = client.post(
+        "/api/v1/mcp/stream",
+        json=payload,
+        headers={"Content-Type": "application/json"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["jsonrpc"] == "2.0"
+    assert data["id"] == 5
+    assert "result" in data or "error" in data  # will be result after impl

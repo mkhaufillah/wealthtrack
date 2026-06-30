@@ -87,7 +87,6 @@ MCP_TOOLS = [
     }
 ]
 
-
 @router.get("/stream")
 async def mcp_stream(request: Request, current_user: dict = Depends(get_current_user)):
     """MCP SSE endpoint for streaming events and connection."""
@@ -109,7 +108,6 @@ async def mcp_stream(request: Request, current_user: dict = Depends(get_current_
             "X-Accel-Buffering": "no",
         },
     )
-
 
 @router.post("/stream")
 async def mcp_jsonrpc(
@@ -208,11 +206,101 @@ async def mcp_jsonrpc(
                 },
             }
 
+        elif tool_name == "create_transaction":
+            # Task 6: write tool with validation, household scoping, proper error handling (TDD)
+            from pydantic import ValidationError
+            from app.schemas.transaction import TransactionCreate
+            from app.services.transaction_service import (
+                CategoryNotFoundError,
+                NotHouseholdMemberError,
+            )
+
+            try:
+                # Basic presence check
+                required = ["amount", "type", "category_id", "description"]
+                missing = [k for k in required if k not in arguments]
+                if missing:
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "error": {
+                            "code": -32602,
+                            "message": f"Missing required fields: {missing}",
+                        },
+                    }
+
+                # Household scoping: ensure user belongs to a household
+                txn_service = TransactionService(db)
+                try:
+                    household_id, role = await txn_service._get_user_household(
+                        current_user["id"]
+                    )
+                except NotHouseholdMemberError:
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "error": {
+                            "code": -32000,
+                            "message": "User is not a member of any household",
+                        },
+                    }
+
+                # Default date if not provided (YYYY-MM-DD as per schema)
+                if "date" not in arguments or not arguments.get("date"):
+                    from datetime import date as dt_date
+
+                    arguments["date"] = dt_date.today().isoformat()
+
+                # Pydantic validation (enforces amount>0, type enum, date format, etc.)
+                try:
+                    txn_data = TransactionCreate(**arguments)
+                except ValidationError as ve:
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "error": {"code": -32602, "message": f"Validation error: {ve}"},
+                    }
+
+                # Create via service (category validation happens inside)
+                created = await txn_service.create_transaction(
+                    txn_data, current_user["id"]
+                )
+                tool_result = {
+                    "transaction": created,
+                    "message": "Transaction created successfully",
+                    "household_id": household_id,
+                }
+                return {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {
+                        "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    },
+                }
+            except CategoryNotFoundError as ce:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {
+                        "code": -32001,
+                        "message": f"Category not found: {ce}",
+                    },
+                }
+            except Exception as e:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {"code": -32603, "message": f"Internal error: {str(e)}"},
+                }
+
         else:
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
-                "error": {"code": -32601, "message": f"Tool not found or not implemented yet: {tool_name}"},
+                "error": {
+                    "code": -32601,
+                    "message": f"Tool not found or not implemented yet: {tool_name}",
+                },
             }
 
     else:
