@@ -19,6 +19,23 @@ server {
     ssl_ciphers HIGH:!aNULL:!MD5;
 
     # Reverse proxy to FastAPI (Docker container on port 8080)
+    # Long-lived SSE for MCP stream (copy of AI chat streaming pattern)
+    location /mcp/stream {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+
+        # SSE streaming (long-lived MCP connections)
+        proxy_read_timeout 3600s;
+        proxy_buffering off;
+        proxy_cache off;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
