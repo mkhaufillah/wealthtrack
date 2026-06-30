@@ -81,4 +81,11 @@ app.include_router(credit_cards.router, prefix="/api/v1")
 app.include_router(ocr.router, prefix="/api/v1")
 app.include_router(kpr.router, prefix="/api/v1")
 app.include_router(ai_advisor.router, prefix="/api/v1")
+
+# DEBUG MCP
+mcp_routes = [r for r in app.routes if hasattr(r, 'path') and 'mcp' in str(r.path)]
+print(f'[DEBUG] MCP routes found: {len(mcp_routes)}')
+for r in mcp_routes:
+    print(f'  - {r.path}')
+
 app.include_router(mcp.router, prefix="/api/v1/mcp", tags=["mcp"])
