@@ -142,7 +142,7 @@ class TransactionService:
     router.
     """
 
-    def __init__(self, db: CursorWrapper) -> None:
+    def __init__(self, db: CursorWrapper = None) -> None:
         self.db = db
 
     # ── Household helpers ────────────────────────────────────────────
