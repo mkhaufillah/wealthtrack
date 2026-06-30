@@ -185,24 +185,27 @@ async def mcp_jsonrpc(
             }
 
         elif tool_name == "list_recent_transactions":
-            limit = arguments.get("limit", 10)
-            if not isinstance(limit, int) or limit < 1:
-                limit = 10
-            limit = min(limit, 100)
-            txn_service = TransactionService(db)
-            paginated = await txn_service.list_household_transactions(
-                current_user["id"], page=1, per_page=limit, sort="-date"
-            )
-            txns = [dict(t) for t in paginated.data]
-            tool_result = {
-                "transactions": txns,
-                "count": len(txns),
-                "meta": {
-                    "page": paginated.meta.page,
-                    "per_page": paginated.meta.per_page,
-                    "total": paginated.meta.total,
-                },
-            }
+            try:
+                limit = arguments.get("limit", 10)
+                if not isinstance(limit, int) or limit < 1:
+                    limit = 10
+                limit = min(limit, 100)
+                txn_service = TransactionService(db)
+                paginated = await txn_service.list_household_transactions(
+                    current_user["id"], page=1, per_page=limit, sort="-date"
+                )
+                txns = [dict(t) for t in paginated.data]
+                tool_result = {
+                    "transactions": txns,
+                    "count": len(txns),
+                    "meta": {
+                        "page": paginated.meta.page,
+                        "per_page": paginated.meta.per_page,
+                        "total": paginated.meta.total,
+                    },
+                }
+            except Exception as e:
+                tool_result = {"error": str(e), "transactions": []}
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
