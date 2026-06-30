@@ -171,3 +171,38 @@ curl -N -X POST https://wealthtrack.filla.id/api/v1/mcp/stream \
 
 **Dibuat:** 30 Juni 2026  
 **Status:** MCP WealthTrack sudah production-ready untuk dihubungkan ke AI.
+---
+
+## 7. Contoh Prompt untuk Claude / AI
+
+Setelah berhasil connect, kamu bisa pakai prompt seperti ini:
+
+### Prompt 1: Cek Keuangan Bulan Ini
+```
+Kamu adalah financial advisor pribadi saya. 
+Gunakan tool WealthTrack MCP untuk menganalisis keuangan saya bulan ini.
+
+Tolong:
+1. Ambil saldo saat ini
+2. List 10 transaksi terbaru
+3. Beri ringkasan singkat (total income, expense, saving rate)
+```
+
+### Prompt 2: Buat Transaksi Cepat
+```
+Tolong catat transaksi berikut via WealthTrack MCP:
+- Jumlah: Rp 150.000
+- Tipe: expense
+- Kategori: Makanan (cari category_id yang sesuai)
+- Deskripsi: Makan siang di warung Padang
+- Tanggal: hari ini
+```
+
+### Prompt 3: Analisis Pengeluaran
+```
+Berdasarkan data transaksi saya, tolong analisis:
+- Kategori pengeluaran terbesar bulan ini
+- Apakah ada pengeluaran yang tidak biasa?
+- Saran penghematan yang realistis
+```
+
