@@ -16,6 +16,7 @@ from app.database import init_pool, close_pool, background_tasks
 from app.core.redis import init_redis, close_redis
 from app.core.meilisearch import init_meilisearch, close_meilisearch
 from app.routers import auth, categories, transactions, summaries, health, households, exports, budgets, credit_cards, ocr, kpr, ai_advisor
+from app.routers.mcp import router as mcp_router
 
 
 @asynccontextmanager
@@ -81,3 +82,4 @@ app.include_router(credit_cards.router, prefix="/api/v1")
 app.include_router(ocr.router, prefix="/api/v1")
 app.include_router(kpr.router, prefix="/api/v1")
 app.include_router(ai_advisor.router, prefix="/api/v1")
+app.include_router(mcp_router, prefix="/api/v1/mcp", tags=["mcp"])
