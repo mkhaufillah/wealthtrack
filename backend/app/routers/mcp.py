@@ -88,7 +88,8 @@ MCP_TOOLS = [
 @router.get("/stream")
 async def mcp_stream(request: Request, current_user: dict = Depends(get_current_user)):
     """MCP SSE endpoint for streaming events and connection."""
-    if not settings.MCP_ENABLED:
+    try:
+        if not settings.MCP_ENABLED:
         raise HTTPException(status_code=503, detail="MCP disabled")
 
     async def event_generator():
@@ -114,7 +115,8 @@ async def mcp_jsonrpc(
     db: CursorWrapper = Depends(get_db),
 ):
     """Handle JSON-RPC 2.0 requests over the MCP endpoint (initialize, tools/list, tools/call, etc.)."""
-    if not settings.MCP_ENABLED:
+    try:
+        if not settings.MCP_ENABLED:
         raise HTTPException(status_code=503, detail="MCP disabled")
 
     try:
