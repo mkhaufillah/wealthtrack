@@ -2,7 +2,7 @@
 
 Implements MCP over HTTP+SSE/JSON-RPC transport.
 - GET /stream : SSE connection for server->client events (handshake ready)
-- POST /stream : JSON-RPC requests for initialize, tools/list, etc.
+- POST /stream : JSON-RPC requests for initialize, tools/list, tools/call, etc.
 
 Uses existing get_current_user for JWT auth scoping.
 Follows 2024-11-05 spec for initialize + capabilities + tools/list.
@@ -11,6 +11,9 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from app.core.security import get_current_user
 from app.core.config import settings
+from app.database import get_db, CursorWrapper
+from app.services.transaction_service import TransactionService
+from app.services.summary_service import SummaryService
 import json
 import asyncio
 
@@ -109,8 +112,12 @@ async def mcp_stream(request: Request, current_user: dict = Depends(get_current_
 
 
 @router.post("/stream")
-async def mcp_jsonrpc(request: Request, current_user: dict = Depends(get_current_user)):
-    """Handle JSON-RPC 2.0 requests over the MCP endpoint (initialize, tools/list, etc.)."""
+async def mcp_jsonrpc(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    db: CursorWrapper = Depends(get_db),
+):
+    """Handle JSON-RPC 2.0 requests over the MCP endpoint (initialize, tools/list, tools/call, etc.)."""
     if not settings.MCP_ENABLED:
         raise HTTPException(status_code=503, detail="MCP disabled")
 
@@ -150,6 +157,63 @@ async def mcp_jsonrpc(request: Request, current_user: dict = Depends(get_current
     elif method == "notifications/initialized":
         # Client notification after initialize - no response needed
         return {"jsonrpc": "2.0", "id": req_id, "result": None}
+
+    elif method == "tools/call":
+        # Execute tool - Task 5: first read-only tools wired to services (TDD)
+        tool_name = params.get("name")
+        arguments = params.get("arguments", {})
+
+        if tool_name == "get_current_balance":
+            service = SummaryService(db)
+            summary = await service.get_household_summary(current_user["id"])
+            tool_result = {
+                "balance": summary.get("balance", 0),
+                "currency": "IDR",
+                "as_of": summary.get("date_to"),
+                "total_income": summary.get("total_income", 0),
+                "total_expense": summary.get("total_expense", 0),
+            }
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                },
+            }
+
+        elif tool_name == "list_recent_transactions":
+            limit = arguments.get("limit", 10)
+            if not isinstance(limit, int) or limit < 1:
+                limit = 10
+            limit = min(limit, 100)
+            txn_service = TransactionService(db)
+            paginated = await txn_service.list_household_transactions(
+                current_user["id"], page=1, per_page=limit, sort="-date"
+            )
+            txns = [dict(t) for t in paginated.data]
+            tool_result = {
+                "transactions": txns,
+                "count": len(txns),
+                "meta": {
+                    "page": paginated.meta.page,
+                    "per_page": paginated.meta.per_page,
+                    "total": paginated.meta.total,
+                },
+            }
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                },
+            }
+
+        else:
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32601, "message": f"Tool not found or not implemented yet: {tool_name}"},
+            }
 
     else:
         return {
