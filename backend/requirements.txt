@@ -28,3 +28,6 @@ meilisearch>=0.30.0
 
 # Email validation
 email-validator>=2.1.0
+
+# MCP (Model Context Protocol)
+mcp>=1.0.0

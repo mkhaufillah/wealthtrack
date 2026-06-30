@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     VERSION: str = "0.7.1"
     DEBUG: bool = False
 
+    # MCP
+    MCP_ENABLED: bool = True
+    MCP_STREAM_PATH: str = "/mcp/stream"
+
     # PostgreSQL — primary database
     DATABASE_URL: str = "postgresql://wealthtrack:***@localhost:5432/wealthtrack"
 
@@ -48,6 +52,10 @@ class Settings(BaseSettings):
     # Meilisearch
     MEILISEARCH_URL: str = "http://localhost:7700"
     MEILISEARCH_MASTER_KEY: str = ""
+
+    # MCP
+    MCP_ENABLED: bool = True
+    MCP_STREAM_PATH: str = "/mcp/stream"
 
     @property
     def cors_origins_list(self) -> list[str]:
