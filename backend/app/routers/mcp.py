@@ -193,8 +193,8 @@ async def mcp_jsonrpc(
                 if db is None:
                     tool_result = {"error": "DB not available in test", "transactions": []}
                 else:
-                    txn_service = TransactionService(db)
                     try:
+                        txn_service = TransactionService(db)
                         paginated = await txn_service.list_household_transactions(
                             current_user["id"], page=1, per_page=limit, sort="-date"
                         )
