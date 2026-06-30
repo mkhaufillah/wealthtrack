@@ -120,7 +120,7 @@ async def mcp_jsonrpc(
     try:
         body = await request.json()
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON")
+        return {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}
 
     jsonrpc = body.get("jsonrpc")
     if jsonrpc != "2.0":
