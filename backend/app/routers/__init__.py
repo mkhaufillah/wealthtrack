@@ -1,0 +1,15 @@
+from . import (
+    auth,
+    categories,
+    transactions,
+    summaries,
+    health,
+    households,
+    exports,
+    budgets,
+    credit_cards,
+    ocr,
+    kpr,
+    ai_advisor,
+    mcp,
+)
