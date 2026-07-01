@@ -152,6 +152,8 @@ class TransactionService:
 
         Raises NotHouseholdMemberError if the user is not in any household.
         """
+        if self.db is None:
+            raise NotHouseholdMemberError()
         cursor = await self.db.execute(
             "SELECT household_id, role FROM household_members WHERE user_id = ?",
             (user_id,),
