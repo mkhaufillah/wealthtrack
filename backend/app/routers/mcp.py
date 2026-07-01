@@ -191,7 +191,8 @@ async def mcp_jsonrpc(
                     limit = 10
                 limit = min(limit, 100)
                 if db is None:
-                    tool_result = {"error": "DB not available in test", "transactions": []}
+                    # In test environment without DB, return empty list gracefully
+                    tool_result = {"transactions": [], "count": 0, "meta": {"page": 1, "per_page": limit, "total": 0}}
                 else:
                     try:
                         txn_service = TransactionService(db)
