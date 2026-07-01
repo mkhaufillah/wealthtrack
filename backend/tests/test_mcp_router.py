@@ -1,8 +1,11 @@
 """TDD tests for MCP router - initialize handshake and tools/list discovery."""
 from fastapi.testclient import TestClient
+import json
+import pytest
+
 from app.main import app
 from app.core.security import get_current_user
-import json
+
 
 client = TestClient(app)
 
@@ -17,6 +20,14 @@ def _clear_auth_override():
     app.dependency_overrides.pop(get_current_user, None)
 
 
+@pytest.fixture(autouse=True)
+def _auth_override():
+    """Ensure get_current_user is overridden for every MCP test, then cleared."""
+    _override_auth()
+    yield
+    _clear_auth_override()
+
+
 def test_mcp_stream_get_exists():
     """Test GET /api/v1/mcp/stream endpoint exists and requires auth (from Task 3)."""
     _clear_auth_override()
@@ -26,7 +37,6 @@ def test_mcp_stream_get_exists():
 
 def test_mcp_initialize_handshake():
     """Test POST initialize JSON-RPC returns server capabilities and protocol version."""
-    _override_auth()
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
@@ -57,7 +67,6 @@ def test_mcp_initialize_handshake():
 
 def test_mcp_list_tools():
     """Test tools/list returns the advertised MCP tools with proper schemas."""
-    _override_auth()
     payload = {
         "jsonrpc": "2.0",
         "id": 2,
@@ -87,7 +96,6 @@ def test_mcp_list_tools():
 
 def test_mcp_call_get_current_balance():
     """TDD test for tools/call get_current_balance wired to SummaryService."""
-    _override_auth()
     payload = {
         "jsonrpc": "2.0",
         "id": 3,
@@ -115,7 +123,6 @@ def test_mcp_call_get_current_balance():
 
 def test_mcp_call_list_recent_transactions():
     """TDD test for tools/call list_recent_transactions wired to TransactionService."""
-    _override_auth()
     payload = {
         "jsonrpc": "2.0",
         "id": 4,
@@ -145,7 +152,6 @@ def test_mcp_call_list_recent_transactions():
 
 def test_mcp_call_create_transaction():
     """TDD test for tools/call create_transaction (Task 6)."""
-    _override_auth()
     payload = {
         "jsonrpc": "2.0",
         "id": 5,
