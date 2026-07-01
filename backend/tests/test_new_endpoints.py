@@ -72,6 +72,7 @@ class TestOcrProcessAndSave:
             "/api/v1/ocr/process-and-save",
             files={"file": ("test.png", png_data, "image/png")},
         )
+        print("DEBUG OCR NO AUTH:", resp.status_code, resp.text[:500])
         assert resp.status_code == 401
 
     async def test_non_image_rejected(self, client: AsyncClient, filla_token: str):
