@@ -6,25 +6,27 @@ import json
 
 client = TestClient(app)
 
-# Override auth for tests that need it
-def override_get_current_user():
-    return {"id": 1, "username": "testuser", "role": "user", "household_id": 1}
 
-app.dependency_overrides[get_current_user] = override_get_current_user
+def _override_auth():
+    def override_get_current_user():
+        return {"id": 1, "username": "testuser", "role": "user", "household_id": 1}
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
+
+def _clear_auth_override():
+    app.dependency_overrides.pop(get_current_user, None)
 
 
 def test_mcp_stream_get_exists():
     """Test GET /api/v1/mcp/stream endpoint exists and requires auth (from Task 3)."""
-    # Clear override temporarily? But for this test, dummy will fail auth, so 401 ok
-    # Temporarily remove override for this test
-    app.dependency_overrides.clear()
+    _clear_auth_override()
     response = client.get("/api/v1/mcp/stream", headers={"Authorization": "Bearer dummy"})
     assert response.status_code in (200, 401)
-    app.dependency_overrides[get_current_user] = override_get_current_user
 
 
 def test_mcp_initialize_handshake():
     """Test POST initialize JSON-RPC returns server capabilities and protocol version."""
+    _override_auth()
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
@@ -55,6 +57,7 @@ def test_mcp_initialize_handshake():
 
 def test_mcp_list_tools():
     """Test tools/list returns the advertised MCP tools with proper schemas."""
+    _override_auth()
     payload = {
         "jsonrpc": "2.0",
         "id": 2,
@@ -76,7 +79,6 @@ def test_mcp_list_tools():
     assert "list_recent_transactions" in tool_names
     assert "create_transaction" in tool_names
     assert "get_monthly_summary" in tool_names
-    # Check one tool has inputSchema
     balance_tool = next((t for t in tools if t["name"] == "get_current_balance"), None)
     assert balance_tool is not None
     assert "inputSchema" in balance_tool
@@ -85,6 +87,7 @@ def test_mcp_list_tools():
 
 def test_mcp_call_get_current_balance():
     """TDD test for tools/call get_current_balance wired to SummaryService."""
+    _override_auth()
     payload = {
         "jsonrpc": "2.0",
         "id": 3,
@@ -112,12 +115,7 @@ def test_mcp_call_get_current_balance():
 
 def test_mcp_call_list_recent_transactions():
     """TDD test for tools/call list_recent_transactions wired to TransactionService."""
-    # Ensure override is set for this test
-    from app.core.security import get_current_user
-    def override_get_current_user():
-        return {"id": 1, "username": "testuser", "role": "user", "household_id": 1}
-    app.dependency_overrides[get_current_user] = override_get_current_user
-    
+    _override_auth()
     payload = {
         "jsonrpc": "2.0",
         "id": 4,
@@ -129,8 +127,6 @@ def test_mcp_call_list_recent_transactions():
         json=payload,
         headers={"Content-Type": "application/json"}
     )
-    # Note: In test env, this may return 500 if DB is not available
-    # We accept 200 or 500 for now
     assert response.status_code in (200, 500)
     data = response.json()
     assert data["jsonrpc"] == "2.0"
@@ -149,6 +145,7 @@ def test_mcp_call_list_recent_transactions():
 
 def test_mcp_call_create_transaction():
     """TDD test for tools/call create_transaction (Task 6)."""
+    _override_auth()
     payload = {
         "jsonrpc": "2.0",
         "id": 5,
@@ -172,4 +169,4 @@ def test_mcp_call_create_transaction():
     data = response.json()
     assert data["jsonrpc"] == "2.0"
     assert data["id"] == 5
-    assert "result" in data or "error" in data  # will be result after impl
+    assert "result" in data or "error" in data
