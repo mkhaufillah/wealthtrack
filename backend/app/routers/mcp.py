@@ -159,7 +159,7 @@ async def mcp_jsonrpc(
     elif method == "tools/call":
         # Lazy DB connection
         from app.database import get_db_bg
-        db = get_db_bg()
+        db = await get_db_bg()
 
         # Execute tool - Task 5: first read-only tools wired to services (TDD)
         tool_name = params.get("name")
