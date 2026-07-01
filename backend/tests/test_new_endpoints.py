@@ -67,9 +67,10 @@ class TestOcrProcessAndSave:
 
     async def test_requires_auth(self, client: AsyncClient):
         """Returns 401 without token."""
+        png_data = _make_tiny_png()
         resp = await client.post(
             "/api/v1/ocr/process-and-save",
-            files={"file": ("test.png", b"x", "image/png")},
+            files={"file": ("test.png", png_data, "image/png")},
         )
         assert resp.status_code == 401
 
