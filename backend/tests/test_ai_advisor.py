@@ -124,6 +124,7 @@ class TestFinancialAdvise:
             "/api/v1/ai/advise",
             json={"question": "How can I save more money?"},
         )
+        print("DEBUG AI ADVISOR NO AUTH:", resp.status_code, resp.text[:500])
         assert resp.status_code == 401
 
     async def test_returns_500_without_api_key(self, client: AsyncClient, filla_token: str):
