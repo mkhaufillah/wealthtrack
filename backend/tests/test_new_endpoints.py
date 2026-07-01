@@ -67,7 +67,10 @@ class TestOcrProcessAndSave:
 
     async def test_requires_auth(self, client: AsyncClient):
         """Returns 401 without token."""
-        resp = await client.post("/api/v1/ocr/process-and-save")
+        resp = await client.post(
+            "/api/v1/ocr/process-and-save",
+            files={"file": ("test.png", b"x", "image/png")},
+        )
         assert resp.status_code == 401
 
     async def test_non_image_rejected(self, client: AsyncClient, filla_token: str):

@@ -243,7 +243,12 @@ class TestCreateInstallment:
         data = inst_resp.json()
         assert data["description"] == "iPhone 12"
         assert data["monthly_amount"] == 1000000
-        assert data["remaining_months"] == 7  # = 12 - 5 elapsed (start Jan 2026, now Jun)
+        # remaining_months = total_months - elapsed_months
+        # elapsed = (current_year*12 + current_month) - (2026*12 + 1)
+        from datetime import date
+        now = date.today()
+        elapsed = (now.year * 12 + now.month) - (2026 * 12 + 1)
+        assert data["remaining_months"] == max(0, 12 - elapsed)
 
 
 # ── Next Month Projection ────────────────────────────────────────────

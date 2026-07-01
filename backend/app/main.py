@@ -53,17 +53,11 @@ app.add_middleware(
 )
 
 
-import logging
-
-logger = logging.getLogger(__name__)
-
-
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Catch unhandled exceptions & return consistent JSON."""
     # FastAPI / Starlette HTTPException subclasses are handled natively;
     # this only catches truly unexpected errors (DB crashes, type errors, etc.)
-    logger.exception("Unhandled exception in %s %s", request.method, request.url)
     return JSONResponse(
         status_code=500,
         content={
