@@ -58,15 +58,21 @@ class ApiKeyService:
                RETURNING id, created_at""",
             (user_id, name, key_hash, scopes),
         )
+        # The wrapper's execute with RETURNING sets lastrowid; fetchone may not
+        # populate rows for fetchval path. Prefer lastrowid when available.
+        key_id = self.db.lastrowid
         row = await cursor.fetchone()
-        if row is None:
+        if key_id is None and row is not None:
+            key_id = row["id"]
+        created_at = row["created_at"] if row else datetime.now(timezone.utc).isoformat()
+        if key_id is None:
             raise RuntimeError("Failed to create API key")
         return {
-            "id": row["id"],
+            "id": key_id,
             "name": name,
             "key": plaintext,
             "scopes": scopes,
-            "created_at": row["created_at"],
+            "created_at": created_at,
         }
 
     async def list_keys(self, user_id: int) -> list[dict]:
