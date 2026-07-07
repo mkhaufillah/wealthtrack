@@ -12,7 +12,7 @@ client = TestClient(app)
 
 def _override_auth():
     def override_get_current_user():
-        return {"id": 1, "username": "testuser", "role": "user", "household_id": 1}
+        return {"id": 1, "username": "testuser", "role": "user", "household_id": 1, "auth_type": "jwt", "api_key_scopes": None}
     app.dependency_overrides[get_current_user] = override_get_current_user
 
 

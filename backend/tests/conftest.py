@@ -59,6 +59,7 @@ DEFAULT_TRANSACTIONS = [
 ]
 
 SCHEMA_SQL = """
+DROP TABLE IF EXISTS api_keys CASCADE;
 DROP TABLE IF EXISTS kpr_extra_payments CASCADE;
 DROP TABLE IF EXISTS kpr_monthly_schedules CASCADE;
 DROP TABLE IF EXISTS kpr_rate_periods CASCADE;
@@ -258,9 +259,24 @@ CREATE TABLE IF NOT EXISTS credit_card_transactions (
     installment_id INTEGER REFERENCES credit_card_installments(id),
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    key_hash TEXT NOT NULL UNIQUE,
+    scopes TEXT[] NOT NULL DEFAULT ARRAY['mcp:read'],
+    is_active INTEGER NOT NULL DEFAULT 1,
+    last_used_at TEXT,
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
 """
 
 TABLES_IN_ORDER = [
+    "api_keys",
     "kpr_extra_payments", "credit_card_transactions", "credit_card_installments", "credit_cards",
     "kpr_monthly_schedules", "kpr_rate_periods", "kpr_simulations",
     "ai_messages", "ocr_jobs", "budgets",
@@ -303,7 +319,7 @@ async def _create_test_db():
             uid, role,
         )
     # Reset sequences to prevent conflicts with auto-generated ids
-    for tbl in ["users", "categories", "transactions", "households", "budgets", "email_verifications", "ocr_jobs", "ai_messages", "kpr_simulations", "kpr_rate_periods", "kpr_monthly_schedules", "credit_cards", "credit_card_installments", "credit_card_transactions"]:
+    for tbl in ["users", "categories", "transactions", "households", "budgets", "email_verifications", "ocr_jobs", "ai_messages", "kpr_simulations", "kpr_rate_periods", "kpr_monthly_schedules", "credit_cards", "credit_card_installments", "credit_card_transactions", "api_keys"]:
         await conn.execute(f"SELECT setval('{tbl}_id_seq', COALESCE((SELECT MAX(id) FROM {tbl}), 0) + 1, false)")
     return conn
 

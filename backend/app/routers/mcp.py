@@ -229,37 +229,14 @@ async def mcp_jsonrpc(
         return {"jsonrpc": "2.0", "id": req_id, "result": None}
 
     elif method == "tools/call":
-        # Lazy DB connection
-        from app.database import get_db_bg, pool
-        if pool is None:
-            # In test environment without DB, respond with empty result
-            tool_name = params.get("name", "unknown")
-            if tool_name == "get_current_balance":
-                tool_result = {"balance": 0, "currency": "IDR", "total_income": 0, "total_expense": 0}
-            elif tool_name == "list_recent_transactions":
-                tool_result = {"transactions": [], "count": 0, "meta": {"page": 1, "per_page": 10, "total": 0}}
-            elif tool_name == "create_transaction":
-                tool_result = {"success": False, "error": "DB not available in test env"}
-            else:
-                tool_result = {"error": "DB not available in test env"}
-            return {
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
-                },
-            }
-        db = await get_db_bg()
-
-        # Execute tool - Task 5: first read-only tools wired to services (TDD)
-        tool_name = params.get("name")
+        tool_name = params.get("name", "unknown")
         arguments = params.get("arguments", {})
 
         tool_def = next((t for t in MCP_TOOLS if t["name"] == tool_name), None)
         if tool_def is None:
             return {
                 "jsonrpc": "2.0",
-                "id": req_id,
+                "id": body.get("id"),
                 "error": {
                     "code": -32601,
                     "message": f"Tool not found: {tool_name}",
@@ -270,12 +247,36 @@ async def mcp_jsonrpc(
         if not _has_scope(current_user, required_scope):
             return {
                 "jsonrpc": "2.0",
-                "id": req_id,
+                "id": body.get("id"),
                 "error": {
                     "code": -32002,
                     "message": f"Insufficient scope. Required: {required_scope}",
                 },
             }
+
+        # Lazy DB connection
+        from app.database import get_db_bg, pool
+        if pool is None:
+            # In test environment without DB, respond with empty result
+            if tool_name == "get_current_balance":
+                tool_result = {"balance": 0, "currency": "IDR", "total_income": 0, "total_expense": 0}
+            elif tool_name == "list_recent_transactions":
+                tool_result = {"transactions": [], "count": 0, "meta": {"page": 1, "per_page": 10, "total": 0}}
+            elif tool_name == "create_transaction":
+                tool_result = {"success": False, "error": "DB not available in test env"}
+            else:
+                tool_result = {"error": "DB not available in test env"}
+            return {
+                "jsonrpc": "2.0",
+                "id": body.get("id"),
+                "result": {
+                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                },
+            }
+        db = await get_db_bg()
+
+        # Execute tool - scope check already performed above.
+        # Only service-specific execution remains below.
 
         if tool_name == "get_current_balance":
             try:
