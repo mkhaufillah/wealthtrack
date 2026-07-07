@@ -62,9 +62,9 @@ class SummaryService:
                 "by_category": […], "by_user": […],
             }
         """
-        today = date.today().isoformat()
-        d_from = date_from or today
-        d_to = date_to or today
+        # Jika tidak diberi tanggal, hitung SEMUA transaksi (bukan hanya hari ini)
+        d_from = date_from
+        d_to = date_to
 
         cursor = await self.db.execute(
             """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
@@ -156,9 +156,9 @@ class SummaryService:
         date_to: Optional[str] = None,
     ) -> dict:
         """Household-wide summary across members of the current user's household."""
-        today = date.today().isoformat()
-        d_from = date_from or today
-        d_to = date_to or today
+        # Jika tidak diberi tanggal, hitung SEMUA transaksi (bukan hanya hari ini)
+        d_from = date_from
+        d_to = date_to
 
         # Get the user's household ID
         cursor = await self.db.execute(
@@ -210,6 +210,12 @@ class SummaryService:
             }
 
         household_id = hm["household_id"]
+
+        # Jika tidak ada filter tanggal, hitung semua transaksi
+        if not d_from:
+            d_from = "2020-01-01"
+        if not d_to:
+            d_to = "2099-12-31"
 
         cursor = await self.db.execute(
             """SELECT t.type, CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) as total,
