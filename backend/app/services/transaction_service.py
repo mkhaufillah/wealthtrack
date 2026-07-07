@@ -216,10 +216,11 @@ class TransactionService:
         join_clause = "JOIN household_members hm2 ON hm2.user_id = t.user_id"
 
         cursor = await self.db.execute(
-            f"SELECT COUNT(*) FROM ({_SELECT_TXN} {join_clause} WHERE {' AND '.join(where)}) AS sub",
+            f"SELECT COUNT(*) as count FROM ({_SELECT_TXN} {join_clause} WHERE {' AND '.join(where)}) AS sub",
             params,
         )
-        total = (await cursor.fetchone())[0]
+        row = await cursor.fetchone()
+        total = row["count"] if row else 0
 
         offset = (page - 1) * per_page
         cursor = await self.db.execute(
@@ -407,10 +408,11 @@ class TransactionService:
         order = _ORDER_MAP.get(sort, f"{_DATE_COALESCE} DESC")
 
         cursor = await self.db.execute(
-            f"SELECT COUNT(*) FROM transactions t WHERE {' AND '.join(where)}",
+            f"SELECT COUNT(*) as count FROM transactions t WHERE {' AND '.join(where)}",
             params,
         )
-        total = (await cursor.fetchone())[0]
+        row = await cursor.fetchone()
+        total = row["count"] if row else 0
 
         offset = (page - 1) * per_page
         cursor = await self.db.execute(
@@ -473,9 +475,10 @@ class TransactionService:
         order = _ORDER_MAP.get(sort, f"{_DATE_COALESCE} DESC")
 
         cursor = await self.db.execute(
-            f"SELECT COUNT(*) FROM transactions t WHERE {' AND '.join(where)}", params
+            f"SELECT COUNT(*) as count FROM transactions t WHERE {' AND '.join(where)}", params
         )
-        total = (await cursor.fetchone())[0]
+        row = await cursor.fetchone()
+        total = row["count"] if row else 0
 
         offset = (page - 1) * per_page
         cursor = await self.db.execute(
