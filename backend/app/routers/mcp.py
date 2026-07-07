@@ -16,7 +16,7 @@ from app.services.transaction_service import TransactionService
 from app.services.summary_service import SummaryService
 from app.services.budget_service import BudgetService
 from app.utils.cycle import get_cycle_range, get_cycle_range_for_month
-from datetime import date
+from datetime import date, timedelta
 import json
 import asyncio
 
@@ -112,6 +112,31 @@ MCP_TOOLS = [
             "type": "object",
             "properties": {
                 "limit": {"type": "integer", "default": 50, "minimum": 1, "maximum": 200}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "list_transactions_on_date",
+        "description": "List household transactions that occurred on a specific date (YYYY-MM-DD). Optionally filter by type.",
+        "scope": "mcp:read",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "Date in YYYY-MM-DD format"},
+                "type": {"type": "string", "enum": ["income", "expense"], "description": "Optional filter by transaction type"}
+            },
+            "required": ["date"]
+        }
+    },
+    {
+        "name": "get_weekly_household_summary",
+        "description": "Get household income/expense/balance summary for the last 7 days ending on the given date (defaults to today).",
+        "scope": "mcp:read",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "end_date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "End date in YYYY-MM-DD format (defaults to today)"}
             },
             "required": []
         }
@@ -515,6 +540,79 @@ async def mcp_jsonrpc(
                     "cycle_range": {"from": d_from.isoformat(), "to": d_to.isoformat()},
                     "household_summary": household,
                     "recent_transactions": [dict(t) for t in recent.data],
+                }
+            except Exception as e:
+                tool_result = {"error": str(e)}
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                },
+            }
+
+        elif tool_name == "list_transactions_on_date":
+            try:
+                target_date = arguments.get("date")
+                txn_type = arguments.get("type")
+                if not target_date:
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "error": {"code": -32602, "message": "Missing required field: date"},
+                    }
+                txn_service = TransactionService(db)
+                paginated = await txn_service.list_household_transactions(
+                    current_user["id"],
+                    page=1,
+                    per_page=200,
+                    date_from=target_date,
+                    date_to=target_date,
+                    type=txn_type,
+                    sort="-date",
+                )
+                txns = [dict(t) for t in paginated.data]
+                tool_result = {
+                    "date": target_date,
+                    "type": txn_type,
+                    "transactions": txns,
+                    "count": len(txns),
+                    "meta": {
+                        "page": paginated.meta.page,
+                        "per_page": paginated.meta.per_page,
+                        "total": paginated.meta.total,
+                    },
+                }
+            except Exception as e:
+                tool_result = {"error": str(e), "transactions": []}
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                },
+            }
+
+        elif tool_name == "get_weekly_household_summary":
+            try:
+                end_date_str = arguments.get("end_date")
+                if end_date_str:
+                    end = date.fromisoformat(end_date_str)
+                else:
+                    end = date.today()
+                start = end - timedelta(days=6)
+                service = SummaryService(db)
+                summary = await service.get_household_summary(
+                    current_user["id"], start.isoformat(), end.isoformat()
+                )
+                tool_result = {
+                    "date_from": start.isoformat(),
+                    "date_to": end.isoformat(),
+                    "total_income": summary.get("total_income", 0),
+                    "total_expense": summary.get("total_expense", 0),
+                    "balance": summary.get("balance", 0),
+                    "currency": "IDR",
+                    "by_user": summary.get("by_user", []),
                 }
             except Exception as e:
                 tool_result = {"error": str(e)}
