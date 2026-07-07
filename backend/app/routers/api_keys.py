@@ -1,6 +1,7 @@
 """API key management for long-lived MCP authentication."""
 from typing import Optional
 
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.security import get_current_user
@@ -10,10 +11,14 @@ from app.services.api_key_service import ApiKeyService
 router = APIRouter(prefix="/api-keys", tags=["api-keys"])
 
 
+class CreateApiKeyIn(BaseModel):
+    name: str
+    scopes: list[str] = ["mcp:read"]
+
+
 @router.post("", status_code=201)
 async def create_api_key(
-    name: str,
-    scopes: Optional[list[str]] = None,
+    body: CreateApiKeyIn,
     current_user: dict = Depends(get_current_user),
     db: CursorWrapper = Depends(get_db),
 ):
@@ -21,13 +26,9 @@ async def create_api_key(
     if db is None:
         raise HTTPException(status_code=503, detail="Database not available")
 
-    # Default scopes if not provided
-    if scopes is None:
-        scopes = ["mcp:read"]
-
     # Validate scopes
     allowed = {"mcp:read", "mcp:write"}
-    invalid = set(scopes) - allowed
+    invalid = set(body.scopes) - allowed
     if invalid:
         raise HTTPException(
             status_code=400,
@@ -37,8 +38,8 @@ async def create_api_key(
     service = ApiKeyService(db)
     return await service.create_key(
         user_id=current_user["id"],
-        name=name,
-        scopes=scopes,
+        name=body.name,
+        scopes=body.scopes,
     )
 
 
