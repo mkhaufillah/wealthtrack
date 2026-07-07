@@ -46,14 +46,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   DateTime _maxMonth() {
     if (_userCycleDay <= 1) return DateTime.now();
+    // Cycle month = month in which the cycle ENDS.
+    // If today is still before cycle_day, the active cycle ends this month.
+    // If today is on/after cycle_day, the active cycle ends next month.
     final today = DateTime.now();
-    if (today.day >= _userCycleDay) {
+    if (today.day < _userCycleDay) {
       return DateTime(today.year, today.month);
     }
-    if (today.month == 1) {
-      return DateTime(today.year - 1, 12);
+    if (today.month == 12) {
+      return DateTime(today.year + 1, 1);
     }
-    return DateTime(today.year, today.month - 1);
+    return DateTime(today.year, today.month + 1);
   }
 
   String get _monthParam => DateFormat('yyyy-MM').format(_currentMonth);
