@@ -9,6 +9,7 @@ Follows 2024-11-05 spec for initialize + capabilities + tools/list.
 """
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.encoders import jsonable_encoder
 from app.core.security import get_current_user
 from app.core.config import settings
 from app.database import get_db, CursorWrapper
@@ -270,7 +271,7 @@ async def mcp_jsonrpc(
                 "jsonrpc": "2.0",
                 "id": body.get("id"),
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                 },
             }
         db = await get_db_bg()
@@ -295,7 +296,7 @@ async def mcp_jsonrpc(
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                 },
             }
 
@@ -332,7 +333,7 @@ async def mcp_jsonrpc(
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                 },
             }
 
@@ -404,7 +405,7 @@ async def mcp_jsonrpc(
                     "jsonrpc": "2.0",
                     "id": req_id,
                     "result": {
-                        "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                        "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                     },
                 }
             except CategoryNotFoundError as ce:
@@ -440,7 +441,7 @@ async def mcp_jsonrpc(
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                 },
             }
 
@@ -470,7 +471,7 @@ async def mcp_jsonrpc(
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                 },
             }
 
@@ -496,7 +497,7 @@ async def mcp_jsonrpc(
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                 },
             }
 
@@ -520,7 +521,7 @@ async def mcp_jsonrpc(
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                 },
             }
 
@@ -548,7 +549,7 @@ async def mcp_jsonrpc(
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                 },
             }
 
@@ -590,7 +591,7 @@ async def mcp_jsonrpc(
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                 },
             }
 
@@ -621,7 +622,7 @@ async def mcp_jsonrpc(
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                    "content": [{"type": "text", "text": json.dumps(jsonable_encoder(tool_result))}]
                 },
             }
 
