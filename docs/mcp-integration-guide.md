@@ -12,16 +12,17 @@ The endpoint uses **Server-Sent Events (SSE)** and requires Bearer token authent
 
 ## Table of Contents
 
-1. [Get a JWT Token](#1-get-a-jwt-token)
-2. [Supported Clients](#2-supported-clients)
-   - [Claude Desktop](#claude-desktop)
-   - [Cursor](#cursor)
-3. [Unsupported Clients](#3-unsupported-clients)
-   - [Grok / xAI](#grok--xai)
-   - [Hermes Agent](#hermes-agent)
-4. [Custom Bridge for xAI / Grok](#4-custom-bridge-for-xai--grok)
-5. [Custom Bridge for Hermes](#5-custom-bridge-for-hermes)
-6. [Troubleshooting](#6-troubleshooting)
+- [Get a JWT Token](#1-get-a-jwt-token)
+- [API Keys (Long-Lived Tokens)](#2-api-keys-long-lived-tokens)
+- [Supported Clients](#3-supported-clients)
+  - [Claude Desktop](#claude-desktop)
+  - [Cursor](#cursor)
+- [Unsupported Clients](#4-unsupported-clients)
+  - [Grok / xAI](#grok--xai)
+  - [Hermes Agent](#hermes-agent)
+- [Custom Bridge for xAI / Grok](#5-custom-bridge-for-xai--grok)
+- [Custom Bridge for Hermes](#6-custom-bridge-for-hermes)
+- [Troubleshooting](#7-troubleshooting)
 
 ---
 
@@ -47,12 +48,100 @@ Response:
 Use the token in the `Authorization` header:
 
 ```text
-Authorization: Bearer eyJhbG...
+Authorization: Bearer <YOUR_JWT_TOKEN>
 ```
 
 ---
 
-## 2. Supported Clients
+## 2. API Keys (Long-Lived Tokens)
+
+JWT tokens expire. For a long-lived token, create an **API key** scoped to MCP operations.
+
+API keys:
+
+- Do **not** expire.
+- Are scoped to `mcp:read` and/or `mcp:write`.
+- Can be revoked at any time.
+- Start with `wt_mcp_`.
+
+### 2.1 Create an API key
+
+You need a valid JWT token to create an API key.
+
+```bash
+curl -X POST "https://wealthtrack.filla.id/api/v1/api-keys" \
+  -H "Authorization: Bearer <YOUR_JWT_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Claude Desktop",
+    "scopes": ["mcp:read", "mcp:write"]
+  }'
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "name": "Claude Desktop",
+  "key": "wt_mcp_abc123...xyz",
+  "scopes": ["mcp:read", "mcp:write"],
+  "created_at": "2026-07-07T10:00:00.000000Z"
+}
+```
+
+**Save the `key` — it is shown only once.** The server only stores a hash of the key.
+
+### 2.2 List your API keys
+
+```bash
+curl -X GET "https://wealthtrack.filla.id/api/v1/api-keys" \
+  -H "Authorization: Bearer <YOUR_JWT_TOKEN>"
+```
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Claude Desktop",
+    "scopes": ["mcp:read", "mcp:write"],
+    "is_active": true,
+    "created_at": "2026-07-07T10:00:00.000000Z",
+    "last_used_at": "2026-07-07T12:30:00.000000Z"
+  }
+]
+```
+
+### 2.3 Revoke an API key
+
+```bash
+curl -X DELETE "https://wealthtrack.filla.id/api/v1/api-keys/1" \
+  -H "Authorization: Bearer <YOUR_JWT_TOKEN>"
+```
+
+### 2.4 Use an API key with MCP
+
+Use the API key anywhere a token is required:
+
+```text
+Authorization: Bearer wt_mcp_abc123...xyz
+```
+
+For example, replace `YOUR_JWT_TOKEN` in the Claude Desktop or Cursor config below with `wt_mcp_...`.
+
+### Scopes
+
+| Scope | Allows |
+|-------|--------|
+| `mcp:read` | Read-only tools: balance, transactions, budgets, summaries, AI context |
+| `mcp:write` | Write tools: `create_transaction` |
+| `mcp:read` + `mcp:write` | All MCP tools |
+
+---
+
+## 3. Supported Clients
 
 ### Claude Desktop
 
@@ -70,60 +159,19 @@ Claude Desktop supports MCP servers via SSE. Add the following to your Claude De
     "wealthtrack": {
       "url": "https://wealthtrack.filla.id/api/v1/mcp/stream",
       "headers": {
-        "Authorization": "Bearer YOUR_JWT_TOKEN"
+        "Authorization": "Bearer <YOUR_TOKEN_HERE>"
       }
     }
   }
 }
 ```
 
-For a long-lived token, create an API key first (see [API Keys](#api-keys)) and use it instead.
+Use either your JWT token or an API key. We recommend an API key for long-lived connections.
 
-### API Keys
-
-API keys do not expire and can be scoped to `mcp:read` and/or `mcp:write`.
-
-#### Create an API key
-
-```bash
-curl -X POST "https://wealthtrack.filla.id/api/v1/api-keys?name=Claude%20Desktop&scopes=mcp:read&scopes=mcp:write" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-Response:
-
-```json
-{
-  "id": 1,
-  "name": "Claude Desktop",
-  "key": "wt_mcp_abc123...xyz",
-  "scopes": ["mcp:read", "mcp:write"],
-  "created_at": "2026-07-07T10:00:00.000000Z"
-}
-```
-
-**Save the `key` — it is shown only once.**
-
-#### List API keys
-
-```bash
-curl -X GET "https://wealthtrack.filla.id/api/v1/api-keys" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-#### Revoke an API key
-
-```bash
-curl -X DELETE "https://wealthtrack.filla.id/api/v1/api-keys/1" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-#### Use an API key with MCP
-
-Use the API key in the `Authorization` header wherever the guide uses a JWT:
+Restart Claude Desktop. You should see a tools icon when the connection succeeds. Ask Claude:
 
 ```text
-Authorization: Bearer wt_mcp_abc123...xyz
+What are my budgets for this month?
 ```
 
 ### Cursor
@@ -133,7 +181,9 @@ Cursor also supports MCP servers. Open **Cursor Settings → Features → MCP Se
 - **Name:** `wealthtrack`
 - **Type:** `SSE`
 - **URL:** `https://wealthtrack.filla.id/api/v1/mcp/stream`
-- **Headers:** `Authorization: Bearer YOUR_JWT_TOKEN`
+- **Headers:** `Authorization: Bearer <YOUR_TOKEN_HERE>`
+
+Use either your JWT token or an API key.
 
 Save and test with a prompt like:
 
@@ -143,7 +193,7 @@ Show my recent transactions.
 
 ---
 
-## 3. Unsupported Clients
+## 4. Unsupported Clients
 
 ### Grok / xAI
 
@@ -154,7 +204,7 @@ Grok and the xAI API do **not** support MCP natively. To use WealthTrack tools w
 3. Forwards tool calls from Grok to WealthTrack.
 4. Returns tool results back to Grok.
 
-See [Custom Bridge for xAI / Grok](#4-custom-bridge-for-xai--grok) for a starter script.
+See [Custom Bridge for xAI / Grok](#5-custom-bridge-for-xai--grok) for a starter script.
 
 ### Hermes Agent
 
@@ -163,11 +213,11 @@ Hermes Agent does not yet have a built-in MCP client. You can still use WealthTr
 1. Creating a small Python script that calls the MCP endpoint.
 2. Registering that script as a custom tool in Hermes.
 
-See [Custom Bridge for Hermes](#5-custom-bridge-for-hermes).
+See [Custom Bridge for Hermes](#6-custom-bridge-for-hermes).
 
 ---
 
-## 4. Custom Bridge for xAI / Grok
+## 5. Custom Bridge for xAI / Grok
 
 This Python script demonstrates a minimal bridge between xAI function calling and the WealthTrack MCP server.
 
@@ -282,13 +332,13 @@ Run:
 
 ```bash
 export XAI_API_KEY="xai-..."
-export WEALTHTRACK_TOKEN="eyJhbG..."
+export WEALTHTRACK_TOKEN="wt_mcp_..."
 python xai_mcp_bridge.py
 ```
 
 ---
 
-## 5. Custom Bridge for Hermes
+## 6. Custom Bridge for Hermes
 
 Hermes can call external scripts as tools. Create a simple script that proxies specific requests to the MCP endpoint.
 
@@ -338,27 +388,30 @@ if __name__ == "__main__":
 Register it in Hermes config as an enabled tool with environment variable `WEALTHTRACK_TOKEN`. Then Hermes can invoke:
 
 ```bash
-wealthtrack_mcp_tool.py list_budgets '{"month": "2026-07"}'
+wealthtrack_mcp_tool.py list_budgets '{}'
+wealthtrack_mcp_tool.py create_transaction '{"amount": 50000, "type": "expense", "category_id": 1, "description": "Coffee"}'
 ```
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `401 Unauthorized` | Token missing or expired | Re-login and update token |
+| `401 Unauthorized` | Token missing, expired, or API key revoked | Re-login or create a new API key |
 | `404 Not Found` | Wrong URL | Use `/api/v1/mcp/stream` |
 | `426 Upgrade Required` | WebSocket path used | Use SSE (`/mcp/stream`), not WebSocket (`/mcp/ws`) |
 | No tools appear in Claude/Cursor | SSE not connected | Check token and URL; restart client |
 | `Insufficient scope` | API key missing required scope | Regenerate key with `mcp:read` or `mcp:write` |
-| Grok does not see tools | Grok has no native MCP | Use the custom bridge in section 4 |
-| Hermes does not see tools | Hermes has no built-in MCP client | Use the custom bridge in section 5 |
+| Grok does not see tools | Grok has no native MCP | Use the custom bridge in section 5 |
+| Hermes does not see tools | Hermes has no built-in MCP client | Use the custom bridge in section 6 |
 
 ---
 
 ## Security Notes
 
-- Keep your JWT token private. Do not commit it to version control.
+- Keep your JWT token and API keys private. Do not commit them to version control.
+- API keys are shown only once at creation. If you lose one, revoke it and create a new one.
 - Tokens expire after the configured TTL. Refresh via `/api/v1/auth/login` or `/api/v1/auth/refresh`.
-- The MCP endpoint only exposes read operations and safe actions. Verify tool descriptions before allowing an LLM to invoke them.
+- The MCP endpoint exposes scoped tools. Use the minimum scope necessary (`mcp:read` for read-only assistants).
+- Use `mcp:write` only when the LLM client is trusted to create transactions on your behalf.
