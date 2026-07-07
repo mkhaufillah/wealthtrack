@@ -41,8 +41,8 @@ logger = logging.getLogger(__name__)
 async def financial_advise(
     request: Request,
     req: AdviseRequest,
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     try:
         ensure_api_key_configured()
@@ -68,8 +68,8 @@ async def financial_advise(
 async def financial_advise_stream(
     request: Request,
     req: AdviseRequest,
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     try:
         ensure_api_key_configured()
@@ -107,8 +107,8 @@ async def financial_advise_stream(
 async def ai_chat(
     request: Request,
     req: ChatRequest,
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     try:
         ensure_api_key_configured()
@@ -124,8 +124,8 @@ async def ai_chat(
 @router.get("/chat/messages", response_model=list[ChatMessageResponse])
 async def chat_messages(
     request: Request,
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     return await get_chat_messages(current_user["id"], db)
 
@@ -133,7 +133,7 @@ async def chat_messages(
 @router.delete("/chat/messages", status_code=204)
 async def delete_messages(
     request: Request,
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     await delete_chat_messages(current_user["id"], db)
