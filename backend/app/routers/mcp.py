@@ -4,7 +4,7 @@ Implements MCP over HTTP+SSE/JSON-RPC transport.
 - GET /stream : SSE connection for server->client events (handshake ready)
 - POST /stream : JSON-RPC requests for initialize, tools/list, tools/call, etc.
 
-Uses existing get_current_user for JWT auth scoping.
+Uses existing get_current_user for JWT/API-key auth scoping.
 Follows 2024-11-05 spec for initialize + capabilities + tools/list.
 """
 from fastapi import APIRouter, Depends, Request, HTTPException
@@ -14,6 +14,9 @@ from app.core.config import settings
 from app.database import get_db, CursorWrapper
 from app.services.transaction_service import TransactionService
 from app.services.summary_service import SummaryService
+from app.services.budget_service import BudgetService
+from app.utils.cycle import get_cycle_range, get_cycle_range_for_month
+from datetime import date
 import json
 import asyncio
 
@@ -24,6 +27,7 @@ MCP_TOOLS = [
     {
         "name": "get_current_balance",
         "description": "Retrieve the current total balance across all accounts for the authenticated user's household.",
+        "scope": "mcp:read",
         "inputSchema": {
             "type": "object",
             "properties": {},
@@ -33,6 +37,7 @@ MCP_TOOLS = [
     {
         "name": "list_recent_transactions",
         "description": "List the most recent transactions for the user/household with optional limit.",
+        "scope": "mcp:read",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -44,6 +49,7 @@ MCP_TOOLS = [
     {
         "name": "create_transaction",
         "description": "Create a new income or expense transaction. Requires amount, type, category_id, description.",
+        "scope": "mcp:write",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -59,6 +65,7 @@ MCP_TOOLS = [
     {
         "name": "get_monthly_summary",
         "description": "Get income/expense summary for the current or specified month.",
+        "scope": "mcp:read",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -69,7 +76,8 @@ MCP_TOOLS = [
     },
     {
         "name": "list_budgets",
-        "description": "List all budgets for the user's household with current spend vs limit.",
+        "description": "List all budgets for the user's household with current spend vs limit for the active cycle.",
+        "scope": "mcp:read",
         "inputSchema": {
             "type": "object",
             "properties": {},
@@ -79,13 +87,49 @@ MCP_TOOLS = [
     {
         "name": "get_ai_context",
         "description": "Build and return the AI advisor context (transactions, budgets, summaries) for the user.",
+        "scope": "mcp:read",
         "inputSchema": {
             "type": "object",
             "properties": {},
             "required": []
         }
-    }
+    },
+    {
+        "name": "get_household_balance",
+        "description": "Get household total balance, income, and expense for the active cycle.",
+        "scope": "mcp:read",
+        "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "name": "list_household_transactions",
+        "description": "List all household transactions for the active cycle with optional limit.",
+        "scope": "mcp:read",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "default": 50, "minimum": 1, "maximum": 200}
+            },
+            "required": []
+        }
+    },
 ]
+
+
+def _has_scope(current_user: dict, scope: str) -> bool:
+    """Check if the authenticated principal has the required scope.
+
+    JWT tokens are implicitly granted all scopes. API keys are limited to
+    the scopes they were created with.
+    """
+    if current_user.get("auth_type") == "jwt":
+        return True
+    scopes = current_user.get("api_key_scopes") or []
+    return scope in scopes
+
 
 @router.get("/stream")
 async def mcp_stream(request: Request, current_user: dict = Depends(get_current_user)):
@@ -144,13 +188,16 @@ async def mcp_jsonrpc(
                 "name": "wealthtrack-mcp-server",
                 "version": settings.VERSION
             },
-            "instructions": "WealthTrack MCP server. All tools are scoped to the authenticated user's household via JWT."
+            "instructions": "WealthTrack MCP server. All tools are scoped to the authenticated user's household via JWT or API key."
         }
         return {"jsonrpc": "2.0", "id": req_id, "result": result}
 
     elif method == "tools/list":
-        # Tool discovery
-        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": MCP_TOOLS}}
+        # Tool discovery - strip internal scope metadata before returning
+        public_tools = [
+            {k: v for k, v in t.items() if k != "scope"} for t in MCP_TOOLS
+        ]
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": public_tools}}
 
     elif method == "notifications/initialized":
         # Client notification after initialize - no response needed
@@ -182,6 +229,28 @@ async def mcp_jsonrpc(
         # Execute tool - Task 5: first read-only tools wired to services (TDD)
         tool_name = params.get("name")
         arguments = params.get("arguments", {})
+
+        tool_def = next((t for t in MCP_TOOLS if t["name"] == tool_name), None)
+        if tool_def is None:
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {
+                    "code": -32601,
+                    "message": f"Tool not found: {tool_name}",
+                },
+            }
+
+        required_scope = tool_def.get("scope", "mcp:read")
+        if not _has_scope(current_user, required_scope):
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {
+                    "code": -32002,
+                    "message": f"Insufficient scope. Required: {required_scope}",
+                },
+            }
 
         if tool_name == "get_current_balance":
             try:
@@ -327,6 +396,135 @@ async def mcp_jsonrpc(
                     "id": req_id,
                     "error": {"code": -32603, "message": f"Internal error: {str(e)}"},
                 }
+
+        elif tool_name == "get_household_balance":
+            try:
+                service = SummaryService(db)
+                summary = await service.get_household_summary(current_user["id"])
+                tool_result = {
+                    "balance": summary.get("balance", 0),
+                    "total_income": summary.get("total_income", 0),
+                    "total_expense": summary.get("total_expense", 0),
+                    "currency": "IDR",
+                    "as_of": summary.get("date_to"),
+                }
+            except Exception as e:
+                tool_result = {"error": str(e), "balance": 0}
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                },
+            }
+
+        elif tool_name == "list_household_transactions":
+            try:
+                limit = arguments.get("limit", 50)
+                if not isinstance(limit, int) or limit < 1:
+                    limit = 50
+                limit = min(limit, 200)
+                txn_service = TransactionService(db)
+                paginated = await txn_service.list_household_transactions(
+                    current_user["id"], page=1, per_page=limit, sort="-date"
+                )
+                txns = [dict(t) for t in paginated.data]
+                tool_result = {
+                    "transactions": txns,
+                    "count": len(txns),
+                    "meta": {
+                        "page": paginated.meta.page,
+                        "per_page": paginated.meta.per_page,
+                        "total": paginated.meta.total,
+                    },
+                }
+            except Exception as e:
+                tool_result = {"error": str(e), "transactions": []}
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                },
+            }
+
+        elif tool_name == "get_monthly_summary":
+            try:
+                month = arguments.get("month") or date.today().strftime("%Y-%m")
+                service = SummaryService(db)
+                result = await service.get_monthly_summary(
+                    current_user["id"], month=month
+                )
+                # get_monthly_summary can return a list in range mode; ensure dict here.
+                summary = result if isinstance(result, dict) else result[-1] if result else {}
+                tool_result = {
+                    "month": month,
+                    "total_income": summary.get("total_income", 0),
+                    "total_expense": summary.get("total_expense", 0),
+                    "balance": summary.get("balance", 0),
+                    "currency": "IDR",
+                }
+            except Exception as e:
+                tool_result = {"error": str(e)}
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                },
+            }
+
+        elif tool_name == "list_budgets":
+            try:
+                budget_service = BudgetService(db)
+                month = date.today().strftime("%Y-%m")
+                summary = await budget_service.get_summary(
+                    user_id=current_user["id"],
+                    month=month,
+                    use_cycle=True,
+                )
+                tool_result = {
+                    "month": month,
+                    "items": summary.get("items", []),
+                    "uncategorized_expenses": summary.get("uncategorized_expenses", []),
+                }
+            except Exception as e:
+                tool_result = {"error": str(e), "items": []}
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                },
+            }
+
+        elif tool_name == "get_ai_context":
+            try:
+                # Build a lightweight context directly without external service
+                service = SummaryService(db)
+                txn_service = TransactionService(db)
+                cycle_day = await service._get_cycle_start_day(current_user["id"])
+                d_from, d_to = get_cycle_range(date.today(), cycle_day)
+                household = await service.get_household_summary(
+                    current_user["id"], d_from.isoformat(), d_to.isoformat()
+                )
+                recent = await txn_service.list_household_transactions(
+                    current_user["id"], page=1, per_page=20, sort="-date"
+                )
+                tool_result = {
+                    "cycle_range": {"from": d_from.isoformat(), "to": d_to.isoformat()},
+                    "household_summary": household,
+                    "recent_transactions": [dict(t) for t in recent.data],
+                }
+            except Exception as e:
+                tool_result = {"error": str(e)}
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{"type": "text", "text": json.dumps(tool_result)}]
+                },
+            }
 
         else:
             return {

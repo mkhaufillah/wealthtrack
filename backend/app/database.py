@@ -429,6 +429,20 @@ CREATE TABLE IF NOT EXISTS credit_card_installments (
 );
 
 CREATE INDEX IF NOT EXISTS idx_cc_installments_card ON credit_card_installments(card_id);
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    key_hash TEXT NOT NULL UNIQUE,
+    scopes TEXT[] NOT NULL DEFAULT ARRAY['mcp:read'],
+    is_active INTEGER NOT NULL DEFAULT 1,
+    last_used_at TEXT,
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
 """
 
 

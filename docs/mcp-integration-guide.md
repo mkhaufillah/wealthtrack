@@ -77,10 +77,53 @@ Claude Desktop supports MCP servers via SSE. Add the following to your Claude De
 }
 ```
 
-Restart Claude Desktop. You should see a tools icon when the connection succeeds. Ask Claude:
+For a long-lived token, create an API key first (see [API Keys](#api-keys)) and use it instead.
+
+### API Keys
+
+API keys do not expire and can be scoped to `mcp:read` and/or `mcp:write`.
+
+#### Create an API key
+
+```bash
+curl -X POST "https://wealthtrack.filla.id/api/v1/api-keys?name=Claude%20Desktop&scopes=mcp:read&scopes=mcp:write" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "name": "Claude Desktop",
+  "key": "wt_mcp_abc123...xyz",
+  "scopes": ["mcp:read", "mcp:write"],
+  "created_at": "2026-07-07T10:00:00.000000Z"
+}
+```
+
+**Save the `key` — it is shown only once.**
+
+#### List API keys
+
+```bash
+curl -X GET "https://wealthtrack.filla.id/api/v1/api-keys" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### Revoke an API key
+
+```bash
+curl -X DELETE "https://wealthtrack.filla.id/api/v1/api-keys/1" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### Use an API key with MCP
+
+Use the API key in the `Authorization` header wherever the guide uses a JWT:
 
 ```text
-What are my budgets for this month?
+Authorization: Bearer wt_mcp_abc123...xyz
 ```
 
 ### Cursor
@@ -308,6 +351,7 @@ wealthtrack_mcp_tool.py list_budgets '{"month": "2026-07"}'
 | `404 Not Found` | Wrong URL | Use `/api/v1/mcp/stream` |
 | `426 Upgrade Required` | WebSocket path used | Use SSE (`/mcp/stream`), not WebSocket (`/mcp/ws`) |
 | No tools appear in Claude/Cursor | SSE not connected | Check token and URL; restart client |
+| `Insufficient scope` | API key missing required scope | Regenerate key with `mcp:read` or `mcp:write` |
 | Grok does not see tools | Grok has no native MCP | Use the custom bridge in section 4 |
 | Hermes does not see tools | Hermes has no built-in MCP client | Use the custom bridge in section 5 |
 
