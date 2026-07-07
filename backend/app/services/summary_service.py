@@ -212,10 +212,12 @@ class SummaryService:
         household_id = hm["household_id"]
 
         # Jika tidak ada filter tanggal, hitung semua transaksi
+        # tapi as_of tetap hari ini
+        today = date.today().isoformat()
         if not d_from:
             d_from = "2020-01-01"
         if not d_to:
-            d_to = "2099-12-31"
+            d_to = today
 
         cursor = await self.db.execute(
             """SELECT t.type, CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) as total,
