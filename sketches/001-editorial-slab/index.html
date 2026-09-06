@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>WealthTrack — Editorial slab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#F6F1E8; --surface:#FFFBF5; --ink:#14221B; --muted:#6B6456;
+    --line:#E4D9C8; --accent:#E8A317; --expense:#E23D28; --income:#1F8A5B;
+    --warning:#D97706; --hero:#14221B; --hero-on:#FFFBF5;
+  }
+  [data-theme="dark"] {
+    --bg:#0E1411; --surface:#1A2320; --ink:#F3EDE3; --muted:#A39B8C;
+    --line:#2C3833; --accent:#F0B429; --expense:#FF6B57; --income:#3DDC97;
+    --warning:#FBBF24; --hero:#1A2320; --hero-on:#F3EDE3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; padding: 32px 16px;
+    background: #c9bba6;
+    font-family: Outfit, system-ui, sans-serif;
+    color: #14221B;
+  }
+  [data-theme="dark"] body, body.studio-dark { background: #0a0e0c; color: #F3EDE3; }
+  .meta { width: 390px; display: flex; justify-content: space-between; align-items: baseline; }
+  .meta h1 { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .meta p { font-size: 12px; opacity: .7; }
+  .toggles { display: flex; gap: 8px; }
+  .toggles button {
+    border: 1px solid #d4c6b0; background: #fffbf5; color: inherit;
+    padding: 6px 10px; border-radius: 999px; font: 500 12px Outfit; cursor: pointer;
+  }
+  [data-theme="dark"] .toggles button { background: #1A2320; border-color: #2C3833; color: #F3EDE3; }
+  .toggles button.on { background: #14221B; color: #FFFBF5; border-color: #14221B; }
+  .phone {
+    width: 390px; height: 844px; border-radius: 44px;
+    background: var(--bg); color: var(--ink);
+    overflow: hidden; position: relative;
+    box-shadow: 0 40px 80px rgba(20,34,27,.35), inset 0 0 0 1px rgba(255,255,255,.2);
+  }
+  .notch {
+    height: 54px; display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 28px 10px; font-size: 12px; font-weight: 600;
+  }
+  .screen { height: calc(844px - 54px - 72px); overflow-y: auto; padding: 4px 20px 88px; }
+  .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .top .brand { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .who { font-size: 13px; font-weight: 500; background: var(--surface); border: 1px solid var(--line); padding: 6px 10px; border-radius: 999px; }
+  .hero {
+    background: var(--hero); color: var(--hero-on); border-radius: 20px; padding: 22px 22px 20px;
+  }
+  .hero .k { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+  .hero .amt {
+    font-family: Fraunces, Georgia, serif; font-optical-sizing: auto;
+    font-size: 34px; font-weight: 600; letter-spacing: -.03em; margin: 8px 0 10px; line-height: 1.1;
+  }
+  .hair { height: 2px; width: 48px; background: var(--accent); border-radius: 2px; margin-bottom: 16px; }
+  .io { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .io span { display: block; font-size: 11px; opacity: .65; }
+  .io b { font-size: 13px; font-weight: 600; }
+  .io .in b { color: #3DDC97; }
+  .io .out b { color: #FF8A7A; }
+  [data-theme="light"] .io .in b { color: #7dcea0; }
+  .pots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .pot {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+  }
+  .pot span { font-size: 11px; color: var(--muted); }
+  .pot b { display: block; margin-top: 4px; font-size: 15px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px 16px; margin-top: 10px;
+  }
+  .card h2 { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
+  .debt { display: flex; justify-content: space-between; align-items: baseline; }
+  .debt b { font-family: Fraunces, Georgia, serif; font-size: 18px; color: var(--expense); }
+  .ai { font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .txn { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .txn:last-child { border-bottom: 0; }
+  .txn .neg { color: var(--expense); font-weight: 600; }
+  .txn .pos { color: var(--income); font-weight: 600; }
+  .sub { font-size: 11px; color: var(--muted); }
+  .nav {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 72px;
+    background: var(--surface); border-top: 1px solid var(--line);
+    display: flex; justify-content: space-around; align-items: flex-start; padding-top: 10px;
+  }
+  .nav button {
+    background: none; border: 0; color: var(--muted); font: 500 10px Outfit; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 56px;
+  }
+  .nav button.on { color: var(--ink); }
+  .nav button.on .dot { background: var(--accent); }
+  .dot { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+  .fab {
+    position: absolute; right: 20px; bottom: 86px; width: 56px; height: 56px; border-radius: 50%;
+    background: var(--accent); color: #14221B; border: 0; font-size: 22px; cursor: pointer;
+    box-shadow: 0 10px 24px rgba(232,163,23,.45);
+  }
+  .toast {
+    position: absolute; left: 20px; right: 20px; bottom: 156px;
+    background: var(--ink); color: var(--hero-on); padding: 12px 14px; border-radius: 12px;
+    font-size: 13px; display: none;
+  }
+  .toast.show { display: block; }
+  .hidden { display: none; }
+  .filter { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    padding: 8px 12px; border-radius: 999px; font: 500 12px Outfit; cursor: pointer;
+  }
+  .chip.on { background: var(--ink); color: var(--hero-on); border-color: var(--ink); }
+  .empty { text-align: center; padding: 48px 12px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+  <div class="meta">
+    <div>
+      <h1>Editorial slab</h1>
+      <p>Satu angka. Sisanya kertas.</p>
+    </div>
+    <div class="toggles">
+      <button id="themeBtn" class="on" type="button">Light</button>
+    </div>
+  </div>
+  <div class="phone" id="phone">
+    <div class="notch"><span>09:41</span><span>WealthTrack</span></div>
+    <div class="screen" id="home">
+      <div class="top">
+        <div class="brand">Beranda</div>
+        <div class="who">Filla ▾</div>
+      </div>
+      <div class="hero">
+        <div class="k">Saldo keseluruhan</div>
+        <div class="amt">Rp8.743.144</div>
+        <div class="hair"></div>
+        <div class="io">
+          <div class="in"><span>Masuk</span><b>Rp24.180.000</b></div>
+          <div class="out"><span>Keluar</span><b>Rp18.436.856</b></div>
+        </div>
+      </div>
+      <div class="pots">
+        <div class="pot"><span>Tabungan</span><b>Rp15.200.000</b></div>
+        <div class="pot"><span>Dana darurat</span><b>Rp8.000.000</b></div>
+      </div>
+      <div class="card">
+        <h2>Utang berjalan</h2>
+        <div class="debt"><span>KPR + kartu</span><b>Rp487,3jt</b></div>
+      </div>
+      <div class="card">
+        <h2>Catatan AI</h2>
+        <p class="ai">VPS &amp; galon sudah pola. Tagihan belum punya anggaran — filter tanggal cuma arsip tanpa limit.</p>
+      </div>
+      <div class="card">
+        <h2>Pencatat utang</h2>
+        <div class="txn"><span>KPR rumah<br><span class="sub">Sisa tenor 18 th</span></span><span class="neg">Rp450jt</span></div>
+        <div class="txn"><span>Kartu kredit<br><span class="sub">Jatuh tempo 12 Sep</span></span><span class="neg">Rp37,3jt</span></div>
+      </div>
+      <div class="card">
+        <h2>Transaksi terbaru</h2>
+        <div class="txn"><span>VPS<br><span class="sub">Hari ini</span></span><span class="neg">−Rp273.996</span></div>
+        <div class="txn"><span>Galon<br><span class="sub">Kemarin</span></span><span class="neg">−Rp8.000</span></div>
+        <div class="txn"><span>Transfer masuk<br><span class="sub">1 Sep</span></span><span class="pos">+Rp2.500.000</span></div>
+      </div>
+    </div>
+    <div class="screen hidden" id="tx">
+      <div class="top">
+        <div class="brand">Transaksi</div>
+        <div class="who">Filla ▾</div>
+      </div>
+      <div class="filter">
+        <button class="chip on" data-f="all" type="button">Semua</button>
+        <button class="chip" data-f="date" type="button">12 Agu</button>
+        <button class="chip" data-f="range" type="button">1–31 Agu</button>
+      </div>
+      <div id="txlist">
+        <div class="card" data-row>
+          <div class="txn"><span>VPS<br><span class="sub">6 Sep</span></span><span class="neg">−Rp273.996</span></div>
+          <div class="txn"><span>Galon<br><span class="sub">5 Sep</span></span><span class="neg">−Rp8.000</span></div>
+          <div class="txn"><span>Transfer masuk<br><span class="sub">1 Sep</span></span><span class="pos">+Rp2.500.000</span></div>
+        </div>
+      </div>
+      <div class="empty hidden" id="txempty">Tidak ada pengeluaran pada 12 Agu</div>
+    </div>
+    <button class="fab" id="fab" type="button" aria-label="OCR">＋</button>
+    <div class="toast" id="toast">Kamera OCR — copy &amp; rumus tetap dari server</div>
+    <nav class="nav">
+      <button class="on" data-tab="home" type="button"><span class="dot"></span>Beranda</button>
+      <button data-tab="tx" type="button"><span class="dot"></span>Transaksi</button>
+      <button type="button"><span class="dot"></span>Anggaran</button>
+      <button type="button"><span class="dot"></span>Laporan</button>
+      <button type="button"><span class="dot"></span>Profil</button>
+    </nav>
+  </div>
+<script>
+  const root = document.documentElement;
+  const themeBtn = document.getElementById('themeBtn');
+  themeBtn.onclick = () => {
+    const dark = root.getAttribute('data-theme') === 'dark';
+    root.setAttribute('data-theme', dark ? 'light' : 'dark');
+    document.body.classList.toggle('studio-dark', !dark);
+    themeBtn.textContent = dark ? 'Light' : 'Dark';
+  };
+  document.querySelectorAll('.nav button[data-tab]').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.nav button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      document.getElementById('home').classList.toggle('hidden', b.dataset.tab !== 'home');
+      document.getElementById('tx').classList.toggle('hidden', b.dataset.tab !== 'tx');
+    };
+  });
+  document.getElementById('fab').onclick = () => {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1800);
+  };
+  document.querySelectorAll('#tx .chip').forEach(c => {
+    c.onclick = () => {
+      document.querySelectorAll('#tx .chip').forEach(x => x.classList.remove('on'));
+      c.classList.add('on');
+      const empty = c.dataset.f === 'date';
+      document.getElementById('txlist').classList.toggle('hidden', empty);
+      document.getElementById('txempty').classList.toggle('hidden', !empty);
+    };
+  });
+</script>
+</body>
+</html>

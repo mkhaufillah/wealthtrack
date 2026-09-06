@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>WealthTrack — Ink passbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#F6F1E8; --surface:#FFFBF5; --ink:#14221B; --muted:#6B6456;
+    --line:#E4D9C8; --accent:#E8A317; --expense:#E23D28; --income:#1F8A5B;
+    --hero:#14221B; --hero-on:#FFFBF5;
+  }
+  [data-theme="dark"] {
+    --bg:#0E1411; --surface:#1A2320; --ink:#F3EDE3; --muted:#A39B8C;
+    --line:#2C3833; --accent:#F0B429; --expense:#FF6B57; --income:#3DDC97;
+    --hero:#0E1411; --hero-on:#F3EDE3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; padding: 32px 16px; background: #1c1810;
+    font-family: Manrope, system-ui, sans-serif; color: #F3EDE3;
+  }
+  body.studio-light { background: #e8dcc8; color: #14221B; }
+  .meta { width: 390px; display: flex; justify-content: space-between; align-items: baseline; }
+  .meta h1 { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .meta p { font-size: 12px; opacity: .7; }
+  .toggles button {
+    border: 1px solid #3a3428; background: #14221B; color: #F3EDE3;
+    padding: 6px 10px; border-radius: 999px; font: 600 12px Manrope; cursor: pointer;
+  }
+  .phone {
+    width: 390px; height: 844px; border-radius: 44px; overflow: hidden; position: relative;
+    background: var(--bg); color: var(--ink);
+    box-shadow: 0 40px 90px rgba(0,0,0,.5);
+  }
+  .inkhead {
+    background: var(--hero); color: var(--hero-on); padding: 54px 24px 28px;
+    position: relative;
+  }
+  .inkhead:after {
+    content: ""; position: absolute; left: 24px; right: 24px; bottom: 0; height: 3px; background: var(--accent);
+  }
+  .who { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; opacity: .55; }
+  .seg { display: flex; gap: 6px; margin: 14px 0 10px; }
+  .seg button {
+    background: transparent; border: 1px solid rgba(243,237,227,.25); color: var(--hero-on);
+    padding: 6px 12px; border-radius: 999px; font: 600 11px Manrope; cursor: pointer; opacity: .6;
+  }
+  .seg button.on { opacity: 1; border-color: var(--accent); color: var(--accent); }
+  .amt { font-family: Newsreader, Georgia, serif; font-size: 40px; font-weight: 600; letter-spacing: -.03em; line-height: 1; }
+  .hint { margin-top: 10px; font-size: 12px; opacity: .6; }
+  .body { height: calc(844px - 250px - 72px); overflow-y: auto; padding: 18px 24px 108px; }
+  .rule { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .rule b { font-family: Newsreader, Georgia, serif; font-size: 18px; font-weight: 600; }
+  .neg { color: var(--expense); }
+  .pos { color: var(--income); }
+  .label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 18px 0 4px; }
+  .nav {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 72px;
+    background: var(--surface); border-top: 1px solid var(--line);
+    display: flex; justify-content: space-around; align-items: center;
+  }
+  .nav button { background: none; border: 0; color: var(--muted); font: 700 10px Manrope; cursor: pointer; letter-spacing: .04em; }
+  .nav button.on { color: var(--ink); }
+  .fab {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: 84px;
+    width: 52px; height: 52px; border-radius: 50%; border: 0;
+    background: var(--accent); color: #14221B; font-size: 22px; cursor: pointer;
+  }
+  .toast { display: none; position: absolute; left: 24px; right: 24px; bottom: 148px; background: var(--hero); color: var(--hero-on); padding: 12px; border-radius: 8px; font-size: 13px; }
+  .toast.show { display: block; }
+  .hidden { display: none; }
+  .note { font-size: 13px; color: var(--muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="meta">
+    <div>
+      <h1>Ink passbook</h1>
+      <p>Header = buku tabungan.</p>
+    </div>
+    <div class="toggles"><button id="themeBtn" type="button">Light studio</button></div>
+  </div>
+  <div class="phone">
+    <div class="inkhead">
+      <div class="who">Filla · WealthTrack</div>
+      <div class="seg">
+        <button class="on" data-m="cash" type="button">Uang tunai</button>
+        <button data-m="debt" type="button">Utang</button>
+      </div>
+      <div class="amt" id="heroAmt">Rp8.743.144</div>
+      <div class="hint" id="heroHint">Saldo keseluruhan · bukan rumah tangga</div>
+    </div>
+    <div class="body" id="home">
+      <div class="label">Kantong</div>
+      <div class="rule"><span>Tabungan</span><b>Rp15,2jt</b></div>
+      <div class="rule"><span>Dana darurat</span><b>Rp8jt</b></div>
+      <div class="label">Utang berjalan</div>
+      <div class="rule"><span>KPR rumah</span><b class="neg">Rp450jt</b></div>
+      <div class="rule"><span>Kartu kredit</span><b class="neg">Rp37,3jt</b></div>
+      <div class="label">Pencatat utang</div>
+      <p class="note">Masuk dari sini — kartu outstanding tidak menggantikan menu utang.</p>
+      <div class="label">Terbaru</div>
+      <div class="rule"><span>VPS</span><b class="neg">−273.996</b></div>
+      <div class="rule"><span>Galon</span><b class="neg">−8.000</b></div>
+      <div class="rule"><span>Transfer masuk</span><b class="pos">+2.500.000</b></div>
+    </div>
+    <div class="body hidden" id="tx">
+      <div class="label">Filter tanggal</div>
+      <div class="rule" style="cursor:pointer" id="f1"><span>Semua</span><b>✓</b></div>
+      <div class="rule" style="cursor:pointer" id="f2"><span>12 Agustus</span><b></b></div>
+      <div class="label">Hasil</div>
+      <div id="txlist">
+        <div class="rule"><span>VPS · 6 Sep</span><b class="neg">−273.996</b></div>
+        <div class="rule"><span>Galon · 5 Sep</span><b class="neg">−8.000</b></div>
+      </div>
+      <p class="note hidden" id="txempty">Tidak ada pengeluaran pada 12 Agu</p>
+    </div>
+    <button class="fab" id="fab" type="button">＋</button>
+    <div class="toast" id="toast">Uang tunai dan utang tidak dijumlah di HP.</div>
+    <nav class="nav">
+      <button class="on" data-tab="home" type="button">Beranda</button>
+      <button data-tab="tx" type="button">Transaksi</button>
+      <button type="button">Anggaran</button>
+      <button type="button">Laporan</button>
+      <button type="button">Profil</button>
+    </nav>
+  </div>
+<script>
+  const root = document.documentElement;
+  document.getElementById('themeBtn').onclick = () => {
+    const dark = root.getAttribute('data-theme') === 'dark';
+    root.setAttribute('data-theme', dark ? 'light' : 'dark');
+    document.body.classList.toggle('studio-light', !dark);
+    themeBtn.textContent = dark ? 'Light studio' : 'Dark studio';
+  };
+  document.querySelectorAll('.seg button').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.seg button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      const debt = b.dataset.m === 'debt';
+      heroAmt.textContent = debt ? 'Rp487.250.000' : 'Rp8.743.144';
+      heroHint.textContent = debt ? 'Utang berjalan · KPR + kartu' : 'Saldo keseluruhan · bukan rumah tangga';
+    };
+  });
+  document.querySelectorAll('.nav button[data-tab]').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.nav button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      home.classList.toggle('hidden', b.dataset.tab !== 'home');
+      tx.classList.toggle('hidden', b.dataset.tab !== 'tx');
+    };
+  });
+  fab.onclick = () => { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600); };
+  f2.onclick = () => { txlist.classList.add('hidden'); txempty.classList.remove('hidden'); f2.querySelector('b').textContent = '✓'; f1.querySelector('b').textContent = ''; };
+  f1.onclick = () => { txlist.classList.remove('hidden'); txempty.classList.add('hidden'); f1.querySelector('b').textContent = '✓'; f2.querySelector('b').textContent = ''; };
+</script>
+</body>
+</html>

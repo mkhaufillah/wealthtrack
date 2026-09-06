@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>WealthTrack — Pastel garden</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#F4FBF7; --surface:#FFFFFF; --ink:#3E4450; --muted:#8B93A0;
+    --rose:#F7B8C8; --mint:#B6E5D0; --lilac:#DDD0F5; --butter:#F8E7A8;
+    --peach:#FFD9C6; --income:#3FA98A; --expense:#E07A7A; --sky:#C9E4F5;
+  }
+  [data-theme="dark"] {
+    --bg:#24302C; --surface:#31403B; --ink:#F2F7F4; --muted:#B5C4BC;
+    --rose:#D992A6; --mint:#7EBEA4; --lilac:#B8A8D8; --butter:#D4C07A;
+    --peach:#D4A890; --income:#7ED0B4; --expense:#F09A90; --sky:#7AA8C4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; padding: 28px 16px; background: #cfe8dc;
+    font-family: Nunito, system-ui, sans-serif; color: #3E4450;
+  }
+  body.studio-dark { background: #15201c; color: #F2F7F4; }
+  .meta { width: 390px; display: flex; justify-content: space-between; align-items: baseline; }
+  .meta h1 { font-size: 14px; font-weight: 800; }
+  .meta p { font-size: 12px; opacity: .7; }
+  .toggles button { border: 0; background: #fff; padding: 8px 12px; border-radius: 999px; font: 700 12px Nunito; cursor: pointer; }
+  .phone {
+    width: 390px; height: 844px; border-radius: 44px; background: var(--bg); color: var(--ink);
+    overflow: hidden; position: relative; box-shadow: 0 30px 60px rgba(40,70,60,.18);
+  }
+  .notch { height: 50px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 26px 8px; font-size: 12px; font-weight: 700; }
+  .screen { height: calc(844px - 50px - 78px); overflow-y: auto; padding: 6px 18px 100px; }
+  .greet { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .greet .chip {
+    background: var(--mint); color: #1f5c48; border: 0; border-radius: 999px;
+    padding: 6px 10px; font: 800 12px Nunito; display: inline-flex; align-items: center; gap: 6px;
+  }
+  h2 { font-size: 26px; font-weight: 800; letter-spacing: -.03em; margin-bottom: 14px; }
+  .hero {
+    background: var(--surface); border-radius: 28px; padding: 16px; display: flex; gap: 14px; align-items: center;
+  }
+  .blob {
+    width: 64px; height: 64px; border-radius: 24px; display: grid; place-items: center; flex-shrink: 0;
+  }
+  .blob svg { width: 32px; height: 32px; }
+  .amt { font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
+  .sub { font-size: 12px; font-weight: 700; color: var(--muted); }
+  .modes { display: flex; gap: 6px; margin: 12px 0; }
+  .modes button {
+    flex: 1; border: 0; background: var(--surface); border-radius: 16px; padding: 10px 8px;
+    font: 800 12px Nunito; color: var(--muted); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .modes button.on { background: var(--ink); color: #fff; }
+  .modes svg { width: 20px; height: 20px; }
+  .garden { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tile {
+    border: 0; border-radius: 24px; padding: 16px 14px 14px; text-align: left; cursor: pointer;
+    font-family: Nunito; color: var(--ink); min-height: 118px;
+  }
+  .tile:active { transform: scale(.98); }
+  .tile svg { width: 28px; height: 28px; }
+  .tile .k { display: block; margin-top: 18px; font-size: 12px; font-weight: 700; opacity: .75; }
+  .tile .n { font-size: 16px; font-weight: 800; }
+  .feed { margin-top: 14px; }
+  .feed h3 { font-size: 13px; font-weight: 800; margin-bottom: 8px; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+  .dot { width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; }
+  .dot svg { width: 20px; height: 20px; }
+  .grow { flex: 1; }
+  .t { font-size: 14px; font-weight: 800; }
+  .s { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .m { font-weight: 800; font-size: 13px; }
+  .neg { color: var(--expense); }
+  .pos { color: var(--income); }
+  .nav {
+    position: absolute; left: 12px; right: 12px; bottom: 12px; height: 64px;
+    background: var(--surface); border-radius: 24px;
+    display: flex; justify-content: space-around; align-items: center;
+  }
+  .nav button {
+    background: none; border: 0; color: var(--muted); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 2px; font: 800 10px Nunito; min-width: 52px;
+  }
+  .nav button.on { color: var(--ink); }
+  .nav svg { width: 22px; height: 22px; }
+  .fab {
+    position: absolute; right: 22px; bottom: 90px; width: 56px; height: 56px; border-radius: 22px;
+    border: 0; background: var(--rose); cursor: pointer; display: grid; place-items: center;
+    box-shadow: 0 10px 22px rgba(247,184,200,.5);
+  }
+  .fab svg { width: 26px; height: 26px; }
+  .toast { display: none; position: absolute; left: 18px; right: 18px; bottom: 160px; background: var(--ink); color: #fff; padding: 12px; border-radius: 16px; font-weight: 700; font-size: 13px; }
+  .toast.show { display: block; }
+  .hidden { display: none; }
+  svg.i { stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><circle cx="17" cy="14" r="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="piggy" viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="8" ry="6"/><path d="M7 10V8m10 2.5c1.5 0 3-1 3-2.5h-2"/><circle cx="9.5" cy="12.5" r=".8" fill="currentColor" stroke="none"/><path d="M8 18.5 7 21m9-2.5 1 2.5"/></symbol>
+  <symbol id="shield" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24"><path d="m4 11 8-7 8 7"/><path d="M6 10.5V20h12v-9.5"/></symbol>
+  <symbol id="card" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
+  <symbol id="spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M5 12H3M21 12h-2M7 7l-2-2M19 19l-2-2M17 7l2-2M5 19l2-2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="list" viewBox="0 0 24 24"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="5" cy="7" r="1.2"/><circle cx="5" cy="12" r="1.2"/><circle cx="5" cy="17" r="1.2"/></symbol>
+  <symbol id="cam" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8z"/><circle cx="12" cy="13.5" r="3.2"/></symbol>
+  <symbol id="receipt" viewBox="0 0 24 24"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5V3z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
+  <symbol id="chart" viewBox="0 0 24 24"><path d="M4 19h16M7 16v-5M12 16V8M17 16v-8"/></symbol>
+  <symbol id="person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5 19c1.2-3 3.5-4.5 7-4.5s5.8 1.5 7 4.5"/></symbol>
+  <symbol id="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8"/></symbol>
+  <symbol id="debt" viewBox="0 0 24 24"><path d="M4 7h16v12H4z"/><path d="M8 7V5h8v2M12 11v5M10 13h4"/></symbol>
+</svg>
+  <div class="meta">
+    <div>
+      <h1>Pastel garden</h1>
+      <p>Ikon besar. Tap gambarnya.</p>
+    </div>
+    <div class="toggles"><button id="themeBtn" type="button">Dark</button></div>
+  </div>
+  <div class="phone">
+    <div class="notch"><span>09:41</span><span>●●●</span></div>
+    <div class="screen" id="home">
+      <div class="greet">
+        <span class="chip"><svg class="i" width="14" height="14"><use href="#person"/></svg> Filla</span>
+      </div>
+      <h2>Uang kamu hari ini</h2>
+      <div class="hero">
+        <div class="blob" id="blob" style="background:var(--mint);color:#1f5c48"><svg class="i"><use href="#wallet"/></svg></div>
+        <div>
+          <div class="sub" id="heroK">Saldo keseluruhan</div>
+          <div class="amt" id="heroAmt">Rp8.743.144</div>
+        </div>
+      </div>
+      <div class="modes">
+        <button class="on" data-m="cash" type="button"><svg class="i"><use href="#wallet"/></svg>Uang tunai</button>
+        <button data-m="debt" type="button"><svg class="i"><use href="#debt"/></svg>Utang</button>
+      </div>
+      <div class="garden">
+        <button class="tile" type="button" style="background:var(--butter)">
+          <svg class="i"><use href="#piggy"/></svg>
+          <span class="k">Tabungan</span>
+          <span class="n">Rp15,2jt</span>
+        </button>
+        <button class="tile" type="button" style="background:var(--sky)">
+          <svg class="i"><use href="#shield"/></svg>
+          <span class="k">Dana darurat</span>
+          <span class="n">Rp8jt</span>
+        </button>
+        <button class="tile" type="button" style="background:var(--peach)">
+          <svg class="i"><use href="#home"/></svg>
+          <span class="k">Utang berjalan</span>
+          <span class="n">Rp487jt</span>
+        </button>
+        <button class="tile" type="button" style="background:var(--lilac)">
+          <svg class="i"><use href="#spark"/></svg>
+          <span class="k">Catatan AI</span>
+          <span class="n">Cek anggaran</span>
+        </button>
+      </div>
+      <div class="feed">
+        <h3>Baru saja</h3>
+        <div class="row">
+          <div class="dot" style="background:var(--peach)"><svg class="i"><use href="#cam"/></svg></div>
+          <div class="grow"><div class="t">VPS</div><div class="s">Hari ini</div></div>
+          <div class="m neg">−Rp274rb</div>
+        </div>
+        <div class="row">
+          <div class="dot" style="background:var(--mint)"><svg class="i"><use href="#coin"/></svg></div>
+          <div class="grow"><div class="t">Transfer masuk</div><div class="s">1 Sep</div></div>
+          <div class="m pos">+Rp2,5jt</div>
+        </div>
+        <div class="row">
+          <div class="dot" style="background:var(--butter)"><svg class="i"><use href="#list"/></svg></div>
+          <div class="grow"><div class="t">Pencatat utang</div><div class="s">KPR &amp; kartu</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="screen hidden" id="tx">
+      <h2>Transaksi</h2>
+      <div class="row" id="fAll" style="cursor:pointer">
+        <div class="dot" style="background:var(--mint)"><svg class="i"><use href="#list"/></svg></div>
+        <div class="grow"><div class="t">Semua</div></div>
+        <b id="c1">✓</b>
+      </div>
+      <div class="row" id="fDate" style="cursor:pointer">
+        <div class="dot" style="background:var(--butter)"><svg class="i"><use href="#receipt"/></svg></div>
+        <div class="grow"><div class="t">12 Agustus</div></div>
+        <b id="c2"></b>
+      </div>
+      <div id="txlist" class="feed">
+        <div class="row">
+          <div class="dot" style="background:var(--peach)"><svg class="i"><use href="#cam"/></svg></div>
+          <div class="grow"><div class="t">VPS</div><div class="s">6 Sep</div></div>
+          <div class="m neg">−Rp274rb</div>
+        </div>
+      </div>
+      <p class="s hidden" id="txempty" style="padding:24px;text-align:center">Tidak ada pengeluaran pada 12 Agu</p>
+    </div>
+    <button class="fab" id="fab" type="button"><svg class="i"><use href="#cam"/></svg></button>
+    <div class="toast" id="toast">Ikon kamera = OCR. Angka dari server.</div>
+    <nav class="nav">
+      <button class="on" data-tab="home" type="button"><svg class="i"><use href="#home"/></svg>Beranda</button>
+      <button data-tab="tx" type="button"><svg class="i"><use href="#receipt"/></svg>Transaksi</button>
+      <button type="button"><svg class="i"><use href="#wallet"/></svg>Anggaran</button>
+      <button type="button"><svg class="i"><use href="#chart"/></svg>Laporan</button>
+      <button type="button"><svg class="i"><use href="#person"/></svg>Profil</button>
+    </nav>
+  </div>
+<script>
+  themeBtn.onclick = () => {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+    document.body.classList.toggle('studio-dark', !dark);
+    themeBtn.textContent = dark ? 'Dark' : 'Light';
+  };
+  document.querySelectorAll('.modes button').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.modes button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      const debt = b.dataset.m === 'debt';
+      heroAmt.textContent = debt ? 'Rp487.250.000' : 'Rp8.743.144';
+      heroK.textContent = debt ? 'Utang berjalan' : 'Saldo keseluruhan';
+      blob.style.background = debt ? 'var(--peach)' : 'var(--mint)';
+      blob.querySelector('use').setAttribute('href', debt ? '#debt' : '#wallet');
+    };
+  });
+  document.querySelectorAll('.nav button[data-tab]').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.nav button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      home.classList.toggle('hidden', b.dataset.tab !== 'home');
+      tx.classList.toggle('hidden', b.dataset.tab !== 'tx');
+    };
+  });
+  fab.onclick = () => { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600); };
+  fDate.onclick = () => { txlist.classList.add('hidden'); txempty.classList.remove('hidden'); c2.textContent = '✓'; c1.textContent = ''; };
+  fAll.onclick = () => { txlist.classList.remove('hidden'); txempty.classList.add('hidden'); c1.textContent = '✓'; c2.textContent = ''; };
+</script>
+</body>
+</html>

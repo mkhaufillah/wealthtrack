@@ -1,0 +1,30 @@
+/* Saffron Ink — WealthTrack revamp tokens (docs/20) */
+:root {
+  --bg: #F6F1E8;
+  --surface: #FFFBF5;
+  --ink: #14221B;
+  --muted: #6B6456;
+  --line: #E4D9C8;
+  --accent: #E8A317;
+  --expense: #E23D28;
+  --income: #1F8A5B;
+  --warning: #D97706;
+  --hero: #14221B;
+  --hero-on: #FFFBF5;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+[data-theme="dark"] {
+  --bg: #0E1411;
+  --surface: #1A2320;
+  --ink: #F3EDE3;
+  --muted: #A39B8C;
+  --line: #2C3833;
+  --accent: #F0B429;
+  --expense: #FF6B57;
+  --income: #3DDC97;
+  --warning: #FBBF24;
+  --hero: #1A2320;
+  --hero-on: #F3EDE3;
+}

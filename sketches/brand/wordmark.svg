@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" role="img" aria-label="WealthTrack">
+  <text x="0" y="112"
+        font-family="Nunito, Montserrat, system-ui, sans-serif"
+        font-size="92" font-weight="800" fill="#4A3A48" letter-spacing="-2">Wealth</text>
+  <text x="332" y="112"
+        font-family="Nunito, Montserrat, system-ui, sans-serif"
+        font-size="92" font-weight="800" fill="#4EAE90" letter-spacing="-2">Track</text>
+</svg>

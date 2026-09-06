@@ -7,18 +7,18 @@ Widget wrap(Widget w) => MaterialApp(theme: AppTheme.light, home: w);
 
 void main() {
   group('BalanceCard', () {
-    testWidgets('displays emoji icon', (tester) async {
+    testWidgets('does not use money emoji', (tester) async {
       await tester.pumpWidget(wrap(
         const BalanceCard(balance: 1000000, income: 3000000, expense: 2000000),
       ));
-      expect(find.text('💰'), findsOneWidget);
+      expect(find.text('💰'), findsNothing);
     });
 
-    testWidgets('displays All-time balance header', (tester) async {
+    testWidgets('displays Uang kamu header', (tester) async {
       await tester.pumpWidget(wrap(
         const BalanceCard(balance: 0, income: 0, expense: 0),
       ));
-      expect(find.text('All-time balance'), findsOneWidget);
+      expect(find.text('Uang kamu'), findsOneWidget);
     });
 
     testWidgets('formats balance correctly', (tester) async {
@@ -28,20 +28,18 @@ void main() {
       expect(find.text('Rp1.500.000'), findsOneWidget);
     });
 
-    testWidgets('shows Income and Expense labels', (tester) async {
+    testWidgets('shows Masuk and Keluar labels', (tester) async {
       await tester.pumpWidget(wrap(
         const BalanceCard(balance: 500000, income: 1000000, expense: 500000),
       ));
-      // Income and Expense labels appear in the card
-      expect(find.text('Income'), findsOneWidget);
-      expect(find.text('Expense'), findsOneWidget);
+      expect(find.text('Masuk'), findsOneWidget);
+      expect(find.text('Keluar'), findsOneWidget);
     });
 
     testWidgets('displays zero balance', (tester) async {
       await tester.pumpWidget(wrap(
         const BalanceCard(balance: 0, income: 0, expense: 0),
       ));
-      // Zero appears in balance, income, and expense — so at least 1 match
       expect(find.text('Rp0'), findsAtLeast(1));
     });
   });

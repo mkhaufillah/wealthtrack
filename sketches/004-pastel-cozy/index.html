@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>WealthTrack — Pastel cozy</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#FFF3EE; --surface:#FFFFFF; --ink:#4A3A48; --muted:#9B8794;
+    --line:#F3E0D8; --rose:#F3A6B8; --mint:#9DD9C0; --lilac:#D4C4F0;
+    --butter:#F6E3A1; --peach:#FFD0B8; --income:#4EAE90; --expense:#E08B7C;
+    --hero:#FFE8DC; --nav:#FFFFFF;
+  }
+  [data-theme="dark"] {
+    --bg:#2A2430; --surface:#3A3242; --ink:#F7EEE8; --muted:#C4B4BE;
+    --line:#4C4354; --rose:#E9A0B2; --mint:#8FCFB6; --lilac:#C4B4E8;
+    --butter:#E8D28A; --peach:#E8B49A; --income:#7ED0B4; --expense:#F0A090;
+    --hero:#463848; --nav:#3A3242;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; padding: 28px 16px; background: #f3d5c8;
+    font-family: Nunito, system-ui, sans-serif; color: #4A3A48;
+  }
+  body.studio-dark { background: #1c1822; color: #F7EEE8; }
+  .meta { width: 390px; display: flex; justify-content: space-between; align-items: baseline; }
+  .meta h1 { font-size: 14px; font-weight: 800; }
+  .meta p { font-size: 12px; opacity: .7; }
+  .toggles button {
+    border: 0; background: #fff; padding: 8px 12px; border-radius: 999px;
+    font: 700 12px Nunito; cursor: pointer; color: #4A3A48;
+  }
+  .phone {
+    width: 390px; height: 844px; border-radius: 44px; background: var(--bg); color: var(--ink);
+    overflow: hidden; position: relative; box-shadow: 0 30px 60px rgba(74,58,72,.18);
+  }
+  .notch { height: 50px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 26px 8px; font-size: 12px; font-weight: 700; }
+  .screen { height: calc(844px - 50px - 78px); overflow-y: auto; padding: 4px 18px 96px; }
+  .hi { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .hi h2 { font-size: 22px; font-weight: 800; line-height: 1.15; }
+  .hi small { display: block; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 16px; background: var(--lilac);
+    display: grid; place-items: center;
+  }
+  .hero {
+    background: var(--hero); border-radius: 28px; padding: 18px 18px 16px;
+  }
+  .hero-top { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; font-weight: 700; }
+  .well {
+    width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0;
+  }
+  .well svg { width: 20px; height: 20px; }
+  .amt { font-size: 32px; font-weight: 800; letter-spacing: -.03em; margin: 10px 0 14px; }
+  .io { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pill {
+    background: var(--surface); border-radius: 16px; padding: 10px 12px; display: flex; gap: 8px; align-items: center;
+  }
+  .pill span { display: block; font-size: 11px; font-weight: 700; color: var(--muted); }
+  .pill b { font-size: 13px; font-weight: 800; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .card {
+    background: var(--surface); border-radius: 22px; padding: 14px;
+  }
+  .card .lab { font-size: 12px; font-weight: 700; color: var(--muted); }
+  .card .n { font-size: 16px; font-weight: 800; margin-top: 4px; }
+  .list { background: var(--surface); border-radius: 22px; padding: 6px 8px; margin-top: 10px; }
+  .item { display: flex; align-items: center; gap: 12px; padding: 10px 8px; }
+  .item .grow { flex: 1; }
+  .item .t { font-size: 14px; font-weight: 800; }
+  .item .s { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .item .m { font-weight: 800; font-size: 13px; }
+  .neg { color: var(--expense); }
+  .pos { color: var(--income); }
+  .nav {
+    position: absolute; left: 12px; right: 12px; bottom: 12px; height: 64px;
+    background: var(--nav); border-radius: 24px;
+    display: flex; justify-content: space-around; align-items: center;
+    box-shadow: 0 10px 30px rgba(74,58,72,.08);
+  }
+  .nav button {
+    background: none; border: 0; color: var(--muted); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font: 700 10px Nunito; min-width: 52px;
+  }
+  .nav button.on { color: var(--ink); }
+  .nav svg { width: 22px; height: 22px; }
+  .fab {
+    position: absolute; right: 22px; bottom: 90px; width: 56px; height: 56px; border-radius: 20px;
+    border: 0; background: var(--rose); color: #4A3A48; cursor: pointer;
+    display: grid; place-items: center;
+    box-shadow: 0 12px 24px rgba(243,166,184,.45);
+  }
+  .fab svg { width: 26px; height: 26px; }
+  .toast {
+    display: none; position: absolute; left: 18px; right: 18px; bottom: 160px;
+    background: var(--ink); color: #fff; padding: 12px 14px; border-radius: 16px; font-size: 13px; font-weight: 700;
+  }
+  .toast.show { display: block; }
+  .hidden { display: none; }
+  .chips { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .chip {
+    border: 0; background: var(--surface); color: var(--ink); padding: 8px 12px 8px 10px;
+    border-radius: 999px; font: 700 12px Nunito; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .chip.on { background: var(--ink); color: #fff; }
+  .chip svg { width: 16px; height: 16px; }
+  .empty { text-align: center; padding: 40px 12px; color: var(--muted); font-weight: 700; }
+  svg.i { stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="wallet" viewBox="0 0 24 24" class="i"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><circle cx="17" cy="14" r="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="piggy" viewBox="0 0 24 24" class="i"><ellipse cx="12" cy="13" rx="8" ry="6"/><path d="M7 10V8m10 2.5c1.5 0 3-1 3-2.5h-2"/><circle cx="9.5" cy="12.5" r=".8" fill="currentColor" stroke="none"/><path d="M8 18.5 7 21m9-2.5 1 2.5"/></symbol>
+  <symbol id="shield" viewBox="0 0 24 24" class="i"><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24" class="i"><path d="m4 11 8-7 8 7"/><path d="M6 10.5V20h12v-9.5"/></symbol>
+  <symbol id="card" viewBox="0 0 24 24" class="i"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
+  <symbol id="spark" viewBox="0 0 24 24" class="i"><path d="M12 3v4M12 17v4M5 12H3M21 12h-2M7 7l-2-2M19 19l-2-2M17 7l2-2M5 19l2-2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="list" viewBox="0 0 24 24" class="i"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="5" cy="7" r="1.2"/><circle cx="5" cy="12" r="1.2"/><circle cx="5" cy="17" r="1.2"/></symbol>
+  <symbol id="cam" viewBox="0 0 24 24" class="i"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8z"/><circle cx="12" cy="13.5" r="3.2"/></symbol>
+  <symbol id="receipt" viewBox="0 0 24 24" class="i"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5V3z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
+  <symbol id="chart" viewBox="0 0 24 24" class="i"><path d="M4 19h16M7 16v-5M12 16V8M17 16v-8"/></symbol>
+  <symbol id="person" viewBox="0 0 24 24" class="i"><circle cx="12" cy="8" r="3.2"/><path d="M5 19c1.2-3 3.5-4.5 7-4.5s5.8 1.5 7 4.5"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24" class="i"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></symbol>
+  <symbol id="coin" viewBox="0 0 24 24" class="i"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5c.5-1 1.5-1.5 2.5-1.5s2 .6 2.5 1.5M9.5 13.5c.5 1 1.5 1.5 2.5 1.5s2-.6 2.5-1.5"/></symbol>
+</svg>
+  <div class="meta">
+    <div>
+      <h1>Pastel cozy</h1>
+      <p>Ramah. Ada ikon. Bukan bank gelap.</p>
+    </div>
+    <div class="toggles"><button id="themeBtn" type="button">Dark</button></div>
+  </div>
+  <div class="phone">
+    <div class="notch"><span>09:41</span><span>●●●</span></div>
+    <div class="screen" id="home">
+      <div class="hi">
+        <h2>Hai, Filla<small>Saldo kamu, sepanjang waktu</small></h2>
+        <div class="avatar" title="Filla">
+          <svg class="i" width="22" height="22"><use href="#person"/></svg>
+        </div>
+      </div>
+      <div class="hero">
+        <div class="hero-top">
+          <div class="well" style="background:var(--mint);color:#2d6b58">
+            <svg class="i"><use href="#wallet"/></svg>
+          </div>
+          Uang kamu
+        </div>
+        <div class="amt">Rp8.743.144</div>
+        <div class="io">
+          <div class="pill">
+            <div class="well" style="background:#D8F3E8;color:var(--income)"><svg class="i"><use href="#coin"/></svg></div>
+            <div><span>Masuk</span><b class="pos">Rp24,2jt</b></div>
+          </div>
+          <div class="pill">
+            <div class="well" style="background:#FDE4DE;color:var(--expense)"><svg class="i"><use href="#receipt"/></svg></div>
+            <div><span>Keluar</span><b class="neg">Rp18,4jt</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="card">
+          <div class="well" style="background:var(--butter);color:#8a6a18"><svg class="i"><use href="#piggy"/></svg></div>
+          <div class="lab" style="margin-top:10px">Tabungan</div>
+          <div class="n">Rp15,2jt</div>
+        </div>
+        <div class="card">
+          <div class="well" style="background:var(--mint);color:#2d6b58"><svg class="i"><use href="#shield"/></svg></div>
+          <div class="lab" style="margin-top:10px">Dana darurat</div>
+          <div class="n">Rp8jt</div>
+        </div>
+      </div>
+      <div class="list">
+        <div class="item">
+          <div class="well" style="background:#FDE4DE;color:var(--expense)"><svg class="i"><use href="#home"/></svg></div>
+          <div class="grow"><div class="t">Utang berjalan</div><div class="s">KPR + kartu</div></div>
+          <div class="m neg">Rp487jt</div>
+        </div>
+        <div class="item">
+          <div class="well" style="background:var(--lilac);color:#6b4ea3"><svg class="i"><use href="#spark"/></svg></div>
+          <div class="grow"><div class="t">Catatan AI</div><div class="s">Tagihan belum ada anggaran</div></div>
+        </div>
+        <div class="item">
+          <div class="well" style="background:var(--peach);color:#b45b3a"><svg class="i"><use href="#list"/></svg></div>
+          <div class="grow"><div class="t">Pencatat utang</div><div class="s">KPR &amp; kartu kredit</div></div>
+        </div>
+      </div>
+      <div class="list">
+        <div class="item">
+          <div class="well" style="background:#EEE;color:var(--ink)"><svg class="i"><use href="#cam"/></svg></div>
+          <div class="grow"><div class="t">VPS</div><div class="s">Hari ini</div></div>
+          <div class="m neg">−Rp274rb</div>
+        </div>
+        <div class="item">
+          <div class="well" style="background:#EEE;color:var(--ink)"><svg class="i"><use href="#coin"/></svg></div>
+          <div class="grow"><div class="t">Galon</div><div class="s">Kemarin</div></div>
+          <div class="m neg">−Rp8rb</div>
+        </div>
+      </div>
+    </div>
+    <div class="screen hidden" id="tx">
+      <div class="hi"><h2>Transaksi<small>Pakai ikon tanggal</small></h2></div>
+      <div class="chips">
+        <button class="chip on" data-f="all" type="button"><svg class="i"><use href="#list"/></svg>Semua</button>
+        <button class="chip" data-f="date" type="button"><svg class="i"><use href="#cal"/></svg>12 Agu</button>
+      </div>
+      <div class="list" id="txlist">
+        <div class="item">
+          <div class="well" style="background:var(--peach)"><svg class="i"><use href="#cam"/></svg></div>
+          <div class="grow"><div class="t">VPS</div><div class="s">6 Sep</div></div>
+          <div class="m neg">−Rp274rb</div>
+        </div>
+        <div class="item">
+          <div class="well" style="background:var(--mint)"><svg class="i"><use href="#coin"/></svg></div>
+          <div class="grow"><div class="t">Transfer masuk</div><div class="s">1 Sep</div></div>
+          <div class="m pos">+Rp2,5jt</div>
+        </div>
+      </div>
+      <div class="empty hidden" id="txempty">
+        <div class="well" style="margin:0 auto 10px;background:var(--butter)"><svg class="i"><use href="#cal"/></svg></div>
+        Tidak ada pengeluaran pada 12 Agu
+      </div>
+    </div>
+    <button class="fab" id="fab" type="button" aria-label="Kamera"><svg class="i"><use href="#cam"/></svg></button>
+    <div class="toast" id="toast">Foto struk — rumus tetap di server</div>
+    <nav class="nav">
+      <button class="on" data-tab="home" type="button"><svg class="i"><use href="#home"/></svg>Beranda</button>
+      <button data-tab="tx" type="button"><svg class="i"><use href="#receipt"/></svg>Transaksi</button>
+      <button type="button"><svg class="i"><use href="#wallet"/></svg>Anggaran</button>
+      <button type="button"><svg class="i"><use href="#chart"/></svg>Laporan</button>
+      <button type="button"><svg class="i"><use href="#person"/></svg>Profil</button>
+    </nav>
+  </div>
+<script>
+  const root = document.documentElement;
+  themeBtn.onclick = () => {
+    const dark = root.getAttribute('data-theme') === 'dark';
+    root.setAttribute('data-theme', dark ? 'light' : 'dark');
+    document.body.classList.toggle('studio-dark', !dark);
+    themeBtn.textContent = dark ? 'Dark' : 'Light';
+  };
+  document.querySelectorAll('.nav button[data-tab]').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.nav button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      home.classList.toggle('hidden', b.dataset.tab !== 'home');
+      tx.classList.toggle('hidden', b.dataset.tab !== 'tx');
+    };
+  });
+  fab.onclick = () => { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600); };
+  document.querySelectorAll('#tx .chip').forEach(c => {
+    c.onclick = () => {
+      document.querySelectorAll('#tx .chip').forEach(x => x.classList.remove('on'));
+      c.classList.add('on');
+      const empty = c.dataset.f === 'date';
+      txlist.classList.toggle('hidden', empty);
+      txempty.classList.toggle('hidden', !empty);
+    };
+  });
+</script>
+</body>
+</html>

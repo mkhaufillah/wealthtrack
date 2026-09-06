@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="WealthTrack">
+  <!-- App icon — house piggy. Pastel cozy. -->
+  <rect width="1024" height="1024" rx="240" fill="#FFE8DC"/>
+  <circle cx="512" cy="530" r="290" fill="#CDEADF"/>
+  <!-- roof -->
+  <path d="M320 430 L512 268 L704 430 Z" fill="#4A3A48"/>
+  <rect x="620" y="300" width="52" height="90" rx="10" fill="#4A3A48"/>
+  <!-- body -->
+  <circle cx="512" cy="560" r="196" fill="#E8F6EF" stroke="#4A3A48" stroke-width="28"/>
+  <!-- snout -->
+  <ellipse cx="708" cy="560" rx="48" ry="36" fill="#4A3A48"/>
+  <!-- slot -->
+  <rect x="456" y="488" width="112" height="18" rx="9" fill="#4A3A48"/>
+  <!-- W -->
+  <path d="M430 620 L470 720 L512 640 L554 720 L594 620" fill="none" stroke="#4EAE90" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

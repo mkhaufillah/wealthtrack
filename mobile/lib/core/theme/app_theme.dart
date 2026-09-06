@@ -1,103 +1,91 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // ─── Light palette ───────────────────────────────────
-  static const Color _background = Color(0xFFF5F6FA);
+  // ─── Light — Pastel cozy (docs/20) ───────────────────
+  static const Color _background = Color(0xFFFFF3EE);
   static const Color _surface = Color(0xFFFFFFFF);
-  static const Color _textPrimary = Color(0xFF1A1A2E);
-  static const Color _textSecondary = Color(0xFF7F8C8D);
-  static const Color _divider = Color(0xFFE8E8E8);
-  static const Color _card = Color(0xFFCFD5E3);
+  static const Color _textPrimary = Color(0xFF4A3A48);
+  static const Color _textSecondary = Color(0xFF9B8794);
+  static const Color _divider = Color(0xFFF3E0D8);
+  static const Color _card = Color(0xFFFFE8DC);
 
-  // ─── Dark palette ────────────────────────────────────
-  static const Color darkBackground = Color(0xFF0D1117);
-  static const Color darkSurface = Color(0xFF161B22);
-  static const Color darkCard = Color(0xFF1C2333);
-  static const Color darkTextPrimary = Color(0xFFE6EDF3);
-  static const Color darkTextSecondary = Color(0xFF8B949E);
-  static const Color darkDivider = Color(0xFF30363D);
-  static const Color darkPrimary = Color(0xFF58A6FF);
-  static const Color darkAccent = Color(0xFF58A6FF);
-  static const Color darkHighlight = Color(0xFFF87171);
+  // ─── Dark ────────────────────────────────────────────
+  static const Color darkBackground = Color(0xFF2A2430);
+  static const Color darkSurface = Color(0xFF3A3242);
+  static const Color darkCard = Color(0xFF463848);
+  static const Color darkTextPrimary = Color(0xFFF7EEE8);
+  static const Color darkTextSecondary = Color(0xFFC4B4BE);
+  static const Color darkDivider = Color(0xFF4C4354);
+  static const Color darkPrimary = Color(0xFFE9A0B2);
+  static const Color darkAccent = Color(0xFFE9A0B2);
+  static const Color darkHighlight = Color(0xFFF0A090);
 
-  // ─── Shared (theme-independent) ──────────────────────
-  static const Color _primary = Color(0xFF1A1A2E);
-  static const Color secondary = Color(0xFF16213E);
-  static const Color _accent = Color(0xFF0F3460);
-  static const Color _highlight = Color(0xFFE94560);
-  static const Color success = Color(0xFF2ECC71);
-  static const Color warning = Color(0xFFF39C12);
+  static const Color _primary = Color(0xFF4A3A48);
+  static const Color secondary = Color(0xFFD4C4F0);
+  static const Color _accent = Color(0xFFF3A6B8);
+  static const Color _highlight = Color(0xFFE08B7C);
+  static const Color _success = Color(0xFF4EAE90);
+  static const Color darkSuccess = Color(0xFF7ED0B4);
+  static const Color _warning = Color(0xFFE8B86D);
+  static const Color darkWarning = Color(0xFFE8C47A);
+  static const Color _heroFill = Color(0xFFFFE8DC);
+  static const Color _heroOn = Color(0xFF4A3A48);
+  static const Color _mint = Color(0xFF9DD9C0);
+  static const Color darkMint = Color(0xFF8FCFB6);
 
-  // ─── Brightness-aware getters ────────────────────────
   static Brightness _brightness = Brightness.light;
 
   static void sync(Brightness b) => _brightness = b;
 
-  static Color get background =>
-      _brightness == Brightness.dark ? darkBackground : _background;
-  static Color get surface =>
-      _brightness == Brightness.dark ? darkSurface : _surface;
-  static Color get textPrimary =>
-      _brightness == Brightness.dark ? darkTextPrimary : _textPrimary;
-  static Color get textSecondary =>
-      _brightness == Brightness.dark ? darkTextSecondary : _textSecondary;
-  static Color get divider =>
-      _brightness == Brightness.dark ? darkDivider : _divider;
+  static bool get _dark => _brightness == Brightness.dark;
 
-  static Color get primary =>
-      _brightness == Brightness.dark ? darkPrimary : _primary;
-  static Color get accent =>
-      _brightness == Brightness.dark ? darkAccent : _accent;
-  static Color get highlight =>
-      _brightness == Brightness.dark ? darkHighlight : _highlight;
+  static Color get background => _dark ? darkBackground : _background;
+  static Color get surface => _dark ? darkSurface : _surface;
+  static Color get textPrimary => _dark ? darkTextPrimary : _textPrimary;
+  static Color get textSecondary => _dark ? darkTextSecondary : _textSecondary;
+  static Color get divider => _dark ? darkDivider : _divider;
+  static Color get primary => _dark ? darkPrimary : _primary;
+  static Color get accent => _dark ? darkAccent : _accent;
+  static Color get highlight => _dark ? darkHighlight : _highlight;
+  static Color get success => _dark ? darkSuccess : _success;
+  static Color get warning => _dark ? darkWarning : _warning;
+  static Color get heroFill => _dark ? darkCard : _heroFill;
+  static Color get heroOn => _dark ? darkTextPrimary : _heroOn;
+  static Color get mint => _dark ? darkMint : _mint;
+  static Color get card => _dark ? darkCard : _surface;
 
-  /// Brightness-aware card background color.
-  static Color get card =>
-      _brightness == Brightness.dark ? darkCard : _surface;
-
-  /// Consistent chart palette for category breakdowns and avatar fallbacks.
   static const List<Color> chartPalette = [
-    Color(0xFFE94560), // red
-    Color(0xFF0F3460), // navy
-    Color(0xFF2ECC71), // green
-    Color(0xFFF39C12), // amber
-    Color(0xFF3498DB), // blue
-    Color(0xFF9B59B6), // purple
-    Color(0xFF1ABC9C), // teal
-    Color(0xFFE67E22), // orange
-    Color(0xFF34495E), // dark blue-grey
-    Color(0xFF16A085), // dark teal
+    Color(0xFFF3A6B8),
+    Color(0xFF9DD9C0),
+    Color(0xFFD4C4F0),
+    Color(0xFFF6E3A1),
+    Color(0xFFFFD0B8),
+    Color(0xFFE08B7C),
+    Color(0xFF4EAE90),
+    Color(0xFFC9E4F5),
+    Color(0xFFE9A0B2),
+    Color(0xFF8FCFB6),
   ];
 
-  /// Deterministic avatar color from a hash of the user name.
   static Color avatarColor(String name) {
     final hash = name.hashCode.abs();
     return chartPalette[hash % chartPalette.length];
   }
 
-  /// Brightness-aware avatar background
   static Color avatarBackground(String name) {
-    return avatarColor(name).withOpacity(_brightness == Brightness.dark ? 0.3 : 0.15);
+    return avatarColor(name).withOpacity(_dark ? 0.3 : 0.15);
   }
 
-  /// Brightness-aware avatar text
-  static Color avatarText(String name) {
-    return avatarColor(name);
-  }
+  static Color avatarText(String name) => avatarColor(name);
 
-  /// Brightness-aware highlight background for error containers
   static Color get highlightBackground =>
-      highlight.withOpacity(_brightness == Brightness.dark ? 0.4 : 0.1);
+      highlight.withOpacity(_dark ? 0.4 : 0.1);
 
-  /// Brightness-aware credit card gradient
-  static List<Color> get creditCardGradient => _brightness == Brightness.dark
-      ? [darkSurface, darkCard]
-      : [_surface, _card];
+  static List<Color> get creditCardGradient =>
+      _dark ? [darkSurface, darkCard] : [_surface, _card];
 
-  /// Brightness-aware selected color for category picker
-  static Color get categoryPickerSelected => _brightness == Brightness.dark
-      ? darkTextPrimary.withOpacity(0.12)
-      : _primary.withOpacity(0.3);
+  static Color get categoryPickerSelected =>
+      _dark ? darkTextPrimary.withOpacity(0.12) : _primary.withOpacity(0.3);
 }
 
 class AppTheme {
@@ -111,7 +99,7 @@ class AppTheme {
           surface: AppColors._surface,
           error: AppColors._highlight,
           onPrimary: AppColors._surface,
-          onSecondary: AppColors._surface,
+          onSecondary: AppColors._textPrimary,
           onSurface: AppColors._textPrimary,
         ),
         cardColor: AppColors._surface,
@@ -123,21 +111,21 @@ class AppTheme {
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors._accent,
-          foregroundColor: AppColors._surface,
+          foregroundColor: AppColors._textPrimary,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: AppColors._background,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: AppColors._divider),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: AppColors._divider),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: AppColors._accent, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -145,20 +133,25 @@ class AppTheme {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors._accent,
-            foregroundColor: AppColors._surface,
+            foregroundColor: AppColors._textPrimary,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
             ),
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: AppColors._surface,
-          selectedItemColor: AppColors._accent,
+          selectedItemColor: AppColors._textPrimary,
           unselectedItemColor: AppColors._textSecondary,
         ),
         dialogTheme: DialogThemeData(
           backgroundColor: AppColors._surface,
+        ),
+        cardTheme: CardThemeData(
+          color: AppColors._surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         ),
       );
 
@@ -171,8 +164,8 @@ class AppTheme {
           secondary: AppColors.darkAccent,
           surface: AppColors.darkSurface,
           error: AppColors.darkHighlight,
-          onPrimary: AppColors.darkSurface,
-          onSecondary: AppColors.darkSurface,
+          onPrimary: AppColors.darkTextPrimary,
+          onSecondary: AppColors.darkTextPrimary,
           onSurface: AppColors.darkTextPrimary,
         ),
         cardColor: AppColors.darkSurface,
@@ -184,7 +177,7 @@ class AppTheme {
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors.darkAccent,
-          foregroundColor: AppColors.darkSurface,
+          foregroundColor: AppColors.darkTextPrimary,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -193,15 +186,15 @@ class AppTheme {
           hintStyle: TextStyle(color: AppColors.darkTextSecondary.withOpacity(0.6)),
           floatingLabelStyle: TextStyle(color: AppColors.darkPrimary),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: AppColors.darkDivider),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: AppColors.darkDivider),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: AppColors.darkPrimary, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -209,9 +202,9 @@ class AppTheme {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.darkAccent,
-            foregroundColor: AppColors.darkSurface,
+            foregroundColor: AppColors.darkTextPrimary,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
             ),
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
@@ -228,6 +221,11 @@ class AppTheme {
         ),
         dialogTheme: DialogThemeData(
           backgroundColor: AppColors.darkSurface,
+        ),
+        cardTheme: CardThemeData(
+          color: AppColors.darkSurface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         ),
       );
 }

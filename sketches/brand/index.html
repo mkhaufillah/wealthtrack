@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>WealthTrack — logo Pastel cozy</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Nunito, system-ui, sans-serif; background: #FFF3EE; color: #4A3A48; padding: 36px 20px 80px; }
+  h1 { font-size: 22px; font-weight: 800; }
+  p { color: #9B8794; margin: 6px 0 24px; max-width: 560px; }
+  h2 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin: 28px 0 12px; color: #9B8794; }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+  .card { background: #fff; border-radius: 24px; padding: 16px; }
+  .card img, .card object { display: block; }
+  .icon { width: 180px; height: 180px; border-radius: 40px; overflow: hidden; }
+  .icon img, .icon object { width: 180px; height: 180px; }
+  .tiny { width: 48px; height: 48px; border-radius: 12px; overflow: hidden; }
+  .tiny img { width: 48px; height: 48px; }
+  .mid { width: 96px; height: 96px; border-radius: 22px; overflow: hidden; }
+  .mid img { width: 96px; height: 96px; }
+  .dark { background: #2A2430; }
+  .word { height: 56px; }
+  .pick { font-size: 13px; font-weight: 800; margin-top: 8px; }
+  .rec { color: #4EAE90; }
+</style>
+</head>
+<body>
+  <h1>Logo — Pastel cozy</h1>
+  <p>Arah UI sudah lock. Logo lama = ayam + brankas (kartun). Ini rombak mark supaya nempel peach/mint, kebaca di 48px.</p>
+
+  <h2>1. Wallet + koin mint — rekomendasi launcher</h2>
+  <div class="row">
+    <div class="card"><div class="icon"><img src="concept-wallet.png" alt="wallet concept"/></div><div class="pick rec">Konsep A</div></div>
+    <div class="card"><div class="icon"><img src="icon-wallet.svg" alt="wallet svg"/></div><div class="pick">SVG vector</div></div>
+    <div class="card dark"><div class="icon"><img src="concept-wallet.png" alt=""/></div></div>
+    <div>
+      <div class="card" style="margin-bottom:8px"><div class="mid"><img src="concept-wallet.png" alt="96"/></div></div>
+      <div class="card"><div class="tiny"><img src="concept-wallet.png" alt="48"/></div></div>
+    </div>
+  </div>
+
+  <h2>2. Celengan rumah + W</h2>
+  <div class="row">
+    <div class="card"><div class="icon"><img src="concept-piggy.png" alt="piggy"/></div><div class="pick">Konsep B</div></div>
+    <div class="card"><div class="icon"><img src="icon-piggy.svg" alt="piggy svg"/></div><div class="pick">SVG vector</div></div>
+    <div class="card"><div class="tiny"><img src="concept-piggy.png" alt="48"/></div></div>
+  </div>
+
+  <h2>Wordmark</h2>
+  <div class="card" style="display:inline-block;padding:20px 28px">
+    <img class="word" src="wordmark.svg" alt="WealthTrack"/>
+  </div>
+  <div class="card dark" style="display:inline-block;padding:20px 28px;margin-left:8px">
+    <img class="word" src="wordmark.svg" alt="WealthTrack" style="filter:invert(.92) sepia(.2) saturate(.4)"/>
+  </div>
+</body>
+</html>

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/dashboard_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/copy_fallback.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
@@ -187,7 +188,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         balance: state.balance,
                         income: state.totalIncome,
                         expense: state.totalExpense,
-                        cycleLabel: 'All-time balance',
+                        cycleLabel: t('home.hero_title'),
                       ),
                       const SizedBox(height: 8),
                       _buildCategoriesCard(),

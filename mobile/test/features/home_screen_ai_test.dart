@@ -75,7 +75,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(buildHomeApp(balance: 1000000));
       await tester.pumpAndSettle();
-      expect(find.text('All-time balance'), findsOneWidget);
+      expect(find.text('Uang kamu'), findsOneWidget);
       expect(find.text('AI Financial Advisor'), findsOneWidget);
     });
 

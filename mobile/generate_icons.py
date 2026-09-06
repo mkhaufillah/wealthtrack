@@ -139,7 +139,7 @@ def generate_android_adaptive(img, project_root):
                 fg_pixels[x, y] = (r, g, b, 0)
 
     # Background color
-    bg_color = (45, 52, 74)  # Dark navy #2D344A
+    bg_color = (255, 232, 220)  # Pastel cozy peach #FFE8DC
     bg_img = Image.new("RGBA", (w, h), bg_color + (255,))
 
     for density, scale in ANDROID_LEGACY_SCALES.items():
