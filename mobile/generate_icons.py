@@ -124,19 +124,34 @@ def generate_android_legacy(img, project_root):
 
 
 def generate_android_adaptive(img, project_root):
-    """Generate Android adaptive icon layers (API 26+)."""
+    """Generate Android adaptive icon layers (API 26+).
+
+    Adaptive icons MUST be full-bleed: the OS masks the canvas to a squircle /
+    circle. A foreground image that carries its own rounded-square background
+    shows a visible box behind the mask (double-box on Samsung OneUI).
+    Foreground = mascot art scaled into the 66% safe zone on TRANSPARENT canvas.
+    Background = solid brand peach, edge to edge.
+    """
     base = os.path.join(project_root, "android", "app", "src", "main", "res")
 
-    # Create transparent foreground version of the logo
-    # First, make white background transparent
-    fg_img = img.copy()
-    fg_pixels = fg_img.load()
+    # Mascot art only: drop near-peach background so the canvas stays transparent.
+    fg_img = img.convert("RGBA")
+    bg_reference = (255, 232, 220)  # #FFE8DC
+    px = fg_img.load()
     w, h = fg_img.size
     for y in range(h):
         for x in range(w):
-            r, g, b, a = fg_pixels[x, y]
-            if r > 240 and g > 240 and b > 240:
-                fg_pixels[x, y] = (r, g, b, 0)
+            r, g, b, a = px[x, y]
+            if (
+                abs(r - bg_reference[0]) < 12
+                and abs(g - bg_reference[1]) < 12
+                and abs(b - bg_reference[2]) < 12
+            ):
+                px[x, y] = (r, g, b, 0)
+    # Tight-crop to remaining art, then re-scale into safe zone below.
+    bbox = fg_img.getbbox()
+    if bbox:
+        fg_img = fg_img.crop(bbox)
 
     # Background color
     bg_color = (255, 232, 220)  # Pastel cozy peach #FFE8DC
@@ -146,14 +161,17 @@ def generate_android_adaptive(img, project_root):
         adaptive_size = int(ADAPTIVE_BASE_SIZE * scale)
         safe_size = int(adaptive_size * ADAPTIVE_SAFE_ZONE)
 
-        # Scale foreground to fit within the safe zone (inner 66%)
-        fg_scaled = fg_img.resize((adaptive_size, adaptive_size), Image.Resampling.LANCZOS)
-        fg_inner = fg_scaled.resize((safe_size, safe_size), Image.Resampling.LANCZOS)
+        # Scale art (not the whole padded square) to fit within the safe zone
+        art_w, art_h = fg_img.size
+        factor = safe_size / max(art_w, art_h)
+        fw = max(1, int(art_w * factor))
+        fh = max(1, int(art_h * factor))
+        fg_inner = fg_img.resize((fw, fh), Image.Resampling.LANCZOS)
 
         # Center on canvas
         content = Image.new("RGBA", (adaptive_size, adaptive_size), (0, 0, 0, 0))
-        ox = (adaptive_size - safe_size) // 2
-        oy = (adaptive_size - safe_size) // 2
+        ox = (adaptive_size - fw) // 2
+        oy = (adaptive_size - fh) // 2
         content.paste(fg_inner, (ox, oy), fg_inner)
 
         # Save foreground
@@ -163,8 +181,7 @@ def generate_android_adaptive(img, project_root):
         content.save(fg_path, "PNG")
         print(f"  V {fg_path} ({adaptive_size}x{adaptive_size}, foreground)")
 
-        # Save background (solid color)
-    # Resize background
+        # Save background (solid color, full bleed)
         bg_scaled = bg_img.resize((adaptive_size, adaptive_size), Image.Resampling.LANCZOS)
         bg_path = os.path.join(fg_dir, "ic_launcher_background.png")
         bg_scaled.save(bg_path, "PNG")

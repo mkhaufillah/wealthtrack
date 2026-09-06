@@ -4,14 +4,15 @@ import 'package:go_router/go_router.dart';
 import '../providers/dashboard_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/copy_fallback.dart';
-import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/providers/app_providers.dart';
-import '../../../features/ocr/providers/ocr_provider.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../ocr/providers/ocr_provider.dart';
+import '../../transactions/models/transaction_model.dart';
+import '../../transactions/ui/widgets/transaction_tile.dart';
 import 'widgets/balance_card.dart';
-import 'widgets/recent_transactions.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -34,11 +35,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Future.microtask(() => _loadDebtSummary());
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Future<void> _loadAllTimeBalances() async {
     try {
       final api = ref.read(apiClientProvider);
@@ -46,17 +42,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final data = resp.data as Map<String, dynamic>? ?? {};
       int savings = 0;
       int emergency = 0;
-
       final siData = data['savings_investment'];
       if (siData is Map) {
         savings = (siData['balance'] as num?)?.toInt() ?? 0;
       }
-
       final efData = data['emergency_funds'];
       if (efData is Map) {
         emergency = (efData['balance'] as num?)?.toInt() ?? 0;
       }
-
       if (mounted) {
         setState(() {
           _savingsBalance = savings;
@@ -65,20 +58,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     } catch (e) {
       debugPrint('ERROR: $e');
-      // Silently fail — the summary card is optional
     }
   }
 
   Future<void> _loadDebtSummary() async {
     try {
       final api = ref.read(apiClientProvider);
-      // Try household endpoint first — shows aggregated family debt
       late Map<String, dynamic> data;
       try {
         final resp = await api.get('/summaries/debt/household');
         data = resp.data as Map<String, dynamic>? ?? {};
       } catch (_) {
-        // Fall back to personal debt summary
         final resp = await api.get('/summaries/debt');
         data = resp.data as Map<String, dynamic>? ?? {};
       }
@@ -98,8 +88,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(dashboardProvider);
     final ocrState = ref.watch(ocrPendingCountProvider);
+    final user = ref.watch(authProvider).user;
+    final firstName = (user?.displayName.isNotEmpty ?? false)
+        ? user!.displayName.split(' ').first
+        : 'Kamu';
 
-    // Reload dashboard when homeRefreshProvider is incremented
     ref.listen<int>(homeRefreshProvider, (prev, next) {
       if (prev != next) {
         ref.read(dashboardProvider.notifier).load(force: true);
@@ -107,7 +100,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     });
 
-    // Auto-refresh when OCR pending drops to 0
     ref.listen<OcrState>(ocrPendingCountProvider, (previous, next) {
       if (previous != null && next.pendingCount < previous.pendingCount) {
         ref.read(dashboardProvider.notifier).load(force: true);
@@ -116,455 +108,499 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('WealthTrack')),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(dashboardProvider.notifier).load(force: true);
-          _loadDebtSummary();
-        },
+      body: SafeArea(
         child: state.isLoading
-            ? const ShimmerLoading(itemCount: 4, itemHeight: 120)
+            ? const Padding(
+                padding: EdgeInsets.all(18),
+                child: ShimmerLoading(itemCount: 5, itemHeight: 96),
+              )
             : state.error != null
-                ? ErrorDisplay(message: state.error!, onRetry: () => ref.read(dashboardProvider.notifier).load())
-                : ListView(
-                    padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
-                    children: [
-                      // OCR processing banner
-                      if (ocrState.pendingCount > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const SizedBox(
-                                  width: 14, height: 14,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  ocrState.pendingCount == 1
-                                      ? '⏳ 1 transaction being processed...'
-                                      : '⏳ ${ocrState.pendingCount} transactions being processed...',
-                                  style: TextStyle(fontSize: 13, color: AppColors.warning),
-                                ),
-                              ],
-                            ),
-                          ),
+                ? ErrorDisplay(
+                    message: state.error!,
+                    onRetry: () => ref.read(dashboardProvider.notifier).load(),
+                  )
+                : RefreshIndicator(
+                    onRefresh: () async {
+                      await ref.read(dashboardProvider.notifier).load(force: true);
+                      _loadDebtSummary();
+                      _loadAllTimeBalances();
+                    },
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 96),
+                      children: [
+                        _HiRow(name: firstName),
+                        const SizedBox(height: 14),
+                        BalanceCard(
+                          balance: state.balance,
+                          income: state.totalIncome,
+                          expense: state.totalExpense,
+                          cycleLabel: t('home.hero_title'),
                         ),
-                      // OCR error banner
-                      if (ocrState.hasFailure)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.highlight.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                 Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    ocrState.error ?? 'OCR processing failed',
-                                    style: TextStyle(fontSize: 13, color: AppColors.highlight),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () => ref.read(ocrPendingCountProvider.notifier).dismissError(),
-                                  child: Icon(Icons.close, size: 16, color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      BalanceCard(
-                        balance: state.balance,
-                        income: state.totalIncome,
-                        expense: state.totalExpense,
-                        cycleLabel: t('home.hero_title'),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildCategoriesCard(),
-                      if (!_debtLoading && _debtData['total_debt'] != null && (_debtData['total_debt'] as int) > 0)
-                        ...[
-                          const SizedBox(height: 8),
-                          _buildDebtSummaryCard(),
+                        if (ocrState.pendingCount > 0) ...[
+                          const SizedBox(height: 10),
+                          _ocrBanner(ocrState.pendingCount),
                         ],
-                      const SizedBox(height: 8),
-                      _buildAiCard(),
-                      const SizedBox(height: 8),
-                      _buildDebtCard(),
-                      const SizedBox(height: 24),
-                      RecentTransactions(transactions: state.recentTransactions),
-                    ],
+                        if (ocrState.hasFailure) ...[
+                          const SizedBox(height: 10),
+                          _ocrError(ocrState),
+                        ],
+                        const SizedBox(height: 10),
+                        _PocketRow(
+                          savings: _savingsBalance,
+                          emergency: _emergencyBalance,
+                        ),
+                        if (!_debtLoading &&
+                            _debtData['total_debt'] != null &&
+                            (_debtData['total_debt'] as int) > 0) ...[
+                          const SizedBox(height: 10),
+                          _DebtStrip(
+                            total: _debtData['total_debt'] as int,
+                            members: _memberCount(),
+                          ),
+                        ],
+                        const SizedBox(height: 10),
+                        _QuickList(
+                          savings: _savingsBalance,
+                          emergency: _emergencyBalance,
+                        ),
+                        const SizedBox(height: 22),
+                        _RecentSection(transactions: state.recentTransactions),
+                      ],
+                    ),
                   ),
       ),
     );
   }
-  Widget _buildDebtSummaryCard() {
-    final totalDebt = _debtData['total_debt'] as int? ?? 0;
+
+  int _memberCount() {
     final members = _debtData['members'] as List<dynamic>?;
-    final isHousehold = members != null && members.length > 1;
+    return members?.length ?? 1;
+  }
 
-    // Filter members with visible debt from current user's perspective
-    final visibleMembers = <Map<String, dynamic>>[];
-    if (members != null) {
-      for (final m in members) {
-        final mData = m as Map<String, dynamic>;
-        final isCurrentUser = mData['is_current_user'] as bool? ?? false;
-        final kprPrivate = mData['kpr_private'] as int? ?? 0;
-        final kprShared = mData['kpr_shared'] as int? ?? 0;
-        final ccPrivate = mData['cc_private'] as int? ?? 0;
-        final ccShared = mData['cc_shared'] as int? ?? 0;
-
-        final visibleTotal = isCurrentUser
-            ? (kprPrivate + kprShared + ccPrivate + ccShared)
-            : (kprShared + ccShared);
-
-        if (visibleTotal > 0) {
-          mData['_visible_total'] = visibleTotal;
-          visibleMembers.add(mData);
-        }
-      }
-    }
-
-    return Card(
-      color: AppColors.highlight.withAlpha(15),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColors.highlight.withAlpha(50)),
+  Widget _ocrBanner(int count) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row
-            Row(
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '$count transaksi sedang diproses…',
+            style: TextStyle(fontSize: 13, color: AppColors.warning),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ocrError(OcrState ocrState) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.highlight.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              ocrState.error ?? 'OCR gagal diproses',
+              style: TextStyle(fontSize: 13, color: AppColors.highlight),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => ref.read(ocrPendingCountProvider.notifier).dismissError(),
+            child: Icon(Icons.close, size: 16, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HiRow extends StatelessWidget {
+  final String name;
+  const _HiRow({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hai, $name',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Saldo kamu, sepanjang waktu',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.secondary,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PocketRow extends StatelessWidget {
+  final int savings;
+  final int emergency;
+  const _PocketRow({required this.savings, required this.emergency});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _PocketCard(
+            icon: Icons.savings_outlined,
+            iconBg: AppColors.butter,
+            label: 'Tabungan',
+            value: formatCurrency(savings),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _PocketCard(
+            icon: Icons.shield_outlined,
+            iconBg: AppColors.mint,
+            label: 'Dana darurat',
+            value: formatCurrency(emergency),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PocketCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconBg;
+  final String label;
+  final String value;
+  const _PocketCard({
+    required this.icon,
+    required this.iconBg,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 20, color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DebtStrip extends StatelessWidget {
+  final int total;
+  final int members;
+  const _DebtStrip({required this.total, required this.members});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.highlight.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.highlight.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.home_outlined, size: 20, color: AppColors.highlight),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.highlight.withAlpha(30),
-                    borderRadius: BorderRadius.circular(10),
+                Text(
+                  'Utang berjalan',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
                   ),
-                  child: Icon(Icons.warning_amber_rounded, color: AppColors.highlight, size: 20),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text('Total Outstanding Debt',
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                ),
-                if (isHousehold)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withAlpha(25),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${members!.length} members',
-                      style: TextStyle(fontSize: 11, color: AppColors.accent),
-                    ),
+                Text(
+                  formatCurrency(total),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.highlight,
                   ),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
+          ),
+          if (members > 1)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '$members orang',
+                style: TextStyle(fontSize: 11, color: AppColors.accent),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
 
-            // Per-member breakdown
-            if (visibleMembers.isNotEmpty)
-              ..._buildMemberSections(visibleMembers),
+class _QuickList extends StatelessWidget {
+  final int savings;
+  final int emergency;
+  const _QuickList({required this.savings, required this.emergency});
 
-            // Total
-            Padding(
-              padding: EdgeInsets.only(top: visibleMembers.isNotEmpty ? 10 : 0),
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        children: [
+          _QuickItem(
+            iconBg: AppColors.secondary,
+            icon: Icons.psychology_outlined,
+            title: 'Catatan AI',
+            subtitle: 'Nanya apa saja soal keuangan',
+            onTap: () => context.push('/ai/advise'),
+          ),
+          Divider(height: 1, color: AppColors.divider),
+          _QuickItem(
+            iconBg: AppColors.mint,
+            icon: Icons.account_balance_outlined,
+            title: 'Pencatat utang',
+            subtitle: 'KPR & kartu kredit',
+            onTap: () => context.push('/debt'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickItem extends StatelessWidget {
+  final Color iconBg;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _QuickItem({
+    required this.iconBg,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, size: 22, color: AppColors.textPrimary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Divider(height: 24, color: AppColors.divider),
-                  const SizedBox(height: 10),
-                  _debtRow('Total', formatCurrency(totalDebt),
-                      valueColor: AppColors.highlight, bold: true),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
+            Icon(Icons.chevron_right, size: 20, color: AppColors.textSecondary),
           ],
         ),
       ),
     );
   }
+}
 
-  List<Widget> _buildMemberSections(List<Map<String, dynamic>> members) {
-    final sections = <Widget>[];
-    for (int i = 0; i < members.length; i++) {
-      final m = members[i];
-      final name = m['display_name'] as String? ?? '';
-      final isCurrentUser = m['is_current_user'] as bool? ?? false;
-      final memberTotal = m['_visible_total'] as int? ?? 0;
-      final kprPrivate = m['kpr_private'] as int? ?? 0;
-      final kprShared = m['kpr_shared'] as int? ?? 0;
-      final ccPrivate = m['cc_private'] as int? ?? 0;
-      final ccShared = m['cc_shared'] as int? ?? 0;
+class _RecentSection extends StatelessWidget {
+  final List<TransactionModel> transactions;
+  const _RecentSection({required this.transactions});
 
-      sections.add(_buildMemberSection(
-        name: name,
-        total: memberTotal,
-        isCurrentUser: isCurrentUser,
-        kprPrivate: kprPrivate,
-        kprShared: kprShared,
-        ccPrivate: ccPrivate,
-        ccShared: ccShared,
-        showDivider: i < members.length - 1,
-      ));
-    }
-    return sections;
-  }
-
-  Widget _buildMemberSection({
-    required String name,
-    required int total,
-    required bool isCurrentUser,
-    required int kprPrivate,
-    required int kprShared,
-    required int ccPrivate,
-    required int ccShared,
-    bool showDivider = false,
-  }) {
-    final items = <Widget>[
-      // Member name + total
-      Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 10,
-              backgroundColor: AppColors.accent.withAlpha(30),
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.accent),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(name,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-            ),
-            Text(
-              formatCurrency(total),
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.highlight),
-            ),
-          ],
-        ),
-      ),
-      // Member separator
-      Divider(height: 24, color: AppColors.divider),
-    ];
-
-    // Private debts (current user only)
-    if (isCurrentUser && kprPrivate > 0) {
-      items.add(Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: _debtRow('KPR - private', formatCurrency(kprPrivate)),
-      ));
-    }
-    if (isCurrentUser && ccPrivate > 0) {
-      items.add(Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: _debtRow('Credit - private', formatCurrency(ccPrivate)),
-      ));
-    }
-
-    // Shared debts (visible to current user from any member)
-    if (kprShared > 0) {
-      items.add(Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: _debtRow('KPR - shared', formatCurrency(kprShared)),
-      ));
-    }
-    if (ccShared > 0) {
-      items.add(Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: _debtRow('Credit - shared', formatCurrency(ccShared)),
-      ));
-    }
-
-    if (showDivider) {
-      items.add(Padding(
-        padding: const EdgeInsets.symmetric(vertical: 0),
-        child: Divider(height: 24, color: AppColors.divider),
-      ));
-    }
-
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: items,
-    );
-  }
-
-  Widget _debtRow(String label, String value, {Color? valueColor, bool bold = false}) {
-    return Row(
       children: [
-        Expanded(
-          child: Text(label,
-              style: TextStyle(fontSize: 13, fontWeight: bold ? FontWeight.w600 : FontWeight.w500)),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
-            color: valueColor ?? AppColors.textPrimary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoriesCard() {
-    return Card(
-      color: AppColors.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.account_balance_outlined,
-                      color: AppColors.textPrimary, size: 20),
-                ),
-                const SizedBox(width: 12),
-                const Text('All-time Balances',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-              ],
+            Text(
+              'Baru saja',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
             ),
-            const SizedBox(height: 14),
-            _balanceRow('💳  Savings & Investment', _savingsBalance),
-            const SizedBox(height: 8),
-            _balanceRow('🆘  Emergency Funds', _emergencyBalance),
+            TextButton(
+              onPressed: () => context.go('/transactions'),
+              child: Text(
+                'Lihat semua',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.accent,
+                ),
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _balanceRow(String label, int amount) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(label,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-        ),
-        Text(
-          formatCurrency(amount),
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: amount >= 0 ? AppColors.success : AppColors.highlight,
+        const SizedBox(height: 4),
+        if (transactions.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Text(
+              'Belum ada transaksi',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Column(
+              children: [
+                for (var i = 0; i < transactions.length; i++) ...[
+                  if (i > 0) Divider(height: 1, color: AppColors.divider),
+                  TransactionTile(transaction: transactions[i]),
+                ],
+              ],
+            ),
           ),
-        ),
       ],
-    );
-  }
-
-  Widget _buildAiCard() {
-    return Card(
-      color: AppColors.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/ai/advise'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.accent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.psychology_outlined, color: AppColors.surface, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('AI Financial Advisor',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text('Ask anything about your finances',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDebtCard() {
-    return Card(
-      color: AppColors.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/debt'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.highlight.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.account_balance_outlined,
-                    color: AppColors.textPrimary, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Debt Tracker',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text('Manage KPR, credit cards & installments',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

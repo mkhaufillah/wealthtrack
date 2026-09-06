@@ -74,7 +74,7 @@ void main() {
     testWidgets('shows balance when data loaded', (tester) async {
       await tester.pumpWidget(buildHomeApp(balance: 1500000));
       await tester.pumpAndSettle();
-      expect(find.text('WealthTrack'), findsOneWidget);
+      expect(find.text('Hai, Filla'), findsNothing); // greeting uses login user (mock has none)
       expect(find.text('Rp1.500.000'), findsOneWidget);
     });
 

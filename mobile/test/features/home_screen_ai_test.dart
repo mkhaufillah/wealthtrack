@@ -61,8 +61,8 @@ void main() {
     testWidgets('shows AI Financial Advisor card on home', (tester) async {
       await tester.pumpWidget(buildHomeApp(balance: 1000000));
       await tester.pumpAndSettle();
-      expect(find.text('AI Financial Advisor'), findsOneWidget);
-      expect(find.text('Ask anything about your finances'), findsOneWidget);
+      expect(find.text('Catatan AI'), findsOneWidget);
+      expect(find.text('Nanya apa saja soal keuangan'), findsOneWidget);
     });
 
     testWidgets('shows psychology icon in AI card', (tester) async {
@@ -76,24 +76,24 @@ void main() {
       await tester.pumpWidget(buildHomeApp(balance: 1000000));
       await tester.pumpAndSettle();
       expect(find.text('Uang kamu'), findsOneWidget);
-      expect(find.text('AI Financial Advisor'), findsOneWidget);
+      expect(find.text('Catatan AI'), findsOneWidget);
     });
 
     testWidgets('AI card renders when balance is zero', (tester) async {
       await tester.pumpWidget(buildHomeApp(balance: 0));
       await tester.pumpAndSettle();
-      expect(find.text('AI Financial Advisor'), findsOneWidget);
+      expect(find.text('Catatan AI'), findsOneWidget);
     });
 
     testWidgets('AI card does not show on loading screen', (tester) async {
       await tester.pumpWidget(buildHomeApp(isLoading: true));
-      expect(find.text('AI Financial Advisor'), findsNothing);
+      expect(find.text('Catatan AI'), findsNothing);
       await tester.pump();
     });
 
     testWidgets('AI card does not show on error screen', (tester) async {
       await tester.pumpWidget(buildHomeApp(error: 'Connection failed'));
-      expect(find.text('AI Financial Advisor'), findsNothing);
+      expect(find.text('Catatan AI'), findsNothing);
       await tester.pump();
     });
   });
