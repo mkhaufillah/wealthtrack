@@ -16,6 +16,8 @@ class TransactionListState {
   final List<int> selectedCategoryIds; // empty = all
   final String sortBy; // '-date', 'date', '-amount', 'amount', 'name', '-name'
   final String searchQuery;
+  final String? dateFrom;
+  final String? dateTo;
 
   // Pagination
   final int page; final int perPage;
@@ -28,6 +30,7 @@ class TransactionListState {
     this.isLoadingMore = false,
     this.typeFilter = 'all', this.selectedCategoryIds = const [],
     this.sortBy = '-date', this.searchQuery = '',
+    this.dateFrom, this.dateTo,
     this.page = 1, this.perPage = 20, // perPage 20 for infinite scroll
   });
 
@@ -38,6 +41,7 @@ class TransactionListState {
     bool? isLoadingMore,
     String? typeFilter, List<int>? selectedCategoryIds,
     String? sortBy, String? searchQuery,
+    String? dateFrom, String? dateTo,
     int? page, int? perPage,
   }) => TransactionListState(
     isLoading: isLoading ?? this.isLoading, error: error ?? this.error,
@@ -48,6 +52,7 @@ class TransactionListState {
     typeFilter: typeFilter ?? this.typeFilter,
     selectedCategoryIds: selectedCategoryIds ?? this.selectedCategoryIds,
     sortBy: sortBy ?? this.sortBy, searchQuery: searchQuery ?? this.searchQuery,
+    dateFrom: dateFrom ?? this.dateFrom, dateTo: dateTo ?? this.dateTo,
     page: page ?? this.page, perPage: perPage ?? this.perPage,
   );
 }
@@ -84,6 +89,8 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
         type: state.typeFilter == 'all' ? null : state.typeFilter,
         categoryIds: state.selectedCategoryIds.isEmpty ? null : state.selectedCategoryIds,
         q: state.searchQuery.isEmpty ? null : state.searchQuery,
+        dateFrom: state.dateFrom,
+        dateTo: state.dateTo,
       );
       state = TransactionListState(
         transactions: result['transactions'] as List<TransactionModel>,
@@ -92,6 +99,8 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
         selectedCategoryIds: state.selectedCategoryIds,
         sortBy: state.sortBy,
         searchQuery: state.searchQuery,
+        dateFrom: state.dateFrom,
+        dateTo: state.dateTo,
         page: state.page,
         perPage: state.perPage,
       );
@@ -124,6 +133,25 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
     load();
   }
 
+  Future<void> setDateFilter({required String from, required String to}) async {
+    state = state.copyWith(dateFrom: from, dateTo: to, page: 1);
+    await load();
+  }
+
+  Future<void> clearDateFilter() async {
+    state = TransactionListState(
+      typeFilter: state.typeFilter,
+      selectedCategoryIds: state.selectedCategoryIds,
+      sortBy: state.sortBy,
+      searchQuery: state.searchQuery,
+      dateFrom: null,
+      dateTo: null,
+      page: 1,
+      perPage: state.perPage,
+    );
+    await load();
+  }
+
   // -- Pagination (infinite scroll) --
 
   void goToPage(int p) {
@@ -147,6 +175,8 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
         type: state.typeFilter == 'all' ? null : state.typeFilter,
         categoryIds: state.selectedCategoryIds.isEmpty ? null : state.selectedCategoryIds,
         q: state.searchQuery.isEmpty ? null : state.searchQuery,
+        dateFrom: state.dateFrom,
+        dateTo: state.dateTo,
       );
       final newTxns = result['transactions'] as List<TransactionModel>;
       state = TransactionListState(
@@ -156,6 +186,8 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
         selectedCategoryIds: state.selectedCategoryIds,
         sortBy: state.sortBy,
         searchQuery: state.searchQuery,
+        dateFrom: state.dateFrom,
+        dateTo: state.dateTo,
         page: state.page + 1,
         perPage: state.perPage,
       );

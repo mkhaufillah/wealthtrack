@@ -18,7 +18,7 @@ class BalanceCard extends StatelessWidget {
           children: [
             const Text('💰', style: TextStyle(fontSize: 32)),
             const SizedBox(height: 8),
-            Text(cycleLabel ?? 'Monthly Balance', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            Text(cycleLabel ?? 'All-time balance', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
             const SizedBox(height: 4),
             Text(formatCurrency(balance),
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),

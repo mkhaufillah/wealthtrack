@@ -40,6 +40,9 @@ class MockApiClient extends ApiClient {
   final Set<String> _deletePaths = {};
   final Map<String, StreamController<String>> _streamPostControllers = {};
 
+  Map<String, dynamic>? lastGetQuery;
+  String? lastGetPath;
+
   MockApiClient() : super(storage: MockSecureStorage());
 
   void onGet(String path, dynamic data) =>
@@ -58,6 +61,8 @@ class MockApiClient extends ApiClient {
   @override
   Future<Response> get(String path,
       {Map<String, dynamic>? queryParams}) async {
+    lastGetPath = path;
+    lastGetQuery = queryParams;
     return _getResponses[path] ?? MockResponse(<String, dynamic>{});
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
@@ -265,6 +266,82 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       // Ensure FAB shows again even if dismissed without pressing Apply
       ref.read(isCategoryFilterSheetOpenProvider.notifier).state = false;
     });
+  }
+
+  String _dateChipLabel(TransactionListState state) {
+    if (state.dateFrom == null || state.dateTo == null) return 'Date';
+    final from = DateTime.tryParse(state.dateFrom!);
+    final to = DateTime.tryParse(state.dateTo!);
+    if (from == null || to == null) return 'Date';
+    final fmt = DateFormat('dd MMM');
+    if (state.dateFrom == state.dateTo) return fmt.format(from);
+    return '${fmt.format(from)} – ${fmt.format(to)}';
+  }
+
+  Future<void> _showDateFilterSheet() async {
+    final state = ref.read(transactionListProvider);
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.today_outlined, color: AppColors.textPrimary),
+              title: const Text('Specific date'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickSpecificDate();
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.date_range_outlined, color: AppColors.textPrimary),
+              title: const Text('Date range'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickDateRange();
+              },
+            ),
+            if (state.dateFrom != null)
+              ListTile(
+                leading: Icon(Icons.clear, color: AppColors.highlight),
+                title: Text('Clear', style: TextStyle(color: AppColors.highlight)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ref.read(transactionListProvider.notifier).clearDateFilter();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickSpecificDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(now.year + 1),
+    );
+    if (picked == null || !mounted) return;
+    final day = DateFormat('yyyy-MM-dd').format(picked);
+    await ref.read(transactionListProvider.notifier).setDateFilter(from: day, to: day);
+  }
+
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(now.year + 1),
+    );
+    if (picked == null || !mounted) return;
+    final from = DateFormat('yyyy-MM-dd').format(picked.start);
+    final to = DateFormat('yyyy-MM-dd').format(picked.end);
+    await ref.read(transactionListProvider.notifier).setDateFilter(from: from, to: to);
   }
 
   Future<void> _showChangeOwnerSheet(int txnId, int currentOwnerId) async {
@@ -535,6 +612,28 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     onPressed: _showCategoryFilterSheet,
                     side: BorderSide(
                       color: state.selectedCategoryIds.isNotEmpty
+                          ? AppColors.accent
+                          : AppColors.divider,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  ActionChip(
+                    avatar: Icon(Icons.calendar_today_outlined, size: 16,
+                        color: state.dateFrom != null
+                            ? AppColors.accent
+                            : AppColors.textSecondary),
+                    label: Text(
+                      _dateChipLabel(state),
+                      style: TextStyle(fontSize: 12,
+                          color: state.dateFrom != null
+                              ? AppColors.accent
+                              : AppColors.textSecondary),
+                    ),
+                    backgroundColor: AppColors.surface,
+                    onPressed: _showDateFilterSheet,
+                    side: BorderSide(
+                      color: state.dateFrom != null
                           ? AppColors.accent
                           : AppColors.divider,
                     ),
