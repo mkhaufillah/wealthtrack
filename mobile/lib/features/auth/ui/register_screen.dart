@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
@@ -81,7 +83,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(title: Text(t('auth.register'))),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
@@ -94,9 +96,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 TextFormField(
                   key: const ValueKey('email'),
                   controller: _emailCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                       labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined)),
+                      prefixIcon: AppIcon(AppIcons.user)),
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) =>
                       v != null && v.contains('@') ? null : 'Valid email required',
@@ -108,9 +110,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 TextFormField(
                   key: const ValueKey('username'),
                   controller: _usernameCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                       labelText: 'Username',
-                      prefixIcon: Icon(Icons.person_outline)),
+                      prefixIcon: AppIcon(AppIcons.user)),
                   validator: (v) =>
                       v != null && v.trim().length >= 3 ? null : 'Min 3 characters',
                   enabled: !_registering,
@@ -121,9 +123,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 TextFormField(
                   key: const ValueKey('displayName'),
                   controller: _displayNameCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                       labelText: 'Display Name',
-                      prefixIcon: Icon(Icons.badge_outlined)),
+                      prefixIcon: AppIcon(AppIcons.user)),
                   validator: (v) =>
                       v != null && v.trim().isNotEmpty ? null : 'Display name is required',
                   enabled: !_registering,
@@ -137,7 +139,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline),
+                    prefixIcon: AppIcon(AppIcons.shield),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -161,7 +163,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   obscureText: _obscureConfirm,
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
-                    prefixIcon: Icon(Icons.lock_outline),
+                    prefixIcon: AppIcon(AppIcons.shield),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirm
@@ -191,7 +193,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
                             )
-                          : const Icon(Icons.email_outlined),
+                          : AppIcon(AppIcons.user),
                       label: Text(_sendingOtp ? 'Sending...' : 'Send OTP'),
                     ),
                   ),
@@ -200,9 +202,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   TextFormField(
                     key: const ValueKey('otpCode'),
                     controller: _otpCtrl,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                         labelText: 'OTP Code',
-                        prefixIcon: Icon(Icons.pin_outlined),
+                        prefixIcon: AppIcon(AppIcons.settings),
                         hintText: '6-digit code from email'),
                     keyboardType: TextInputType.number,
                     maxLength: 6,
@@ -223,7 +225,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: AppColors.surface))
-                          : const Text('Register'),
+                          : Text(t('auth.register')),
                     ),
                   ),
                 ],

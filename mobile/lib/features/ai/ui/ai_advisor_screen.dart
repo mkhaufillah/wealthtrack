@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../core/theme/app_theme.dart';
@@ -210,7 +212,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('AI Financial Advisor'),
+        title: Text(t('ai.title')),
         actions: [
           if (ref.watch(authProvider).user?.role == 'admin')
             Padding(
@@ -248,7 +250,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
             ),
           if (_messages.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.delete_outline, size: 20),
+              icon: AppIcon(AppIcons.trash, size: 20),
               onPressed: _clearChat,
               tooltip: 'Clear chat',
             ),
@@ -308,7 +310,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                   CircleAvatar(
                     backgroundColor: _isLoading ? AppColors.textSecondary : AppColors.accent,
                     child: IconButton(
-                      icon: Icon(Icons.send, color: AppColors.surface, size: 18),
+                      icon: AppIcon(AppIcons.send, color: AppColors.surface, size: 18),
                       onPressed: _isLoading ? null : () => _send(),
                     ),
                   ),
@@ -326,7 +328,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.psychology_outlined, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
+          AppIcon(AppIcons.ai, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
           const SizedBox(height: 16),
           Text('Ask me anything about your finances',
               style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
@@ -375,7 +377,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
+                            AppIcon(AppIcons.alert, size: 16, color: AppColors.highlight),
                             const SizedBox(width: 6),
                             Text('Failed — tap to retry',
                                 style: TextStyle(fontSize: 13, color: AppColors.highlight)),

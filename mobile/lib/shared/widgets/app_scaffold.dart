@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/transactions/providers/transaction_provider.dart';
 import '../../core/ui/copy_fallback.dart';
+import '../../core/ui/app_icons.dart';
 
 class MainShell extends ConsumerWidget {
   final Widget child;
@@ -35,17 +36,17 @@ class MainShell extends ConsumerWidget {
           }
         },
         items: [
-          BottomNavigationBarItem(icon: const Icon(Icons.home_outlined), activeIcon: const Icon(Icons.home), label: t('nav.dashboard')),
-          BottomNavigationBarItem(icon: const Icon(Icons.receipt_outlined), activeIcon: const Icon(Icons.receipt), label: t('nav.transactions')),
-          BottomNavigationBarItem(icon: const Icon(Icons.account_balance_wallet_outlined), activeIcon: const Icon(Icons.account_balance_wallet), label: t('nav.budgets')),
-          BottomNavigationBarItem(icon: const Icon(Icons.bar_chart_outlined), activeIcon: const Icon(Icons.bar_chart), label: t('nav.reports')),
-          BottomNavigationBarItem(icon: const Icon(Icons.person_outline), activeIcon: const Icon(Icons.person), label: t('nav.profile')),
+          BottomNavigationBarItem(icon: AppIcon(AppIcons.home, size: 22), label: t('nav.dashboard')),
+          BottomNavigationBarItem(icon: AppIcon(AppIcons.receipt, size: 22), label: t('nav.transactions')),
+          BottomNavigationBarItem(icon: AppIcon(AppIcons.wallet, size: 22), label: t('nav.budgets')),
+          BottomNavigationBarItem(icon: AppIcon(AppIcons.chart, size: 22), label: t('nav.reports')),
+          BottomNavigationBarItem(icon: AppIcon(AppIcons.user, size: 22), label: t('nav.profile')),
         ],
       ),
       floatingActionButton: index <= 1 && (index == 0 || !ref.watch(isCategoryFilterSheetOpenProvider))
           ? FloatingActionButton(
               onPressed: () => context.push('/transactions/add'),
-              child: const Icon(Icons.add),
+              child: AppIcon(AppIcons.add, size: 24),
             )
           : null,
     );

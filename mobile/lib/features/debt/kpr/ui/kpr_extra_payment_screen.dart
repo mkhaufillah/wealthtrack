@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/kpr_provider.dart';
@@ -177,7 +179,7 @@ class _KPRExtraPaymentScreenState
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Extra Payment'),
+        title: Text(t('kpr.extra')),
         actions: [
           if (_step == ExtraStep.preview)
             TextButton(
@@ -380,7 +382,7 @@ class _KPRExtraPaymentScreenState
           ),
           child: Row(
             children: [
-              Icon(Icons.compare_arrows,
+              AppIcon(AppIcons.swap,
                   size: 20, color: AppColors.accent),
               const SizedBox(width: 12),
               Expanded(
@@ -501,7 +503,7 @@ class _KPRExtraPaymentScreenState
                       color: AppColors.accent,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.check,
+                    child: AppIcon(AppIcons.check,
                         size: 16, color: AppColors.surface),
                   ),
               ],

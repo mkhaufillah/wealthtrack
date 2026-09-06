@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -125,7 +127,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Budgets')),
+      appBar: AppBar(title: Text(t('budget.title'))),
       body: Column(
         children: [
           _buildMonthPicker(nav),
@@ -169,13 +171,13 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               _load();
             },
             backgroundColor: AppColors.accent,
-            child: const Icon(Icons.auto_awesome, size: 20),
+            child: AppIcon(AppIcons.spark, size: 20),
           ),
           const SizedBox(height: 12),
           FloatingActionButton(
             heroTag: 'add_budget',
             onPressed: () => _showAddBudgetSheet(),
-            child: const Icon(Icons.add),
+            child: AppIcon(AppIcons.add),
           ),
         ],
       ),
@@ -195,13 +197,13 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => _prevMonth()),
+          IconButton(icon: AppIcon(AppIcons.back), onPressed: () => _prevMonth()),
           Text(
             nav.cycleLabel.isNotEmpty ? nav.cycleLabel : DateFormat('MMMM yyyy').format(nav.currentMonth),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right),
+            icon: AppIcon(AppIcons.next),
             onPressed: canGoNext ? () => _nextMonth() : null,
           ),
         ],
@@ -214,7 +216,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.account_balance_wallet_outlined, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
+          AppIcon(AppIcons.wallet, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
           const SizedBox(height: 16),
           Text('No budgets set for this month',
               style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
@@ -235,7 +237,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               );
               _load();
             },
-            icon: const Icon(Icons.auto_awesome, size: 18),
+            icon: AppIcon(AppIcons.spark, size: 18),
             label: const Text('Suggestions'),
           ),
         ],
@@ -300,7 +302,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                       color: AppColors.accent.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.pie_chart_outline, color: AppColors.textPrimary, size: 20),
+                    child: AppIcon(AppIcons.chart, color: AppColors.textPrimary, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const Text('Budget Overview',
@@ -378,7 +380,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                       color: AppColors.warning.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+                    child: AppIcon(AppIcons.info, color: AppColors.warning, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const Text('Outside Budget',
@@ -492,7 +494,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                       color: AppColors.accent.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Icon(Icons.edit_outlined, size: 16, color: AppColors.textPrimary),
+                    child: AppIcon(AppIcons.edit, size: 16, color: AppColors.textPrimary),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -506,7 +508,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                       color: AppColors.highlight.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child:  Icon(Icons.delete_outline, size: 16, color: AppColors.highlight),
+                    child:  AppIcon(AppIcons.trash, size: 16, color: AppColors.highlight),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -607,10 +609,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Budget'),
+        title: Text(t('budget.delete')),
         content: Text('Remove budget for ${item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(t('common.cancel'))),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.highlight),
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -728,7 +730,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
             // New budget: category dropdown
             DropdownButtonFormField<int>(
               value: _selectedCategoryId,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Select category',
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
@@ -753,7 +755,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
           DropdownButtonFormField<int>(
             value: _cycleOn,
             style: TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Select cycle day',
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),

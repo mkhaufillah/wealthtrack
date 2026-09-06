@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/app_icons.dart';
+import '../../core/ui/copy_fallback.dart';
 
 class ErrorDisplay extends StatelessWidget {
   final String message;
@@ -14,7 +16,7 @@ class ErrorDisplay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.highlight),
+            AppIcon(AppIcons.alert, size: 48, color: AppColors.highlight),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
@@ -22,8 +24,8 @@ class ErrorDisplay extends StatelessWidget {
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Retry'),
+                icon: AppIcon(AppIcons.refresh, size: 18),
+                label: Text(t('common.retry')),
               ),
             ],
           ],

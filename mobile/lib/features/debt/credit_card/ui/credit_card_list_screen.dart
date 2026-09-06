@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/credit_card_provider.dart';
@@ -32,14 +34,14 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete Credit Card'),
+        title: Text(t('cc.delete')),
         content: Text(
           'Delete "${card.name.isEmpty ? 'this card' : card.name}"? This cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(t('common.cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -76,7 +78,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Credit Cards'),
+        title: Text(t('cc.title')),
       ),
       body: state.isLoading && state.cards.isEmpty
           ? const LoadingIndicator()
@@ -111,7 +113,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/debt/credit-cards/new'),
-        child: const Icon(Icons.add),
+        child: AppIcon(AppIcons.add),
       ),
     );
   }
@@ -235,7 +237,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
           color: AppColors.highlight,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(Icons.delete_outline, color: AppColors.surface, size: 28),
+        child: AppIcon(AppIcons.trash, color: AppColors.surface, size: 28),
       ),
       confirmDismiss: (_) => _confirmDelete(card),
       child: GestureDetector(

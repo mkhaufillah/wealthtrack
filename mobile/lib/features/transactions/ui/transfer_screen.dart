@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
@@ -142,7 +144,7 @@ class _TransferBalanceScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Confirm Transfer'),
+        title: Text(t('transfer.confirm')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +156,7 @@ class _TransferBalanceScreenState
                 padding: const EdgeInsets.only(top: 4),
                 child: Row(
                   children: [
-                    const Icon(Icons.person_outline, size: 16),
+                    AppIcon(AppIcons.user, size: 16),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -179,7 +181,7 @@ class _TransferBalanceScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(t('common.cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -231,7 +233,7 @@ class _TransferBalanceScreenState
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Transfer Balance')),
+      appBar: AppBar(title: Text(t('transfer.title'))),
       body: _loadingMembers
           ? const Center(child: CircularProgressIndicator())
           : _allMembers.isEmpty
@@ -239,7 +241,7 @@ class _TransferBalanceScreenState
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.group_off, size: 64, color: AppColors.textSecondary),
+                      AppIcon(AppIcons.user, size: 64, color: AppColors.textSecondary),
                       SizedBox(height: 16),
                       Text('No household members available',
                           style: TextStyle(color: AppColors.textSecondary)),
@@ -294,10 +296,10 @@ class _TransferBalanceScreenState
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       child: ListTile(
-                        leading: Icon(Icons.calendar_today,
+                        leading: AppIcon(AppIcons.calendar,
                             color: AppColors.textPrimary),
                         title: Text(_formatDate(_selectedDate)),
-                        trailing: const Icon(Icons.edit_calendar, size: 18),
+                        trailing: AppIcon(AppIcons.calendar, size: 18),
                         onTap: isSubmitting ? null : _pickDate,
                       ),
                     ),
@@ -315,7 +317,7 @@ class _TransferBalanceScreenState
                         if (_availableMembers.isNotEmpty)
                           TextButton.icon(
                             onPressed: isSubmitting ? null : _addRecipient,
-                            icon: const Icon(Icons.person_add, size: 18),
+                            icon: AppIcon(AppIcons.user, size: 18),
                             label: const Text('Add'),
                           ),
                       ],
@@ -328,7 +330,7 @@ class _TransferBalanceScreenState
                         alignment: Alignment.center,
                         child: Column(
                           children: [
-                            Icon(Icons.person_add_alt_1,
+                            AppIcon(AppIcons.user,
                                 size: 48, color: AppColors.textSecondary),
                             const SizedBox(height: 8),
                             Text('Tap "Add" to select a recipient',
@@ -374,7 +376,7 @@ class _TransferBalanceScreenState
                                     ),
                                     if (_recipients.length > 1)
                                       IconButton(
-                                        icon: Icon(Icons.close,
+                                        icon: AppIcon(AppIcons.close,
                                             size: 18, color: AppColors.textSecondary),
                                         onPressed: isSubmitting
                                             ? null
@@ -409,7 +411,7 @@ class _TransferBalanceScreenState
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: AppColors.surface),
                               )
-                            : const Icon(Icons.send_rounded),
+                            : AppIcon(AppIcons.send),
                         label: Text(isSubmitting
                             ? 'Processing...'
                             : 'Send Transfer'),
@@ -426,7 +428,7 @@ class _TransferBalanceScreenState
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.error_outline,
+                            AppIcon(AppIcons.alert,
                                 color: AppColors.highlight, size: 20),
                             const SizedBox(width: 8),
                             Expanded(

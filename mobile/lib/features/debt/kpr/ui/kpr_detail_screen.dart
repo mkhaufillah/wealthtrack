@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -37,14 +39,14 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete Simulation'),
+        title: Text(t('kpr.delete')),
         content: Text(
           'Delete "${sim.name.isEmpty ? 'this simulation' : sim.name}"? This cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(t('common.cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -76,7 +78,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete Extra Payment'),
+        title: Text(t('kpr.extra')),
         content: Text(
           'Delete extra payment ${formatCurrency(ep.amount)} at month ${ep.applyMonth}? '
           'The schedule will be rebuilt. This cannot be undone.',
@@ -84,7 +86,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(t('common.cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -124,14 +126,14 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         actions: [
           if (sim != null)
             IconButton(
-              icon: const Icon(Icons.payments_outlined),
+              icon: AppIcon(AppIcons.money),
               tooltip: 'Extra Payment',
               onPressed: () => context.push(
                   '/debt/kpr/${sim.id}/extra-payment'),
             ),
           if (sim != null)
             IconButton(
-              icon: const Icon(Icons.delete_outline),
+              icon: AppIcon(AppIcons.trash),
               tooltip: 'Delete',
               onPressed: () => _confirmDelete(sim),
             ),
@@ -318,7 +320,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.schedule, size: 16, color: AppColors.textSecondary),
+          AppIcon(AppIcons.calendar, size: 16, color: AppColors.textSecondary),
           const SizedBox(width: 8),
           Text(
             tenorLabel,
@@ -380,7 +382,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       children: [
         Row(
           children: [
-            Icon(Icons.payments_outlined,
+            AppIcon(AppIcons.money,
                 size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 8),
             Text(
@@ -415,7 +417,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline,
+                AppIcon(AppIcons.info,
                     size: 18, color: AppColors.textSecondary),
                 const SizedBox(width: 12),
                 Expanded(
@@ -531,7 +533,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert,
+                  icon: AppIcon(AppIcons.more,
                       size: 18, color: AppColors.textSecondary),
                   padding: EdgeInsets.zero,
                   onSelected: (value) {
@@ -544,7 +546,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline, size: 18),
+                          AppIcon(AppIcons.trash, size: 18),
                           SizedBox(width: 8),
                           Text('Delete'),
                         ],
@@ -689,7 +691,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         child: Center(
           child: Column(
             children: [
-              Icon(Icons.table_chart_outlined, size: 40, color: AppColors.textSecondary.withOpacity(0.4)),
+              AppIcon(AppIcons.chart, size: 40, color: AppColors.textSecondary.withOpacity(0.4)),
               const SizedBox(height: 12),
               Text(
                 'No schedule data available',
@@ -724,7 +726,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       children: [
         Row(
           children: [
-            Icon(Icons.calendar_month_outlined, size: 18, color: AppColors.textSecondary),
+            AppIcon(AppIcons.calendar, size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 8),
             Text(
               'Payment Schedule',

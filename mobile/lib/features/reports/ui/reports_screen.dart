@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -161,7 +163,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Reports')),
+      appBar: AppBar(title: Text(t('report.title'))),
       body: Column(
         children: [
           _buildMonthPicker(),
@@ -214,7 +216,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left),
+            icon: AppIcon(AppIcons.back),
             onPressed: _prevMonth,
           ),
           Text(
@@ -225,7 +227,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right),
+            icon: AppIcon(AppIcons.next),
             onPressed: canGoNext ? _nextMonth : null,
           ),
         ],
@@ -521,7 +523,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: AppColors.warning),
+                AppIcon(AppIcons.info, size: 16, color: AppColors.warning),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -982,7 +984,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: _exportYearly,
-        icon: const Icon(Icons.file_download_outlined, size: 18),
+        icon: AppIcon(AppIcons.send, size: 18),
         label: const Text('Export Yearly (Excel)'),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),

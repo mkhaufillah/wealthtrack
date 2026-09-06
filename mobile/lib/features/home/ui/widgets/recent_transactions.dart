@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/app_icons.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../transactions/models/transaction_model.dart';
@@ -42,7 +43,7 @@ class RecentTransactions extends StatelessWidget {
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('View All'), SizedBox(width: 4), Icon(Icons.arrow_forward, size: 16),
+                Text('View All'), SizedBox(width: 4), AppIcon(AppIcons.next, size: 16),
               ],
             ),
           ),

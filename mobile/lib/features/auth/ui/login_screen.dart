@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/app_icons.dart';
+import '../../../core/ui/copy_fallback.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
@@ -47,7 +49,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('💰', style: const TextStyle(fontSize: 48)),
+                  Image.asset('assets/logo.png', height: 88),
                   const SizedBox(height: 16),
                   Text('WealthTrack',
                       style: TextStyle(
@@ -55,15 +57,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary)),
                   const SizedBox(height: 4),
-                  Text('Manage your finances easier',
+                  Text('Catat duit, tanpa drama',
                       style: TextStyle(
                           fontSize: 14, color: AppColors.textSecondary)),
                   const SizedBox(height: 48),
                   TextFormField(
                     controller: _usernameCtrl,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                         labelText: 'Username',
-                        prefixIcon: Icon(Icons.person_outline)),
+                        prefixIcon: AppIcon(AppIcons.user)),
                     validator: (v) =>
                         v == null || v.trim().length < 3 ? 'Min 3 characters' : null,
                     enabled: !isLoading,
@@ -74,12 +76,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: AppIcon(AppIcons.shield),
                       suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
+                        icon: AppIcon(
+                          _obscurePassword ? AppIcons.viewOff : AppIcons.view,
                         ),
                         onPressed: () =>
                             setState(() => _obscurePassword = !_obscurePassword),
@@ -107,7 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: AppColors.surface))
-                          : const Text('Login'),
+                          : Text(t('auth.login')),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -115,7 +115,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: isLoading
                         ? null
                         : () => context.push('/register'),
-                    child: const Text("Don't have an account? Register"),
+                    child: Text('Belum punya akun? Daftar dulu'),
                   ),
                   const SizedBox(height: 16),
                 ],

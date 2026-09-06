@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../features/home/providers/dashboard_provider.dart';
@@ -292,7 +294,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(Icons.calculate, size: 22, color: AppColors.accent),
+            AppIcon(AppIcons.chart, size: 22, color: AppColors.accent),
             const SizedBox(width: 8),
             const Text('Calculation Result'),
           ],
@@ -407,7 +409,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('New KPR Simulation'),
+        title: Text(t('kpr.new')),
       ),
       body: Form(
         key: _formKey,
@@ -419,7 +421,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 6),
             TextFormField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'e.g. Rumah Impian',
               ),
               validator: _validateRequired,
@@ -433,9 +435,9 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               controller: _propertyPriceCtrl,
               focusNode: _propertyFocus,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Rp 0',
-                prefixIcon: Icon(Icons.home_outlined, size: 20),
+                prefixIcon: AppIcon(AppIcons.home, size: 20),
               ),
             ),
             const SizedBox(height: 20),
@@ -447,9 +449,9 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               controller: _downPaymentCtrl,
               focusNode: _downPaymentFocus,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Rp 0',
-                prefixIcon: Icon(Icons.payments_outlined, size: 20),
+                prefixIcon: AppIcon(AppIcons.money, size: 20),
               ),
             ),
             const SizedBox(height: 20),
@@ -466,7 +468,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.account_balance_outlined, size: 20, color: AppColors.textSecondary),
+                  AppIcon(AppIcons.bank, size: 20, color: AppColors.textSecondary),
                   const SizedBox(width: 10),
                   Text(
                     formatCurrency(_getLoanAmount()),
@@ -486,8 +488,8 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               value: _tenorYears,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.schedule, size: 20),
+              decoration: InputDecoration(
+                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
               ),
               items: [5, 10, 15, 20, 25, 30].map((y) {
                 return DropdownMenuItem(value: y, child: Text('$y years'));
@@ -506,8 +508,8 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     value: _startMonth,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.calendar_month, size: 20),
+                    decoration: InputDecoration(
+                      prefixIcon: AppIcon(AppIcons.calendar, size: 20),
                     ),
                     items: List.generate(12, (i) => i + 1).map((m) {
                       final months = [
@@ -528,8 +530,8 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     value: _startYear,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.date_range, size: 20),
+                    decoration: InputDecoration(
+                      prefixIcon: AppIcon(AppIcons.calendar, size: 20),
                     ),
                     items: List.generate(31, (i) => 2020 + i).map((y) {
                       return DropdownMenuItem(value: y, child: Text('$y'));
@@ -548,8 +550,8 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               value: _dueDate,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.event, size: 20),
+              decoration: InputDecoration(
+                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
                 hintText: 'Date of month',
               ),
               items: List.generate(28, (i) => i + 1).map((d) {
@@ -593,8 +595,8 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             // ─── Share with Household Toggle ─────────
             if (_householdCheckDone && _hasHousehold)
               SwitchListTile(
-                title: const Text('Share with household'),
-                subtitle: const Text('Make this visible to all household members'),
+                title: Text(t('common.share_hh')),
+                subtitle: Text(t('common.share_hh_sub')),
                 value: _shareWithHousehold,
                 onChanged: (v) => setState(() => _shareWithHousehold = v),
                 contentPadding: EdgeInsets.zero,
@@ -612,7 +614,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                         ? const SizedBox(
                             width: 18, height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.calculate_outlined, size: 18),
+                        : AppIcon(AppIcons.chart, size: 18),
                     label: const Text('Calculate'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -627,7 +629,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                         ? SizedBox(
                             width: 18, height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
-                        : const Icon(Icons.save_outlined, size: 18),
+                        : AppIcon(AppIcons.check, size: 18),
                     label: const Text('Save'),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -661,10 +663,10 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       TextField(
         controller: _baseRateCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: 'e.g. 9.0',
           suffixText: '%',
-          prefixIcon: Icon(Icons.percent, size: 20),
+          prefixIcon: AppIcon(AppIcons.money, size: 20),
         ),
       ),
       const SizedBox(height: 16),
@@ -679,10 +681,10 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       TextField(
         controller: _baseRateCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: 'e.g. 7.0',
           suffixText: '%',
-          prefixIcon: Icon(Icons.percent, size: 20),
+          prefixIcon: AppIcon(AppIcons.money, size: 20),
         ),
       ),
       const SizedBox(height: 16),
@@ -691,10 +693,10 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       TextField(
         controller: _gradIncrementCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: 'e.g. 0.5',
           suffixText: '%',
-          prefixIcon: Icon(Icons.trending_up, size: 20),
+          prefixIcon: AppIcon(AppIcons.chartUp, size: 20),
         ),
       ),
       const SizedBox(height: 16),
@@ -703,10 +705,10 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       TextField(
         controller: _gradEveryMonthsCtrl,
         keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: 'e.g. 12',
           suffixText: 'months',
-          prefixIcon: Icon(Icons.date_range, size: 20),
+          prefixIcon: AppIcon(AppIcons.calendar, size: 20),
         ),
       ),
       const SizedBox(height: 16),
@@ -737,7 +739,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                 ));
               });
             },
-            icon: const Icon(Icons.add, size: 18),
+            icon: AppIcon(AppIcons.add, size: 18),
             label: const Text('Add Period'),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -779,7 +781,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                             _ratePeriods.removeAt(idx);
                           });
                         },
-                        child: Icon(Icons.remove_circle_outline,
+                        child: AppIcon(AppIcons.close,
                             size: 20, color: AppColors.highlight),
                       ),
                   ],
@@ -790,7 +792,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                     Expanded(
                       child: TextField(
                         controller: rp.fromMonthCtrl,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'From (mo)',
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -802,7 +804,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                     Expanded(
                       child: TextField(
                         controller: rp.toMonthCtrl,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'To (mo)',
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -814,7 +816,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                     Expanded(
                       child: TextField(
                         controller: rp.rateCtrl,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Rate %',
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -827,7 +829,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: rp.rateType,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Type',
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),

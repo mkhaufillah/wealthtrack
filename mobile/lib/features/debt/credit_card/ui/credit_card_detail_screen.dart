@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -51,14 +53,14 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete Credit Card'),
+        title: Text(t('cc.delete')),
         content: Text(
           'Delete "${card.name}"? This will also remove all transactions and installments.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(t('common.cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -101,7 +103,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           if (card != null)
             IconButton(
               onPressed: () => _confirmDeleteCard(card),
-              icon: const Icon(Icons.delete_outline),
+              icon: AppIcon(AppIcons.trash),
             ),
         ],
         bottom: card != null
@@ -282,7 +284,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       ),
       child: Row(
         children: [
-          Icon(Icons.trending_up, size: 20, color: AppColors.success),
+          AppIcon(AppIcons.chartUp, size: 20, color: AppColors.success),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -603,13 +605,13 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: AppColors.surface,
-          title: const Text('Add Transaction'),
+          title: Text(t('tx.add')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: descriptionCtrl,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Description',
                   hintText: 'e.g. Groceries',
                   border: OutlineInputBorder(),
@@ -619,7 +621,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
               TextField(
                 controller: amountCtrl,
                 focusNode: amountFocusNode,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Amount',
                   border: OutlineInputBorder(),
                 ),
@@ -639,10 +641,10 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                   }
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Date',
                     border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.calendar_today),
+                    suffixIcon: AppIcon(AppIcons.calendar),
                   ),
                   child: Text(
                     DateFormat('MMM dd, yyyy').format(selectedDate),
@@ -654,7 +656,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(t('common.cancel')),
             ),
             FilledButton(
               onPressed: () async {

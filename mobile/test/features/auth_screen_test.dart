@@ -59,8 +59,8 @@ void main() {
 
     testWidgets('shows Login button and Register link', (tester) async {
       await tester.pumpWidget(buildLoginApp());
-      expect(find.text('Login'), findsOneWidget);
-      expect(find.text("Don't have an account? Register"), findsOneWidget);
+      expect(find.text('Masuk'), findsOneWidget);
+      expect(find.text('Belum punya akun? Daftar dulu'), findsOneWidget);
     });
 
     testWidgets('shows error message when present', (tester) async {
@@ -70,7 +70,7 @@ void main() {
 
     testWidgets('validates empty fields', (tester) async {
       await tester.pumpWidget(buildLoginApp());
-      await tester.tap(find.text('Login'));
+      await tester.tap(find.text('Masuk'));
       await tester.pumpAndSettle();
       expect(find.text('Min 3 characters'), findsOneWidget);
       expect(find.text('Min 6 characters'), findsOneWidget);
@@ -80,7 +80,7 @@ void main() {
   group('RegisterScreen', () {
     testWidgets('shows Register title', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      expect(find.text('Register'), findsAtLeast(1));
+      expect(find.text('Daftar'), findsAtLeast(1));
     });
 
     testWidgets('shows five input fields', (tester) async {
@@ -91,7 +91,7 @@ void main() {
 
     testWidgets('shows Register button and Login link', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      expect(find.text('Register'), findsAtLeast(1));
+      expect(find.text('Daftar'), findsAtLeast(1));
       expect(find.text('Already have an account? Login'), findsOneWidget);
     });
 

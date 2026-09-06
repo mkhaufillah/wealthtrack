@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/app_icons.dart';
 
 class EmptyState extends StatelessWidget {
   final String message;
@@ -15,7 +16,7 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.inbox_outlined, size: 64, color: AppColors.textSecondary),
+            AppIcon(AppIcons.inbox, size: 56, color: AppColors.textSecondary),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),

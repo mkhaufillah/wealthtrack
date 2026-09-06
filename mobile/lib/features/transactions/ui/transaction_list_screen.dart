@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'package:go_router/go_router.dart';
@@ -288,16 +290,16 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.today_outlined, color: AppColors.textPrimary),
-              title: const Text('Specific date'),
+              leading: AppIcon(AppIcons.calendar, color: AppColors.textPrimary),
+              title: Text(t('tx.date_specific')),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickSpecificDate();
               },
             ),
             ListTile(
-              leading: Icon(Icons.date_range_outlined, color: AppColors.textPrimary),
-              title: const Text('Date range'),
+              leading: AppIcon(AppIcons.calendar, color: AppColors.textPrimary),
+              title: Text(t('tx.date_range')),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickDateRange();
@@ -305,7 +307,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
             ),
             if (state.dateFrom != null)
               ListTile(
-                leading: Icon(Icons.clear, color: AppColors.highlight),
+                leading: AppIcon(AppIcons.close, color: AppColors.highlight),
                 title: Text('Clear', style: TextStyle(color: AppColors.highlight)),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -432,12 +434,12 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete Transaction'),
+        title: Text(t('tx.delete')),
         content: Text(
           'Delete "${description.isEmpty ? 'this transaction' : description}"? This cannot be undone.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('common.cancel'))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text('Delete', style: TextStyle(color: AppColors.highlight)),
@@ -472,12 +474,12 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Transactions'),
+        title: Text(t('tx.title')),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: IconButton(
-              icon: const Icon(Icons.swap_horiz_rounded),
+              icon: AppIcon(AppIcons.swap),
               tooltip: 'Transfer Balance',
               onPressed: () async {
                 final result = await context.push<bool>('/transactions/transfer');
@@ -521,7 +523,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               color: AppColors.highlight.withOpacity(0.1),
               child: Row(
                 children: [
-                   Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
+                   AppIcon(AppIcons.alert, size: 16, color: AppColors.highlight),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -531,7 +533,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   ),
                   GestureDetector(
                     onTap: () => ref.read(ocrPendingCountProvider.notifier).dismissError(),
-                    child: Icon(Icons.close, size: 16, color: AppColors.textSecondary),
+                    child: AppIcon(AppIcons.close, size: 16, color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -544,10 +546,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search transactions...',
-                prefixIcon: const Icon(Icons.search, size: 20),
+                prefixIcon: AppIcon(AppIcons.search, size: 20),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
+                        icon: AppIcon(AppIcons.close, size: 18),
                         onPressed: () {
                           _searchController.clear();
                           _onSearch('');
@@ -595,7 +597,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
 
                   // Category filter button
                   ActionChip(
-                    avatar: Icon(Icons.category_outlined, size: 16,
+                    avatar: AppIcon(AppIcons.filter, size: 16,
                         color: state.selectedCategoryIds.isNotEmpty
                             ? AppColors.accent
                             : AppColors.textSecondary),
@@ -619,7 +621,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   const SizedBox(width: 8),
 
                   ActionChip(
-                    avatar: Icon(Icons.calendar_today_outlined, size: 16,
+                    avatar: AppIcon(AppIcons.calendar, size: 16,
                         color: state.dateFrom != null
                             ? AppColors.accent
                             : AppColors.textSecondary),
@@ -642,7 +644,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
 
                   // Sort button
                   ActionChip(
-                    avatar: Icon(Icons.sort, size: 16, color: AppColors.textSecondary),
+                    avatar: AppIcon(AppIcons.filter, size: 16, color: AppColors.textSecondary),
                     label: Text(_sortLabel(state.sortBy),
                         style: const TextStyle(fontSize: 12)),
                     backgroundColor: AppColors.surface,
@@ -786,7 +788,7 @@ class _PaginationRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, size: 20),
+            icon: AppIcon(AppIcons.back, size: 20),
             onPressed: onPrev,
           ),
           const SizedBox(width: 8),
@@ -796,7 +798,7 @@ class _PaginationRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.chevron_right, size: 20),
+            icon: AppIcon(AppIcons.next, size: 20),
             onPressed: onNext,
           ),
         ],

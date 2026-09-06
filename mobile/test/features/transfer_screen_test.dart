@@ -88,7 +88,7 @@ void main() {
   group('TransferBalanceScreen', () {
     testWidgets('shows Transfer Balance title in app bar', (tester) async {
       await tester.pumpWidget(buildTransferApp());
-      expect(find.text('Transfer Balance'), findsOneWidget);
+      expect(find.text('Pindahin saldo'), findsOneWidget);
     });
 
     testWidgets('shows loading indicator while loading members',

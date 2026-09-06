@@ -67,7 +67,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(buildAiAdvisorApp());
       await tester.pump();
-      expect(find.text('AI Financial Advisor'), findsOneWidget);
+      expect(find.text('Teman AI'), findsOneWidget);
     });
 
     testWidgets('shows disclaimer text', (tester) async {

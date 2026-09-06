@@ -56,7 +56,7 @@ void main() {
   group('ProfileScreen', () {
     testWidgets('shows Profile title in app bar', (tester) async {
       await tester.pumpWidget(buildProfileApp());
-      expect(find.text('Profile'), findsOneWidget);
+      expect(find.text('Profil'), findsOneWidget);
     });
 
     testWidgets('shows user display name from auth state', (tester) async {
@@ -109,11 +109,11 @@ void main() {
       await tester.pumpWidget(buildProfileApp());
       // Scroll down to find AI Financial Advisor
       await tester.dragUntilVisible(
-        find.text('AI Financial Advisor'),
+        find.text('Teman AI'),
         find.byType(ListView),
         const Offset(0, -200),
       );
-      expect(find.text('AI Financial Advisor'), findsOneWidget);
+      expect(find.text('Teman AI'), findsOneWidget);
     });
 
     testWidgets('shows Account Settings section header', (tester) async {

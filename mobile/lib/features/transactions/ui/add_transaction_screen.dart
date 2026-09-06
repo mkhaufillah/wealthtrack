@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -112,13 +114,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Take Photo'),
+              leading: AppIcon(AppIcons.camera),
+              title: Text(t('tx.photo')),
               onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from Gallery'),
+              leading: AppIcon(AppIcons.gallery),
+              title: Text(t('tx.gallery')),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
             ),
             const SizedBox(height: 8),
@@ -191,7 +193,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.check_circle, color: AppColors.surface, size: 20),
+              AppIcon(AppIcons.check, color: AppColors.surface, size: 20),
               const SizedBox(width: 8),
               Text(_isEditing ? 'Transaction updated' : 'Transaction recorded',
                   style: TextStyle(color: AppColors.surface)),
@@ -211,7 +213,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.error, color: AppColors.surface, size: 20),
+              AppIcon(AppIcons.alert, color: AppColors.surface, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(msg, style: TextStyle(color: AppColors.surface)),
@@ -245,7 +247,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         actions: [
           if (!_isEditing)
             IconButton(
-              icon: const Icon(Icons.camera_alt_outlined),
+              icon: AppIcon(AppIcons.camera),
               onPressed: _isScanning ? null : _scanReceipt,
               tooltip: 'Scan receipt',
             ),
@@ -294,7 +296,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _descCtrl,
-              decoration: const InputDecoration(hintText: 'What was this for?'),
+              decoration: InputDecoration(hintText: 'What was this for?'),
             ),
             const SizedBox(height: 20),
             // Date
@@ -312,11 +314,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 18, color: AppColors.textSecondary),
+                    AppIcon(AppIcons.calendar, size: 18, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
                     Text(formattedDate, style: const TextStyle(fontSize: 14)),
                     const Spacer(),
-                    Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                    AppIcon(AppIcons.next, color: AppColors.textSecondary),
                   ],
                 ),
               ),
@@ -328,7 +330,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             TextField(
               controller: _noteCtrl,
               maxLines: 3,
-              decoration: const InputDecoration(hintText: 'Add a note...'),
+              decoration: InputDecoration(hintText: 'Add a note...'),
             ),
             const SizedBox(height: 32),
             SizedBox(

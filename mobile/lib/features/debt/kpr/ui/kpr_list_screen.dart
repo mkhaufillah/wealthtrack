@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/kpr_provider.dart';
@@ -35,14 +37,14 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete Simulation'),
+        title: Text(t('kpr.delete')),
         content: Text(
           'Delete "${sim.name.isEmpty ? 'this simulation' : sim.name}"? This cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(t('common.cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -73,7 +75,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Mortgage (KPR)'),
+        title: Text(t('kpr.title')),
       ),
       body: state.isLoading && state.simulations.isEmpty
           ? const LoadingIndicator()
@@ -104,7 +106,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/debt/kpr/new'),
-        child: const Icon(Icons.add),
+        child: AppIcon(AppIcons.add),
       ),
     );
   }
@@ -169,7 +171,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
           color: AppColors.highlight,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(Icons.delete_outline, color: AppColors.surface, size: 28),
+        child: AppIcon(AppIcons.trash, color: AppColors.surface, size: 28),
       ),
       confirmDismiss: (_) => _confirmDelete(sim),
       child: GestureDetector(
@@ -286,7 +288,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.today, size: 14, color: AppColors.accent),
+                      AppIcon(AppIcons.calendar, size: 14, color: AppColors.accent),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(

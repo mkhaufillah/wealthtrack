@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/utils/currency_formatter.dart';
@@ -68,7 +69,7 @@ class _BudgetSuggestionSheetState
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: AppIcon(AppIcons.close),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -93,7 +94,7 @@ class _BudgetSuggestionSheetState
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.lightbulb_outline,
+                      AppIcon(AppIcons.spark,
                           size: 48,
                           color: AppColors.textSecondary
                               .withOpacity(0.5)),
@@ -128,7 +129,7 @@ class _BudgetSuggestionSheetState
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded,
+                      AppIcon(AppIcons.alert,
                           size: 18, color: AppColors.warning),
                       const SizedBox(width: 8),
                       Expanded(

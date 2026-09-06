@@ -177,7 +177,7 @@ void main() {
   group('ReportsScreen', () {
     testWidgets('shows Reports title in app bar', (tester) async {
       await tester.pumpWidget(buildReportsApp());
-      expect(find.text('Reports'), findsOneWidget);
+      expect(find.text('Laporan'), findsOneWidget);
     });
 
     testWidgets('shows loading indicator when loading', (tester) async {
@@ -197,7 +197,7 @@ void main() {
         buildReportsApp(error: 'Something went wrong'),
       );
       expect(find.text('Something went wrong'), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Coba lagi'), findsOneWidget);
     });
 
     testWidgets('shows month picker with navigation arrows', (tester) async {

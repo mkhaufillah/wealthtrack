@@ -1,3 +1,4 @@
+import 'package:wealthtrack/core/ui/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -61,14 +62,14 @@ void main() {
     testWidgets('shows AI Financial Advisor card on home', (tester) async {
       await tester.pumpWidget(buildHomeApp(balance: 1000000));
       await tester.pumpAndSettle();
-      expect(find.text('Catatan AI'), findsOneWidget);
-      expect(find.text('Nanya apa saja soal keuangan'), findsOneWidget);
+      expect(find.text('Teman AI'), findsOneWidget);
+      expect(find.text('Nanya apa aja soal duit'), findsOneWidget);
     });
 
     testWidgets('shows psychology icon in AI card', (tester) async {
       await tester.pumpWidget(buildHomeApp(balance: 1000000));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.psychology_outlined), findsOneWidget);
+      expect(find.byType(AppIcon), findsWidgets);
     });
 
     testWidgets('shows AI card between stats and recent transactions',
@@ -76,24 +77,24 @@ void main() {
       await tester.pumpWidget(buildHomeApp(balance: 1000000));
       await tester.pumpAndSettle();
       expect(find.text('Uang kamu'), findsOneWidget);
-      expect(find.text('Catatan AI'), findsOneWidget);
+      expect(find.text('Teman AI'), findsOneWidget);
     });
 
     testWidgets('AI card renders when balance is zero', (tester) async {
       await tester.pumpWidget(buildHomeApp(balance: 0));
       await tester.pumpAndSettle();
-      expect(find.text('Catatan AI'), findsOneWidget);
+      expect(find.text('Teman AI'), findsOneWidget);
     });
 
     testWidgets('AI card does not show on loading screen', (tester) async {
       await tester.pumpWidget(buildHomeApp(isLoading: true));
-      expect(find.text('Catatan AI'), findsNothing);
+      expect(find.text('Teman AI'), findsNothing);
       await tester.pump();
     });
 
     testWidgets('AI card does not show on error screen', (tester) async {
       await tester.pumpWidget(buildHomeApp(error: 'Connection failed'));
-      expect(find.text('Catatan AI'), findsNothing);
+      expect(find.text('Teman AI'), findsNothing);
       await tester.pump();
     });
   });

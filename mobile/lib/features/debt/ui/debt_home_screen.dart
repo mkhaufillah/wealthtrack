@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_icons.dart';
+import '../../../core/ui/copy_fallback.dart';
 
 class DebtHomeScreen extends StatelessWidget {
   const DebtHomeScreen({super.key});
@@ -9,92 +11,116 @@ class DebtHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Debt Tracker'),
-      ),
-      body: ListView(
-          padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
           children: [
-            // KPR Card
-            _buildDebtCard(
-              context: context,
-              imagePath: 'assets/images/debt/mortgage_illustration.png',
-              title: 'Mortgage (KPR)',
-              description: 'Calculate and simulate mortgage payments with various interest rate types',
+            Row(
+              children: [
+                IconButton(
+                  icon: AppIcon(AppIcons.back),
+                  onPressed: () => context.pop(),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  t('debt.title'),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Pilih yang mau diurus. Gak usah tegang — ini catetan, bukan bank.',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            _DebtHero(
+              icon: AppIcons.house,
+              wash: AppColors.mint,
+              title: t('debt.kpr'),
+              subtitle: t('debt.kpr_sub'),
               onTap: () => context.push('/debt/kpr'),
             ),
-            const SizedBox(height: 16),
-            // Credit Card Card
-            _buildDebtCard(
-              context: context,
-              imagePath: 'assets/images/debt/credit_card_illustration.png',
-              title: 'Credit Cards',
-              description: 'Track credit card spending, installments, and upcoming payments',
+            const SizedBox(height: 12),
+            _DebtHero(
+              icon: AppIcons.card,
+              wash: AppColors.butter,
+              title: t('debt.cc'),
+              subtitle: t('debt.cc_sub'),
               onTap: () => context.push('/debt/credit-cards'),
             ),
           ],
         ),
-      );
+      ),
+    );
   }
+}
 
-  Widget _buildDebtCard({
-    required BuildContext context,
-    required String imagePath,
-    required String title,
-    required String description,
-    required VoidCallback onTap,
-  }) {
-    return Card(
+class _DebtHero extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final Color wash;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _DebtHero({
+    required this.icon,
+    required this.wash,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
       color: AppColors.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
+      borderRadius: BorderRadius.circular(28),
       child: InkWell(
+        borderRadius: BorderRadius.circular(28),
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Image
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: AppColors.divider.withAlpha(40),
-                  child: Center(
-                    child: Icon(Icons.image_outlined, size: 48, color: AppColors.textSecondary.withAlpha(100)),
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 120,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: wash,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Center(child: AppIcon(icon, size: 64, color: AppColors.textPrimary)),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
                 ),
               ),
-            ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                  height: 1.35,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

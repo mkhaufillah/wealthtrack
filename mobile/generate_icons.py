@@ -29,7 +29,7 @@ ANDROID_LEGACY_SCALES = {
 
 # Adaptive icon: 108dp x 108dp canvas at mdpi base
 ADAPTIVE_BASE_SIZE = 108  # dp at mdpi (1x = 108px)
-ADAPTIVE_SAFE_ZONE = 0.67  # inner 66% is safe zone (for foreground placement)
+ADAPTIVE_SAFE_ZONE = 0.55  # keep mascot inside OneUI extra crop; no baked plate
 
 # iOS icon sizes (point size x scale => pixel size)
 IOS_ICONS = [

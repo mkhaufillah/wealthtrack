@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/app_icons.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/utils/currency_formatter.dart';
@@ -65,7 +66,7 @@ class TransactionTile extends StatelessWidget {
           if (showActions) ...[
             const SizedBox(width: 4),
             PopupMenuButton<String>(
-              icon: Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
+              icon: AppIcon(AppIcons.more, size: 18, color: AppColors.textSecondary),
               padding: EdgeInsets.zero,
               onSelected: (value) {
                 if (value == 'edit') {
@@ -81,7 +82,7 @@ class TransactionTile extends StatelessWidget {
                   value: 'edit',
                   child: Row(
                     children: [
-                      Icon(Icons.edit, size: 18),
+                      AppIcon(AppIcons.edit, size: 18),
                       SizedBox(width: 8),
                       Text('Edit'),
                     ],
@@ -92,7 +93,7 @@ class TransactionTile extends StatelessWidget {
                     value: 'change_owner',
                     child: Row(
                       children: [
-                        Icon(Icons.swap_horiz, size: 18),
+                        AppIcon(AppIcons.swap, size: 18),
                         SizedBox(width: 8),
                         Text('Change Owner'),
                       ],
@@ -103,7 +104,7 @@ class TransactionTile extends StatelessWidget {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline, size: 18),
+                        AppIcon(AppIcons.trash, size: 18),
                         SizedBox(width: 8),
                         Text('Delete'),
                       ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/dashboard_provider.dart';
@@ -210,7 +211,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, size: 16, color: AppColors.highlight),
+          AppIcon(AppIcons.alert, size: 16, color: AppColors.highlight),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -220,7 +221,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           GestureDetector(
             onTap: () => ref.read(ocrPendingCountProvider.notifier).dismissError(),
-            child: Icon(Icons.close, size: 16, color: AppColors.textSecondary),
+            child: AppIcon(AppIcons.close, size: 16, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -295,7 +296,7 @@ class _PocketRow extends StatelessWidget {
       children: [
         Expanded(
           child: _PocketCard(
-            icon: Icons.savings_outlined,
+            icon: AppIcons.piggy,
             iconBg: AppColors.butter,
             label: 'Tabungan',
             value: formatCurrency(savings),
@@ -304,7 +305,7 @@ class _PocketRow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _PocketCard(
-            icon: Icons.shield_outlined,
+            icon: AppIcons.shield,
             iconBg: AppColors.mint,
             label: 'Dana darurat',
             value: formatCurrency(emergency),
@@ -316,7 +317,7 @@ class _PocketRow extends StatelessWidget {
 }
 
 class _PocketCard extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> icon;
   final Color iconBg;
   final String label;
   final String value;
@@ -345,7 +346,7 @@ class _PocketCard extends StatelessWidget {
               color: iconBg,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, size: 20, color: AppColors.textPrimary),
+            child: AppIcon(icon, size: 20, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 12),
           Text(
@@ -393,7 +394,7 @@ class _DebtStrip extends StatelessWidget {
               color: AppColors.highlight.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.home_outlined, size: 20, color: AppColors.highlight),
+            child: AppIcon(AppIcons.home, size: 20, color: AppColors.highlight),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -453,17 +454,17 @@ class _QuickList extends StatelessWidget {
         children: [
           _QuickItem(
             iconBg: AppColors.secondary,
-            icon: Icons.psychology_outlined,
-            title: 'Catatan AI',
-            subtitle: 'Nanya apa saja soal keuangan',
+            icon: AppIcons.ai,
+            title: t('home.ai'),
+            subtitle: t('home.ai_sub'),
             onTap: () => context.push('/ai/advise'),
           ),
           Divider(height: 1, color: AppColors.divider),
           _QuickItem(
             iconBg: AppColors.mint,
-            icon: Icons.account_balance_outlined,
-            title: 'Pencatat utang',
-            subtitle: 'KPR & kartu kredit',
+            icon: AppIcons.bank,
+            title: t('home.debt_hub'),
+            subtitle: t('home.debt_hub_sub'),
             onTap: () => context.push('/debt'),
           ),
         ],
@@ -474,7 +475,7 @@ class _QuickList extends StatelessWidget {
 
 class _QuickItem extends StatelessWidget {
   final Color iconBg;
-  final IconData icon;
+  final List<List<dynamic>> icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
@@ -502,7 +503,7 @@ class _QuickItem extends StatelessWidget {
                 color: iconBg,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, size: 22, color: AppColors.textPrimary),
+              child: AppIcon(icon, size: 22, color: AppColors.textPrimary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -529,7 +530,7 @@ class _QuickItem extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, size: 20, color: AppColors.textSecondary),
+            AppIcon(AppIcons.next, size: 20, color: AppColors.textSecondary),
           ],
         ),
       ),

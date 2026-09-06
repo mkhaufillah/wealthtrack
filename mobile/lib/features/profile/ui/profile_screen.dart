@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -72,14 +74,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Logout'),
+        title: Text(t('profile.logout')),
         content: const Text('Are you sure you want to logout?'),
         actions: [
-          TextButton(onPressed: () => ctx.pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => ctx.pop(false), child: Text(t('common.cancel'))),
           FilledButton(
             onPressed: () => ctx.pop(true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.highlight),
-            child: const Text('Logout'),
+            child: Text(t('profile.logout')),
           ),
         ],
       ),
@@ -202,7 +204,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   width: double.infinity,
                   child: TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Cancel'),
+                    child: Text(t('common.cancel')),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -246,7 +248,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 16),
           TextField(
                   controller: codeCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Invite Code',
                     hintText: 'e.g. ABC1234',
                     border: OutlineInputBorder(),
@@ -290,7 +292,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
                           )
-                        : const Icon(Icons.person_add_rounded),
+                        : AppIcon(AppIcons.user),
                     label: Text(joining ? 'Joining...' : 'Join'),
                   ),
                 ),
@@ -330,7 +332,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Household Name',
                     hintText: 'e.g. Home',
                     border: OutlineInputBorder(),
@@ -408,7 +410,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(t('profile.title')),
       ),
       body: state.deleting
           ? const Center(child: CircularProgressIndicator())
@@ -571,7 +573,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        Icon(Icons.email_outlined, size: 13, color: AppColors.textSecondary),
+                        AppIcon(AppIcons.user, size: 13, color: AppColors.textSecondary),
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
@@ -640,7 +642,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.home_outlined, size: 18, color: AppColors.textSecondary),
+                  AppIcon(AppIcons.home, size: 18, color: AppColors.textSecondary),
                   const SizedBox(width: 8),
                   const Text('Household',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
@@ -651,7 +653,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: _showJoinHouseholdSheet,
-                  icon: const Icon(Icons.person_add_outlined, size: 18),
+                  icon: AppIcon(AppIcons.user, size: 18),
                   label: const Text('Join Household'),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: AppColors.divider),
@@ -663,7 +665,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 width: double.infinity,
                 child: TextButton.icon(
                   onPressed: _showCreateHouseholdSheet,
-                  icon: const Icon(Icons.add_circle_outline, size: 18),
+                  icon: AppIcon(AppIcons.add, size: 18),
                   label: const Text('Create New'),
                 ),
               ),
@@ -690,7 +692,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.home, size: 18, color: AppColors.textPrimary),
+                AppIcon(AppIcons.home, size: 18, color: AppColors.textPrimary),
                 const SizedBox(width: 8),
                 Text(
                   hh['name'] as String? ?? 'Home',
@@ -714,7 +716,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Invite code
             Row(
               children: [
-                Icon(Icons.link, size: 14, color: AppColors.textSecondary),
+                AppIcon(AppIcons.next, size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 6),
                 Text(
                   'Code: $inviteCode',
@@ -730,7 +732,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     // Copy to clipboard
                     _copyToClipboard(inviteCode);
                   },
-                  child: Icon(Icons.copy, size: 16, color: AppColors.textSecondary),
+                  child: AppIcon(AppIcons.edit, size: 16, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -779,8 +781,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () => context.push('/transactions/transfer'),
-                icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                label: const Text('Transfer Balance'),
+                icon: AppIcon(AppIcons.swap, size: 18),
+                label: Text(t('transfer.title')),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: AppColors.divider),
                 ),
@@ -817,7 +819,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _displayNameCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'New display name',
                 border: OutlineInputBorder(),
                 contentPadding:
@@ -831,7 +833,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 TextButton(
                   onPressed:
                       state.savingProfile ? null : () => ref.read(profileProvider.notifier).cancelEdit(),
-                  child: const Text('Cancel'),
+                  child: Text(t('common.cancel')),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
@@ -868,7 +870,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: ListTile(
         leading: Icon(icon, color: effectiveColor),
         title: Text(title, style: TextStyle(color: effectiveColor)),
-        trailing: Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        trailing: AppIcon(AppIcons.next, color: AppColors.textSecondary),
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -1038,7 +1040,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return ListTile(
       leading: Icon(icon, color: isSelected ? themeColor : AppColors.textSecondary),
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
-      trailing: isSelected ? Icon(Icons.check, color: themeColor, size: 20) : null,
+      trailing: isSelected ? AppIcon(AppIcons.check, color: themeColor, size: 20) : null,
       onTap: onTap,
     );
   }
@@ -1071,7 +1073,7 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Delete Account'),
+      title: Text(t('profile.delete_account')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1087,7 +1089,7 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
           const SizedBox(height: 8),
           TextField(
             controller: _ctrl,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               border: OutlineInputBorder(),
               hintText: 'DELETE',
             ),
@@ -1097,7 +1099,7 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: widget.onCancel, child: const Text('Cancel')),
+        TextButton(onPressed: widget.onCancel, child: Text(t('common.cancel'))),
         FilledButton(
           onPressed: _canConfirm ? widget.onConfirm : null,
           style: FilledButton.styleFrom(backgroundColor: AppColors.highlight),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/credit_card_provider.dart';
@@ -174,7 +176,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Add Credit Card'),
+        title: Text(t('cc.add')),
       ),
       body: Form(
         key: _formKey,
@@ -186,9 +188,9 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 6),
             TextFormField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'e.g. Mandiri Visa Platinum',
-                prefixIcon: Icon(Icons.credit_card_outlined, size: 20),
+                prefixIcon: AppIcon(AppIcons.card, size: 20),
               ),
               validator: _validateRequired,
               textCapitalization: TextCapitalization.words,
@@ -200,9 +202,9 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 6),
             TextFormField(
               controller: _last4Ctrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'e.g. 1234',
-                prefixIcon: Icon(Icons.numbers, size: 20),
+                prefixIcon: AppIcon(AppIcons.info, size: 20),
               ),
               keyboardType: TextInputType.number,
               maxLength: 4,
@@ -215,8 +217,8 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               initialValue: _billingDate,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.calendar_today, size: 20),
+              decoration: InputDecoration(
+                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
               ),
               items: List.generate(31, (i) => i + 1).map((d) {
                 return DropdownMenuItem(value: d, child: Text('${d}th'));
@@ -232,8 +234,8 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               initialValue: _dueDate,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.event, size: 20),
+              decoration: InputDecoration(
+                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
               ),
               items: List.generate(31, (i) => i + 1).map((d) {
                 return DropdownMenuItem(value: d, child: Text('${d}th'));
@@ -251,9 +253,9 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
               controller: _creditLimitCtrl,
               focusNode: _creditLimitFocus,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Rp 0',
-                prefixIcon: Icon(Icons.monetization_on_outlined, size: 20),
+                prefixIcon: AppIcon(AppIcons.money, size: 20),
               ),
             ),
             const SizedBox(height: 20),
@@ -261,8 +263,8 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             // ─── Share with Household Toggle ─────────
             if (_householdCheckDone && _hasHousehold)
               SwitchListTile(
-                title: const Text('Share with household'),
-                subtitle: const Text('Make this visible to all household members'),
+                title: Text(t('common.share_hh')),
+                subtitle: Text(t('common.share_hh_sub')),
                 value: _shareWithHousehold,
                 onChanged: (v) => setState(() => _shareWithHousehold = v),
                 contentPadding: EdgeInsets.zero,
@@ -279,7 +281,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
                   ? SizedBox(
                       width: 18, height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
-                  : const Icon(Icons.save_outlined, size: 18),
+                  : AppIcon(AppIcons.check, size: 18),
               label: const Text('Save'),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),

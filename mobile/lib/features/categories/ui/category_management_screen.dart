@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
 import 'package:wealthtrack/features/categories/providers/category_provider.dart';
@@ -71,22 +73,22 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
                     const SizedBox(height: 16),
                     TextField(
                       controller: nameCtrl,
-                      decoration: const InputDecoration(labelText: 'Name (ID)'),
+                      decoration: InputDecoration(labelText: 'Name (ID)'),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: nameEnCtrl,
-                      decoration: const InputDecoration(labelText: 'Name (English)'),
+                      decoration: InputDecoration(labelText: 'Name (English)'),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: iconCtrl,
-                      decoration: const InputDecoration(labelText: 'Icon (emoji)'),
+                      decoration: InputDecoration(labelText: 'Icon (emoji)'),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: keywordsCtrl,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Keywords (comma-separated)',
                         hintText: 'keyword1, keyword2',
                       ),
@@ -94,14 +96,14 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
                     const SizedBox(height: 12),
                     TextField(
                       controller: sortCtrl,
-                      decoration: const InputDecoration(labelText: 'Sort Order'),
+                      decoration: InputDecoration(labelText: 'Sort Order'),
                       keyboardType: TextInputType.number,
                     ),
                     if (!isEdit) ...[
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         value: type,
-                        decoration: const InputDecoration(labelText: 'Type'),
+                        decoration: InputDecoration(labelText: 'Type'),
                         items: const [
                           DropdownMenuItem(value: 'expense', child: Text('Expense')),
                           DropdownMenuItem(value: 'income', child: Text('Income')),
@@ -182,11 +184,11 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Manage Categories'),
+        title: Text(t('cat.manage')),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditSheet(),
-        child: const Icon(Icons.add),
+        child: AppIcon(AppIcons.add),
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -260,8 +262,8 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
           style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         trailing: isDefault
-            ? Icon(Icons.lock_outline, size: 16, color: AppColors.textSecondary.withOpacity(0.4))
-            : Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            ? AppIcon(AppIcons.shield, size: 16, color: AppColors.textSecondary.withOpacity(0.4))
+            : AppIcon(AppIcons.next, color: AppColors.textSecondary),
         onTap: isDefault ? null : () => _showAddEditSheet(category: cat),
       ),
     );

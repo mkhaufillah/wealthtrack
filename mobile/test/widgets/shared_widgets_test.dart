@@ -23,17 +23,17 @@ void main() {
         onRetry: () => retried = true,
       )));
       expect(find.text('Network error occurred'), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Coba lagi'), findsOneWidget);
       expect(find.byIcon(Icons.refresh), findsOneWidget);
 
-      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Coba lagi'));
       expect(retried, isTrue);
     });
 
     testWidgets('shows message without retry button', (tester) async {
       await tester.pumpWidget(wrap(const ErrorDisplay(message: 'Something broke')));
       expect(find.text('Something broke'), findsOneWidget);
-      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Coba lagi'), findsNothing);
     });
 
     testWidgets('shows error icon', (tester) async {

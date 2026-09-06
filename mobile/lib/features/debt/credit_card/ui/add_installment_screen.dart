@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/credit_card_provider.dart';
@@ -206,7 +208,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Add Installment'),
+        title: Text('Tambah cicilan'),
       ),
       body: Form(
         key: _formKey,
@@ -218,9 +220,9 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             const SizedBox(height: 6),
             TextFormField(
               controller: _descriptionCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'e.g. MacBook Pro Installment',
-                prefixIcon: Icon(Icons.description_outlined, size: 20),
+                prefixIcon: AppIcon(AppIcons.edit, size: 20),
               ),
               validator: _validateRequired,
               textCapitalization: TextCapitalization.sentences,
@@ -234,9 +236,9 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               controller: _totalAmountCtrl,
               focusNode: _totalAmountFocus,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Rp 0',
-                prefixIcon: Icon(Icons.monetization_on_outlined, size: 20),
+                prefixIcon: AppIcon(AppIcons.money, size: 20),
               ),
             ),
             const SizedBox(height: 20),
@@ -248,9 +250,9 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               controller: _monthlyAmountCtrl,
               focusNode: _monthlyAmountFocus,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Rp 0',
-                prefixIcon: Icon(Icons.repeat_outlined, size: 20),
+                prefixIcon: AppIcon(AppIcons.refresh, size: 20),
               ),
             ),
             const SizedBox(height: 20),
@@ -261,9 +263,9 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             TextFormField(
               controller: _totalMonthsCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'e.g. 12',
-                prefixIcon: Icon(Icons.date_range, size: 20),
+                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
               ),
               validator: _validateMonths,
             ),
@@ -277,8 +279,8 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               readOnly: true,
               decoration: InputDecoration(
                 hintText: 'YYYY-MM',
-                prefixIcon: const Icon(Icons.calendar_month_outlined, size: 20),
-                suffixIcon: Icon(Icons.arrow_drop_down, size: 20, color: AppColors.textSecondary),
+                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
+                suffixIcon: AppIcon(AppIcons.next, size: 20, color: AppColors.textSecondary),
               ),
               validator: _validateRequired,
               onTap: _pickStartMonth,
@@ -292,7 +294,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
                   ? SizedBox(
                       width: 18, height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
-                  : const Icon(Icons.save_outlined, size: 18),
+                  : AppIcon(AppIcons.check, size: 18),
               label: const Text('Save'),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
