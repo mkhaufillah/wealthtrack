@@ -32,6 +32,8 @@ class AppColors {
   static const Color _heroOn = Color(0xFF4A3A48);
   static const Color _mint = Color(0xFF9DD9C0);
   static const Color darkMint = Color(0xFF8FCFB6);
+  static const Color _butter = Color(0xFFF6E3A1);
+  static const Color darkButter = Color(0xFFE8D28A);
 
   static Brightness _brightness = Brightness.light;
 
@@ -52,6 +54,7 @@ class AppColors {
   static Color get heroFill => _dark ? darkCard : _heroFill;
   static Color get heroOn => _dark ? darkTextPrimary : _heroOn;
   static Color get mint => _dark ? darkMint : _mint;
+  static Color get butter => _dark ? darkButter : _butter;
   static Color get card => _dark ? darkCard : _surface;
 
   static const List<Color> chartPalette = [
