@@ -73,6 +73,9 @@ class MockApiClient extends ApiClient {
 
   @override
   Future<Response> delete(String path) async {
+    if (!_deletePaths.contains(path)) {
+      throw Exception('delete failed');
+    }
     // Simulate 204 No Content
     return MockResponse(null);
   }

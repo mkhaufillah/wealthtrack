@@ -912,6 +912,77 @@ class TestExtraPaymentAPI:
         )
         assert len(sim_restored.json()["schedule"]) == orig_schedule_count
 
+    async def test_delete_middle_extra_recomputes_remaining_snapshot(
+        self, client, auth_headers, filla_token
+    ):
+        """Deleting an earlier extra must refresh later extras' snapshot columns."""
+        sim_id = await self._create_sim(client, filla_token)
+
+        first = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 50000000, "apply_month": 12, "reduction_type": "tenor"},
+            headers=auth_headers,
+        )
+        assert first.status_code == 201
+        first_id = first.json()["id"]
+
+        second = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 25000000, "apply_month": 24, "reduction_type": "tenor"},
+            headers=auth_headers,
+        )
+        assert second.status_code == 201
+        stale_interest = second.json()["total_interest_saved"]
+        stale_new_months = second.json()["new_remaining_months"]
+
+        resp = await client.delete(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments/{first_id}",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 204
+
+        remaining = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            headers=auth_headers,
+        )
+        assert remaining.status_code == 200
+        rows = remaining.json()
+        assert len(rows) == 1
+        assert rows[0]["apply_month"] == 24
+        assert (
+            rows[0]["total_interest_saved"] != stale_interest
+            or rows[0]["new_remaining_months"] != stale_new_months
+        )
+        assert rows[0]["old_remaining_months"] > 0
+        assert rows[0]["new_remaining_months"] > 0
+
+    async def test_delete_extra_payment_not_found(
+        self, client, auth_headers, filla_token
+    ):
+        sim_id = await self._create_sim(client, filla_token)
+        resp = await client.delete(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments/999999",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
+
+    async def test_delete_extra_forbidden_other_user(
+        self, client, filla_token, nahda_token
+    ):
+        sim_id = await self._create_sim(client, filla_token)
+        create_resp = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 50000000, "apply_month": 12, "reduction_type": "tenor"},
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert create_resp.status_code == 201
+        ep_id = create_resp.json()["id"]
+        resp = await client.delete(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments/{ep_id}",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert resp.status_code == 403
+
     async def test_forbidden_other_user_extra(
         self, client, filla_token, nahda_token
     ):

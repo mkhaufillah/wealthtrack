@@ -1343,9 +1343,11 @@ List extra payment history.
 
 ### DELETE `/api/v1/kpr/simulations/{id}/extra-payments/{eid}`
 
-Delete an extra payment. Regenerates original schedule from scratch, then re-applies remaining extra payments chronologically.
+Delete an extra payment. Regenerates original schedule from scratch, then re-applies remaining extra payments chronologically (`apply_month` ascending). Snapshot columns on remaining extras (`old_*`, `new_*`, `total_interest_saved`, end dates) are rewritten so the detail cards stay correct after a mid-list delete.
 
-**Auth:** Bearer token
+**Auth:** Bearer token (owner or household member of the simulation)
+
+**Errors:** `404` extra payment not on this simulation; `403` not owner/household.
 
 **Response:** `204 No Content`
 

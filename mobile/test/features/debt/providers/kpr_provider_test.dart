@@ -249,6 +249,39 @@ void main() {
       });
     });
 
+    group('deleteExtraPayment', () {
+      Map<String, dynamic> simJson() => {
+            'id': 1,
+            'user_id': 1,
+            'name': 'Rumah',
+            'property_price': 1000000000,
+            'down_payment': 200000000,
+            'total_loan': 800000000,
+            'tenor_months': 120,
+            'interest_type': 'fixed',
+            'created_at': '2026-06-09T10:00:00Z',
+          };
+
+      test('calls DELETE extra-payments path then reloads detail and list',
+          () async {
+        mockApi.onGet('/kpr/simulations/1', simJson());
+        mockApi.onGet('/kpr/simulations/1/extra-payments', []);
+        mockApi.onDelete('/kpr/simulations/1/extra-payments/9');
+
+        final ok = await notifier.deleteExtraPayment(1, 9);
+
+        expect(ok, true);
+        expect(notifier.state.extraPayments, isEmpty);
+        expect(notifier.state.error, isNull);
+      });
+
+      test('returns false and sets error when delete fails', () async {
+        final ok = await notifier.deleteExtraPayment(1, 9);
+        expect(ok, false);
+        expect(notifier.state.error, isNotNull);
+      });
+    });
+
     group('clearError', () {
       test('resets error to null', () async {
         // Trigger an error

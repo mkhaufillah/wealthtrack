@@ -71,6 +71,47 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     }
   }
 
+  Future<void> _confirmDeleteExtraPayment(ExtraPaymentRecord ep) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Delete Extra Payment'),
+        content: Text(
+          'Delete extra payment ${formatCurrency(ep.amount)} at month ${ep.applyMonth}? '
+          'The schedule will be rebuilt. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Delete', style: TextStyle(color: AppColors.highlight)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await ref
+          .read(kprProvider.notifier)
+          .deleteExtraPayment(ep.simulationId, ep.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Extra payment deleted'
+                  : 'Failed to delete extra payment',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(kprProvider);
@@ -488,6 +529,28 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                     fontSize: 11,
                     color: AppColors.textSecondary,
                   ),
+                ),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert,
+                      size: 18, color: AppColors.textSecondary),
+                  padding: EdgeInsets.zero,
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _confirmDeleteExtraPayment(ep);
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text('Delete'),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

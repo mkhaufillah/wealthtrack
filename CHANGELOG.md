@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### KPR extra payment delete
+- **Flutter:** overflow menu + confirmation dialog on extra-payment cards in KPR detail (`kpr_detail_screen.dart`). Calls existing `DELETE /kpr/simulations/{id}/extra-payments/{eid}`.
+- **Backend:** deleting an extra now rewrites snapshot columns on remaining extras after the schedule is rebuilt, so installment/tenor/interest figures on later cards stay correct.
+
+---
 ## v0.7.2 — Dockerization & GitHub-Hosted Runners (2026-06-21)
 
 ### Infrastructure & Deployment

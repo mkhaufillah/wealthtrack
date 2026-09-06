@@ -24,6 +24,7 @@ Current version: **v0.7.2** — Dockerized Backend & GitHub-hosted Runners Migra
 - [Improvement Plan AI & OCR](15-improvement-plan-ai-ocr.md) — AI Advisor & OCR improvements roadmap
 - [OCR Scanner](16-ocr-scanner.md) — receipt scanning with vision AI
 - [Admin Category CRUD](17-admin-category-crud.md) — category management for admin
+- [Delete Extra Payment](18-delete-extra-payment.md) — delete KPR extra payment + snapshot recompute
 - [Extra Payment KPR & Household Debt](plans/2026-06-09-extra-payment-household-debt.md) — implemented in v0.7.0
 
 ## Architecture
