@@ -101,10 +101,11 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             set -e
-            cd /home/vps/apps/wealthtrack
+            cd "$HOME/apps/wealthtrack"
             git fetch origin
             git checkout ${{ github.ref_name }}
             git pull origin ${{ github.ref_name }}
+            docker network inspect app_network >/dev/null 2>&1 || docker network create app_network
             cd backend
             docker compose up -d --build
             docker image prune -f

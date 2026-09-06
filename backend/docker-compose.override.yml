@@ -1,0 +1,14 @@
+---
+services:
+  wealthtrack-backend:
+    networks:
+      - app_network
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8080"
+    env_file:
+      - .env
+
+networks:
+  app_network:
+    external: true
