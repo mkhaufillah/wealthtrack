@@ -78,11 +78,10 @@ void main() {
       expect(find.text('Rp1.500.000'), findsOneWidget);
     });
 
-    testWidgets('shows cycle date range when load completes', (tester) async {
+    testWidgets('shows all-time balance label when load completes', (tester) async {
       await tester.pumpWidget(buildHomeApp(balance: 1000000));
       await tester.pumpAndSettle();
-      // load() populates dateFrom/dateTo from mock response → cycleLabel becomes date range
-      expect(find.text('01 May – 31 May'), findsOneWidget);
+      expect(find.text('All-time balance'), findsOneWidget);
     });
   });
 }

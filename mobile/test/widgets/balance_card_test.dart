@@ -14,11 +14,11 @@ void main() {
       expect(find.text('💰'), findsOneWidget);
     });
 
-    testWidgets('displays Monthly Balance header', (tester) async {
+    testWidgets('displays All-time balance header', (tester) async {
       await tester.pumpWidget(wrap(
         const BalanceCard(balance: 0, income: 0, expense: 0),
       ));
-      expect(find.text('Monthly Balance'), findsOneWidget);
+      expect(find.text('All-time balance'), findsOneWidget);
     });
 
     testWidgets('formats balance correctly', (tester) async {
