@@ -6,7 +6,7 @@
 
 **Cancelled:** Feature 3 (clickable outstanding debt / remove Debt Tracker entrypoints). Home Debt Tracker card and Profile menu stay. Outstanding card stays display-only and hidden when `total_debt == 0`.
 
-**Architecture:** Backend already has `date_from`/`date_to` on `GET /transactions` and all-time `GET /summaries/household` (omit dates). Work is Flutter: pass dates from the list notifier, swap the dashboard summary source.
+**Architecture:** Backend already has `date_from`/`date_to` on `GET /transactions`. Home saldo uses personal `GET /summaries/daily` with no dates (all-time, current user only — not household).
 
 **Tech Stack:** FastAPI (unchanged contracts), Flutter Riverpod, `showDatePicker` / `showDateRangePicker`, `AppColors` tokens.
 

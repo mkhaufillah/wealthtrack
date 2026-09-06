@@ -11,7 +11,7 @@ import '../helpers/mocks.dart';
 
 Widget buildHomeApp({bool isLoading = false, String? error, int balance = 0}) {
   final mockApi = MockApiClient();
-  mockApi.onGet('/summaries/household', {
+  mockApi.onGet('/summaries/daily', {
     'total_income': balance > 0 ? balance + 500000 : 0,
     'total_expense': 500000,
     'balance': balance,

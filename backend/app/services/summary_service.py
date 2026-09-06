@@ -62,18 +62,25 @@ class SummaryService:
                 "by_category": […], "by_user": […],
             }
         """
-        # Jika tidak diberi tanggal, hitung SEMUA transaksi (bukan hanya hari ini)
+        # No dates → all-time personal. Dates → inclusive range.
         d_from = date_from
         d_to = date_to
 
+        date_sql = ""
+        date_params: tuple = ()
+        if d_from:
+            date_sql += " AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?"
+            date_params += (d_from,)
+        if d_to:
+            date_sql += " AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?"
+            date_params += (d_to,)
+
         cursor = await self.db.execute(
-            """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
+            f"""SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
                FROM transactions t
-               WHERE t.user_id = ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
+               WHERE t.user_id = ?{date_sql}
                GROUP BY t.type""",
-            (user_id, d_from, d_to),
+            (user_id, *date_params),
         )
         rows = await cursor.fetchall()
         income = 0
@@ -86,16 +93,14 @@ class SummaryService:
 
         # Expense category breakdown
         cursor = await self.db.execute(
-            """SELECT c.id, c.name, c.icon, c.name_en AS category_name_en,
+            f"""SELECT c.id, c.name, c.icon, c.name_en AS category_name_en,
                       SUM(t.amount) as total, COUNT(*) as count
                FROM transactions t
                JOIN categories c ON t.category_id = c.id
-               WHERE t.user_id = ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
+               WHERE t.user_id = ?{date_sql}
                  AND t.type = 'expense'
                GROUP BY c.id ORDER BY total DESC""",
-            (user_id, d_from, d_to),
+            (user_id, *date_params),
         )
         by_cat = await cursor.fetchall()
         categories = []
@@ -115,16 +120,14 @@ class SummaryService:
 
         # By user (current user breakdown)
         cursor = await self.db.execute(
-            """SELECT t.user_id, u.display_name,
+            f"""SELECT t.user_id, u.display_name,
                       COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense,
                       COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income
                FROM transactions t
                JOIN users u ON t.user_id = u.id
-               WHERE t.user_id = ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
+               WHERE t.user_id = ?{date_sql}
                GROUP BY t.user_id, u.display_name""",
-            (user_id, d_from, d_to),
+            (user_id, *date_params),
         )
         by_user = await cursor.fetchall()
         users = [

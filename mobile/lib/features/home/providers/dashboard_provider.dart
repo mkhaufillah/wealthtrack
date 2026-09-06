@@ -35,7 +35,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     }
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final summaryRes = await _api.get('/summaries/household');
+      final summaryRes = await _api.get('/summaries/daily');
       final summary = summaryRes.data;
       final txnRes = await _api.get('/transactions', queryParams: {'per_page': 5, 'sort': '-date'});
       final txns = (txnRes.data['data'] as List)

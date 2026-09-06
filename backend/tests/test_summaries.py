@@ -24,12 +24,62 @@ class TestDailySummary:
         assert data["total_expense"] >= 0
 
     async def test_daily_no_dates(self, client: AsyncClient, filla_token: str):
-        """Without date params, defaults to today (still returns valid JSON)."""
+        """Without date params, returns all-time personal summary."""
         resp = await client.get(
             "/api/v1/summaries/daily",
             headers={"Authorization": f"Bearer {filla_token}"},
         )
         assert resp.status_code == 200
+
+    async def test_daily_no_dates_all_time_personal_not_household(
+        self, client: AsyncClient, filla_token: str, nahda_token: str
+    ):
+        """All-time daily summary is scoped to the logged-in user, not the household."""
+        await client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={
+                "type": "expense",
+                "category_id": 1,
+                "amount": 1234567,
+                "description": "Filla all-time marker",
+                "date": "2020-06-01",
+            },
+        )
+        await client.post(
+            "/api/v1/transactions",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+            json={
+                "type": "expense",
+                "category_id": 1,
+                "amount": 7654321,
+                "description": "Nahda all-time marker",
+                "date": "2020-06-01",
+            },
+        )
+
+        filla = await client.get(
+            "/api/v1/summaries/daily",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        nahda = await client.get(
+            "/api/v1/summaries/daily",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        household = await client.get(
+            "/api/v1/summaries/household",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert filla.status_code == 200
+        assert nahda.status_code == 200
+        assert household.status_code == 200
+        filla_exp = filla.json()["total_expense"]
+        nahda_exp = nahda.json()["total_expense"]
+        hh_exp = household.json()["total_expense"]
+        assert filla_exp >= 1234567
+        assert nahda_exp >= 7654321
+        assert filla_exp < hh_exp
+        assert nahda_exp < hh_exp
 
     async def test_daily_requires_auth(self, client: AsyncClient):
         """Without auth, returns 403."""

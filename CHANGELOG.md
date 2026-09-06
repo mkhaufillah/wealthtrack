@@ -4,7 +4,7 @@
 
 ### Transactions date filter & all-time home balance
 - **Flutter:** Transactions list chip for specific date or date range (`date_from`/`date_to` on existing API).
-- **Flutter:** Home `BalanceCard` uses household all-time summary (`GET /summaries/household`, no dates), labeled All-time balance.
+- **Flutter:** Home `BalanceCard` uses **personal** all-time summary (`GET /summaries/daily`, no dates), labeled All-time balance. Not household-aggregated.
 
 ### KPR extra payment delete
 - **Flutter:** overflow menu + confirmation dialog on extra-payment cards in KPR detail (`kpr_detail_screen.dart`). Calls existing `DELETE /kpr/simulations/{id}/extra-payments/{eid}`.
