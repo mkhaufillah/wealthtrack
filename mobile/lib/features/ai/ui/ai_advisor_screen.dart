@@ -260,7 +260,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: AppColors.warning.withOpacity(0.1),
-            child: const Text(
+            child: Text(
               'AI-generated advice, not certified financial planning',
               style: TextStyle(fontSize: 11, color: AppColors.warning),
             ),

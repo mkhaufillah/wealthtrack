@@ -521,7 +521,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, size: 16, color: AppColors.warning),
+                Icon(Icons.info_outline, size: 16, color: AppColors.warning),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
