@@ -98,7 +98,7 @@ class _DebtHero extends StatelessWidget {
                   color: wash,
                   borderRadius: BorderRadius.circular(22),
                 ),
-                child: Center(child: AppIcon(icon, size: 64, color: AppColors.textPrimary)),
+                child: Center(child: AppIcon(icon, size: 64, color: AppColors.onAccent)),
               ),
               const SizedBox(height: 16),
               Text(

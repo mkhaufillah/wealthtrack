@@ -427,12 +427,12 @@ class _DebtStrip extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.25),
+                color: AppColors.highlight,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '$members orang',
-                style: TextStyle(fontSize: 11, color: AppColors.accent),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.onAccent),
               ),
             ),
         ],

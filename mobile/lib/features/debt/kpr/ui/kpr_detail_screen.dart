@@ -334,7 +334,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
   }
 
   Widget _buildInterestBadge(String interestType) {
-    final label = interestType[0].toUpperCase() + interestType.substring(1);
+    final label = kprInterestLabel(interestType);
     Color bgColor;
     Color textColor;
     switch (interestType.toLowerCase()) {
@@ -396,7 +396,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             const Spacer(),
             if (extras.isNotEmpty)
               Text(
-                '${extras.length} record${extras.length > 1 ? 's' : ''}',
+                '${extras.length} catatan',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
@@ -729,7 +729,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             AppIcon(AppIcons.calendar, size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 8),
             Text(
-              'Payment Schedule',
+              'Jadwal cicilan',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -803,14 +803,14 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Year $yearNumber',
+                      'Tahun $yearNumber',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
-                      '${items.length} months',
+                      '${items.length} bulan',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
@@ -830,7 +830,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                     ),
                   ),
                   Text(
-                    'Interest: ${formatCurrency(totalYearInterest)}',
+                    'Bunga: ${formatCurrency(totalYearInterest)}',
                     style: TextStyle(
                       fontSize: 11,
                       color: AppColors.highlight,
@@ -850,11 +850,11 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
               ),
               child: Row(
                 children: [
-                  _tableHeader('Month', flex: 1),
-                  _tableHeader('Payment', flex: 2),
-                  _tableHeader('Principal', flex: 2),
-                  _tableHeader('Interest', flex: 2),
-                  _tableHeader('Balance', flex: 2),
+                  _tableHeader('Bln', flex: 1),
+                  _tableHeader('Cicilan', flex: 2),
+                  _tableHeader('Pokok', flex: 2),
+                  _tableHeader('Bunga', flex: 2),
+                  _tableHeader('Sisa', flex: 2),
                 ],
               ),
             ),
@@ -945,8 +945,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
   }
 
   String _shortMonthName(int m) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+                    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return months[m - 1];
   }
 }

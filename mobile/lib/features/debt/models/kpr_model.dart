@@ -264,3 +264,18 @@ class ExtraPaymentRecord {
     );
   }
 }
+
+String kprInterestLabel(String type) {
+  switch (type.toLowerCase()) {
+    case 'fixed':
+      return 'Tetap';
+    case 'floating':
+      return 'Mengambang';
+    case 'graduated':
+      return 'Bertahap';
+    case 'mix':
+      return 'Campur';
+    default:
+      return type;
+  }
+}

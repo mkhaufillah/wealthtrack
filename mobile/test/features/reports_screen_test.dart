@@ -248,8 +248,8 @@ void main() {
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
       await tester.pump(); // Resolve mock API → state has loaded data
-      expect(find.text('Masuk'), findsOneWidget);
-      expect(find.text('Keluar'), findsOneWidget);
+      expect(find.text('Pemasukan'), findsOneWidget);
+      expect(find.text('Pengeluaran'), findsOneWidget);
       expect(find.text('Sisa'), findsOneWidget);
     });
 

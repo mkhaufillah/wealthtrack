@@ -36,7 +36,13 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
     try {
       final api = ref.read(apiClientProvider);
       final res = await api.get('/ai/chat/messages');
-      final messages = (res.data as List<dynamic>).map((m) => _ChatMessage(
+      final raw = res.data;
+      final list = raw is List
+          ? raw
+          : (raw is Map && raw['messages'] is List)
+              ? raw['messages'] as List
+              : const [];
+      final messages = list.map((m) => _ChatMessage(
         id: m['id'] as int,
         text: m['content'] as String? ?? '',
         isUser: m['role'] == 'user',
@@ -77,7 +83,13 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
     try {
       final api = ref.read(apiClientProvider);
       final res = await api.get('/ai/chat/messages');
-      final serverMessages = (res.data as List<dynamic>).map((m) => ({
+      final raw = res.data;
+      final list = raw is List
+          ? raw
+          : (raw is Map && raw['messages'] is List)
+              ? raw['messages'] as List
+              : const [];
+      final serverMessages = list.map((m) => ({
         'id': m['id'] as int,
         'content': m['content'] as String? ?? '',
         'role': m['role'] as String? ?? '',
@@ -261,10 +273,10 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: AppColors.warning.withOpacity(0.1),
+            color: AppColors.butter,
             child: Text(
-              'AI-generated advice, not certified financial planning',
-              style: TextStyle(fontSize: 11, color: AppColors.warning),
+              t('ai.disclaimer'),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.onAccent),
             ),
           ),
           Expanded(
@@ -291,7 +303,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                       controller: _msgCtrl,
                       enabled: !_isLoading,
                       decoration: InputDecoration(
-                        hintText: 'Ask about your finances...',
+                        hintText: t('ai.hint'),
                         filled: true,
                         fillColor: AppColors.background,
                         border: OutlineInputBorder(

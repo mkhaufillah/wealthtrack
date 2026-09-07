@@ -81,20 +81,24 @@ class _CatChip extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
         decoration: BoxDecoration(
-          color: selected ? selectedTint.withOpacity(0.14) : AppColors.surface,
+          color: selected ? selectedTint : AppColors.surface,
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? selectedTint : AppColors.divider,
+            width: selected ? 1.5 : 1,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CategoryGlyph(icon: icon, expense: expense, size: 24),
+            CategoryGlyph(icon: icon, expense: expense, size: 24, selected: selected),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: selected ? selectedTint : AppColors.textPrimary,
+                color: selected ? AppColors.onAccent : AppColors.textPrimary,
               ),
             ),
           ],

@@ -298,6 +298,8 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               label: const Text('Simpan'),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.onAccent,
               ),
             ),
           ],

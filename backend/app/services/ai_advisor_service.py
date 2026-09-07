@@ -830,13 +830,14 @@ def _schedule_bg_ai(
             finally:
                 await bg_db.close()
         except Exception as e:
+            logger.exception("AI background failed")
             try:
                 from app.database import get_db_bg
 
                 bg_db = await get_db_bg()
                 await bg_db.execute(
                     "UPDATE ai_messages SET content = ?, status = 'error' WHERE id = ?",
-                    (f"Error: {e}", ai_msg_id),
+                    (f"Gagal jawab. Coba lagi ya.", ai_msg_id),
                 )
                 await bg_db.close()
             except Exception as db_err:

@@ -113,7 +113,9 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/debt/credit-cards/new'),
-        child: AppIcon(AppIcons.add),
+        backgroundColor: AppColors.accent,
+        foregroundColor: AppColors.onAccent,
+        child: AppIcon(AppIcons.add, color: AppColors.onAccent),
       ),
     );
   }

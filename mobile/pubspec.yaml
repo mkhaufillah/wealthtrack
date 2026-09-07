@@ -33,7 +33,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/debt/
     - assets/logo.png
     - assets/logo_mark.png
     - assets/logo_login_light.jpg

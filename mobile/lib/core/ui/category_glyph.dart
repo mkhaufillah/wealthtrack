@@ -8,11 +8,13 @@ class CategoryGlyph extends StatelessWidget {
   final String icon;
   final bool expense;
   final double size;
+  final bool selected;
   const CategoryGlyph({
     super.key,
     required this.icon,
     this.expense = true,
     this.size = 36,
+    this.selected = false,
   });
 
   @override
@@ -23,13 +25,13 @@ class CategoryGlyph extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: tint.withOpacity(0.14),
+        color: selected ? tint : tint.withOpacity(0.14),
         borderRadius: BorderRadius.circular(size * 0.32),
       ),
       child: HugeIcon(
         icon: hugeIconFor(icon),
         size: size * 0.5,
-        color: tint,
+        color: selected ? AppColors.onAccent : tint,
       ),
     );
   }

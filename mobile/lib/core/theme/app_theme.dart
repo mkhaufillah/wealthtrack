@@ -219,12 +219,12 @@ class AppTheme {
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors.darkAccent,
-          foregroundColor: AppColors.darkTextPrimary,
+          foregroundColor: AppColors._onAccent,
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.darkAccent,
-            foregroundColor: AppColors.darkTextPrimary,
+            foregroundColor: AppColors._onAccent,
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(

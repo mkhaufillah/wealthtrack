@@ -45,8 +45,8 @@ void main() {
 
     testWidgets('shows type toggle buttons', (tester) async {
       await tester.pumpWidget(buildAddTxnApp());
-      expect(find.text('Keluar'), findsOneWidget);
-      expect(find.text('Masuk'), findsOneWidget);
+      expect(find.text('Pengeluaran'), findsOneWidget);
+      expect(find.text('Pemasukan'), findsOneWidget);
     });
 
     testWidgets('shows amount field', (tester) async {
@@ -84,18 +84,18 @@ void main() {
     testWidgets('shows Expense selected by default', (tester) async {
       await tester.pumpWidget(buildAddTxnApp());
       // Expense should appear as a tappable button
-      expect(find.text('Keluar'), findsOneWidget);
-      expect(find.text('Masuk'), findsOneWidget);
+      expect(find.text('Pengeluaran'), findsOneWidget);
+      expect(find.text('Pemasukan'), findsOneWidget);
     });
 
     testWidgets('tapping Income switches type', (tester) async {
       await tester.pumpWidget(buildAddTxnApp());
       // Tap Income button
-      await tester.tap(find.text('Masuk'));
+      await tester.tap(find.text('Pemasukan'));
       await tester.pump();
       // Both buttons should still exist
-      expect(find.text('Keluar'), findsOneWidget);
-      expect(find.text('Masuk'), findsOneWidget);
+      expect(find.text('Pengeluaran'), findsOneWidget);
+      expect(find.text('Pemasukan'), findsOneWidget);
     });
 
     testWidgets('loads categories from API', (tester) async {

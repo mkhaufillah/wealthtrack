@@ -77,7 +77,7 @@ void main() {
       await tester.pump();
       expect(
         find.text(
-          'AI-generated advice, not certified financial planning',
+          'Ini saran mesin, bukan nasihat keuangan resmi ya.',
         ),
         findsOneWidget,
       );
@@ -96,7 +96,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(
-        find.text('Ask about your finances...'),
+        find.text('Nanya soal duit…'),
         findsOneWidget,
       );
       expect(find.byType(TextField), findsOneWidget);
@@ -185,7 +185,7 @@ void main() {
 
       // Text field hint should still show (empty state)
       expect(
-        find.text('Ask about your finances...'),
+        find.text('Nanya soal duit…'),
         findsOneWidget,
       );
     });

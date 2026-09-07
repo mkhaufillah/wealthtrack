@@ -285,6 +285,8 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
               label: const Text('Simpan'),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.onAccent,
               ),
             ),
           ],

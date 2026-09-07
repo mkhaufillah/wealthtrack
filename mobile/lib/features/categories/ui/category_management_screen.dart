@@ -114,10 +114,16 @@ class _CategoryManagementScreenState
                             ListTile(
                               dense: true,
                               selected: iconKey == item.key,
+                              selectedTileColor: AppColors.highlight,
+                              selectedColor: AppColors.onAccent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               leading: CategoryGlyph(
                                 icon: item.key,
                                 expense: type != 'income',
                                 size: 32,
+                                selected: iconKey == item.key,
                               ),
                               title: Text(item.key, style: const TextStyle(fontSize: 12)),
                               subtitle: Text(item.label, style: const TextStyle(fontSize: 11)),

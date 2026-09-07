@@ -31,12 +31,12 @@ void main() {
       expect(find.text('Rp1.500.000'), findsOneWidget);
     });
 
-    testWidgets('shows Masuk and Keluar labels', (tester) async {
+    testWidgets('shows Pemasukan and Pengeluaran labels', (tester) async {
       await tester.pumpWidget(wrap(
         const BalanceCard(balance: 500000, income: 1000000, expense: 500000),
       ));
-      expect(find.text('Masuk'), findsOneWidget);
-      expect(find.text('Keluar'), findsOneWidget);
+      expect(find.text('Pemasukan'), findsOneWidget);
+      expect(find.text('Pengeluaran'), findsOneWidget);
     });
 
     testWidgets('displays zero balance', (tester) async {

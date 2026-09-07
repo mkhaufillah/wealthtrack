@@ -106,7 +106,9 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/debt/kpr/new'),
-        child: AppIcon(AppIcons.add),
+        backgroundColor: AppColors.accent,
+        foregroundColor: AppColors.onAccent,
+        child: AppIcon(AppIcons.add, color: AppColors.onAccent),
       ),
     );
   }
@@ -292,7 +294,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Month $actualMonth of ${sim.tenorMonths} · ${formatCurrency(sim.currentMonthPayment > 0 ? sim.currentMonthPayment : monthlyPayment)} due',
+                          'Bulan ke-$actualMonth dari ${sim.tenorMonths} · ${formatCurrency(sim.currentMonthPayment > 0 ? sim.currentMonthPayment : monthlyPayment)} jatuh tempo',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -312,7 +314,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
   }
 
   Widget _buildInterestBadge(String interestType) {
-    final label = interestType[0].toUpperCase() + interestType.substring(1);
+    final label = kprInterestLabel(interestType);
     Color bgColor;
     Color textColor;
     switch (interestType.toLowerCase()) {

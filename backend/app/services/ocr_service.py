@@ -194,8 +194,7 @@ class OcrService:
         row = await cursor.fetchone()
         if row["count"] > 0:
             raise OcrBusyError(
-                "You already have an OCR job being processed. "
-                "Please wait for it to complete."
+                "Struk sebelumnya masih diproses, tunggu ya."
             )
 
         api_key = settings.OPENCODE_GO_API_KEY
@@ -286,14 +285,14 @@ class OcrService:
                     else:
                         await bg_db.execute(
                             "UPDATE ocr_jobs SET status = 'failed', "
-                            "error = 'OCR failed. Please try again with a clearer photo.' "
+                            "error = 'Gagal baca struk. Fotoin yang lebih jelas ya.' "
                             "WHERE id = ?",
                             (job_id,),
                         )
                 except json.JSONDecodeError:
                     await bg_db.execute(
                         "UPDATE ocr_jobs SET status = 'failed', "
-                        "error = 'OCR failed. Please try again with a clearer photo.' "
+                        "error = 'Gagal baca struk. Fotoin yang lebih jelas ya.' "
                         "WHERE id = ?",
                         (job_id,),
                     )
@@ -301,7 +300,7 @@ class OcrService:
                     logger.warning("OCR background task error: %s", e)
                     await bg_db.execute(
                         "UPDATE ocr_jobs SET status = 'failed', "
-                        "error = 'OCR failed. Please try again with a clearer photo.' "
+                        "error = 'Gagal baca struk. Fotoin yang lebih jelas ya.' "
                         "WHERE id = ?",
                         (job_id,),
                     )
@@ -460,7 +459,7 @@ class OcrService:
                 )
             elif resp.status_code == 503:
                 raise OcrVisionApiError(
-                    "OCR service temporarily unavailable. Please try again later."
+                    "Layanan baca struk lagi sibuk. Coba sebentar lagi ya."
                 )
             elif resp.status_code != 200:
                 raise OcrVisionApiError(f"Vision API error: HTTP {resp.status_code}")

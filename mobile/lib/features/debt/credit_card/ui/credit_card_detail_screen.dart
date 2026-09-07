@@ -131,11 +131,9 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                   context.push('/debt/credit-cards/${card.id}/installments/new');
                 }
               },
-              child: Icon(
-                _tabController.index == 0
-                    ? Icons.add_shopping_cart
-                    : Icons.add,
-              ),
+              backgroundColor: AppColors.accent,
+              foregroundColor: AppColors.onAccent,
+              child: AppIcon(AppIcons.add, color: AppColors.onAccent),
             )
           : null,
       body: state.isLoading && card == null
@@ -659,6 +657,10 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
               child: Text(t('common.cancel')),
             ),
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.onAccent,
+              ),
               onPressed: () async {
                 final desc = descriptionCtrl.text.trim();
                 final amount = int.tryParse(amountCtrl.text.replaceAll(RegExp(r'[^\d]'), ''));

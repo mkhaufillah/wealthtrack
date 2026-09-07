@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../features/home/providers/dashboard_provider.dart';
 import '../providers/kpr_provider.dart';
+import '../../models/kpr_model.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../features/auth/providers/auth_provider.dart';
@@ -313,7 +314,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                 valueColor: AppColors.highlight),
             Divider(height: 24, color: AppColors.divider),
             _resultRow('Tenor', '$_tenorYears tahun ($tenorMonths bulan)'),
-            _resultRow('Tipe bunga', _interestType),
+            _resultRow('Tipe bunga', kprInterestLabel(_interestType)),
           ],
         ),
         actions: [
@@ -569,7 +570,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'fixed', label: Text('Tetap', style: TextStyle(fontSize: 12))),
-                ButtonSegment(value: 'floating', label: Text('Float', style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: 'floating', label: Text('Mengambang', style: TextStyle(fontSize: 11))),
                 ButtonSegment(value: 'graduated', label: Text('Bertahap', style: TextStyle(fontSize: 12))),
                 ButtonSegment(value: 'mix', label: Text('Campur', style: TextStyle(fontSize: 12))),
               ],
@@ -578,6 +579,14 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               style: ButtonStyle(
                 visualDensity: VisualDensity.compact,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) return AppColors.accent;
+                  return AppColors.surface;
+                }),
+                foregroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) return AppColors.onAccent;
+                  return AppColors.textPrimary;
+                }),
               ),
             ),
             const SizedBox(height: 20),
@@ -633,6 +642,8 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                     label: const Text('Simpan'),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: AppColors.onAccent,
                     ),
                   ),
                 ),

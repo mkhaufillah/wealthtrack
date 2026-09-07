@@ -177,7 +177,7 @@ class TestOcrPendingCount:
         """Returns error info when there is a recent failure."""
         await db.execute(
             "INSERT INTO ocr_jobs (user_id, image_filename, status, error, created_at) "
-            "VALUES (1, 'failed.png', 'failed', 'OCR failed. Please try again.', NOW())",
+            "VALUES (1, 'failed.png', 'failed', 'Gagal baca struk. Fotoin yang lebih jelas ya.', NOW())",
         )
 
         resp = await client.get(
