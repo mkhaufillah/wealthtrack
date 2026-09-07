@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/features/home/providers/dashboard_provider.dart';
 import 'package:wealthtrack/features/home/ui/home_screen.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
+import 'package:wealthtrack/shared/utils/currency_formatter.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
 import 'package:wealthtrack/shared/providers/app_providers.dart';
 import '../helpers/mocks.dart';
@@ -15,7 +16,7 @@ Widget buildHomeApp({bool isLoading = false, String? error, int balance = 0}) {
       'amount': balance,
       'amount_display': 'Rp$balance',
       'income': balance > 0 ? balance + 500000 : 0,
-      'income_display': 'Rp0',
+      'income_display': formatCurrency(balance > 0 ? balance + 500000 : 0),
       'expense': 500000,
       'expense_display': 'Rp500.000',
     },
