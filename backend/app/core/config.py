@@ -79,10 +79,15 @@ class Settings(BaseSettings):
         headers = {
             "Authorization": f"Bearer {self.llm_api_key}",
             "Content-Type": "application/json",
+            "User-Agent": "wealthtrack-backend/1.0",
         }
         if self.OPENROUTER_API_KEY:
             headers["HTTP-Referer"] = "https://wealthtrack.filla.id"
             headers["X-Title"] = "WealthTrack"
+        else:
+            # OpenCode Go: requires identifying UA + session for routing.
+            import uuid
+            headers["x-opencode-session"] = str(uuid.uuid4())
         return headers
 
 

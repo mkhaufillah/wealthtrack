@@ -427,7 +427,7 @@ class OcrService:
                             "model": (
                                 "deepseek/deepseek-v4-flash-vision-exp"
                                 if settings.llm_via_openrouter
-                                else "kimi-k2.5"
+                                else "deepseek-v4-flash-vision-exp"
                             ),
                             "messages": [
                                 {"role": "system", "content": prompt},

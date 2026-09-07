@@ -650,7 +650,8 @@ async def resolve_model(model: str) -> tuple[str, str, str]:
         api_key = settings.OPENROUTER_API_KEY
         api_url = "https://openrouter.ai/api/v1/chat/completions"
     elif model == "opus" and not settings.OPENROUTER_API_KEY:
-        resolved = "deepseek-v4-flash"
+        # OpenCode Go model catalog — grok is available here too.
+        resolved = "grok-4.6"
     return resolved, api_url, api_key
 
 
