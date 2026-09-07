@@ -133,7 +133,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Summary',
+            'Ringkasan',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -144,11 +144,11 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
           Row(
             children: [
               Expanded(
-                child: _summaryItem('Total limit', formatCurrency(totalLimit), Icons.credit_card_outlined),
+                child: _summaryItem('Total limit', formatCurrency(totalLimit), AppIcons.card),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _summaryItem('Cicilan aktif', totalActiveInstallments.toString(), Icons.receipt_long_outlined),
+                child: _summaryItem('Cicilan aktif', totalActiveInstallments.toString(), AppIcons.receipt),
               ),
             ],
           ),
@@ -157,10 +157,10 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
     );
   }
 
-  Widget _summaryItem(String label, String value, IconData icon) {
+  Widget _summaryItem(String label, String value, List<List<dynamic>> icon) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.accent),
+        AppIcon(icon, size: 20, color: AppColors.accent),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,11 +191,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.credit_card_outlined,
-            size: 64,
-            color: AppColors.textSecondary.withAlpha(128),
-          ),
+          AppIcon(AppIcons.card, size: 64, color: AppColors.textSecondary.withAlpha(128)),
           const SizedBox(height: 16),
           Text(
             'Belum ada kartu kredit',
@@ -265,11 +261,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                         color: AppColors.accent.withAlpha(25),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(
-                        Icons.credit_card,
-                        size: 22,
-                        color: AppColors.accent,
-                      ),
+                      child: AppIcon(AppIcons.card, size: 22, color: AppColors.accent),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -379,16 +371,6 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
   }
 
   String _ordinalSuffix(int day) {
-    if (day >= 11 && day <= 13) return '${day}th';
-    switch (day % 10) {
-      case 1:
-        return '${day}st';
-      case 2:
-        return '${day}nd';
-      case 3:
-        return '${day}rd';
-      default:
-        return '${day}th';
-    }
+    return 'tgl $day';
   }
 }

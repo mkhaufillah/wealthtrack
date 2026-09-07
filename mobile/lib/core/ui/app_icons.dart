@@ -40,6 +40,9 @@ class AppIcons {
   static const inbox = HugeIcons.strokeRoundedInbox;
   static const spark = HugeIcons.strokeRoundedSparkles;
   static const chartUp = HugeIcons.strokeRoundedAnalyticsUp;
+  static const chartDown = HugeIcons.strokeRoundedAnalyticsDown;
+  static const clock = HugeIcons.strokeRoundedClock01;
+  static const repeat = HugeIcons.strokeRoundedRepeat;
   static const copy = HugeIcons.strokeRoundedCopy01;
   static const sun = HugeIcons.strokeRoundedSun01;
   static const moon = HugeIcons.strokeRoundedMoon02;

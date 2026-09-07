@@ -443,7 +443,7 @@ class OcrService:
                                         },
                                         {
                                             "type": "text",
-                                            "text": "Extract transaction data from this image.",
+                                            "text": "Ambil data transaksi dari gambar ini.",
                                         },
                                     ],
                                 },
@@ -454,12 +454,12 @@ class OcrService:
 
             if resp.status_code == 429:
                 raise OcrVisionApiError(
-                    "Vision API rate limit exceeded. Please wait and try again.",
+                    "Kebanyakan request. Tunggu sebentar, coba lagi.",
                     status_code=429,
                 )
             elif resp.status_code == 401:
                 raise OcrVisionApiError(
-                    "OCR service unauthorized — check API key configuration"
+                    "OCR belum dikonfigurasi — cek API key",
                 )
             elif resp.status_code == 503:
                 raise OcrVisionApiError(
@@ -514,7 +514,7 @@ class OcrService:
                                             },
                                             {
                                                 "type": "text",
-                                                "text": "Extract transaction data from this image.",
+                                                "text": "Ambil data transaksi dari gambar ini.",
                                             },
                                         ],
                                     },
@@ -533,7 +533,7 @@ class OcrService:
 
                 if vision_resp.status_code == 429:
                     last_exc = OcrVisionApiError(
-                        "Vision API rate limit exceeded. Please wait and try again.",
+                        "Kebanyakan request. Tunggu sebentar, coba lagi.",
                         status_code=429,
                     )
                     wait = (2 ** attempt) + _random.uniform(1, 3)

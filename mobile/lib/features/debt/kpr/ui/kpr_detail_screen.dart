@@ -181,7 +181,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       children: [
         // ── First row: Property Price ───────────────
         _buildSummaryCard(
-          icon: Icons.home_outlined,
+          icon: AppIcons.house,
           label: 'Harga rumah',
           value: formatCurrency(sim.propertyPrice),
         ),
@@ -192,7 +192,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           children: [
             Expanded(
               child: _buildSummaryCard(
-                icon: Icons.account_balance_outlined,
+                icon: AppIcons.money,
                 label: 'Pinjaman',
                 value: formatCurrency(sim.totalLoan),
               ),
@@ -200,7 +200,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: _buildSummaryCard(
-                icon: Icons.payments_outlined,
+                icon: AppIcons.receipt,
                 label: 'Cicilan / bulan',
                 value: formatCurrency(monthlyPayment),
                 accent: true,
@@ -215,7 +215,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           children: [
             Expanded(
               child: _buildSummaryCard(
-                icon: Icons.trending_up,
+                icon: AppIcons.chartUp,
                 label: 'Total bunga',
                 value: formatCurrency(totalInterest),
                 valueColor: AppColors.highlight,
@@ -224,7 +224,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: _buildSummaryCard(
-                icon: Icons.account_balance_wallet_outlined,
+                icon: AppIcons.wallet,
                 label: 'Total bayar',
                 value: formatCurrency(totalPayment),
               ),
@@ -240,7 +240,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
   }
 
   Widget _buildSummaryCard({
-    required IconData icon,
+    required List<List<dynamic>> icon,
     required String label,
     required String value,
     bool accent = false,
@@ -265,7 +265,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
               color: (accent ? AppColors.accent : AppColors.textSecondary).withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
+            child: AppIcon(
               icon,
               size: 18,
               color: accent ? AppColors.accent : AppColors.textSecondary,
@@ -305,11 +305,11 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     final remMonths = sim.tenorMonths % 12;
     String tenorLabel;
     if (years > 0 && remMonths > 0) {
-      tenorLabel = '$years years ${remMonths}mo';
+      tenorLabel = '$years tahun $remMonths bulan';
     } else if (years > 0) {
-      tenorLabel = '$years years';
+      tenorLabel = '$years tahun';
     } else {
-      tenorLabel = '${sim.tenorMonths} months';
+      tenorLabel = '${sim.tenorMonths} bulan';
     }
 
     return Container(
@@ -493,10 +493,10 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                         .withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
+                  child: AppIcon(
                     isTenor
-                        ? Icons.timer_outlined
-                        : Icons.trending_down,
+                        ? AppIcons.clock
+                        : AppIcons.chartDown,
                     size: 16,
                     color:
                         isTenor ? AppColors.accent : AppColors.success,

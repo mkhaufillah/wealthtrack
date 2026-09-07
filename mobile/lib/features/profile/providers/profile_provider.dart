@@ -87,7 +87,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         savingProfile: false,
-        error: 'Failed: $e',
+        error: 'Gagal: $e',
       );
     }
   }
@@ -104,7 +104,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
     } catch (e) {
       state = state.copyWith(
-        error: '❌ Failed: $e',
+        error: 'Gagal: $e',
       );
     }
   }
@@ -121,7 +121,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         changingPassword: false,
-        error: 'Failed: $e',
+        error: 'Gagal: $e',
       );
       return false;
     }
@@ -135,7 +135,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         deleting: false,
-        error: 'Failed: $e',
+        error: 'Gagal: $e',
       );
     }
   }

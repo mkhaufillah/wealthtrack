@@ -1008,7 +1008,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
 
       scaffold.hideCurrentSnackBar();
-      await Share.shareXFiles([XFile(filePath)], text: 'WealthTrack $year Export');
+      await Share.shareXFiles([XFile(filePath)], text: 'Ekspor WealthTrack $year');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

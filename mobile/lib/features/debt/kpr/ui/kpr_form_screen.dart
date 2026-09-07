@@ -718,7 +718,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
           hintText: 'mis. 12',
-          suffixText: 'months',
+          suffixText: 'bulan',
           prefixIcon: AppFieldIcon(AppIcons.calendar),
         ),
       ),

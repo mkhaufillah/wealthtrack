@@ -34,7 +34,7 @@ async def _check_rate_limit(user_id: int):
         key=f"ocr:user_{user_id}",
         max_requests=30,
         window_sec=86400,
-        error_message="OCR rate limit: max 30/day",
+        error_message="OCR kebanyakan: max 30 kali per hari",
     )
 
 
@@ -51,11 +51,11 @@ async def process_ocr(
     await _check_rate_limit(current_user["id"])
 
     if not file.content_type:
-        raise HTTPException(status_code=400, detail="Could not detect file type")
+        raise HTTPException(status_code=400, detail="Tipe file tidak dikenali")
 
     image_bytes = await file.read()
     if len(image_bytes) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Image too large (max 10 MB)")
+        raise HTTPException(status_code=400, detail="Gambar terlalu besar (maks 10 MB)")
 
     service = OcrService(db)
     try:
@@ -90,11 +90,11 @@ async def process_ocr_and_save(
     await _check_rate_limit(current_user["id"])
 
     if not file.content_type:
-        raise HTTPException(status_code=400, detail="Could not detect file type")
+        raise HTTPException(status_code=400, detail="Tipe file tidak dikenali")
 
     raw = await file.read()
     if len(raw) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Image too large (max 10 MB)")
+        raise HTTPException(status_code=400, detail="Gambar terlalu besar (maks 10 MB)")
 
     service = OcrService(db)
     try:

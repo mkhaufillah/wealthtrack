@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../../core/ui/copy_fallback.dart';
 import '../../../../core/ui/app_icons.dart';
@@ -118,11 +117,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.home_outlined,
-            size: 64,
-            color: AppColors.textSecondary.withAlpha(128),
-          ),
+          AppIcon(AppIcons.house, size: 64, color: AppColors.textSecondary.withAlpha(128)),
           const SizedBox(height: 16),
           Text(
             'Belum ada simulasi KPR',
@@ -147,9 +142,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
   Widget _buildSimulationCard(KPRSimulation sim) {
     final monthlyPayment = sim.monthlyPayment;
     final totalInterest = sim.totalInterest;
-    final monthlyPaymentStr = monthlyPayment > 0
-        ? formatCurrency(monthlyPayment)
-        : _estimateMonthlyPayment(sim.totalLoan, sim.tenorMonths);
+    final monthlyPaymentStr = formatCurrency(monthlyPayment);
     final totalInterestStr = totalInterest > 0
         ? formatCurrency(totalInterest)
         : formatCurrency(0);
@@ -199,11 +192,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                         color: AppColors.accent.withAlpha(25),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(
-                        Icons.home_work_outlined,
-                        size: 22,
-                        color: AppColors.accent,
-                      ),
+                      child: AppIcon(AppIcons.house, size: 22, color: AppColors.accent),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -211,7 +200,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            sim.name.isNotEmpty ? sim.name : 'KPR Simulation',
+                            sim.name.isNotEmpty ? sim.name : 'Simulasi KPR',
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -375,22 +364,11 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
   }
 
   String _tenorLabel(int months) {
-    if (months < 12) return '$months months';
+    if (months < 12) return '$months bulan';
     final years = months ~/ 12;
     final rem = months % 12;
-    if (rem == 0) return '$years years';
-    return '$years years $rem months';
-  }
-
-  String _estimateMonthlyPayment(int totalLoan, int tenorMonths) {
-    if (totalLoan <= 0 || tenorMonths <= 0) return formatCurrency(0);
-    // Rough estimate assuming ~9% annual interest
-    const annualRate = 0.09;
-    final monthlyRate = annualRate / 12;
-    final factor = pow(1 + monthlyRate, tenorMonths);
-    final payment =
-        (totalLoan * monthlyRate * factor) / (factor - 1);
-    return formatCurrency(payment.round());
+    if (rem == 0) return '$years tahun';
+    return '$years tahun $rem bulan';
   }
 
   int _monthsBetween(int startMonth, int startYear) {

@@ -114,8 +114,11 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               ...options.map((opt) {
                 final selected = opt['value'] == currentSort;
                 return ListTile(
-                  leading: Icon(selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                    color: selected ? AppColors.accent : AppColors.textSecondary),
+                  leading: AppIcon(
+                    selected ? AppIcons.check : AppIcons.more,
+                    size: 20,
+                    color: selected ? AppColors.accent : AppColors.textSecondary,
+                  ),
                   title: Text(opt['label'] as String),
                   onTap: () {
                     Navigator.pop(ctx);

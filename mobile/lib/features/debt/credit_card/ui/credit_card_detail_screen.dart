@@ -214,10 +214,10 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           Row(
             children: [
               Expanded(
-                child: _headerInfoItem('Tanggal tagihan', _ordinalSuffix(card.billingDate), Icons.calendar_today),
+                child: _headerInfoItem('Tanggal tagihan', _ordinalSuffix(card.billingDate), AppIcons.calendar),
               ),
               Expanded(
-                child: _headerInfoItem('Jatuh tempo', _ordinalSuffix(card.dueDate), Icons.event),
+                child: _headerInfoItem('Jatuh tempo', _ordinalSuffix(card.dueDate), AppIcons.clock),
               ),
             ],
           ),
@@ -225,7 +225,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           Row(
             children: [
               Expanded(
-                child: _headerInfoItem('Limit', formatCurrency(card.creditLimit), Icons.credit_card),
+                child: _headerInfoItem('Limit', formatCurrency(card.creditLimit), AppIcons.card),
               ),
               const Expanded(child: SizedBox()),
             ],
@@ -235,7 +235,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
     );
   }
 
-  Widget _headerInfoItem(String label, String value, IconData icon) {
+  Widget _headerInfoItem(String label, String value, List<List<dynamic>> icon) {
     final textColor = AppColors.textPrimary;
     final subTextColor = AppColors.textSecondary;
 
@@ -244,7 +244,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       children: [
         Row(
           children: [
-            Icon(icon, size: 14, color: subTextColor),
+            AppIcon(icon, size: 14, color: subTextColor),
             const SizedBox(width: 4),
             Text(
               label,
@@ -320,8 +320,8 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.receipt_long_outlined,
+            AppIcon(
+              AppIcons.receipt,
               size: 48,
               color: AppColors.textSecondary.withAlpha(128),
             ),
@@ -369,8 +369,8 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                   : AppColors.highlight.withAlpha(25),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              tx.isInstallment ? Icons.repeat : Icons.receipt,
+            child: AppIcon(
+              tx.isInstallment ? AppIcons.repeat : AppIcons.receipt,
               size: 18,
               color: tx.isInstallment ? AppColors.accent : AppColors.highlight,
             ),
@@ -381,7 +381,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  tx.description.isNotEmpty ? tx.description : 'Transaction',
+                  tx.description.isNotEmpty ? tx.description : 'Transaksi',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -419,8 +419,8 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.repeat_outlined,
+            AppIcon(
+              AppIcons.repeat,
               size: 48,
               color: AppColors.textSecondary.withAlpha(128),
             ),
@@ -536,17 +536,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
   }
 
   String _ordinalSuffix(int day) {
-    if (day >= 11 && day <= 13) return '${day}th';
-    switch (day % 10) {
-      case 1:
-        return '${day}st';
-      case 2:
-        return '${day}nd';
-      case 3:
-        return '${day}rd';
-      default:
-        return '${day}th';
-    }
+    return 'tgl $day';
   }
 
   String _formatDate(String dateStr) {
