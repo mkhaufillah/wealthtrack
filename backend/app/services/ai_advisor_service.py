@@ -734,13 +734,53 @@ async def call_model(
     return content.strip()
 
 
+_HISTORY_WINDOW = 20  # ~10 pasangan user+asisten
+
+
+async def _chat_history_for_model(
+    user_id: int,
+    db: CursorWrapper,
+    client_history: list,
+    before_id: Optional[int] = None,
+) -> list[dict]:
+    """Prefer complete DB turns so the model sees its own replies.
+
+    Client local storage historically only saved user lines — after a few
+    turns the model only saw stacked questions and lost the thread.
+    """
+    skip = {"", "Mengumpulkan data keuangan..."}
+    if before_id is not None:
+        cursor = await db.execute(
+            """SELECT role, content FROM ai_messages
+               WHERE user_id = ? AND status = 'complete' AND id < ?
+               ORDER BY id ASC""",
+            (user_id, before_id),
+        )
+        rows = await cursor.fetchall()
+        msgs = [
+            {"role": r["role"], "content": r["content"]}
+            for r in rows
+            if r["role"] in ("user", "assistant")
+            and (r["content"] or "").strip() not in skip
+        ]
+        if msgs:
+            return msgs[-_HISTORY_WINDOW:]
+    return [
+        {"role": m.role, "content": m.content}
+        for m in list(client_history)[-_HISTORY_WINDOW:]
+        if getattr(m, "content", None) and m.content.strip() not in skip
+    ]
+
+
 async def build_messages(
-    req: AdviseRequest, current_user: dict, db: CursorWrapper
+    req: AdviseRequest, current_user: dict, db: CursorWrapper, before_id: Optional[int] = None
 ) -> list:
     """Build the full messages array: system -> history -> current question."""
     ctx = await build_context(current_user["id"], db, question=req.question)
     prompt = SYSTEM_PROMPT.format(**ctx)
-    history_msgs = [{"role": m.role, "content": m.content} for m in req.history[-10:]]
+    history_msgs = await _chat_history_for_model(
+        current_user["id"], db, req.history, before_id=before_id
+    )
     return [
         {"role": "system", "content": prompt},
         *history_msgs,
@@ -810,7 +850,9 @@ def _schedule_bg_ai(
                 advise_req = AdviseRequest(
                     question=req.question, model=req.model, history=req.history
                 )
-                messages = await build_messages(advise_req, current_user, bg_db)
+                messages = await build_messages(
+                    advise_req, current_user, bg_db, before_id=user_msg_id
+                )
                 full_content = ""
                 last_flush = ""
                 async for token in call_model_stream(

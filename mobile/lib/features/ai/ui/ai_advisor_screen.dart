@@ -24,6 +24,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   bool _isLoading = false;
   bool _useAdvancedModel = false;
   bool _loaded = false;
+  int? _lastSavedAssistantId;
   Timer? _pollTimer;
   Timer? _scrollBackupTimer;
 
@@ -112,6 +113,17 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
         _pollTimer?.cancel();
         _pollTimer = null;
         _isLoading = false;
+        _ChatMessage? lastAi;
+        for (final m in _messages.reversed) {
+          if (!m.isUser && m.status == 'complete' && m.text.trim().isNotEmpty) {
+            lastAi = m;
+            break;
+          }
+        }
+        if (lastAi != null && lastAi.id != _lastSavedAssistantId) {
+          _lastSavedAssistantId = lastAi.id;
+          await _chatStorage.addMessage('assistant', lastAi.text);
+        }
       }
     } catch (e) {
       debugPrint('ERROR: $e');
@@ -125,6 +137,24 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  /// Last ~10 complete turns (user+asisten), tanpa pertanyaan yang baru diketik.
+  List<Map<String, String>> _historyPayload() {
+    final complete = _messages
+        .where((m) => m.status == 'complete' && m.text.trim().isNotEmpty)
+        .toList();
+    if (complete.isNotEmpty && complete.last.isUser) {
+      complete.removeLast();
+    }
+    const maxMsgs = 20;
+    final slice = complete.length > maxMsgs
+        ? complete.sublist(complete.length - maxMsgs)
+        : complete;
+    return [
+      for (final m in slice)
+        {'role': m.isUser ? 'user' : 'assistant', 'content': m.text},
+    ];
   }
 
   Future<void> _send({int? retryParentId}) async {
@@ -143,7 +173,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
 
     try {
       final api = ref.read(apiClientProvider);
-      final history = _chatStorage.getLastExchanges(10);
+      final history = _historyPayload();
 
       final res = await api.post('/ai/chat', data: {
         'question': text,
