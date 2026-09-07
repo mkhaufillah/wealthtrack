@@ -139,14 +139,14 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
   }
 
   String? _validateRequired(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Required';
+    if (value == null || value.trim().isEmpty) return t('common.required');
     return null;
   }
 
   String? _validateMonths(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Required';
+    if (value == null || value.trim().isEmpty) return t('common.required');
     final months = int.tryParse(value);
-    if (months == null || months <= 0) return 'Enter a positive number';
+    if (months == null || months <= 0) return t('common.positive');
     return null;
   }
 

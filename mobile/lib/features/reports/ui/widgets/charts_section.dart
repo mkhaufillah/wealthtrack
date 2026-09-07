@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/category_glyph.dart';
 import '../../../../shared/utils/currency_formatter.dart';
+import '../../../../shared/utils/date_formatter.dart';
 import '../../models/report_model.dart';
 
 /// Color palette used across all charts
@@ -137,7 +138,7 @@ Widget buildTrendChartSection(List<MonthlyTrend> trend) {
 
   final labels = trend.map((t) {
     final parts = t.month.split('-');
-    const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = ['', ...idMonthShort];
     return months[int.parse(parts[1])];
   }).toList();
 

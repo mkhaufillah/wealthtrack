@@ -108,7 +108,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
   int _getCreditLimit() => _parseAmount(_creditLimitCtrl.text);
 
   String? _validateRequired(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Required';
+    if (value == null || value.trim().isEmpty) return t('common.required');
     return null;
   }
 
@@ -221,7 +221,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               items: List.generate(31, (i) => i + 1).map((d) {
-                return DropdownMenuItem(value: d, child: Text('${d}th'));
+                return DropdownMenuItem(value: d, child: Text('tgl $d'));
               }).toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _billingDate = v);
@@ -238,7 +238,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               items: List.generate(31, (i) => i + 1).map((d) {
-                return DropdownMenuItem(value: d, child: Text('${d}th'));
+                return DropdownMenuItem(value: d, child: Text('tgl $d'));
               }).toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _dueDate = v);

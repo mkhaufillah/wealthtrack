@@ -8,6 +8,7 @@ import '../../../../features/home/providers/dashboard_provider.dart';
 import '../providers/kpr_provider.dart';
 import '../../models/kpr_model.dart';
 import '../../../../shared/utils/currency_formatter.dart';
+import '../../../../shared/utils/date_formatter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../features/auth/providers/auth_provider.dart';
 import '../../../../shared/providers/app_providers.dart';
@@ -179,7 +180,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
   int _getTenorMonths() => _tenorYears * 12;
 
   String? _validateRequired(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Required';
+    if (value == null || value.trim().isEmpty) return t('common.required');
     return null;
   }
 
@@ -513,10 +514,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                       prefixIcon: AppFieldIcon(AppIcons.calendar),
                     ),
                     items: List.generate(12, (i) => i + 1).map((m) {
-                      final months = [
-                        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-                      ];
+                      final months = idMonthShort;
                       return DropdownMenuItem(
                         value: m,
                         child: Text(months[m - 1]),

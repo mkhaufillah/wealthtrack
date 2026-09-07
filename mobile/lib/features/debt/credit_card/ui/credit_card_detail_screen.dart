@@ -491,7 +491,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            '$progress / ${inst.totalMonths} months',
+            '$progress / ${inst.totalMonths} bulan',
             style: TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,

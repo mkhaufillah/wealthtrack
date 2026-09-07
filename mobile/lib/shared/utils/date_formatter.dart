@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-const _months = [
+const idMonthShort = [
   'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
   'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
 ];
+
+const _months = idMonthShort;
 
 String _monthName(DateTime d) => _months[d.month - 1];
 

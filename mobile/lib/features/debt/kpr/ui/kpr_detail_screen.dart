@@ -696,7 +696,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
               AppIcon(AppIcons.chart, size: 40, color: AppColors.textSecondary.withOpacity(0.4)),
               const SizedBox(height: 12),
               Text(
-                'No schedule data available',
+                t('kpr.no_schedule'),
                 style: TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
