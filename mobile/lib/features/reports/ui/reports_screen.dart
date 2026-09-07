@@ -334,10 +334,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     // Find savings & investment amounts
     final savingsExpense = report.categories
-        .where((c) => c.categoryNameEn == 'Savings & Investment')
+        .where((c) => c.categoryName == 'Tabungan & Investasi')
         .fold<int>(0, (sum, c) => sum + c.total);
     final savingsIncome = report.incomeCategories
-        .where((c) => c.categoryNameEn == 'Savings & Investment Disbursed')
+        .where((c) => c.categoryName == 'Penarikan Tabungan & Investasi')
         .fold<int>(0, (sum, c) => sum + c.total);
 
     // Adjusted savings rate: (income - expense + savingsExpense - savingsIncome) / income * 100
@@ -453,7 +453,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 Expanded(
                   flex: 3,
                   child: Text(
-                    item.categoryName.isNotEmpty ? item.categoryName : item.categoryNameEn,
+                    item.categoryName,
                     style: TextStyle(fontSize: 13),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -572,7 +572,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  cat.categoryName.isNotEmpty ? cat.categoryName : cat.categoryNameEn,
+                  cat.categoryName,
                   style: TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -790,7 +790,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  cat.categoryName.isNotEmpty ? cat.categoryName : cat.categoryNameEn,
+                  cat.categoryName,
                   style: TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),

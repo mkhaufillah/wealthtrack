@@ -54,7 +54,6 @@ async def create_category(
         return await service.create_category(
             current_user=current_user,
             name=data.name,
-            name_en=data.name_en,
             type_=data.type,
             icon=data.icon,
             keywords=data.keywords,
@@ -79,7 +78,6 @@ async def update_category(
             current_user=current_user,
             category_id=category_id,
             name=data.name,
-            name_en=data.name_en,
             icon=data.icon,
             keywords=data.keywords,
             sort_order=data.sort_order,

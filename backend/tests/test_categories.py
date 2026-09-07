@@ -15,9 +15,10 @@ class TestListCategories:
         assert len(data) >= 6  # at least seed categories
         assert data[0]["name"] is not None
         assert data[0]["type"] in ("expense", "income")
-        assert "name_en" in data[0]
+        assert "name_en" not in data[0]
         assert "keywords" in data[0]
         assert isinstance(data[0]["keywords"], list)
+        assert data[0]["icon"].startswith("strokeRounded")
 
     async def test_filter_expense(self, client: AsyncClient, filla_token: str):
         """GET /categories?type=expense returns only expense categories."""
@@ -55,15 +56,14 @@ class TestListCategories:
 
 class TestCreateCategory:
     async def test_admin_can_create(self, client: AsyncClient, filla_token: str):
-        """Admin can create a new category."""
+        """Admin can create a new category with Hugeicons key."""
         resp = await client.post(
             "/api/v1/categories",
             headers={"Authorization": f"Bearer {filla_token}"},
             json={
                 "name": "Kendaraan",
-                "name_en": "Vehicle",
                 "type": "expense",
-                "icon": "🚗",
+                "icon": "strokeRoundedCar01",
                 "keywords": ["mobil", "motor", "kendaraan"],
                 "sort_order": 20,
             },
@@ -71,9 +71,20 @@ class TestCreateCategory:
         assert resp.status_code == 201
         data = resp.json()
         assert data["name"] == "Kendaraan"
-        assert data["name_en"] == "Vehicle"
+        assert "name_en" not in data
         assert data["type"] == "expense"
+        assert data["icon"] == "strokeRoundedCar01"
         assert "mobil" in data["keywords"]
+
+    async def test_invalid_icon_falls_back(self, client: AsyncClient, filla_token: str):
+        """Emoji / junk icon is stored as invoice fallback."""
+        resp = await client.post(
+            "/api/v1/categories",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"name": "Aneh", "type": "expense", "icon": "🚗"},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["icon"] == "strokeRoundedInvoice01"
 
     async def test_non_admin_cannot_create(self, client: AsyncClient, nahda_token: str):
         """Non-admin gets 403."""
@@ -108,19 +119,20 @@ class TestUpdateCategory:
         resp = await client.put(
             "/api/v1/categories/8",  # Freelance (not default)
             headers={"Authorization": f"Bearer {filla_token}"},
-            json={"name_en": "Freelance Work", "keywords": ["freelance", "side job"]},
+            json={"icon": "strokeRoundedLaptop", "keywords": ["freelance", "side job"]},
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["name_en"] == "Freelance Work"
+        assert data["icon"] == "strokeRoundedLaptop"
         assert "side job" in data["keywords"]
+        assert "name_en" not in data
 
     async def test_non_admin_cannot_update(self, client: AsyncClient, nahda_token: str):
         """Non-admin gets 403."""
         resp = await client.put(
             "/api/v1/categories/8",
             headers={"Authorization": f"Bearer {nahda_token}"},
-            json={"name_en": "Hacked"},
+            json={"name": "Hacked"},
         )
         assert resp.status_code == 403
 
@@ -138,7 +150,7 @@ class TestUpdateCategory:
         resp = await client.put(
             "/api/v1/categories/1",  # Makanan & Minuman (is_default=1)
             headers={"Authorization": f"Bearer {filla_token}"},
-            json={"name_en": "Edited"},
+            json={"name": "Edited"},
         )
         assert resp.status_code == 403
 
@@ -150,4 +162,3 @@ class TestUpdateCategory:
             json={"name": "Gaji"},
         )
         assert resp.status_code == 409
-

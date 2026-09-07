@@ -93,7 +93,7 @@ class SummaryService:
 
         # Expense category breakdown
         cursor = await self.db.execute(
-            f"""SELECT c.id, c.name, c.icon, c.name_en AS category_name_en,
+            f"""SELECT c.id, c.name, c.icon,
                       SUM(t.amount) as total, COUNT(*) as count
                FROM transactions t
                JOIN categories c ON t.category_id = c.id
@@ -110,8 +110,7 @@ class SummaryService:
                 {
                     "category_id": r["id"],
                     "category_name": r["name"],
-                    "category_name_en": r["category_name_en"] or "",
-                    "icon": r["icon"] or "",
+                            "icon": r["icon"] or "",
                     "total": int(r["total"]),
                     "count": r["count"],
                     "percentage": pct,
@@ -242,7 +241,7 @@ class SummaryService:
                 expense = r["total"]
 
         cursor = await self.db.execute(
-            """SELECT c.id, c.name, c.icon, c.name_en AS category_name_en,
+            """SELECT c.id, c.name, c.icon,
                       SUM(t.amount) as total, COUNT(*) as count
                FROM transactions t
                JOIN categories c ON t.category_id = c.id
@@ -261,8 +260,7 @@ class SummaryService:
                 {
                     "category_id": r["id"],
                     "category_name": r["name"],
-                    "category_name_en": r["category_name_en"] or "",
-                    "icon": r["icon"] or "",
+                            "icon": r["icon"] or "",
                     "total": int(r["total"]),
                     "count": r["count"],
                     "percentage": pct,
@@ -385,7 +383,7 @@ class SummaryService:
                 expense = r["total"]
 
         cursor = await self.db.execute(
-            """SELECT c.id, c.name, c.icon, c.name_en AS category_name_en,
+            """SELECT c.id, c.name, c.icon,
                       SUM(t.amount) as total, COUNT(*) as count
                FROM transactions t JOIN categories c ON t.category_id = c.id
                WHERE t.user_id = ?
@@ -400,14 +398,13 @@ class SummaryService:
             pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
             categories.append({
                 "category_id": r["id"], "category_name": r["name"],
-                "category_name_en": r["category_name_en"] or "",
-                "icon": r["icon"] or "", "total": int(r["total"]),
+                    "icon": r["icon"] or "", "total": int(r["total"]),
                 "count": r["count"], "percentage": pct,
             })
 
         # Income category breakdown
         cursor = await self.db.execute(
-            """SELECT c.id, c.name, c.icon, c.name_en AS category_name_en,
+            """SELECT c.id, c.name, c.icon,
                       SUM(t.amount) as total, COUNT(*) as count
                FROM transactions t JOIN categories c ON t.category_id = c.id
                WHERE t.user_id = ?
@@ -423,8 +420,7 @@ class SummaryService:
             pct = round((income_total / income * 100), 1) if income > 0 else 0
             income_categories.append({
                 "category_id": r["id"], "category_name": r["name"],
-                "category_name_en": r["category_name_en"] or "",
-                "icon": r["icon"] or "", "total": income_total,
+                    "icon": r["icon"] or "", "total": income_total,
                 "count": r["count"], "percentage": pct,
             })
 
@@ -548,12 +544,12 @@ class SummaryService:
         For each, it calculates: SUM(expense transactions) - SUM(income transactions)
         """
         cursor = await self.db.execute(
-            "SELECT id FROM categories WHERE name_en IN ('Savings & Investment', 'Savings & Investment Disbursed')"
+            "SELECT id FROM categories WHERE name IN ('Tabungan & Investasi', 'Penarikan Tabungan & Investasi')"
         )
         savings_ids = [r["id"] for r in await cursor.fetchall()]
 
         cursor = await self.db.execute(
-            "SELECT id FROM categories WHERE name_en = 'Emergency Funds'"
+            "SELECT id FROM categories WHERE name = 'Dana Darurat'"
         )
         emergency_ids = [r["id"] for r in await cursor.fetchall()]
 

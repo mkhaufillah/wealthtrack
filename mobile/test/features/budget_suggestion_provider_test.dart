@@ -12,7 +12,6 @@ void main() {
     BudgetSuggestion(
       categoryId: 1,
       categoryName: 'Makanan & Minuman',
-      categoryNameEn: 'Food & Drinks',
       categoryIcon: '🍔',
       suggestedAmount: 1500000,
       historicalAvg: 1420000,
@@ -22,7 +21,6 @@ void main() {
     BudgetSuggestion(
       categoryId: 2,
       categoryName: 'Transportasi & Bensin',
-      categoryNameEn: 'Transport & Fuel',
       categoryIcon: '🚗',
       suggestedAmount: 500000,
       historicalAvg: 450000,
@@ -38,7 +36,6 @@ void main() {
       BudgetSuggestion(
         categoryId: 1,
         categoryName: 'Makanan & Minuman',
-        categoryNameEn: 'Food & Drinks',
         categoryIcon: '🍔',
         suggestedAmount: 1500000,
         historicalAvg: 1420000,
@@ -50,7 +47,6 @@ void main() {
       BudgetSuggestion(
         categoryId: 2,
         categoryName: 'Transportasi & Bensin',
-        categoryNameEn: 'Transport & Fuel',
         categoryIcon: '🚗',
         suggestedAmount: 500000,
         historicalAvg: 450000,
@@ -200,7 +196,6 @@ class MockBudgetRepo extends BudgetRepository {
       categoryId: data['category_id'] as int? ?? 0,
       amount: data['amount'] as int? ?? 0,
       categoryName: '',
-      categoryNameEn: '',
       categoryIcon: '📦',
     );
   }

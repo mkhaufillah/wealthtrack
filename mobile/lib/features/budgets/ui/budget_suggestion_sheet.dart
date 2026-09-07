@@ -264,9 +264,7 @@ class _BudgetSuggestionSheetState
                           CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.categoryName.isNotEmpty
-                              ? item.categoryName
-                              : item.categoryNameEn,
+                          item.categoryName,
                           style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600),

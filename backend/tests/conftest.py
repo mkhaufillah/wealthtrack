@@ -41,14 +41,14 @@ DEFAULT_USERS = [
     (2, "nahda", "Nahda", PWD_CTX.hash("password123"), "user", "nahdanurfitriana3@gmail.com"),
 ]
 DEFAULT_CATEGORIES = [
-    (1, "Makanan & Minuman", "expense", "🍽️", 1, 1, "Food & Drinks", "[]"),
-    (2, "Transportasi & Bensin", "expense", "🚗", 0, 2, "Transport & Fuel", "[]"),
-    (3, "Belanja Harian", "expense", "🛒", 0, 3, "Daily Shopping", "[]"),
-    (4, "Hiburan", "expense", "🎬", 0, 4, "Entertainment", "[]"),
-    (5, "Tagihan & Cicilan", "expense", "📄", 0, 5, "Bills & Installments", "[]"),
-    (6, "Kesehatan", "expense", "🏥", 0, 6, "Health", "[]"),
-    (7, "Gaji", "income", "💰", 1, 1, "Salary", "[]"),
-    (8, "Freelance", "income", "💻", 0, 2, "Freelance", "[]"),
+    (1, "Makanan & Minuman", "expense", "strokeRoundedServingFood", 1, 1, "[]"),
+    (2, "Transportasi & Bensin", "expense", "strokeRoundedCar01", 0, 2, "[]"),
+    (3, "Belanja Harian", "expense", "strokeRoundedShoppingBag01", 0, 3, "[]"),
+    (4, "Hiburan", "expense", "strokeRoundedTv01", 0, 4, "[]"),
+    (5, "Tagihan & Cicilan", "expense", "strokeRoundedInvoice01", 0, 5, "[]"),
+    (6, "Kesehatan", "expense", "strokeRoundedMedicineBottle01", 0, 6, "[]"),
+    (7, "Gaji", "income", "strokeRoundedMoneyBag01", 1, 1, "[]"),
+    (8, "Freelance", "income", "strokeRoundedLaptop", 0, 2, "[]"),
 ]
 DEFAULT_TRANSACTIONS = [
     (1, "income", 15000000, 7, "Gaji", "Gaji Bulanan", "Gaji Mei"),
@@ -102,7 +102,6 @@ CREATE TABLE categories (
     icon TEXT DEFAULT '',
     is_default INTEGER DEFAULT 0,
     sort_order INTEGER DEFAULT 0,
-    name_en TEXT DEFAULT '',
     keywords TEXT DEFAULT '[]'
 );
 CREATE TABLE households (
@@ -299,7 +298,7 @@ async def _create_test_db():
         )
     for cat in DEFAULT_CATEGORIES:
         await conn.execute(
-            "INSERT INTO categories (id, name, type, icon, is_default, sort_order, name_en, keywords) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+            "INSERT INTO categories (id, name, type, icon, is_default, sort_order, keywords) VALUES ($1, $2, $3, $4, $5, $6, $7)",
             *cat,
         )
     for i, t in enumerate(DEFAULT_TRANSACTIONS):

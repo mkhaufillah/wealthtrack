@@ -536,32 +536,32 @@ class TestAllTimeCategoryBalance:
         """Returns correct balance with categories and transactions."""
         # Create Savings & Investment category
         await db.execute(
-            "INSERT INTO categories (id, name, type, icon, is_default, sort_order, name_en, keywords) "
-            "VALUES (100, 'Investasi', 'expense', '💰', 0, 10, 'Savings & Investment', '[]')",
+            "INSERT INTO categories (id, name, type, icon, is_default, sort_order, keywords) "
+            "VALUES (100, 'Tabungan & Investasi', 'expense', 'strokeRoundedMoneyBag01', 0, 10, '[]')",
         )
         # Create Emergency Funds category
         await db.execute(
-            "INSERT INTO categories (id, name, type, icon, is_default, sort_order, name_en, keywords) "
-            "VALUES (101, 'Darurat', 'expense', '🚨', 0, 11, 'Emergency Funds', '[]')",
+            "INSERT INTO categories (id, name, type, icon, is_default, sort_order, keywords) "
+            "VALUES (101, 'Dana Darurat', 'expense', 'strokeRoundedInvoice01', 0, 11, '[]')",
         )
 
         # Savings: two expense transactions + one income transaction
         await db.execute(
             "INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, date) "
-            "VALUES (1, 'expense', 100, 'Investasi', 500000, 'Monthly investment', CURRENT_DATE)",
+            "VALUES (1, 'expense', 100, 'Tabungan & Investasi', 500000, 'Monthly investment', CURRENT_DATE)",
         )
         await db.execute(
             "INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, date) "
-            "VALUES (1, 'expense', 100, 'Investasi', 200000, 'Extra investment', CURRENT_DATE)",
+            "VALUES (1, 'expense', 100, 'Tabungan & Investasi', 200000, 'Extra investment', CURRENT_DATE)",
         )
         await db.execute(
             "INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, date) "
-            "VALUES (1, 'income', 100, 'Investasi', 50000, 'Dividend', CURRENT_DATE)",
+            "VALUES (1, 'income', 100, 'Tabungan & Investasi', 50000, 'Dividend', CURRENT_DATE)",
         )
         # Emergency fund: one expense transaction
         await db.execute(
             "INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, date) "
-            "VALUES (1, 'expense', 101, 'Darurat', 1000000, 'Emergency fund top-up', CURRENT_DATE)",
+            "VALUES (1, 'expense', 101, 'Dana Darurat', 1000000, 'Emergency fund top-up', CURRENT_DATE)",
         )
 
         resp = await client.get(
@@ -584,13 +584,13 @@ class TestAllTimeCategoryBalance:
     async def test_scoped_to_current_user(self, client: AsyncClient, nahda_token: str, db):
         """Only queries data for the authenticated user."""
         await db.execute(
-            "INSERT INTO categories (id, name, type, icon, is_default, sort_order, name_en, keywords) "
-            "VALUES (110, 'Investasi', 'expense', '💰', 0, 10, 'Savings & Investment', '[]')",
+            "INSERT INTO categories (id, name, type, icon, is_default, sort_order, keywords) "
+            "VALUES (110, 'Tabungan & Investasi', 'expense', 'strokeRoundedMoneyBag01', 0, 10, '[]')",
         )
         # Only user 1 has a transaction; nahda (user 2) should see zeros
         await db.execute(
             "INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, date) "
-            "VALUES (1, 'expense', 110, 'Investasi', 500000, 'Filla investment', CURRENT_DATE)",
+            "VALUES (1, 'expense', 110, 'Tabungan & Investasi', 500000, 'Filla investment', CURRENT_DATE)",
         )
 
         resp = await client.get(

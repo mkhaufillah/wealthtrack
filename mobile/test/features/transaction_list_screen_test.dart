@@ -23,7 +23,7 @@ class _MockTxNotifier extends TransactionListNotifier {
 final sampleTxn = TransactionModel(
   id: 1, amount: 50000, type: 'expense',
   description: 'Lunch', note: '', date: '2026-05-27',
-  category: CategoryBrief(id: 3, name: 'Food', nameEn: 'Food & Drinks', icon: '🍔'),
+  category: CategoryBrief(id: 3, name: 'Food', icon: '🍔'),
 );
 
 Widget buildTxListApp({
@@ -86,7 +86,7 @@ void main() {
       final txn2 = TransactionModel(
         id: 2, amount: 100000, type: 'income',
         description: 'Freelance', note: '', date: '2026-05-26',
-          category: CategoryBrief(id: 1, name: 'Salary', nameEn: 'Salary', icon: '💰'),
+          category: CategoryBrief(id: 1, name: 'Salary', icon: '💰'),
       );
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn, txn2]));
       expect(find.text('Lunch'), findsOneWidget);

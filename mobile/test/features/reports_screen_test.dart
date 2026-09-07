@@ -98,7 +98,6 @@ Widget buildReportsApp({
 final sampleCategory = CategoryBreakdown(
   categoryId: 1,
   categoryName: 'Makanan & Minuman',
-  categoryNameEn: 'Food & Drinks',
   icon: '🍔',
   total: 1500000,
   count: 10,
@@ -108,7 +107,6 @@ final sampleCategory = CategoryBreakdown(
 final sampleCategory2 = CategoryBreakdown(
   categoryId: 2,
   categoryName: 'Transportasi & Bensin',
-  categoryNameEn: 'Transport & Fuel',
   icon: '🚗',
   total: 800000,
   count: 5,
@@ -137,7 +135,6 @@ final sampleHouseholdReport = HouseholdReport(
     CategoryBreakdown(
       categoryId: 1,
       categoryName: 'Makanan & Minuman',
-      categoryNameEn: 'Food & Drinks',
       icon: '🍔',
       total: 2000000,
       count: 8,
@@ -215,7 +212,6 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
-            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -239,7 +235,6 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
-            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -265,7 +260,6 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
-            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -293,7 +287,6 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
-            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -317,7 +310,6 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
-            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -346,7 +338,6 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
-            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -372,7 +363,6 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
-            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,
@@ -396,7 +386,6 @@ void main() {
           {
             'category_id': 1,
             'category_name': 'Makanan & Minuman',
-            'category_name_en': 'Food & Drinks',
             'icon': '🍔',
             'total': 1500000,
             'count': 10,

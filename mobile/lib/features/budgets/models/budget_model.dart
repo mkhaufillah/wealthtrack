@@ -3,7 +3,6 @@ class BudgetModel {
   final String month;
   final int categoryId;
   final String categoryName;
-  final String categoryNameEn;
   final String categoryIcon;
   final int amount;
 
@@ -12,7 +11,6 @@ class BudgetModel {
     required this.month,
     required this.categoryId,
     required this.categoryName,
-    required this.categoryNameEn,
     required this.categoryIcon,
     required this.amount,
   });
@@ -22,7 +20,6 @@ class BudgetModel {
         month: json['month'] as String,
         categoryId: json['category_id'] as int,
         categoryName: json['category_name'] as String? ?? '',
-        categoryNameEn: json['category_name_en'] as String? ?? '',
         categoryIcon: json['category_icon'] as String? ?? '📦',
         amount: json['amount'] as int,
       );
@@ -32,7 +29,6 @@ class BudgetSummaryItem {
   final int id;
   final int categoryId;
   final String categoryName;
-  final String categoryNameEn;
   final String categoryIcon;
   final int budgetAmount;
   final int actualSpent;
@@ -44,7 +40,6 @@ class BudgetSummaryItem {
     required this.id,
     required this.categoryId,
     required this.categoryName,
-    required this.categoryNameEn,
     required this.categoryIcon,
     required this.budgetAmount,
     required this.actualSpent,
@@ -58,7 +53,6 @@ class BudgetSummaryItem {
         id: json['id'] as int,
         categoryId: json['category_id'] as int,
         categoryName: json['category_name'] as String? ?? '',
-        categoryNameEn: json['category_name_en'] as String? ?? '',
         categoryIcon: json['category_icon'] as String? ?? '📦',
         budgetAmount: json['budget_amount'] as int,
         actualSpent: json['actual_spent'] as int,
@@ -71,14 +65,12 @@ class BudgetSummaryItem {
 class UnbudgetedExpense {
   final int categoryId;
   final String categoryName;
-  final String categoryNameEn;
   final String categoryIcon;
   final int total;
 
   UnbudgetedExpense({
     required this.categoryId,
     required this.categoryName,
-    required this.categoryNameEn,
     required this.categoryIcon,
     required this.total,
   });
@@ -87,7 +79,6 @@ class UnbudgetedExpense {
       UnbudgetedExpense(
         categoryId: json['category_id'] as int,
         categoryName: json['category_name'] as String? ?? '',
-        categoryNameEn: json['category_name_en'] as String? ?? '',
         categoryIcon: json['category_icon'] as String? ?? '📦',
         total: json['total'] as int,
       );
@@ -96,7 +87,6 @@ class UnbudgetedExpense {
 class BudgetSuggestion {
   final int categoryId;
   final String categoryName;
-  final String categoryNameEn;
   final String categoryIcon;
   final int suggestedAmount;
   final int historicalAvg;
@@ -109,7 +99,6 @@ class BudgetSuggestion {
   BudgetSuggestion({
     required this.categoryId,
     required this.categoryName,
-    required this.categoryNameEn,
     required this.categoryIcon,
     required this.suggestedAmount,
     required this.historicalAvg,
@@ -124,7 +113,6 @@ class BudgetSuggestion {
       BudgetSuggestion(
         categoryId: categoryId,
         categoryName: categoryName,
-        categoryNameEn: categoryNameEn,
         categoryIcon: categoryIcon,
         suggestedAmount: suggestedAmount,
         historicalAvg: historicalAvg,
@@ -139,7 +127,6 @@ class BudgetSuggestion {
       BudgetSuggestion(
         categoryId: json['category_id'] as int,
         categoryName: json['category_name'] as String? ?? '',
-        categoryNameEn: json['category_name_en'] as String? ?? '',
         categoryIcon: json['category_icon'] as String? ?? '📦',
         suggestedAmount: json['suggested_amount'] as int,
         historicalAvg: json['historical_avg'] as int,

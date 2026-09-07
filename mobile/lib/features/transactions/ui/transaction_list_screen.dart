@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/category_glyph.dart';
 import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
@@ -215,15 +216,12 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                       shrinkWrap: true,
                       children: cats.map((cat) {
                         final catId = cat['id'] as int;
-                        final nameEn = cat['name_en'] as String? ?? '';
-                        final name = cat['name'] as String? ?? '';
-                        final label = nameEn.isNotEmpty ? nameEn : name;
+                        final label = cat['name'] as String? ?? '';
                         return CheckboxListTile(
                           dense: false,
                           value: selected.contains(catId),
                           title: Text(label, style: const TextStyle(fontSize: 15)),
-                          secondary: Text(cat['icon'] as String? ?? '\uD83D\uDCE6',
-                              style: const TextStyle(fontSize: 22)),
+                          secondary: CategoryGlyph(icon: cat['icon'] as String? ?? '', size: 28),
                           controlAffinity: ListTileControlAffinity.leading,
                           activeColor: AppColors.accent,
                           checkColor: AppColors.surface,

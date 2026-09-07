@@ -10,12 +10,21 @@ Usage::
 """
 
 import json
+import re
 from typing import Optional
 
 from app.database import CursorWrapper
 
 
-# ── Domain exceptions ────────────────────────────────────────────────
+ICON_RE = re.compile(r"^strokeRounded[A-Za-z0-9]{1,48}$")
+DEFAULT_ICON = "strokeRoundedInvoice01"
+
+
+def normalize_icon(icon: Optional[str]) -> str:
+    value = (icon or "").strip()
+    if ICON_RE.fullmatch(value):
+        return value
+    return DEFAULT_ICON
 
 
 class CategoryNotFoundError(Exception):
@@ -50,9 +59,6 @@ class NotAuthorizedError(Exception):
         super().__init__(f"Only admin can {action}")
 
 
-# ── Service ──────────────────────────────────────────────────────────
-
-
 class CategoryService:
     """Service for all category operations.
 
@@ -63,17 +69,14 @@ class CategoryService:
     def __init__(self, db: CursorWrapper) -> None:
         self.db = db
 
-    # ── Helpers ──────────────────────────────────────────────────────
-
     @staticmethod
     def _format_category(row) -> dict:
         """Format a category DB row into a response dict with parsed keywords."""
         result = dict(row)
         kw = row["keywords"]
         result["keywords"] = json.loads(kw) if kw else []
+        result.pop("name_en", None)
         return result
-
-    # ── Core CRUD ────────────────────────────────────────────────────
 
     async def list_categories(
         self,
@@ -85,13 +88,13 @@ class CategoryService:
         """
         if type_filter:
             cursor = await self.db.execute(
-                "SELECT id, name, name_en, type, icon, is_default, keywords "
+                "SELECT id, name, type, icon, is_default, keywords "
                 "FROM categories WHERE type = ? ORDER BY sort_order",
                 (type_filter,),
             )
         else:
             cursor = await self.db.execute(
-                "SELECT id, name, name_en, type, icon, is_default, keywords "
+                "SELECT id, name, type, icon, is_default, keywords "
                 "FROM categories ORDER BY type, sort_order"
             )
         rows = await cursor.fetchall()
@@ -101,7 +104,6 @@ class CategoryService:
         self,
         current_user: dict,
         name: str,
-        name_en: str,
         type_: str,
         icon: str,
         keywords: list[str],
@@ -125,14 +127,15 @@ class CategoryService:
             raise CategoryNameConflictError(name, type_)
 
         keywords_json = json.dumps(keywords) if keywords else "[]"
+        icon = normalize_icon(icon)
         cursor = await self.db.execute(
-            "INSERT INTO categories (name, name_en, type, icon, keywords, sort_order) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (name, name_en, type_, icon, keywords_json, sort_order),
+            "INSERT INTO categories (name, type, icon, keywords, sort_order) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (name, type_, icon, keywords_json, sort_order),
         )
 
         cursor = await self.db.execute(
-            "SELECT id, name, name_en, type, icon, is_default, keywords FROM categories WHERE id = ?",
+            "SELECT id, name, type, icon, is_default, keywords FROM categories WHERE id = ?",
             (cursor.lastrowid,),
         )
         return self._format_category(await cursor.fetchone())
@@ -142,7 +145,6 @@ class CategoryService:
         current_user: dict,
         category_id: int,
         name: Optional[str] = None,
-        name_en: Optional[str] = None,
         icon: Optional[str] = None,
         keywords: Optional[list[str]] = None,
         sort_order: Optional[int] = None,
@@ -167,11 +169,9 @@ class CategoryService:
         if not existing:
             raise CategoryNotFoundError(category_id)
 
-        # Prevent editing system-default categories
         if existing["is_default"]:
             raise DefaultCategoryEditError(category_id)
 
-        # Check name uniqueness if renaming
         if name is not None and name != existing["name"]:
             cursor = await self.db.execute(
                 "SELECT id FROM categories WHERE name = ? AND type = ? AND id != ?",
@@ -180,14 +180,11 @@ class CategoryService:
             if await cursor.fetchone():
                 raise CategoryNameConflictError(name, existing["type"])
 
-        # Build dynamic UPDATE
         updates = {}
         if name is not None:
             updates["name"] = name
-        if name_en is not None:
-            updates["name_en"] = name_en
         if icon is not None:
-            updates["icon"] = icon
+            updates["icon"] = normalize_icon(icon)
         if keywords is not None:
             updates["keywords"] = json.dumps(keywords)
         if sort_order is not None:
@@ -203,7 +200,7 @@ class CategoryService:
         )
 
         cursor = await self.db.execute(
-            "SELECT id, name, name_en, type, icon, is_default, keywords FROM categories WHERE id = ?",
+            "SELECT id, name, type, icon, is_default, keywords FROM categories WHERE id = ?",
             (category_id,),
         )
         return self._format_category(await cursor.fetchone())

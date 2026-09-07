@@ -426,7 +426,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               CategoryGlyph(icon: item.categoryIcon, size: 32),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(item.categoryName.isNotEmpty ? item.categoryName : item.categoryNameEn,
+                child: Text(item.categoryName,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ),
               Text(formatCurrency(item.total),
@@ -471,7 +471,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 CategoryGlyph(icon: item.categoryIcon, size: 32),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(item.categoryName.isNotEmpty ? item.categoryName : item.categoryNameEn,
+                  child: Text(item.categoryName,
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
                 // Cycle date range badge
@@ -619,7 +619,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(t('budget.delete')),
-        content: Text(t('budget.remove_q').replaceAll('{c}', item.categoryName.isNotEmpty ? item.categoryName : item.categoryNameEn)),
+        content: Text(t('budget.remove_q').replaceAll('{c}', item.categoryName)),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(t('common.cancel'))),
           FilledButton(
@@ -729,7 +729,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
                   CategoryGlyph(icon: widget.existingItem!.categoryIcon, size: 28),
                   const SizedBox(width: 10),
                   Text(
-                    (widget.existingItem!.categoryName.isNotEmpty ? widget.existingItem!.categoryName : widget.existingItem!.categoryNameEn),
+                    widget.existingItem!.categoryName,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ],
@@ -745,7 +745,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
               ),
               items: widget.categories.map((c) => DropdownMenuItem(
                 value: c['id'] as int,
-                child: Text((c['name'] as String? ?? c['name_en']) as String),
+                child: Text(c['name'] as String? ?? ''),
               )).toList(),
               onChanged: (v) => setState(() => _selectedCategoryId = v),
             ),

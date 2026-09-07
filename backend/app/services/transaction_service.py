@@ -81,7 +81,7 @@ class InvalidOperationError(Exception):
 # ── Helpers ─────────────────────────────────────────────────────────
 
 
-def _format_txn(row, cat_name="", cat_icon="", cat_name_en="", display_name=""):
+def _format_txn(row, cat_name="", cat_icon="", display_name=""):
     """Convert an asyncpg Record (or dict) to the standard transaction dict."""
     r = dict(row)
     return {
@@ -95,7 +95,6 @@ def _format_txn(row, cat_name="", cat_icon="", cat_name_en="", display_name=""):
             "id": r["category_id"],
             "name": cat_name or r.get("category_name", "") or "",
             "icon": cat_icon or "",
-            "name_en": cat_name_en or "",
         },
         "user": {
             "id": r.get("user_id", 1) or 1,
@@ -113,7 +112,6 @@ _SELECT_TXN = """\
 SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
        t.description, t.note, t.date, t.user_id, t.created_at,
        c.name AS cat_name, c.icon AS cat_icon,
-       c.name_en AS cat_name_en,
        u.display_name AS user_display_name
 FROM transactions t
 LEFT JOIN categories c ON t.category_id = c.id
@@ -165,7 +163,7 @@ class TransactionService:
 
     async def _get_category(self, category_id: int) -> dict | None:
         cursor = await self.db.execute(
-            "SELECT id, name, name_en, icon FROM categories WHERE id = ?",
+            "SELECT id, name, icon FROM categories WHERE id = ?",
             (category_id,),
         )
         row = await cursor.fetchone()
@@ -233,7 +231,7 @@ class TransactionService:
         )
         rows = await cursor.fetchall()
         data = [
-            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "")
+            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
             for r in rows
         ]
 
@@ -354,7 +352,7 @@ class TransactionService:
         )
         rows = await cursor.fetchall()
         data = [
-            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "")
+            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
             for r in rows
         ]
 
@@ -424,7 +422,7 @@ class TransactionService:
         )
         rows = await cursor.fetchall()
         data = [
-            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "")
+            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
             for r in rows
         ]
 
@@ -490,7 +488,7 @@ class TransactionService:
         )
         rows = await cursor.fetchall()
         data = [
-            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "", r["cat_name_en"] or "")
+            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
             for r in rows
         ]
 
@@ -549,7 +547,6 @@ class TransactionService:
             row,
             cat["name"],
             cat["icon"],
-            cat.get("name_en", "") or "",
             u["display_name"] if u else "",
         )
 
@@ -574,7 +571,6 @@ class TransactionService:
             row,
             c["name"] if c else "",
             c["icon"] if c else "",
-            c.get("name_en", "") if c else "",
         )
 
     async def update_transaction(
@@ -627,7 +623,6 @@ class TransactionService:
             row,
             c["name"] if c else "",
             c["icon"] if c else "",
-            c.get("name_en", "") if c else "",
         )
 
     # ── Owner transfer ───────────────────────────────────────────────
@@ -688,7 +683,6 @@ class TransactionService:
             row,
             c["name"] if c else "",
             c["icon"] if c else "",
-            c.get("name_en", "") if c else "",
         )
 
     # ── Balance transfer ─────────────────────────────────────────────
@@ -724,11 +718,9 @@ class TransactionService:
 
         expense_cat_id = expense_cat["id"]
         expense_cat_name = expense_cat["name"]
-        expense_cat_name_en = expense_cat.get("name_en", "") or ""
         expense_cat_icon = expense_cat.get("icon", "")
         income_cat_id = income_cat["id"]
         income_cat_name = income_cat["name"]
-        income_cat_name_en = income_cat.get("name_en", "") or ""
         income_cat_icon = income_cat.get("icon", "")
 
         # Get sender's display name
@@ -808,14 +800,12 @@ class TransactionService:
                     exp_row,
                     expense_cat_name,
                     expense_cat_icon,
-                    expense_cat_name_en,
                     exp_row["user_display_name"] or "",
                 ),
                 "recipient_income": _format_txn(
                     inc_row,
                     income_cat_name,
                     income_cat_icon,
-                    income_cat_name_en,
                     inc_row["user_display_name"] or "",
                 ),
             })
@@ -825,7 +815,7 @@ class TransactionService:
     async def _get_or_create_transfer_category(self, ttype: str) -> dict:
         """Find the 'Transfer' category for the given type, creating it if missing."""
         cursor = await self.db.execute(
-            "SELECT id, name, name_en, icon FROM categories WHERE name = ? AND type = ?",
+            "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
             ("Transfer", ttype),
         )
         cat = await cursor.fetchone()
@@ -834,14 +824,14 @@ class TransactionService:
 
         await self.db.execute(
             "INSERT INTO categories (name, type, icon, is_default) VALUES (?, ?, ?, ?)",
-            ("Transfer", ttype, "🔄", 1),
+            ("Transfer", ttype, "strokeRoundedExchange01", 1),
         )
         cursor = await self.db.execute(
-            "SELECT id, name, name_en, icon FROM categories WHERE name = ? AND type = ?",
+            "SELECT id, name, icon FROM categories WHERE name = ? AND type = ?",
             ("Transfer", ttype),
         )
         cat = await cursor.fetchone()
-        return dict(cat) if cat else {"id": 0, "name": "Transfer", "name_en": "", "icon": "🔄"}
+        return dict(cat) if cat else {"id": 0, "name": "Transfer", "icon": "strokeRoundedExchange01"}
 
     # ── Delete ───────────────────────────────────────────────────────
 

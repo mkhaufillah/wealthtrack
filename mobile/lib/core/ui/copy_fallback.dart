@@ -212,6 +212,19 @@ const Map<String, String> copyFallback = {
   'report.hh_cat': 'Kategori rumah',
   'report.hh_daily': 'Harian rumah',
   'report.export': 'Unduh Excel setahun',
+  'cat.manage': 'Kelola kategori',
+  'cat.add': 'Kategori baru',
+  'cat.edit': 'Ubah kategori',
+  'cat.name': 'Nama',
+  'cat.icon': 'Ikon',
+  'cat.keywords': 'Kata kunci',
+  'cat.keywords_hint': 'pisah pakai koma',
+  'cat.type': 'Tipe',
+  'cat.default_locked': 'Kategori bawaan gak bisa diubah.',
+  'cat.save': 'Simpan',
+  'cat.create': 'Tambah',
+  'cat.empty': 'Belum ada kategori',
+  'cat.fail': 'Gagal',
 };
 
 String t(String key) => copyFallback[key] ?? key;

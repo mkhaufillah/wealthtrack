@@ -5,12 +5,10 @@ import '../../../../core/ui/category_glyph.dart';
 class CategoryChip {
   final int id;
   final String name;
-  final String nameEn;
   final String icon;
   const CategoryChip({
     required this.id,
     required this.name,
-    this.nameEn = '',
     required this.icon,
   });
 }

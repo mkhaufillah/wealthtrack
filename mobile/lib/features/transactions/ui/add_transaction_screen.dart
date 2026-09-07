@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/category_icons.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../home/providers/dashboard_provider.dart';
 import '../../ocr/providers/ocr_provider.dart';
@@ -66,10 +67,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       final incomeRes = await api.get('/categories', queryParams: {'type': 'income'});
       setState(() {
         _expenseCategories = (List<Map<String, dynamic>>.from(expenseRes.data)).map((e) => CategoryChip(
-          id: e['id'] as int, name: e['name'] as String, nameEn: e['name_en'] as String? ?? '', icon: e['icon'] as String? ?? '📦',
+          id: e['id'] as int, name: e['name'] as String, icon: e['icon'] as String? ?? kDefaultCategoryIcon,
         )).toList();
         _incomeCategories = (List<Map<String, dynamic>>.from(incomeRes.data)).map((e) => CategoryChip(
-          id: e['id'] as int, name: e['name'] as String, nameEn: e['name_en'] as String? ?? '', icon: e['icon'] as String? ?? '📦',
+          id: e['id'] as int, name: e['name'] as String, icon: e['icon'] as String? ?? kDefaultCategoryIcon,
         )).toList();
         _categories = _isExpense ? _expenseCategories : _incomeCategories;
       });

@@ -217,7 +217,6 @@ CREATE TABLE IF NOT EXISTS categories (
     icon TEXT DEFAULT '',
     is_default INTEGER DEFAULT 0,
     sort_order INTEGER DEFAULT 0,
-    name_en TEXT DEFAULT '',
     keywords TEXT DEFAULT '[]'
 );
 
@@ -446,6 +445,52 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
 """
 
 
+ICON_EMOJI_MAP = [
+    (("🍽️", "🍽", "🍔", "🍜", "🍱"), "strokeRoundedServingFood"),
+    (("🚗", "🛵"), "strokeRoundedCar01"),
+    (("⛽", "⛽️"), "strokeRoundedFuelStation"),
+    (("🛒", "🛍️"), "strokeRoundedShoppingBag01"),
+    (("💡", "⚡"), "strokeRoundedHome01"),
+    (("🏥", "💊"), "strokeRoundedMedicineBottle01"),
+    (("🎓",), "strokeRoundedSchool"),
+    (("🎮",), "strokeRoundedGameController01"),
+    (("💰", "💵"), "strokeRoundedMoneyBag01"),
+    (("🏦",), "strokeRoundedBank"),
+    (("📱",), "strokeRoundedSmartPhone01"),
+    (("🏠",), "strokeRoundedHouse01"),
+    (("👕",), "strokeRoundedClothes"),
+    (("🎁",), "strokeRoundedGift"),
+    (("✈️", "✈"), "strokeRoundedAirplane01"),
+    (("🐶", "🐱"), "strokeRoundedFishFood"),
+    (("🎬",), "strokeRoundedTv01"),
+    (("📄",), "strokeRoundedInvoice01"),
+    (("💻",), "strokeRoundedLaptop"),
+    (("🔄",), "strokeRoundedExchange01"),
+]
+
+
+async def _migrate_category_icons(conn):
+    """Map leftover emoji icons to Hugeicons keys; drop name_en."""
+    try:
+        for emojis, key in ICON_EMOJI_MAP:
+            placeholders = ", ".join(f"${i+1}" for i in range(len(emojis)))
+            await conn.execute(
+                f"UPDATE categories SET icon = ${len(emojis)+1} WHERE icon IN ({placeholders})",
+                *emojis,
+                key,
+            )
+        await conn.execute(
+            """UPDATE categories SET icon = 'strokeRoundedInvoice01'
+               WHERE icon IS NULL OR icon = '' OR icon NOT LIKE 'strokeRounded%'"""
+        )
+    except Exception as e:
+        print(f"Schema init warning (non-fatal): {e}")
+    try:
+        await conn.execute("ALTER TABLE categories DROP COLUMN IF EXISTS name_en")
+    except Exception as e:
+        print(f"Schema init warning (non-fatal): {e}")
+
+
 async def _init_schema(conn):
     """Create tables and indexes if they don't exist. Idempotent."""
     # Split by semicolons and execute each statement
@@ -456,6 +501,7 @@ async def _init_schema(conn):
                 await conn.execute(stmt)
             except Exception as e:
                 print(f"Schema init warning (non-fatal): {e}")
+    await _migrate_category_icons(conn)
 
 
 

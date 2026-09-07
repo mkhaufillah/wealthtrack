@@ -7,11 +7,13 @@
 
 ## Overview
 
-Admin-only category management — create and edit expense/income categories. Categories are no longer hardcoded; admin can add new categories with English names and keyword mappings through the Flutter UI. Hermes cron skill reads keywords from the database instead of hardcoded dicts.
+Admin-only kelola kategori — tambah/ubah kategori masuk/keluar. Satu nama Indonesia. Ikon = key Hugeicons (`strokeRounded…`), dipilih dari picker di app. Keyword tetap di DB buat klasifikasi.
 
-**No DELETE** — categories referenced by transactions/budgets cannot be safely removed.
+**No DELETE** — kategori yang sudah kepakai transaksi/anggaran gak dihapus.
 
-Default categories (is_default=1) also cannot be edited or deleted. This includes: Gaji, Makanan & Minuman, Lainnya (expense & income), Transfer (expense & income), Tabungan & Investasi (expense & income), Penarikan Tabungan & Investasi, Hasil Investasi, and Dana Darurat (expense & income).
+Kategori bawaan (`is_default=1`) gak bisa diedit. Termasuk: Gaji, Makanan & Minuman, Lainnya, Transfer, Tabungan & Investasi, Penarikan Tabungan & Investasi, Hasil Investasi, Dana Darurat.
+
+Lihat juga [plan ikon Hugeicons](21-category-hugeicons-id-only.md).
 
 ---
 
@@ -29,14 +31,15 @@ Default categories (is_default=1) also cannot be edited or deleted. This include
 
 ## Database Changes
 
-Two new columns on `categories` table:
+Kolom `categories`:
 
 | Column | Type | Default | Description |
 |--------|------|---------|-------------|
-| `name_en` | TEXT | `''` | English display name for Flutter UI |
-| `keywords` | TEXT | `'[]'` | JSON array of keywords for Hermes classification |
+| `name` | TEXT | required | Nama tampilan (Indonesia) |
+| `icon` | TEXT | `strokeRoundedInvoice01` | Key Hugeicons, contoh `strokeRoundedServingFood` |
+| `keywords` | TEXT | `'[]'` | JSON array keyword klasifikasi |
 
-Migration is in `migrate_db.py` (safe to re-run) — backfills all existing categories with English names and keyword arrays from the original hardcoded maps.
+Kolom `name_en` **dihapus**. Emoji lama di-migrate ke key Hugeicons pas startup (`database.py`).
 
 ---
 
@@ -48,12 +51,11 @@ Create a new category.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `name` | string | required | Indonesian name (unique per type) |
-| `name_en` | string | `""` | English display name |
-| `type` | string | required | `"expense"` or `"income"` |
-| `icon` | string | `""` | Emoji icon |
-| `keywords` | array | `[]` | Keywords for Hermes classification |
-| `sort_order` | int | `0` | Display order |
+| `name` | string | required | Nama Indonesia (unik per type) |
+| `type` | string | required | `"expense"` atau `"income"` |
+| `icon` | string | invoice fallback | Key Hugeicons `strokeRounded…` |
+| `keywords` | array | `[]` | Keyword klasifikasi |
+| `sort_order` | int | `0` | Urutan tampil |
 
 **Errors:** 403 (non-admin), 409 (duplicate name+type), 422 (validation)
 
@@ -63,17 +65,16 @@ Update an existing category. Cannot edit default categories (`is_default=1`).
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `name` | string | New name (checked for duplicates) |
-| `name_en` | string | New English name |
-| `icon` | string | New emoji |
-| `keywords` | array | New keyword list |
-| `sort_order` | int | New display order |
+| `name` | string | Nama baru (dicek duplikat) |
+| `icon` | string | Key Hugeicons |
+| `keywords` | array | Keyword baru |
+| `sort_order` | int | Urutan baru |
 
 **Errors:** 403 (non-admin or is_default), 404, 409 (duplicate on rename)
 
 ### GET `/api/v1/categories` (updated)
 
-Now returns `name_en` and `keywords` in every response.
+Response: `id`, `name`, `type`, `icon`, `is_default`, `keywords`. Tidak ada `name_en`.
 
 ---
 

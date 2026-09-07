@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../theme/app_theme.dart';
+import 'category_icons.dart';
 
-/// Map emoji category icons to Hugeicons. Falls back to a receipt glyph.
+/// Render a category icon from a Hugeicons DB key (or leftover emoji).
 class CategoryGlyph extends StatelessWidget {
   final String icon;
   final bool expense;
@@ -13,62 +14,6 @@ class CategoryGlyph extends StatelessWidget {
     this.expense = true,
     this.size = 36,
   });
-
-  List<List<dynamic>> get _mapped {
-    switch (icon.trim()) {
-      case '🍔':
-      case '🍜':
-      case '🍱':
-      case '🍽️':
-      case '🍽':
-        return HugeIcons.strokeRoundedServingFood;
-      case '🚗':
-      case '🛵':
-        return HugeIcons.strokeRoundedCar01;
-      case '⛽':
-      case '⛽️':
-        return HugeIcons.strokeRoundedFuelStation;
-      case '🛒':
-      case '🛍️':
-        return HugeIcons.strokeRoundedShoppingBag01;
-      case '💡':
-      case '⚡':
-        return HugeIcons.strokeRoundedHome01;
-      case '🏥':
-      case '💊':
-        return HugeIcons.strokeRoundedMedicineBottle01;
-      case '🎓':
-        return HugeIcons.strokeRoundedSchool;
-      case '🎮':
-        return HugeIcons.strokeRoundedGameController01;
-      case '💰':
-      case '💵':
-        return HugeIcons.strokeRoundedMoneyBag01;
-      case '🏦':
-        return HugeIcons.strokeRoundedBank;
-      case '📱':
-        return HugeIcons.strokeRoundedSmartPhone01;
-      case '🏠':
-        return HugeIcons.strokeRoundedHouse01;
-      case '👕':
-        return HugeIcons.strokeRoundedClothes;
-      case '🎁':
-        return HugeIcons.strokeRoundedGift;
-      case '✈️':
-        return HugeIcons.strokeRoundedAirplane01;
-      case '🐶':
-      case '🐱':
-        return HugeIcons.strokeRoundedFishFood;
-      case '🎬':
-        return HugeIcons.strokeRoundedTv01;
-      case '📄':
-        return HugeIcons.strokeRoundedInvoice01;
-      case '💻':
-        return HugeIcons.strokeRoundedLaptop;
-      default:
-        return HugeIcons.strokeRoundedInvoice01;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +27,7 @@ class CategoryGlyph extends StatelessWidget {
         borderRadius: BorderRadius.circular(size * 0.32),
       ),
       child: HugeIcon(
-        icon: _mapped,
+        icon: hugeIconFor(icon),
         size: size * 0.5,
         color: tint,
       ),

@@ -11,7 +11,7 @@ async def get_historical_spending(
 ) -> list[dict]:
     """Analyze avg/max spending per expense category over last N cycles.
 
-    Returns list of dicts with: category_id, category_name, category_name_en,
+    Returns list of dicts with: category_id, category_name,
     category_icon, avg_amount, max_amount, months_analyzed.
     Only categories with at least one transaction in the period are included.
     """
@@ -41,7 +41,6 @@ async def get_historical_spending(
     cursor = await db.execute(
         f"""SELECT t.category_id,
                    c.name AS category_name,
-                   c.name_en AS category_name_en,
                    c.icon AS category_icon,
                    CAST(COALESCE(AVG(t.amount), 0) AS INTEGER) AS avg_amount,
                    CAST(COALESCE(MAX(t.amount), 0) AS INTEGER) AS max_amount,
@@ -52,7 +51,7 @@ async def get_historical_spending(
             WHERE t.user_id = ?
               AND t.type = 'expense'
               AND ({or_conditions})
-            GROUP BY t.category_id, c.name, c.name_en, c.icon
+            GROUP BY t.category_id, c.name, c.icon
             ORDER BY avg_amount DESC""",
         (user_id, *params),
     )
@@ -61,7 +60,6 @@ async def get_historical_spending(
         {
             "category_id": r["category_id"],
             "category_name": r["category_name"] or f"Cat#{r['category_id']}",
-            "category_name_en": r["category_name_en"] or "",
             "category_icon": r["category_icon"] or "📦",
             "avg_amount": r["avg_amount"],
             "max_amount": r["max_amount"],
@@ -97,7 +95,6 @@ async def get_projection(
     cursor = await db.execute(
         """SELECT b.category_id, b.category_name, b.budget_amount,
                   c.icon AS category_icon,
-                  c.name_en AS category_name_en,
                   COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual
            FROM budgets b
            LEFT JOIN categories c ON b.category_id = c.id
@@ -105,7 +102,7 @@ async def get_projection(
                AND t.user_id = b.user_id
                AND COALESCE(t.date, LEFT(t.created_at::text, 10)) BETWEEN ? AND ?
            WHERE b.month = ? AND b.user_id = ?
-           GROUP BY b.category_id, b.category_name, b.budget_amount, c.icon, c.name_en""",
+           GROUP BY b.category_id, b.category_name, b.budget_amount, c.icon""",
         (d_from, d_to, d_from_date.strftime("%Y-%m"), user_id),
     )
     rows = await cursor.fetchall()
@@ -132,7 +129,6 @@ async def get_projection(
         categories.append({
             "category_id": r["category_id"],
             "category_name": r["category_name"],
-            "category_name_en": r["category_name_en"] or "",
             "category_icon": r["category_icon"] or "📦",
             "budget_amount": budget,
             "actual_spent": actual,
