@@ -1,6 +1,6 @@
 # 23 — Audit cleanup: Error copy ID, KPR calculate endpoint, currency prefix
 
-**Status:** Implemented — awaiting CI (backend deploy-backend + build-apk)
+**Status:** ✅ Done — CI green (`3fd0b34` Deploy Backend success, `3a46262` Build Flutter APK success); `/api/v1/kpr/calculate` live (401 tanpa JWT).
 **Scope owner:** Filla / Hermes
 
 ## Backdrop
