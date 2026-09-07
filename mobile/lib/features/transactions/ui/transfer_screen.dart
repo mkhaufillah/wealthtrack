@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/money.dart';
 import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -165,7 +166,7 @@ class _TransferBalanceScreenState
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        '${_recipients.firstWhere((r) => r.userId == t['user_id']).displayName}: Rp${_fmtAmount(t['amount'] as int)}',
+                        '${_recipients.firstWhere((r) => r.userId == t['user_id']).displayName}: ${MoneyFormat.prefix}${_fmtAmount(t['amount'] as int)}',
                       ),
                     ),
                   ],
@@ -177,7 +178,7 @@ class _TransferBalanceScreenState
               children: [
                 Text(t('common.total'),
                     style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('Rp${_fmtAmount(transfers.fold<int>(0, (s, t) => s + (t['amount'] as int)))}',
+                Text('${MoneyFormat.prefix}${_fmtAmount(transfers.fold<int>(0, (s, t) => s + (t['amount'] as int)))}',
                     style: const TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
