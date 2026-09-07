@@ -137,8 +137,7 @@ void main() {
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
       await tester.pumpAndSettle();
 
-      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedCalendar01), findsOneWidget);
-      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedCalendar01), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedCalendar01), findsNWidgets(2));
     });
 
     testWidgets('shows recipients section header', (tester) async {

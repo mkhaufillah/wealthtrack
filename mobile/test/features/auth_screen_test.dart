@@ -107,7 +107,7 @@ void main() {
 
       // Now OTP is sent, OTP field appears (6th TextFormField)
       // Leave other fields empty and tap Register
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Register'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Daftar'));
       await tester.pumpAndSettle();
 
       expect(find.text('Min 3 characters'), findsOneWidget);
