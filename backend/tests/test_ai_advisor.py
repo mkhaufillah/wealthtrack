@@ -137,7 +137,7 @@ class TestFinancialAdvise:
                 json={"question": "How can I save more money?"},
             )
             assert resp.status_code == 500
-            assert "not configured" in resp.json()["detail"].lower()
+            assert "belum dikonfigurasi" in resp.json()["detail"].lower()
         finally:
             settings.OPENCODE_GO_API_KEY = saved_key
 
@@ -324,7 +324,7 @@ class TestFinancialAdviseStream:
                 json={"question": "How can I save more money?"},
             )
             assert resp.status_code == 500
-            assert "not configured" in resp.text.lower()
+            assert "belum dikonfigurasi" in resp.text.lower()
         finally:
             settings.OPENCODE_GO_API_KEY = saved_key
 

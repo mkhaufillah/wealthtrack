@@ -1060,7 +1060,7 @@ async def delete_chat_messages(user_id: int, db: CursorWrapper) -> None:
 def ensure_api_key_configured():
     """Check that the AI API key is configured. Returns None or raises ValueError."""
     if not settings.llm_api_key:
-        raise ValueError("AI advisor not configured")
+        raise ValueError("AI belum dikonfigurasi")
 
 
 def check_model_access(req_model: str, current_user: dict) -> None:
