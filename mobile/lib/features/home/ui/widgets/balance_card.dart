@@ -9,12 +9,14 @@ class BalanceCard extends StatelessWidget {
   final int income;
   final int expense;
   final String? cycleLabel;
+  final String? amountText;
   const BalanceCard({
     super.key,
     required this.balance,
     required this.income,
     required this.expense,
     this.cycleLabel,
+    this.amountText,
   });
 
   @override
@@ -60,7 +62,7 @@ class BalanceCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              formatCurrency(balance),
+              amountText ?? formatCurrency(balance),
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w800,

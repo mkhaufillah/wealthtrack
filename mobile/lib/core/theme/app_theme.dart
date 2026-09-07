@@ -43,20 +43,20 @@ class AppColors {
 
   static bool get _dark => _brightness == Brightness.dark;
 
-  static Color get background => _dark ? darkBackground : _background;
-  static Color get surface => _dark ? darkSurface : _surface;
-  static Color get textPrimary => _dark ? darkTextPrimary : _textPrimary;
-  static Color get textSecondary => _dark ? darkTextSecondary : _textSecondary;
-  static Color get divider => _dark ? darkDivider : _divider;
-  static Color get primary => _dark ? darkPrimary : _primary;
-  static Color get accent => _dark ? darkAccent : _accent;
-  static Color get highlight => _dark ? darkHighlight : _highlight;
-  static Color get success => _dark ? darkSuccess : _success;
-  static Color get warning => _dark ? darkWarning : _warning;
-  static Color get heroFill => _dark ? darkCard : _heroFill;
-  static Color get heroOn => _dark ? darkTextPrimary : _onAccent;
-  static Color get mint => _dark ? darkMint : _mint;
-  static Color get butter => _dark ? darkButter : _butter;
+  static Color get background => _t('background', _dark ? darkBackground : _background);
+  static Color get surface => _t('surface', _dark ? darkSurface : _surface);
+  static Color get textPrimary => _t('ink', _dark ? darkTextPrimary : _textPrimary);
+  static Color get textSecondary => _t('muted', _dark ? darkTextSecondary : _textSecondary);
+  static Color get divider => _t('line', _dark ? darkDivider : _divider);
+  static Color get primary => _t('ink', _dark ? darkPrimary : _primary);
+  static Color get accent => _t('accent', _dark ? darkAccent : _accent);
+  static Color get highlight => _t('expense', _dark ? darkHighlight : _highlight);
+  static Color get success => _t('income', _dark ? darkSuccess : _success);
+  static Color get warning => _t('warning', _dark ? darkWarning : _warning);
+  static Color get heroFill => _t('heroFill', _dark ? darkCard : _heroFill);
+  static Color get heroOn => _t('heroOn', _dark ? darkTextPrimary : _onAccent);
+  static Color get mint => _t('mint', _dark ? darkMint : _mint);
+  static Color get butter => _t('butter', _dark ? darkButter : _butter);
   static Color get card => _dark ? darkCard : _surface;
   static Color get navActive => _dark ? darkTextPrimary : _textPrimary;
   static Color get navInactive => _dark ? darkTextSecondary : _textSecondary;
@@ -94,6 +94,61 @@ class AppColors {
 
   static Color get categoryPickerSelected =>
       _dark ? darkTextPrimary.withOpacity(0.12) : _primary.withOpacity(0.3);
+
+  static Map<String, Color> _remoteLight = {};
+  static Map<String, Color> _remoteDark = {};
+
+  static Color? _hex(dynamic raw) {
+    if (raw == null) return null;
+    var h = raw.toString().trim().replaceAll('#', '');
+    if (h.length == 6) h = 'FF$h';
+    if (h.length != 8) return null;
+    return Color(int.parse(h, radix: 16));
+  }
+
+  static void applyRemote({
+    Map<String, dynamic>? light,
+    Map<String, dynamic>? dark,
+  }) {
+    Color? tok(Map<String, dynamic>? src, String key) =>
+        src == null ? null : _hex(src[key]);
+
+    _remoteLight = {
+      if (tok(light, 'background') != null) 'background': tok(light, 'background')!,
+      if (tok(light, 'surface') != null) 'surface': tok(light, 'surface')!,
+      if (tok(light, 'ink') != null) 'ink': tok(light, 'ink')!,
+      if (tok(light, 'muted') != null) 'muted': tok(light, 'muted')!,
+      if (tok(light, 'line') != null) 'line': tok(light, 'line')!,
+      if (tok(light, 'accent') != null) 'accent': tok(light, 'accent')!,
+      if (tok(light, 'expense') != null) 'expense': tok(light, 'expense')!,
+      if (tok(light, 'income') != null) 'income': tok(light, 'income')!,
+      if (tok(light, 'warning') != null) 'warning': tok(light, 'warning')!,
+      if (tok(light, 'heroFill') != null) 'heroFill': tok(light, 'heroFill')!,
+      if (tok(light, 'heroOn') != null) 'heroOn': tok(light, 'heroOn')!,
+      if (tok(light, 'mint') != null) 'mint': tok(light, 'mint')!,
+      if (tok(light, 'butter') != null) 'butter': tok(light, 'butter')!,
+    };
+    _remoteDark = {
+      if (tok(dark, 'background') != null) 'background': tok(dark, 'background')!,
+      if (tok(dark, 'surface') != null) 'surface': tok(dark, 'surface')!,
+      if (tok(dark, 'ink') != null) 'ink': tok(dark, 'ink')!,
+      if (tok(dark, 'muted') != null) 'muted': tok(dark, 'muted')!,
+      if (tok(dark, 'line') != null) 'line': tok(dark, 'line')!,
+      if (tok(dark, 'accent') != null) 'accent': tok(dark, 'accent')!,
+      if (tok(dark, 'expense') != null) 'expense': tok(dark, 'expense')!,
+      if (tok(dark, 'income') != null) 'income': tok(dark, 'income')!,
+      if (tok(dark, 'warning') != null) 'warning': tok(dark, 'warning')!,
+      if (tok(dark, 'heroFill') != null) 'heroFill': tok(dark, 'heroFill')!,
+      if (tok(dark, 'heroOn') != null) 'heroOn': tok(dark, 'heroOn')!,
+      if (tok(dark, 'mint') != null) 'mint': tok(dark, 'mint')!,
+      if (tok(dark, 'butter') != null) 'butter': tok(dark, 'butter')!,
+    };
+  }
+
+  static Color _t(String name, Color fallback) {
+    final map = _dark ? _remoteDark : _remoteLight;
+    return map[name] ?? fallback;
+  }
 }
 
 class AppTheme {

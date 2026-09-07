@@ -12,7 +12,7 @@
 | Cache / Queue | Redis — rate limiting, OCR queue, AI cache |
 | Search | Meilisearch — full-text transaction search |
 
-## Tables (16 total)
+## Tables (18 total)
 
 ### `users`
 
@@ -817,6 +817,47 @@ Defined in `backend/app/core/meilisearch.py`:
 - All calls run via `anyio.to_thread.run_sync()` to avoid blocking the async event loop
 - A `bulk_index_documents()` helper is available for migration/seed scripts (sync)
 - Search results return transaction IDs via `search_descriptions(q, filters, sort, offset, limit)`
+
+---
+
+## ui_copy — server-driven copy (Phase 1)
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| key | `TEXT` | `NOT NULL` |
+| locale | `TEXT` | `NOT NULL DEFAULT 'id-ID'` |
+| value | `TEXT` | `NOT NULL` |
+| updated_at | `TIMESTAMPTZ` | `NOT NULL DEFAULT NOW()` |
+
+**PK** `(key, locale)`. **SoT** for every UI product string (`home.hero_title`, `nav.transactions`, …). Seeded idempotently by `backend/app/core/ui_seed.py` (`ON CONFLICT DO NOTHING`). Changing a string in prod = `UPDATE ui_copy`, not a deploy. Served via `GET /ui/bootstrap` with a Redis `ui:bootstrap:{locale}` cache (TTL 1 hour).
+
+```sql
+CREATE TABLE IF NOT EXISTS ui_copy (
+    key        TEXT NOT NULL,
+    locale     TEXT NOT NULL DEFAULT 'id-ID',
+    value      TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (key, locale)
+);
+```
+
+## ui_config — non-copy bootstrap config (Phase 1)
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| key | `TEXT` | `PRIMARY KEY` |
+| value | `JSONB` | `NOT NULL` |
+| updated_at | `TIMESTAMPTZ` | `NOT NULL DEFAULT NOW()` |
+
+Rows: `locale`, `format` (`currency`, `currency_prefix`, `group_sep`, `decimal_sep`), `theme.light`, `theme.dark` (hex token maps), `flags` (`home_all_time`).
+
+```sql
+CREATE TABLE IF NOT EXISTS ui_config (
+    key    TEXT PRIMARY KEY,
+    value  JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
 
 ---
 

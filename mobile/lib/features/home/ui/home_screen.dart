@@ -136,6 +136,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           income: state.totalIncome,
                           expense: state.totalExpense,
                           cycleLabel: t('home.hero_title'),
+                          amountText: state.balanceDisplay,
                         ),
                         if (ocrState.pendingCount > 0) ...[
                           const SizedBox(height: 10),

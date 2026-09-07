@@ -1,4 +1,4 @@
-/// Copy ID — ramah, santai. Source of truth until GET /ui/bootstrap.
+/// Copy ID — ramah, santai. Live catalog is GET /ui/bootstrap (DB). This map is offline fallback.
 const Map<String, String> copyFallback = {
   'home.hero_title': 'Uang kamu',
   'home.hero_sub': 'Rekap pribadi, dari awal sampai sekarang',
@@ -255,4 +255,10 @@ const Map<String, String> copyFallback = {
   'cat.fail': 'Gagal',
 };
 
-String t(String key) => copyFallback[key] ?? key;
+String t(String key) => remoteCopy[key] ?? copyFallback[key] ?? key;
+
+Map<String, String> remoteCopy = <String, String>{};
+
+void applyRemoteCopy(Map<String, String> incoming) {
+  remoteCopy = Map<String, String>.from(incoming);
+}

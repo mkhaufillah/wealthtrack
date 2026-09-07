@@ -322,6 +322,8 @@ Register router in `main.py`. Auth: same JWT.
 
 ### Phase 1 — Bootstrap (API + client)
 
+> **Status:** Implemented (backend + client). Copy lives in Postgres `ui_copy`/`ui_config`, served via Redis `ui:bootstrap:{locale}` TTL 3600, public endpoint, client overlay via `AppColors.applyRemote`, `t()`, `MoneyFormat`. `GET /home` added (personal all-time with `_display` strings).
+
 **Copy lives in Postgres.** No Python dict as SoT.
 
 **TDD backend first**

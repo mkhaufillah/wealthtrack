@@ -8,18 +8,22 @@ class DashboardState {
   final int totalIncome; final int totalExpense; final int balance;
   final List<TransactionModel> recentTransactions; final int totalTransactions;
   final String? dateFrom; final String? dateTo;
+  final String? balanceDisplay; final String? incomeDisplay; final String? expenseDisplay;
   const DashboardState({this.isLoading = false, this.error, this.totalIncome = 0, this.totalExpense = 0,
     this.balance = 0, this.recentTransactions = const [], this.totalTransactions = 0,
-    this.dateFrom, this.dateTo});
+    this.dateFrom, this.dateTo, this.balanceDisplay, this.incomeDisplay, this.expenseDisplay});
 
   DashboardState copyWith({bool? isLoading, String? error, int? totalIncome, int? totalExpense,
     int? balance, List<TransactionModel>? recentTransactions, int? totalTransactions,
-    String? dateFrom, String? dateTo}) =>
+    String? dateFrom, String? dateTo, String? balanceDisplay, String? incomeDisplay, String? expenseDisplay}) =>
     DashboardState(isLoading: isLoading ?? this.isLoading, error: error ?? this.error,
       totalIncome: totalIncome ?? this.totalIncome, totalExpense: totalExpense ?? this.totalExpense,
       balance: balance ?? this.balance, recentTransactions: recentTransactions ?? this.recentTransactions,
       totalTransactions: totalTransactions ?? this.totalTransactions,
-      dateFrom: dateFrom ?? this.dateFrom, dateTo: dateTo ?? this.dateTo);
+      dateFrom: dateFrom ?? this.dateFrom, dateTo: dateTo ?? this.dateTo,
+      balanceDisplay: balanceDisplay ?? this.balanceDisplay,
+      incomeDisplay: incomeDisplay ?? this.incomeDisplay,
+      expenseDisplay: expenseDisplay ?? this.expenseDisplay);
 }
 
 class DashboardNotifier extends StateNotifier<DashboardState> {
@@ -35,6 +39,29 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     }
     state = state.copyWith(isLoading: true, error: null);
     try {
+      try {
+        final homeRes = await _api.get('/home');
+        final data = homeRes.data;
+        if (data is Map && data['hero'] is Map) {
+          final hero = data['hero'] as Map;
+          final txnRes = await _api.get('/transactions', queryParams: {'per_page': 5, 'sort': '-date'});
+          final txns = (txnRes.data['data'] as List)
+              .map((e) => TransactionModel.fromJson(e as Map<String, dynamic>))
+              .toList();
+          state = DashboardState(
+            totalIncome: (hero['income'] as num?)?.toInt() ?? 0,
+            totalExpense: (hero['expense'] as num?)?.toInt() ?? 0,
+            balance: (hero['amount'] as num?)?.toInt() ?? 0,
+            balanceDisplay: hero['amount_display']?.toString(),
+            incomeDisplay: hero['income_display']?.toString(),
+            expenseDisplay: hero['expense_display']?.toString(),
+            recentTransactions: txns,
+            totalTransactions: txnRes.data['meta']['total'] ?? 0,
+          );
+          _lastFetch = DateTime.now();
+          return;
+        }
+      } catch (_) {}
       final summaryRes = await _api.get('/summaries/daily');
       final summary = summaryRes.data;
       final txnRes = await _api.get('/transactions', queryParams: {'per_page': 5, 'sort': '-date'});

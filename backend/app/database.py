@@ -449,6 +449,20 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
 CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
+
+CREATE TABLE IF NOT EXISTS ui_copy (
+    key TEXT NOT NULL,
+    locale TEXT NOT NULL DEFAULT 'id-ID',
+    value TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (key, locale)
+);
+
+CREATE TABLE IF NOT EXISTS ui_config (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 """
 
 
@@ -537,6 +551,11 @@ async def _init_schema(conn):
             except Exception as e:
                 print(f"Schema init warning (non-fatal): {e}")
     await _migrate_category_icons(conn)
+    from app.core.ui_seed import seed_ui
+    try:
+        await seed_ui(conn)
+    except Exception as e:
+        print(f"UI seed warning (non-fatal): {e}")
 
 
 

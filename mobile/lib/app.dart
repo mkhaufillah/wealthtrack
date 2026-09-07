@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:ui' as ui;
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'core/theme/app_theme.dart';
+import 'core/ui/ui_config.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/ui/login_screen.dart';
 import 'features/auth/ui/register_screen.dart';
@@ -146,6 +148,8 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
   void initState() {
     super.initState();
     _widgetChannel.setMethodCallHandler(_handleWidgetNavigation);
+    // Load live copy/theme/format from GET /ui/bootstrap (DB via Redis).
+    unawaited(ref.read(uiConfigProvider.notifier).load());
     ref.read(authProvider.notifier).checkAuth().then((_) {
       if (mounted) setState(() => _initialized = true);
       _checkPendingWidgetAction();

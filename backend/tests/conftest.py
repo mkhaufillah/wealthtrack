@@ -60,6 +60,8 @@ DEFAULT_TRANSACTIONS = [
 
 SCHEMA_SQL = """
 DROP TABLE IF EXISTS api_keys CASCADE;
+DROP TABLE IF EXISTS ui_copy CASCADE;
+DROP TABLE IF EXISTS ui_config CASCADE;
 DROP TABLE IF EXISTS kpr_extra_payments CASCADE;
 DROP TABLE IF EXISTS kpr_monthly_schedules CASCADE;
 DROP TABLE IF EXISTS kpr_rate_periods CASCADE;
@@ -279,6 +281,20 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
 CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
+
+CREATE TABLE IF NOT EXISTS ui_copy (
+    key TEXT NOT NULL,
+    locale TEXT NOT NULL DEFAULT 'id-ID',
+    value TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (key, locale)
+);
+
+CREATE TABLE IF NOT EXISTS ui_config (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 """
 
 TABLES_IN_ORDER = [
@@ -288,6 +304,7 @@ TABLES_IN_ORDER = [
     "ai_chat_summaries", "ai_messages", "ocr_jobs", "budgets",
     "household_members", "households", "transactions",
     "email_verifications", "categories", "users",
+    "ui_copy", "ui_config",
 ]
 
 
@@ -327,6 +344,8 @@ async def _create_test_db():
     # Reset sequences to prevent conflicts with auto-generated ids
     for tbl in ["users", "categories", "transactions", "households", "budgets", "email_verifications", "ocr_jobs", "ai_messages", "kpr_simulations", "kpr_rate_periods", "kpr_monthly_schedules", "credit_cards", "credit_card_installments", "credit_card_transactions", "api_keys"]:
         await conn.execute(f"SELECT setval('{tbl}_id_seq', COALESCE((SELECT MAX(id) FROM {tbl}), 0) + 1, false)")
+    from app.core.ui_seed import seed_ui
+    await seed_ui(conn)
     return conn
 
 

@@ -14,6 +14,11 @@
 | Auth | JWT (Bearer token) |
 | Docs | Swagger at `/docs`, ReDoc at `/redoc` |
 
+**Look for**:
+
+- `GET /home` — personal all-time dashboard: `hero` (amount/income/expense + `_display`), `pots`, `debt_summary.visible`, `recent[]`. Server formats money; client does **not** compute `income - expense`.
+- `GET /ui/bootstrap` — public copy/config (no JWT): `locale`, `format`, `theme.light`/`theme.dark`, `copy`, `flags`. Served via Redis `ui:bootstrap:{locale}` (TTL 3600). SoT: `ui_copy` / `ui_config` tables.
+
 ## Authentication
 
 ### POST `/api/v1/auth/send-otp`

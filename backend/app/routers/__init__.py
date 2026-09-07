@@ -12,4 +12,6 @@ from . import (
     kpr,
     ai_advisor,
     mcp,
+    api_keys,
+    ui,
 )

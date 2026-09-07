@@ -1,8 +1,14 @@
 import 'package:intl/intl.dart';
+import '../../core/ui/money.dart';
 
 String formatCurrency(int amount) {
   final formatter = NumberFormat('#,###', 'id_ID');
-  return 'Rp${formatter.format(amount)}';
+  var body = formatter.format(amount.abs());
+  if (MoneyFormat.groupSep != '.') {
+    body = body.replaceAll('.', MoneyFormat.groupSep);
+  }
+  final sign = amount < 0 ? '-' : '';
+  return '$sign${MoneyFormat.prefix}$body';
 }
 
 String _trimNum(double n) {

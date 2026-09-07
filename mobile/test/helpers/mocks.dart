@@ -24,6 +24,10 @@ class MockSecureStorage extends SecureStorage {
   Future<void> clearToken() async => _store.remove('token');
   @override
   Future<void> clearAll() async => _store.clear();
+  @override
+  Future<void> saveSecure(String key, String value) async => _store[key] = value;
+  @override
+  Future<String?> getSecure(String key) async => _store[key];
 }
 
 /// A lightweight Dio-like response for test assertions.
