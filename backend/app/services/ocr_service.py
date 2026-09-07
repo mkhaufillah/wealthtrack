@@ -24,6 +24,13 @@ from app.database import CursorWrapper, background_tasks
 
 logger = logging.getLogger(__name__)
 
+def _vision_model() -> str:
+    return (
+        "deepseek/deepseek-v4-flash-vision-exp"
+        if settings.llm_via_openrouter
+        else "deepseek-v4-flash-vision-exp"
+    )
+
 # ── System-wide semaphore: max 2 concurrent Vision API calls across all users ──
 _ocr_semaphore = asyncio.Semaphore(2)
 
@@ -424,11 +431,7 @@ class OcrService:
                         settings.llm_api_url,
                         headers=settings.llm_headers(),
                         json={
-                            "model": (
-                                "deepseek/deepseek-v4-flash-vision-exp"
-                                if settings.llm_via_openrouter
-                                else "deepseek-v4-flash-vision-exp"
-                            ),
+                            "model": _vision_model(),
                             "messages": [
                                 {"role": "system", "content": prompt},
                                 {
@@ -463,6 +466,7 @@ class OcrService:
                     "Layanan baca struk lagi sibuk. Coba sebentar lagi ya."
                 )
             elif resp.status_code != 200:
+                logger.warning("OCR vision HTTP %s: %s", resp.status_code, (resp.text or "")[:400])
                 raise OcrVisionApiError(f"Vision API error: HTTP {resp.status_code}")
 
             body = resp.json()
@@ -498,11 +502,7 @@ class OcrService:
                             settings.llm_api_url,
                             headers=settings.llm_headers(),
                             json={
-                                "model": (
-                                    "deepseek/deepseek-v4-flash-vision-exp"
-                                    if settings.llm_via_openrouter
-                                    else "kimi-k2.5"
-                                ),
+                                "model": _vision_model(),
                                 "messages": [
                                     {"role": "system", "content": prompt},
                                     {
@@ -544,6 +544,11 @@ class OcrService:
                         f"Vision API error: HTTP {vision_resp.status_code}"
                     )
                 elif vision_resp.status_code != 200:
+                    logger.warning(
+                        "OCR vision HTTP %s: %s",
+                        vision_resp.status_code,
+                        (vision_resp.text or "")[:400],
+                    )
                     raise OcrVisionApiError(
                         f"Vision API error: HTTP {vision_resp.status_code}"
                     )
