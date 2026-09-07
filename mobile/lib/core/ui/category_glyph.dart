@@ -25,13 +25,13 @@ class CategoryGlyph extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: selected ? tint : tint.withOpacity(0.14),
+        color: selected ? tint.withOpacity(0.22) : tint.withOpacity(0.14),
         borderRadius: BorderRadius.circular(size * 0.32),
       ),
       child: HugeIcon(
         icon: hugeIconFor(icon),
         size: size * 0.5,
-        color: selected ? AppColors.onAccent : tint,
+        color: tint,
       ),
     );
   }

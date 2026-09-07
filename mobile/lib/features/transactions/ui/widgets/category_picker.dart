@@ -81,11 +81,11 @@ class _CatChip extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
         decoration: BoxDecoration(
-          color: selected ? selectedTint : AppColors.surface,
+          color: selected ? selectedTint.withOpacity(0.18) : AppColors.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? selectedTint : AppColors.divider,
-            width: selected ? 1.5 : 1,
+            color: selected ? selectedTint.withOpacity(0.55) : AppColors.divider,
+            width: 1,
           ),
         ),
         child: Row(
@@ -98,7 +98,7 @@ class _CatChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: selected ? AppColors.onAccent : AppColors.textPrimary,
+                color: selected ? selectedTint : AppColors.textPrimary,
               ),
             ),
           ],

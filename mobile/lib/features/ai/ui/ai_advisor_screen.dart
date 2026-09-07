@@ -321,7 +321,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                   CircleAvatar(
                     backgroundColor: _isLoading ? AppColors.textSecondary : AppColors.accent,
                     child: IconButton(
-                      icon: AppIcon(AppIcons.send, color: AppColors.surface, size: 18),
+                      icon: AppIcon(AppIcons.send, color: AppColors.onAccent, size: 18),
                       onPressed: _isLoading ? null : () => _send(),
                     ),
                   ),

@@ -630,23 +630,27 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
 async def resolve_model(model: str) -> tuple[str, str, str]:
     """Return (resolved_model, api_url, api_key) for the given model."""
-    model_map = {
-        "flash": "deepseek-v4-flash",
-        "opus": "anthropic/claude-opus-4.7",
-    }
+    via_or = settings.llm_via_openrouter
+    if via_or:
+        model_map = {
+            "flash": "deepseek/deepseek-v4-flash",
+            "opus": "anthropic/claude-opus-4.7",
+        }
+    else:
+        model_map = {
+            "flash": "deepseek-v4-flash",
+            "opus": "anthropic/claude-opus-4.7",
+        }
     resolved = model_map.get(model, model)
+    api_url = settings.llm_api_url
+    api_key = settings.llm_api_key
 
-    # Default: OpenCode Go
-    api_url = "https://opencode.ai/zen/go/v1/chat/completions"
-    api_key = settings.OPENCODE_GO_API_KEY
-
-    if model == "opus":
-        if settings.OPENROUTER_API_KEY:
-            api_key = settings.OPENROUTER_API_KEY
-            api_url = "https://openrouter.ai/api/v1/chat/completions"
-        else:
-            # No OpenRouter key — fallback to flash via OpenCode
-            resolved = "deepseek-v4-flash"
+    if model == "opus" and settings.OPENROUTER_API_KEY:
+        resolved = "anthropic/claude-opus-4.7"
+        api_key = settings.OPENROUTER_API_KEY
+        api_url = "https://openrouter.ai/api/v1/chat/completions"
+    elif model == "opus" and not settings.OPENROUTER_API_KEY:
+        resolved = "deepseek-v4-flash"
     return resolved, api_url, api_key
 
 
@@ -660,10 +664,7 @@ async def call_model_stream(
         async with client.stream(
             "POST",
             api_url,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
+            headers=settings.llm_headers(),
             json={
                 "model": resolved,
                 "messages": messages,
@@ -674,7 +675,11 @@ async def call_model_stream(
         ) as resp:
             if resp.status_code != 200:
                 error_text = await resp.aread()
-                yield f"[ERROR:{resp.status_code}]"
+                logger.warning("AI stream HTTP %s", resp.status_code)
+                if resp.status_code in (401, 403, 429):
+                    yield "[ERROR:Layanan AI lagi kena limit atau diblokir. Cek kuota OpenRouter / kunci OpenCode.]"
+                else:
+                    yield f"[ERROR:{resp.status_code}]"
                 return
 
             full_content = ""
@@ -707,10 +712,7 @@ async def call_model(
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(
             api_url,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
+            headers=settings.llm_headers(),
             json={
                 "model": resolved,
                 "messages": messages,
@@ -720,6 +722,9 @@ async def call_model(
         )
 
     if resp.status_code != 200:
+        logger.warning("AI HTTP %s", resp.status_code)
+        if resp.status_code in (401, 403, 429):
+            raise Exception("Layanan AI lagi kena limit atau diblokir. Cek kuota OpenRouter / kunci OpenCode.")
         raise Exception(f"AI API error: {resp.status_code}")
 
     body = resp.json()
@@ -878,7 +883,7 @@ async def delete_chat_messages(user_id: int, db: CursorWrapper) -> None:
 
 def ensure_api_key_configured():
     """Check that the AI API key is configured. Returns None or raises ValueError."""
-    if not settings.OPENCODE_GO_API_KEY:
+    if not settings.llm_api_key:
         raise ValueError("AI advisor not configured")
 
 

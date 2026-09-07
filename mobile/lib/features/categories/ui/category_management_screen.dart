@@ -38,6 +38,7 @@ class _CategoryManagementScreenState
     final isDefault = category?['is_default'] == true;
     bool saving = false;
     String iconQuery = '';
+    final iconScrollCtrl = ScrollController();
 
     final saved = await showModalBottomSheet<bool>(
       context: context,
@@ -100,38 +101,42 @@ class _CategoryManagementScreenState
                       onChanged: (v) => setSheetState(() => iconQuery = v),
                     ),
                     const SizedBox(height: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 220),
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          for (final item in kCategoryIconCatalog.where((i) {
-                            final q = iconQuery.trim().toLowerCase();
-                            if (q.isEmpty) return true;
-                            return i.key.toLowerCase().contains(q) ||
-                                i.label.toLowerCase().contains(q);
-                          }))
-                            ListTile(
-                              dense: true,
-                              selected: iconKey == item.key,
-                              selectedTileColor: AppColors.highlight,
-                              selectedColor: AppColors.onAccent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 220),
+                        child: ListView(
+                          controller: iconScrollCtrl,
+                          clipBehavior: Clip.hardEdge,
+                          shrinkWrap: true,
+                          children: [
+                            for (final item in kCategoryIconCatalog.where((i) {
+                              final q = iconQuery.trim().toLowerCase();
+                              if (q.isEmpty) return true;
+                              return i.key.toLowerCase().contains(q) ||
+                                  i.label.toLowerCase().contains(q);
+                            }))
+                              Material(
+                                color: iconKey == item.key
+                                    ? AppColors.highlight.withOpacity(0.18)
+                                    : Colors.transparent,
+                                child: ListTile(
+                                  dense: true,
+                                  leading: CategoryGlyph(
+                                    icon: item.key,
+                                    expense: type != 'income',
+                                    size: 32,
+                                    selected: iconKey == item.key,
+                                  ),
+                                  title: Text(item.key, style: const TextStyle(fontSize: 12)),
+                                  subtitle: Text(item.label, style: const TextStyle(fontSize: 11)),
+                                  onTap: isDefault
+                                      ? null
+                                      : () => setSheetState(() => iconKey = item.key),
+                                ),
                               ),
-                              leading: CategoryGlyph(
-                                icon: item.key,
-                                expense: type != 'income',
-                                size: 32,
-                                selected: iconKey == item.key,
-                              ),
-                              title: Text(item.key, style: const TextStyle(fontSize: 12)),
-                              subtitle: Text(item.label, style: const TextStyle(fontSize: 11)),
-                              onTap: isDefault
-                                  ? null
-                                  : () => setSheetState(() => iconKey = item.key),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -207,7 +212,7 @@ class _CategoryManagementScreenState
                                 }
                               },
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.highlight,
+                          backgroundColor: AppColors.accent,
                           foregroundColor: AppColors.onAccent,
                         ),
                         child: saving
@@ -234,6 +239,9 @@ class _CategoryManagementScreenState
     if (saved == true) {
       ref.read(categoryManagementProvider.notifier).load();
     }
+    iconScrollCtrl.dispose();
+    nameCtrl.dispose();
+    keywordsCtrl.dispose();
   }
 
   @override

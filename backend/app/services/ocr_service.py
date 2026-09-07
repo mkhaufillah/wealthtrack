@@ -137,7 +137,7 @@ class OcrService:
         """
         self._validate_image(content_type, file_bytes)
 
-        api_key = settings.OPENCODE_GO_API_KEY
+        api_key = settings.llm_api_key
         if not api_key:
             raise OcrApiKeyError()
 
@@ -197,7 +197,7 @@ class OcrService:
                 "Struk sebelumnya masih diproses, tunggu ya."
             )
 
-        api_key = settings.OPENCODE_GO_API_KEY
+        api_key = settings.llm_api_key
         if not api_key:
             raise OcrApiKeyError()
 
@@ -421,13 +421,14 @@ class OcrService:
             async with _ocr_semaphore:
                 async with httpx.AsyncClient(timeout=60) as client:
                     resp = await client.post(
-                        "https://opencode.ai/zen/go/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {api_key}",
-                            "Content-Type": "application/json",
-                        },
+                        settings.llm_api_url,
+                        headers=settings.llm_headers(),
                         json={
-                            "model": "kimi-k2.5",
+                            "model": (
+                                "deepseek/deepseek-v4-flash-vision-exp"
+                                if settings.llm_via_openrouter
+                                else "kimi-k2.5"
+                            ),
                             "messages": [
                                 {"role": "system", "content": prompt},
                                 {
@@ -494,13 +495,14 @@ class OcrService:
                 try:
                     async with httpx.AsyncClient(timeout=60) as client:
                         vision_resp = await client.post(
-                            "https://opencode.ai/zen/go/v1/chat/completions",
-                            headers={
-                                "Authorization": f"Bearer {api_key}",
-                                "Content-Type": "application/json",
-                            },
+                            settings.llm_api_url,
+                            headers=settings.llm_headers(),
                             json={
-                                "model": "kimi-k2.5",
+                                "model": (
+                                    "deepseek/deepseek-v4-flash-vision-exp"
+                                    if settings.llm_via_openrouter
+                                    else "kimi-k2.5"
+                                ),
                                 "messages": [
                                     {"role": "system", "content": prompt},
                                     {

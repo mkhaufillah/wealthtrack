@@ -61,6 +61,30 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return json.loads(self.CORS_ORIGINS)
 
+    @property
+    def llm_via_openrouter(self) -> bool:
+        return bool(self.OPENROUTER_API_KEY)
+
+    @property
+    def llm_api_url(self) -> str:
+        if self.OPENROUTER_API_KEY:
+            return "https://openrouter.ai/api/v1/chat/completions"
+        return "https://opencode.ai/zen/go/v1/chat/completions"
+
+    @property
+    def llm_api_key(self) -> str:
+        return self.OPENROUTER_API_KEY or self.OPENCODE_GO_API_KEY
+
+    def llm_headers(self) -> dict:
+        headers = {
+            "Authorization": f"Bearer {self.llm_api_key}",
+            "Content-Type": "application/json",
+        }
+        if self.OPENROUTER_API_KEY:
+            headers["HTTP-Referer"] = "https://wealthtrack.filla.id"
+            headers["X-Title"] = "WealthTrack"
+        return headers
+
 
 settings = Settings()
 
