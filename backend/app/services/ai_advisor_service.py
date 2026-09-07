@@ -78,6 +78,9 @@ Percakapan ini bersifat personal — hanya {user_name} yang sedang berbicara den
 • Jangan campur sapaan. Dari pesan pertama sampai terakhir di thread ini, register-nya sama.
 • Kalau history lama ada kak/kang/mas, abaikan — tetap kamu.
 
+**Ringkasan percakapan sebelumnya:**
+{chat_summary}
+
 ━━━ DATA TERKINI — {current_datetime_wib} ━━━
 
 **Siklus Keuangan:** {cycle_label}
@@ -505,10 +508,13 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
     # KPR per-simulation details with owner
     cursor = await db.execute(
-        f"""SELECT ks.name, ks.total_loan, ks.interest_type, ks.tenor_months,
-                  ks.start_month, ks.start_year, ks.user_id, u.display_name AS owner,
+        f"""SELECT ks.id, ks.name, ks.property_price, ks.down_payment, ks.total_loan,
+                  ks.interest_type, ks.base_interest_rate, ks.tenor_months,
+                  ks.start_month, ks.start_year, ks.due_date, ks.user_id,
+                  u.display_name AS owner,
                   CASE WHEN ks.user_id = ? THEN 0 ELSE 1 END AS is_member,
-                  COALESCE((SELECT COUNT(*) FROM kpr_extra_payments kep WHERE kep.simulation_id = ks.id), 0) AS extra_payments
+                  COALESCE((SELECT COUNT(*) FROM kpr_extra_payments kep WHERE kep.simulation_id = ks.id), 0) AS extra_payments,
+                  COALESCE((SELECT SUM(kep.amount) FROM kpr_extra_payments kep WHERE kep.simulation_id = ks.id), 0) AS extra_sum
            FROM kpr_simulations ks
            JOIN users u ON u.id = ks.user_id
            WHERE {hh_where}
@@ -565,7 +571,8 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
     # CC per-card details with owner
     cursor = await db.execute(
-        f"""SELECT cc.name, cc.credit_limit, cc.user_id, u.display_name AS owner,
+        f"""SELECT cc.id, cc.name, cc.credit_limit, cc.billing_date, cc.due_date,
+                  cc.card_number_last4, cc.user_id, u.display_name AS owner,
                   CASE WHEN cc.user_id = ? THEN 0 ELSE 1 END AS is_member
            FROM credit_cards cc
            JOIN users u ON u.id = cc.user_id
@@ -575,35 +582,103 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
     )
     cc_details = await cursor.fetchall()
 
+    inst_by_card: dict[int, list] = {}
+    cursor = await db.execute(
+        f"""SELECT cci.card_id, cci.description, cci.monthly_amount, cci.total_amount,
+                  cci.total_months, cci.remaining_months
+           FROM credit_card_installments cci
+           JOIN credit_cards cc ON cc.id = cci.card_id
+           WHERE ({cc_hh_where}) AND cci.remaining_months > 0
+           ORDER BY cci.id ASC""",
+        cc_hh_params,
+    )
+    for row in await cursor.fetchall():
+        inst_by_card.setdefault(int(row["card_id"]), []).append(row)
+
+    spend_by_card: dict[int, int] = {}
+    cursor = await db.execute(
+        f"""SELECT cct.card_id, COALESCE(SUM(cct.amount), 0) AS spent
+           FROM credit_card_transactions cct
+           JOIN credit_cards cc ON cc.id = cct.card_id
+           WHERE ({cc_hh_where}) AND cct.is_installment = 0
+               AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
+               AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)
+           GROUP BY cct.card_id""",
+        cc_hh_params,
+    )
+    for row in await cursor.fetchall():
+        spend_by_card[int(row["card_id"])] = int(row["spent"])
+
+    today = date.today()
+    type_label = {
+        "fixed": "Tetap",
+        "floating": "Mengambang",
+        "graduated": "Bertahap",
+        "mix": "Campur",
+    }
+
     total_cc = total_cc_txns + total_cc_installments
     total_debt = total_kpr + total_cc
 
-    # Build debt context
     debt_parts = []
     if kpr_count > 0:
-        kpr_member_lines = []
-        for ow, info in sorted(kpr_member_map.items()):
-            types_str = "/".join(sorted(info["types"]))
-            kpr_member_lines.append(f"    {ow}: {info['count']} simulasi ({types_str})")
-        debt_parts.append(f"• KPR: Rp{total_kpr:,} ({kpr_count} simulasi)")
-        debt_parts.extend(kpr_member_lines)
-        total_extra = sum(k["extra_payments"] for k in kpr_details)
-        if total_extra > 0:
-            debt_parts.append(f"    *{total_extra} extra payment telah dilakukan")
-    if cc_count > 0:
-        cc_member_lines = []
-        for c in cc_details:
-            label = f"    {c['owner']}: {c['name']}"
-            if c["is_member"]:
-                label += " (🏠 member)"
-            cc_member_lines.append(label)
+        debt_parts.append(f"• KPR keluarga: Rp{total_kpr:,} ({kpr_count} simulasi)")
+        for k in kpr_details:
+            elapsed = (
+                (today.year * 12 + today.month)
+                - (int(k["start_year"]) * 12 + int(k["start_month"]))
+                + 1
+            )
+            tenor = int(k["tenor_months"] or 1)
+            elapsed = max(1, min(elapsed, tenor))
+            cur = await db.execute(
+                """SELECT payment, remaining_balance, interest_rate
+                   FROM kpr_monthly_schedules
+                   WHERE simulation_id = ? AND month_number = ?""",
+                (k["id"], elapsed),
+            )
+            sch = await cur.fetchone()
+            cicilan = int(sch["payment"]) if sch else 0
+            sisa = int(sch["remaining_balance"]) if sch else int(k["total_loan"] or 0)
+            rate = float(sch["interest_rate"] if sch and sch["interest_rate"] is not None else k["base_interest_rate"] or 0)
+            rate_pct = rate * 100 if rate <= 1 else rate
+            itype = type_label.get(k["interest_type"] or "fixed", k["interest_type"])
+            due = f", jatuh tempo tgl {k['due_date']}" if k["due_date"] else ""
+            extra_n = int(k["extra_payments"] or 0)
+            extra_sum = int(k["extra_sum"] or 0)
+            extra_txt = f", extra payment {extra_n}x Rp{extra_sum:,}" if extra_n else ""
+            debt_parts.append(
+                f"  - {k['name'] or 'Simulasi KPR'} ({k['owner']}): "
+                f"rumah Rp{int(k['property_price'] or 0):,}, DP Rp{int(k['down_payment'] or 0):,}, "
+                f"pinjaman Rp{int(k['total_loan'] or 0):,}, bunga {itype} {rate_pct:.2f}%, "
+                f"tenor {tenor} bln mulai {int(k['start_month']):02d}/{k['start_year']}{due}, "
+                f"bulan ke-{elapsed}, cicilan Rp{cicilan:,}, sisa pokok Rp{sisa:,}{extra_txt}"
+            )
+    if cc_details:
         debt_parts.append(
-            f"• Kartu Kredit: Rp{total_cc:,} (transaksi Rp{total_cc_txns:,} + cicilan Rp{total_cc_installments:,})"
+            f"• Kartu kredit: outstanding Rp{total_cc:,} "
+            f"(belanja bulan ini Rp{total_cc_txns:,} + sisa cicilan Rp{total_cc_installments:,})"
         )
-        debt_parts.extend(cc_member_lines)
+        for c in cc_details:
+            cid = int(c["id"])
+            last4 = (c["card_number_last4"] or "").strip()
+            tail = f" *{last4}" if last4 else ""
+            spent = spend_by_card.get(cid, 0)
+            debt_parts.append(
+                f"  - {c['name']}{tail} ({c['owner']}): limit Rp{int(c['credit_limit'] or 0):,}, "
+                f"tagihan tgl {c['billing_date']}, tempo tgl {c['due_date']}, "
+                f"belanja bulan ini Rp{spent:,}"
+            )
+            for inst in inst_by_card.get(cid, []):
+                debt_parts.append(
+                    f"      cicilan {inst['description'] or 'tanpa nama'}: "
+                    f"Rp{int(inst['monthly_amount'] or 0):,}/bln, "
+                    f"{int(inst['remaining_months'] or 0)}/{int(inst['total_months'] or 0)} bln tersisa, "
+                    f"pokok Rp{int(inst['total_amount'] or 0):,}"
+                )
     if debt_parts:
         debt_context = "\n".join(debt_parts)
-        debt_context += f"\n• **Total Utang: Rp{total_debt:,}**"
+        debt_context += f"\n• **Total utang (KPR sisa pokok + CC): Rp{total_debt:,}**"
     else:
         debt_context = "Tidak ada utang aktif saat ini."
 
@@ -734,42 +809,98 @@ async def call_model(
     return content.strip()
 
 
-_HISTORY_WINDOW = 20  # ~10 pasangan user+asisten
+_HISTORY_WINDOW = 12  # ~6 pasangan user+asisten utuh
+_SUMMARY_MAX_CHARS = 2500
 
 
-async def _chat_history_for_model(
+async def _load_chat_summary(user_id: int, db: CursorWrapper) -> tuple[str, int]:
+    cursor = await db.execute(
+        "SELECT summary, covered_through_id FROM ai_chat_summaries WHERE user_id = ?",
+        (user_id,),
+    )
+    row = await cursor.fetchone()
+    if not row:
+        return "", 0
+    return (row["summary"] or "").strip(), int(row["covered_through_id"] or 0)
+
+
+async def _save_chat_summary(user_id: int, db: CursorWrapper, summary: str, covered_through_id: int) -> None:
+    await db.execute(
+        """INSERT INTO ai_chat_summaries (user_id, summary, covered_through_id, updated_at)
+           VALUES (?, ?, ?, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'))
+           ON CONFLICT (user_id) DO UPDATE SET
+             summary = EXCLUDED.summary,
+             covered_through_id = EXCLUDED.covered_through_id,
+             updated_at = EXCLUDED.updated_at""",
+        (user_id, summary[:_SUMMARY_MAX_CHARS], covered_through_id),
+    )
+
+
+async def _summarize_overflow(old_summary: str, overflow: list[dict]) -> str:
+    transcript = "\n".join(
+        f"{m['role']}: {m['content'][:800]}" for m in overflow if m.get("content")
+    )
+    if not transcript.strip():
+        return old_summary
+    prompt = (
+        "Kamu merangkum percakapan asisten keuangan rumah tangga. Bahasa Indonesia, padat, maksimal 12 kalimat. "
+        "Jangan ulang angka saldo/transaksi/utang (itu sudah di data). "
+        "Simpan: keputusan, preferensi, pantangan, perbandingan yang sudah dibuat, pertanyaan yang masih terbuka.\n\n"
+        f"Ringkasan lama:\n{old_summary or '(kosong)'}\n\n"
+        f"Pesan yang keluar dari jendela:\n{transcript}"
+    )
+    try:
+        return await call_model(
+            messages=[{"role": "user", "content": prompt}],
+            model="flash",
+        )
+    except Exception:
+        logger.warning("Chat summary failed; keeping previous summary")
+        return old_summary
+
+
+async def _prepare_chat_memory(
     user_id: int,
     db: CursorWrapper,
     client_history: list,
     before_id: Optional[int] = None,
-) -> list[dict]:
-    """Prefer complete DB turns so the model sees its own replies.
-
-    Client local storage historically only saved user lines — after a few
-    turns the model only saw stacked questions and lost the thread.
-    """
+) -> tuple[str, list[dict]]:
+    """Return (summary_text, recent_history_msgs). May call Flash once on overflow."""
     skip = {"", "Mengumpulkan data keuangan..."}
-    if before_id is not None:
-        cursor = await db.execute(
-            """SELECT role, content FROM ai_messages
-               WHERE user_id = ? AND status = 'complete' AND id < ?
-               ORDER BY id ASC""",
-            (user_id, before_id),
-        )
-        rows = await cursor.fetchall()
-        msgs = [
-            {"role": r["role"], "content": r["content"]}
-            for r in rows
-            if r["role"] in ("user", "assistant")
-            and (r["content"] or "").strip() not in skip
+    summary, covered = await _load_chat_summary(user_id, db)
+
+    if before_id is None:
+        recent = [
+            {"role": m.role, "content": m.content}
+            for m in list(client_history)[-_HISTORY_WINDOW:]
+            if getattr(m, "content", None) and m.content.strip() not in skip
         ]
-        if msgs:
-            return msgs[-_HISTORY_WINDOW:]
-    return [
-        {"role": m.role, "content": m.content}
-        for m in list(client_history)[-_HISTORY_WINDOW:]
-        if getattr(m, "content", None) and m.content.strip() not in skip
+        return (summary or "Belum ada ringkasan percakapan."), recent
+
+    cursor = await db.execute(
+        """SELECT id, role, content FROM ai_messages
+           WHERE user_id = ? AND status = 'complete' AND id < ?
+           ORDER BY id ASC""",
+        (user_id, before_id),
+    )
+    rows = await cursor.fetchall()
+    msgs = [
+        {"id": r["id"], "role": r["role"], "content": r["content"]}
+        for r in rows
+        if r["role"] in ("user", "assistant")
+        and (r["content"] or "").strip() not in skip
     ]
+    recent_full = msgs[-_HISTORY_WINDOW:]
+    overflow = msgs[:-_HISTORY_WINDOW] if len(msgs) > _HISTORY_WINDOW else []
+    if overflow:
+        last_overflow_id = int(overflow[-1]["id"])
+        if last_overflow_id > covered:
+            new_bits = [m for m in overflow if int(m["id"]) > covered]
+            summary = await _summarize_overflow(summary, new_bits)
+            if summary:
+                await _save_chat_summary(user_id, db, summary, last_overflow_id)
+    recent = [{"role": m["role"], "content": m["content"]} for m in recent_full]
+    return (summary or "Belum ada ringkasan percakapan."), recent
 
 
 async def build_messages(
@@ -777,10 +908,11 @@ async def build_messages(
 ) -> list:
     """Build the full messages array: system -> history -> current question."""
     ctx = await build_context(current_user["id"], db, question=req.question)
-    prompt = SYSTEM_PROMPT.format(**ctx)
-    history_msgs = await _chat_history_for_model(
+    summary, history_msgs = await _prepare_chat_memory(
         current_user["id"], db, req.history, before_id=before_id
     )
+    ctx["chat_summary"] = summary
+    prompt = SYSTEM_PROMPT.format(**ctx)
     return [
         {"role": "system", "content": prompt},
         *history_msgs,
@@ -914,6 +1046,7 @@ async def get_chat_messages(
 
 async def delete_chat_messages(user_id: int, db: CursorWrapper) -> None:
     """Delete all AI chat messages for a user."""
+    await db.execute("DELETE FROM ai_chat_summaries WHERE user_id = ?", (user_id,))
     await db.execute(
         "DELETE FROM ai_messages WHERE user_id = ?",
         (user_id,),

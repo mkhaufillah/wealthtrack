@@ -67,6 +67,7 @@ DROP TABLE IF EXISTS kpr_simulations CASCADE;
 DROP TABLE IF EXISTS credit_card_transactions CASCADE;
 DROP TABLE IF EXISTS credit_card_installments CASCADE;
 DROP TABLE IF EXISTS credit_cards CASCADE;
+DROP TABLE IF EXISTS ai_chat_summaries CASCADE;
 DROP TABLE IF EXISTS ai_messages CASCADE;
 DROP TABLE IF EXISTS ocr_jobs CASCADE;
 DROP TABLE IF EXISTS budgets CASCADE;
@@ -162,6 +163,12 @@ CREATE TABLE ai_messages (
     model TEXT NOT NULL DEFAULT 'flash',
     parent_message_id INTEGER REFERENCES ai_messages(id),
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+CREATE TABLE ai_chat_summaries (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    summary TEXT NOT NULL DEFAULT '',
+    covered_through_id INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 CREATE TABLE kpr_simulations (
     id SERIAL PRIMARY KEY,
@@ -278,7 +285,7 @@ TABLES_IN_ORDER = [
     "api_keys",
     "kpr_extra_payments", "credit_card_transactions", "credit_card_installments", "credit_cards",
     "kpr_monthly_schedules", "kpr_rate_periods", "kpr_simulations",
-    "ai_messages", "ocr_jobs", "budgets",
+    "ai_chat_summaries", "ai_messages", "ocr_jobs", "budgets",
     "household_members", "households", "transactions",
     "email_verifications", "categories", "users",
 ]

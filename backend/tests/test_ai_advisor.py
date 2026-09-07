@@ -546,3 +546,66 @@ class TestFinancialAdviseStream:
             assert resp.status_code != 403
         finally:
             settings.OPENCODE_GO_API_KEY = saved
+
+
+@pytest.mark.asyncio
+async def test_chat_memory_summarizes_overflow(db, monkeypatch):
+    from app.services import ai_advisor_service as svc
+
+    async def fake_call(messages, model="flash"):
+        assert model == "flash"
+        return "Ringkas: user bandingkan KPR A vs B, pilih tenor pendek."
+
+    monkeypatch.setattr(svc, "call_model", fake_call)
+    for i in range(16):
+        role = "user" if i % 2 == 0 else "assistant"
+        await db.execute(
+            "INSERT INTO ai_messages (user_id, role, content, status, model) "
+            "VALUES (?, ?, ?, 'complete', 'flash')",
+            (1, role, f"pesan-{i}"),
+        )
+    summary, recent = await svc._prepare_chat_memory(1, db, [], before_id=10**9)
+    assert "bandingkan KPR" in summary
+    assert len(recent) == svc._HISTORY_WINDOW
+    cursor = await db.execute(
+        "SELECT summary, covered_through_id FROM ai_chat_summaries WHERE user_id = ?",
+        (1,),
+    )
+    row = await cursor.fetchone()
+    assert row is not None
+    assert int(row["covered_through_id"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_debt_context_has_kpr_and_cc_detail(db):
+    from app.services.ai_advisor_service import build_context
+
+    await db.execute(
+        """INSERT INTO kpr_simulations
+           (id, user_id, name, property_price, down_payment, total_loan, tenor_months,
+            interest_type, base_interest_rate, start_month, start_year, due_date)
+           VALUES (1, 1, 'Rumah BSD', 500000000, 100000000, 400000000, 240,
+                   'fixed', 0.075, 1, 2026, 10)"""
+    )
+    await db.execute(
+        """INSERT INTO kpr_monthly_schedules
+           (simulation_id, month_number, payment, principal, interest, remaining_balance, rate_type, interest_rate)
+           VALUES (1, 9, 3500000, 1000000, 2500000, 390000000, 'fixed', 0.075)"""
+    )
+    await db.execute(
+        """INSERT INTO credit_cards (id, user_id, name, credit_limit, billing_date, due_date, card_number_last4)
+           VALUES (1, 1, 'BCA', 20000000, 5, 15, '1234')"""
+    )
+    await db.execute(
+        """INSERT INTO credit_card_installments
+           (card_id, description, total_amount, monthly_amount, total_months, remaining_months, start_month)
+           VALUES (1, 'Laptop', 12000000, 1000000, 12, 8, '2026-01')"""
+    )
+    ctx = await build_context(1, db, question="berapa utang saya")
+    text = ctx["debt_context"]
+    assert "Rumah BSD" in text
+    assert "cicilan" in text.lower()
+    assert "BCA" in text
+    assert "tagihan tgl 5" in text
+    assert "Laptop" in text
+

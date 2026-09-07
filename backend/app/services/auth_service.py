@@ -365,6 +365,10 @@ class AuthService:
                 "DELETE FROM ocr_jobs WHERE user_id = ?",
                 (user_id,),
             )
+            await self.db.execute(
+                "DELETE FROM ai_chat_summaries WHERE user_id = ?",
+                (user_id,),
+            )
             # Delete all transactions owned by this user
             await self.db.execute(
                 "DELETE FROM transactions WHERE user_id = ?",
