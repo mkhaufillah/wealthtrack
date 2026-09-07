@@ -19,13 +19,15 @@ class CategoryGlyph extends StatelessWidget {
       case '🍔':
       case '🍜':
       case '🍱':
+      case '🍽️':
+      case '🍽':
         return HugeIcons.strokeRoundedServingFood;
       case '🚗':
       case '🛵':
         return HugeIcons.strokeRoundedCar01;
       case '⛽':
       case '⛽️':
-        return HugeIcons.strokeRoundedPetrol;
+        return HugeIcons.strokeRoundedFuelStation;
       case '🛒':
       case '🛍️':
         return HugeIcons.strokeRoundedShoppingBag01;
@@ -36,7 +38,7 @@ class CategoryGlyph extends StatelessWidget {
       case '💊':
         return HugeIcons.strokeRoundedMedicineBottle01;
       case '🎓':
-        return HugeIcons.strokeRoundedEducation;
+        return HugeIcons.strokeRoundedSchool;
       case '🎮':
         return HugeIcons.strokeRoundedGameController01;
       case '💰':
@@ -56,7 +58,13 @@ class CategoryGlyph extends StatelessWidget {
         return HugeIcons.strokeRoundedAirplane01;
       case '🐶':
       case '🐱':
-        return HugeIcons.strokeRoundedFishFood; // placeholder: no paw glyph
+        return HugeIcons.strokeRoundedFishFood;
+      case '🎬':
+        return HugeIcons.strokeRoundedTv01;
+      case '📄':
+        return HugeIcons.strokeRoundedInvoice01;
+      case '💻':
+        return HugeIcons.strokeRoundedLaptop;
       default:
         return HugeIcons.strokeRoundedInvoice01;
     }
