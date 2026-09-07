@@ -9,8 +9,8 @@ import 'api_exceptions.dart';
 /// Maps raw backend error strings to user-friendly messages.
 /// Unknown/unmatched errors fall back to a generic "Something went wrong."
 const _friendlyErrors = <String, String>{
-  'invalid email or password': 'Email atau password salah.',
-  'invalid username or password': 'Email atau password salah.',
+  'invalid email or password': 'Username atau password salah.',
+  'invalid username or password': 'Username atau password salah.',
   'email already registered': 'Email ini sudah terdaftar.',
   'email already in use': 'Email ini sudah terdaftar.',
   'username already exists': 'Username sudah kepakai.',
@@ -47,6 +47,24 @@ String _friendly(String raw) {
   return 'Ada yang gak beres. Coba lagi ya.';
 }
 
+String _rawDetail(DioException error) {
+  final detail = error.response?.data;
+  if (detail is Map && detail.containsKey('detail')) {
+    final d = detail['detail'];
+    if (d is List) {
+      return d.isNotEmpty ? (d[0]['msg']?.toString() ?? '') : '';
+    }
+    return d.toString();
+  }
+  return error.message ?? '';
+}
+
+bool _isCredentialFailure(String raw) {
+  final lower = raw.toLowerCase();
+  return lower.contains('invalid username or password') ||
+      lower.contains('invalid email or password');
+}
+
 class ApiClient {
   late final Dio _dio;
   final SecureStorage _storage;
@@ -69,7 +87,8 @@ class ApiClient {
         handler.next(options);
       },
       onError: (error, handler) async {
-        if (error.response?.statusCode == 401) {
+        if (error.response?.statusCode == 401 &&
+            !error.requestOptions.path.contains('/auth/login')) {
           await _storage.clearToken();
         }
         handler.next(error);
@@ -174,32 +193,25 @@ class ApiClient {
     if (error is ApiException) return error;
 
     if (error is DioException) {
-      if (error.response?.statusCode == 401) return UnauthorizedException();
       if (error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.receiveTimeout) {
         return NetworkException();
       }
 
-      // Extract message from backend response
-      final detail = error.response?.data;
-      String rawMsg;
-      if (detail is Map && detail.containsKey('detail')) {
-        final d = detail['detail'];
-        if (d is List) {
-          // FastAPI 422 validation error — extract first message
-          rawMsg = d.isNotEmpty ? (d[0]['msg']?.toString() ?? '') : '';
-        } else {
-          rawMsg = d.toString();
+      final rawMsg = _rawDetail(error);
+
+      // Login 401 is wrong credentials, not an expired JWT.
+      if (error.response?.statusCode == 401) {
+        if (_isCredentialFailure(rawMsg)) {
+          return ApiException(_friendly(rawMsg), statusCode: 401);
         }
-      } else {
-        rawMsg = error.message ?? '';
+        return UnauthorizedException();
       }
 
       if (rawMsg.isEmpty) {
         return ApiException('Ada yang gak beres. Coba lagi ya.');
       }
 
-      // Rate limit (429)
       if (error.response?.statusCode == 429) {
         return ApiException('Kebanyakan request. Tunggu sebentar ya.');
       }

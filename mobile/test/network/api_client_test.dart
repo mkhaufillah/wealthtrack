@@ -20,7 +20,7 @@ void main() {
         expect(result, same(exc));
       });
 
-      test('returns UnauthorizedException for 401', () {
+      test('returns UnauthorizedException for 401 without credential detail', () {
         final dioError = DioException(
           requestOptions: RequestOptions(path: '/test'),
           response: Response(
@@ -30,6 +30,24 @@ void main() {
         );
         final result = client.handleError(dioError);
         expect(result, isA<UnauthorizedException>());
+      });
+
+      test('wrong login credentials stay credential error, not session expired', () {
+        final dioError = DioException(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          response: Response(
+            statusCode: 401,
+            data: {'detail': 'Invalid username or password'},
+            requestOptions: RequestOptions(path: '/auth/login'),
+          ),
+        );
+        final result = client.handleError(dioError);
+        expect(result, isA<ApiException>());
+        expect(result, isNot(isA<UnauthorizedException>()));
+        expect(
+          (result as ApiException).message,
+          'Username atau password salah.',
+        );
       });
 
       test('returns NetworkException for connection timeout', () {
@@ -104,7 +122,7 @@ void main() {
         );
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
-        expect((result as ApiException).message, 'Email atau password salah.');
+        expect((result as ApiException).message, 'Username atau password salah.');
       });
 
       test('returns generic message for empty detail', () {

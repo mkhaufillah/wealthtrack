@@ -98,7 +98,7 @@ Divider:     #E8E8E8    — Light border
 
 **States:**
 - **Loading:** Button shows spinner, fields disabled
-- **Error:** Red error message below password field: **Email atau password salah.**
+- **Error:** Red error message below password field: **Username atau password salah.**
 - **Validation:** Inline message if a field is empty
 - **Empty state first time:** Show "Daftar" link more prominently
 
@@ -820,7 +820,7 @@ Errors are handled centrally in `ApiClient.handleError()` (`api_client.dart`). A
 
 | Backend / Error Type | User-Friendly Message |
 |---|---|
-| Login wrong password | Email atau password salah. |
+| Login wrong password | Username atau password salah. |
 | Email already registered | Email ini sudah terdaftar. |
 | Network / timeout | Gak ada internet. Cek koneksi, coba lagi. |
 | 401 Unauthorized | Sesi habis. Masuk lagi ya. |

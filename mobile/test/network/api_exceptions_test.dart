@@ -10,8 +10,8 @@ void main() {
     });
 
     test('toString returns just the message', () {
-      final exc = ApiException('Email atau password salah.', statusCode: 401);
-      expect(exc.toString(), 'Email atau password salah.');
+      final exc = ApiException('Username atau password salah.', statusCode: 401);
+      expect(exc.toString(), 'Username atau password salah.');
     });
 
     test('toString without status code', () {
