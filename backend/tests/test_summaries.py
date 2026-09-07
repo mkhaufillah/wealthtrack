@@ -149,6 +149,34 @@ class TestMonthlySummary:
         assert "categories" in data
         assert "daily_snapshot" in data
 
+    async def test_monthly_has_report_stats(self, client: AsyncClient, filla_token: str):
+        """Server-computed savings_rate + daily_avg_expense present and sane."""
+        resp = await client.get(
+            "/api/v1/summaries/monthly",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "savings_rate" in data
+        assert "daily_avg_expense" in data
+        assert isinstance(data["savings_rate"], (int, float))
+        assert isinstance(data["daily_avg_expense"], int)
+        # With seed data income > expense, savings rate is positive.
+        assert data["savings_rate"] >= 0
+
+    async def test_monthly_empty_month_savings_rate_zero(
+        self, client: AsyncClient, filla_token: str
+    ):
+        """A month with no transactions yields savings_rate 0 (no division by zero)."""
+        resp = await client.get(
+            "/api/v1/summaries/monthly?month=2099-01",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["savings_rate"] == 0
+        assert data["daily_avg_expense"] == 0
+
     async def test_monthly_current(self, client: AsyncClient, filla_token: str):
         """GET /summaries/current-month works."""
         resp = await client.get(

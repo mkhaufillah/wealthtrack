@@ -75,6 +75,8 @@ class MonthlyReport {
   final List<CategoryBreakdown> categories;
   final List<CategoryBreakdown> incomeCategories;
   final List<DailySnapshot> dailySnapshot;
+  final double savingsRate;
+  final int dailyAvgExpense;
 
   const MonthlyReport({
     required this.month,
@@ -84,6 +86,8 @@ class MonthlyReport {
     this.categories = const [],
     this.incomeCategories = const [],
     this.dailySnapshot = const [],
+    this.savingsRate = 0,
+    this.dailyAvgExpense = 0,
   });
 
   factory MonthlyReport.fromJson(Map<String, dynamic> json) =>
@@ -104,6 +108,8 @@ class MonthlyReport {
                 ?.map((e) => DailySnapshot.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [],
+        savingsRate: (json['savings_rate'] as num?)?.toDouble() ?? 0,
+        dailyAvgExpense: (json['daily_avg_expense'] as num?)?.toInt() ?? 0,
       );
 }
 

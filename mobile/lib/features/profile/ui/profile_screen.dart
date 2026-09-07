@@ -463,6 +463,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     title: t('cat.manage'),
                     onTap: () => context.push('/categories/manage'),
                   ),
+                if (user?.role == 'admin')
+                  _buildMenuItem(
+                    icon: AppIcons.edit,
+                    title: t('profile.copy_admin'),
+                    onTap: () => context.push('/profile/copy'),
+                  ),
                 const SizedBox(height: 20),
                 _buildSectionHeader(AppIcons.settings, t('profile.sec_look')),
                 const SizedBox(height: 8),

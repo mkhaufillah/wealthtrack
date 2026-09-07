@@ -437,6 +437,27 @@ class SummaryService:
         )
         daily_snapshot = [dict(r) for r in await cursor.fetchall()]
 
+        # Savings rate — same formula the app used client-side, now server-owned.
+        # Adjusted: (income - expense) + (savings expense - savings withdrawal)
+        savings_expense = sum(
+            c["total"] for c in categories
+            if c["category_name"] == "Tabungan & Investasi"
+        )
+        savings_income = sum(
+            c["total"] for c in income_categories
+            if c["category_name"] == "Penarikan Tabungan & Investasi"
+        )
+        adjusted = (income - expense) + (savings_expense - savings_income)
+        savings_rate = round(adjusted / income * 100, 1) if income > 0 else 0
+
+        # Daily average expense over the actual range length.
+        d_from_date = date.fromisoformat(d_from)
+        d_to_date = date.fromisoformat(d_to)
+        range_days = (d_to_date - d_from_date).days
+        if range_days <= 0:
+            range_days = 30
+        daily_avg_expense = expense // range_days if range_days > 0 else 0
+
         return {
             "month": month,
             "total_income": int(income),
@@ -445,6 +466,8 @@ class SummaryService:
             "categories": categories,
             "income_categories": income_categories,
             "daily_snapshot": daily_snapshot,
+            "savings_rate": savings_rate,
+            "daily_avg_expense": daily_avg_expense,
         }
 
     async def _get_monthly_range(self, user_id: int, m_from: str, m_to: str) -> list:

@@ -16,6 +16,7 @@ import 'features/transactions/ui/add_transaction_screen.dart';
 import 'features/transactions/ui/transfer_screen.dart';
 import 'features/transactions/models/transaction_model.dart';
 import 'features/profile/ui/profile_screen.dart';
+import 'features/profile/ui/copy_admin_screen.dart';
 import 'features/reports/ui/reports_screen.dart';
 import 'features/budgets/ui/budgets_screen.dart';
 import 'features/ai/ui/ai_advisor_screen.dart';
@@ -128,6 +129,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/categories/manage',
         builder: (_, __) => const CategoryManagementScreen(),
+      ),
+      GoRoute(
+        path: '/profile/copy',
+        builder: (_, __) => const CopyAdminScreen(),
       ),
     ],
   );

@@ -329,30 +329,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildExtraStats(MonthlyReport report) {
-    final income = report.totalIncome;
-    final expense = report.totalExpense;
-
-    // Find savings & investment amounts
-    final savingsExpense = report.categories
-        .where((c) => c.categoryName == 'Tabungan & Investasi')
-        .fold<int>(0, (sum, c) => sum + c.total);
-    final savingsIncome = report.incomeCategories
-        .where((c) => c.categoryName == 'Penarikan Tabungan & Investasi')
-        .fold<int>(0, (sum, c) => sum + c.total);
-
-    // Adjusted savings rate: (income - expense + savingsExpense - savingsIncome) / income * 100
-    final adjustedNumerator = (income - expense) + (savingsExpense - savingsIncome);
-    final savingsRate = income > 0 ? (adjustedNumerator / income * 100) : 0.0;
-
-    // Compute cycle days from the cycle label
-    final cycleDays = _cycleLabel.isNotEmpty ? 30 : 30; // fallback
-    // Parse actual days from cycle dates
-    int actualDays = 30;
-    if (_cycleFrom != null && _cycleTo != null) {
-      actualDays = _cycleTo!.difference(_cycleFrom!).inDays;
-      if (actualDays <= 0) actualDays = 30;
-    }
-    final dailyAvg = actualDays > 0 ? expense ~/ actualDays : 0;
+    // Savings rate + daily avg now come server-computed from /summaries/monthly.
+    final savingsRate = report.savingsRate;
+    final dailyAvg = report.dailyAvgExpense;
 
     return Row(
       children: [
