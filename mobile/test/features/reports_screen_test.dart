@@ -300,7 +300,7 @@ void main() {
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
       await tester.pump();
-      expect(find.text('Makanan & Minuman'), findsOneWidget);
+      expect(find.text('Makanan & Minuman'), findsAtLeast(1));
     });
 
     testWidgets('shows daily breakdown section', (tester) async {

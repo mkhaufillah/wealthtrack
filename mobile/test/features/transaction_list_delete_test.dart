@@ -73,21 +73,21 @@ void main() {
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn]));
       await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical));
       await tester.pumpAndSettle();
-      expect(find.text('Delete'), findsOneWidget);
+      expect(find.text('Hapus'), findsOneWidget);
     });
 
     testWidgets('shows Edit option in popup menu', (tester) async {
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn]));
       await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical));
       await tester.pumpAndSettle();
-      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Ubah'), findsOneWidget);
     });
 
     testWidgets('shows Change Owner option in popup menu', (tester) async {
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn]));
       await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical));
       await tester.pumpAndSettle();
-      expect(find.text('Change Owner'), findsOneWidget);
+      expect(find.text('Ganti pemilik'), findsOneWidget);
     });
 
     testWidgets('tapping Delete shows confirmation dialog', (tester) async {
