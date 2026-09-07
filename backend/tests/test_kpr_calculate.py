@@ -32,7 +32,9 @@ async def test_calculate_fixed_known_case(client: httpx.AsyncClient, filla_token
     # ~ Rp 2.517.172 at 7.5% / 360 on Rp 360.000.000. Allow a tight band.
     assert data["monthly_payment"] > 2_500_000
     assert data["monthly_payment"] < 2_530_000
-    assert data["total_payment"] == data["monthly_payment"] * 360
+    # Total payment is the sum of all monthly payments; last month is the
+    # remainder after interest rounding, so allow a small band vs monthly*360.
+    assert abs(data["total_payment"] - data["monthly_payment"] * 360) < 360 * 10
     assert data["total_interest"] > 100_000_000
 
 

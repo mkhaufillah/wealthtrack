@@ -45,7 +45,7 @@ class TestCreateHousehold:
             json={"name": "Another Home"},
         )
         assert resp.status_code == 409
-        assert "Already in a household" in resp.json()["detail"]
+        assert "Kamu sudah di keluarga" in resp.json()["detail"]
 
     async def test_user_not_in_household_creates_one(
         self, client: AsyncClient, db: CursorWrapper
@@ -86,7 +86,7 @@ class TestJoinHousehold:
             json={"invite_code": "ZZZZZZZZ"},
         )
         assert resp.status_code == 409
-        assert "Already in a household" in resp.json()["detail"]
+        assert "Kamu sudah di keluarga" in resp.json()["detail"]
 
     async def test_second_user_joins_via_invite_code(
         self, client: AsyncClient, db: CursorWrapper
