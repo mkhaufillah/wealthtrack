@@ -83,7 +83,7 @@ void main() {
       await tester.pumpWidget(buildHomeApp(balance: 1500000));
       await tester.pumpAndSettle();
       expect(find.text('Hai, Filla'), findsNothing); // greeting uses login user (mock has none)
-      expect(find.text('Rp1.500.000'), findsOneWidget);
+      expect(find.text(formatCurrency(1500000)), findsOneWidget);
     });
 
     testWidgets('shows all-time balance label when load completes', (tester) async {
