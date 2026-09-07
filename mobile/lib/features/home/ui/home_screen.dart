@@ -8,7 +8,6 @@ import '../../../core/ui/copy_fallback.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
-import '../../../shared/providers/app_providers.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../ocr/providers/ocr_provider.dart';
 import '../../transactions/models/transaction_model.dart';
@@ -22,67 +21,11 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _savingsBalance = 0;
-  int _emergencyBalance = 0;
-  Map<String, dynamic> _debtData = {};
-  bool _debtLoading = true;
-
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(dashboardProvider.notifier).load());
-    Future.microtask(() => _loadAllTimeBalances());
     Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());
-    Future.microtask(() => _loadDebtSummary());
-  }
-
-  Future<void> _loadAllTimeBalances() async {
-    try {
-      final api = ref.read(apiClientProvider);
-      final resp = await api.get('/summaries/all-time-category-balance');
-      final data = resp.data as Map<String, dynamic>? ?? {};
-      int savings = 0;
-      int emergency = 0;
-      final siData = data['savings_investment'];
-      if (siData is Map) {
-        savings = (siData['balance'] as num?)?.toInt() ?? 0;
-      }
-      final efData = data['emergency_funds'];
-      if (efData is Map) {
-        emergency = (efData['balance'] as num?)?.toInt() ?? 0;
-      }
-      if (mounted) {
-        setState(() {
-          _savingsBalance = savings;
-          _emergencyBalance = emergency;
-        });
-      }
-    } catch (e) {
-      debugPrint('ERROR: $e');
-    }
-  }
-
-  Future<void> _loadDebtSummary() async {
-    try {
-      final api = ref.read(apiClientProvider);
-      late Map<String, dynamic> data;
-      try {
-        final resp = await api.get('/summaries/debt/household');
-        data = resp.data as Map<String, dynamic>? ?? {};
-      } catch (_) {
-        final resp = await api.get('/summaries/debt');
-        data = resp.data as Map<String, dynamic>? ?? {};
-      }
-      if (mounted) {
-        setState(() {
-          _debtData = data;
-          _debtLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('ERROR: $e');
-      if (mounted) setState(() => _debtLoading = false);
-    }
   }
 
   @override
@@ -97,7 +40,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.listen<int>(homeRefreshProvider, (prev, next) {
       if (prev != next) {
         ref.read(dashboardProvider.notifier).load(force: true);
-        _loadDebtSummary();
       }
     });
 
@@ -120,8 +62,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 : RefreshIndicator(
                     onRefresh: () async {
                       await ref.read(dashboardProvider.notifier).load(force: true);
-                      _loadDebtSummary();
-                      _loadAllTimeBalances();
                     },
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(18, 12, 18, 96),
@@ -148,22 +88,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ],
                         const SizedBox(height: 10),
                         _PocketRow(
-                          savings: _savingsBalance,
-                          emergency: _emergencyBalance,
+                          savings: state.savings,
+                          emergency: state.emergency,
                         ),
-                        if (!_debtLoading &&
-                            _debtData['total_debt'] != null &&
-                            (_debtData['total_debt'] as int) > 0) ...[
+                        if (state.debtVisible && state.debtTotal > 0) ...[
                           const SizedBox(height: 10),
                           _DebtStrip(
-                            total: _debtData['total_debt'] as int,
-                            members: _memberCount(),
+                            total: state.debtTotal,
+                            members: 1,
                           ),
                         ],
                         const SizedBox(height: 10),
                         _QuickList(
-                          savings: _savingsBalance,
-                          emergency: _emergencyBalance,
+                          savings: state.savings,
+                          emergency: state.emergency,
                         ),
                         const SizedBox(height: 22),
                         _RecentSection(transactions: state.recentTransactions),
@@ -172,11 +110,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
       ),
     );
-  }
-
-  int _memberCount() {
-    final members = _debtData['members'] as List<dynamic>?;
-    return members?.length ?? 1;
   }
 
   Widget _ocrBanner(int count) {

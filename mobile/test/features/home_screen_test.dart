@@ -10,12 +10,18 @@ import '../helpers/mocks.dart';
 
 Widget buildHomeApp({bool isLoading = false, String? error, int balance = 0}) {
   final mockApi = MockApiClient();
-  mockApi.onGet('/summaries/daily', {
-    'total_income': balance > 0 ? balance + 500000 : 0,
-    'total_expense': 500000,
-    'balance': balance,
-    'date_from': '2026-05-01',
-    'date_to': '2026-05-31',
+  mockApi.onGet('/home', {
+    'hero': {
+      'amount': balance,
+      'amount_display': 'Rp$balance',
+      'income': balance > 0 ? balance + 500000 : 0,
+      'income_display': 'Rp0',
+      'expense': 500000,
+      'expense_display': 'Rp500.000',
+    },
+    'pots': {'savings': 0, 'savings_display': 'Rp0', 'emergency': 0, 'emergency_display': 'Rp0'},
+    'debt_summary': {'visible': false, 'total': 0, 'total_display': 'Rp0', 'title_key': 'home.debt_running'},
+    'recent': <List<dynamic>>[],
   });
   mockApi.onGet('/transactions', {
     'data': <List<dynamic>>[],

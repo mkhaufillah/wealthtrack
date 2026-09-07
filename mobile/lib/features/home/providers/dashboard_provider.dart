@@ -9,13 +9,16 @@ class DashboardState {
   final List<TransactionModel> recentTransactions; final int totalTransactions;
   final String? dateFrom; final String? dateTo;
   final String? balanceDisplay; final String? incomeDisplay; final String? expenseDisplay;
+  final int savings; final int emergency; final int debtTotal; final bool debtVisible;
   const DashboardState({this.isLoading = false, this.error, this.totalIncome = 0, this.totalExpense = 0,
     this.balance = 0, this.recentTransactions = const [], this.totalTransactions = 0,
-    this.dateFrom, this.dateTo, this.balanceDisplay, this.incomeDisplay, this.expenseDisplay});
+    this.dateFrom, this.dateTo, this.balanceDisplay, this.incomeDisplay, this.expenseDisplay,
+    this.savings = 0, this.emergency = 0, this.debtTotal = 0, this.debtVisible = false});
 
   DashboardState copyWith({bool? isLoading, String? error, int? totalIncome, int? totalExpense,
     int? balance, List<TransactionModel>? recentTransactions, int? totalTransactions,
-    String? dateFrom, String? dateTo, String? balanceDisplay, String? incomeDisplay, String? expenseDisplay}) =>
+    String? dateFrom, String? dateTo, String? balanceDisplay, String? incomeDisplay, String? expenseDisplay,
+    int? savings, int? emergency, int? debtTotal, bool? debtVisible}) =>
     DashboardState(isLoading: isLoading ?? this.isLoading, error: error ?? this.error,
       totalIncome: totalIncome ?? this.totalIncome, totalExpense: totalExpense ?? this.totalExpense,
       balance: balance ?? this.balance, recentTransactions: recentTransactions ?? this.recentTransactions,
@@ -23,7 +26,9 @@ class DashboardState {
       dateFrom: dateFrom ?? this.dateFrom, dateTo: dateTo ?? this.dateTo,
       balanceDisplay: balanceDisplay ?? this.balanceDisplay,
       incomeDisplay: incomeDisplay ?? this.incomeDisplay,
-      expenseDisplay: expenseDisplay ?? this.expenseDisplay);
+      expenseDisplay: expenseDisplay ?? this.expenseDisplay,
+      savings: savings ?? this.savings, emergency: emergency ?? this.emergency,
+      debtTotal: debtTotal ?? this.debtTotal, debtVisible: debtVisible ?? this.debtVisible);
 }
 
 class DashboardNotifier extends StateNotifier<DashboardState> {
@@ -48,6 +53,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           final txns = (txnRes.data['data'] as List)
               .map((e) => TransactionModel.fromJson(e as Map<String, dynamic>))
               .toList();
+          final pots = data['pots'] is Map ? data['pots'] as Map : const {};
+          final debt = data['debt_summary'] is Map ? data['debt_summary'] as Map : const {};
           state = DashboardState(
             totalIncome: (hero['income'] as num?)?.toInt() ?? 0,
             totalExpense: (hero['expense'] as num?)?.toInt() ?? 0,
@@ -55,6 +62,10 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
             balanceDisplay: hero['amount_display']?.toString(),
             incomeDisplay: hero['income_display']?.toString(),
             expenseDisplay: hero['expense_display']?.toString(),
+            savings: (pots['savings'] as num?)?.toInt() ?? 0,
+            emergency: (pots['emergency'] as num?)?.toInt() ?? 0,
+            debtTotal: (debt['total'] as num?)?.toInt() ?? 0,
+            debtVisible: debt['visible'] == true,
             recentTransactions: txns,
             totalTransactions: txnRes.data['meta']['total'] ?? 0,
           );
@@ -68,12 +79,25 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       final txns = (txnRes.data['data'] as List)
           .map((e) => TransactionModel.fromJson(e as Map<String, dynamic>))
           .toList();
+      // Fallback: fetch pots + debt the old way
+      int savings = 0, emergency = 0, debtTotal = 0; bool debtVisible = false;
+      try {
+        final pots = await _api.get('/summaries/all-time-category-balance');
+        savings = (pots.data['savings_investment']?['balance'] as num?)?.toInt() ?? 0;
+        emergency = (pots.data['emergency_funds']?['balance'] as num?)?.toInt() ?? 0;
+      } catch (_) {}
+      try {
+        var debt = await _api.get('/summaries/debt/household');
+        debtTotal = (debt.data['total_debt'] as num?)?.toInt() ?? 0;
+        debtVisible = debtTotal > 0;
+      } catch (_) {}
       state = DashboardState(
         totalIncome: summary['total_income'] ?? 0, totalExpense: summary['total_expense'] ?? 0,
         balance: summary['balance'] ?? 0, recentTransactions: txns,
         totalTransactions: txnRes.data['meta']['total'] ?? 0,
         dateFrom: summary['date_from'] as String?,
         dateTo: summary['date_to'] as String?,
+        savings: savings, emergency: emergency, debtTotal: debtTotal, debtVisible: debtVisible,
       );
       _lastFetch = DateTime.now();
     } catch (e) {
