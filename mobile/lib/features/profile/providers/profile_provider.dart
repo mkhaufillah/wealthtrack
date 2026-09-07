@@ -100,7 +100,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
       state = state.copyWith(
         cycleStartDay: day,
-        message: '✅ Billing cycle updated',
+        message: 'Siklus tagihan kesimpen',
       );
     } catch (e) {
       state = state.copyWith(

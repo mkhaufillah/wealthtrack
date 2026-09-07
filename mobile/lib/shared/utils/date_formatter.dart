@@ -34,6 +34,10 @@ String formatMonthYear(DateTime d) => '${_monthName(d)} ${d.year}';
 
 String formatDayMonth(DateTime d) => '${d.day} ${_monthName(d)}';
 
+const _weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+String formatWeekday(DateTime d) => _weekdays[d.weekday - 1];
+
 /// Mirror of backend's get_cycle_range_for_month.
 /// Returns (startDate, endDate) for a budget month label + cycle day.
 (DateTime, DateTime) getCycleRangeForMonth(String month, int cycleOn) {

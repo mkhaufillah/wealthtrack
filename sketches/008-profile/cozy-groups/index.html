@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Profil B — cozy groups</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#FFF3EE;--surface:#fff;--ink:#4A3A48;--muted:#9B8794;--line:#F3E0D8;--rose:#F3A6B8;--peach:#FFE8DC}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:grid;place-items:center;background:#e8cfc4;font-family:Nunito,sans-serif}
+.phone{width:390px;height:844px;border-radius:44px;background:var(--bg);color:var(--ink);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 60px rgba(74,58,72,.18)}
+.notch{height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;font-size:12px;font-weight:800}
+.scroll{flex:1;overflow:auto;padding:4px 16px 90px}
+.head{display:flex;align-items:center;gap:12px;padding:8px 4px 16px}
+.av{width:56px;height:56px;border-radius:18px;background:var(--rose);display:grid;place-items:center;font-weight:800}
+.group{background:var(--surface);border-radius:20px;padding:6px 0;margin-bottom:12px}
+.lab{padding:10px 16px 4px;font-size:11px;font-weight:800;color:var(--muted)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:12px 16px}
+.row b{font-size:14px}
+.chip{background:var(--peach);border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800}
+.days{display:flex;flex-wrap:wrap;gap:6px;padding:4px 16px 12px}
+.days button{width:36px;height:36px;border:0;border-radius:12px;background:var(--peach);font:800 12px Nunito;color:var(--ink)}
+.days button.on{background:var(--rose)}
+.danger{color:#E08B7C}
+.nav{height:72px;background:var(--surface);display:flex;justify-content:space-around;align-items:center;font-size:10px;color:var(--muted);font-weight:800}
+.nav .on{color:var(--ink)}
+</style></head>
+<body>
+<div class="phone">
+  <div class="notch"><span>09.12</span><span>LTE</span></div>
+  <div class="scroll">
+    <div class="head">
+      <div class="av">F</div>
+      <div><b style="font-size:20px">Filla</b><div style="color:var(--muted);font-size:13px">@filla · keluarga 2 orang</div></div>
+    </div>
+    <div class="group">
+      <div class="lab">KELUARGA</div>
+      <div class="row"><b>Filla & Nahda</b><span class="chip">kode WT-8821</span></div>
+      <div class="row"><b>Undang</b><span style="color:var(--muted);font-size:13px">Kirim kode</span></div>
+    </div>
+    <div class="group">
+      <div class="lab">SIKLUS TAGIHAN</div>
+      <div class="row"><b>Mulai tanggal</b><span class="chip" id="d">23</span></div>
+      <div class="days" id="days"></div>
+    </div>
+    <div class="group">
+      <div class="lab">AKUN</div>
+      <div class="row"><b>Ubah nama</b><span>›</span></div>
+      <div class="row"><b>Ganti sandi</b><span>›</span></div>
+      <div class="row"><b>Tampilan</b><span class="chip">Ikut sistem</span></div>
+    </div>
+    <div class="group">
+      <div class="lab">AKSI</div>
+      <div class="row"><b>Keluar</b></div>
+      <div class="row"><b class="danger">Hapus akun</b></div>
+    </div>
+  </div>
+  <div class="nav"><span>Beranda</span><span>Transaksi</span><span>Anggaran</span><span>Laporan</span><span class="on">Profil</span></div>
+</div>
+<script>
+const box=document.getElementById('days');
+for(let i=1;i<=28;i++){
+  const b=document.createElement('button');
+  b.textContent=i; if(i===23) b.className='on';
+  b.onclick=()=>{[...box.children].forEach(x=>x.className=''); b.className='on'; document.getElementById('d').textContent=i};
+  box.appendChild(b);
+}
+</script>
+</body></html>

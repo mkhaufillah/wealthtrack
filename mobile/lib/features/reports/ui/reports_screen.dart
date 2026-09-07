@@ -387,12 +387,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: Column(
         children: [
           Text(
-            isRate ? '${amount}$suffix' : formatCurrency(amount),
+            isRate ? '${amount}$suffix' : formatCurrencyCompact(amount),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: color,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Text(
@@ -704,8 +706,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Column(
       children: filtered.reversed.map((day) {
         final date = DateTime.tryParse(day.date);
-        final dayLabel = date != null ? DateFormat('MMM dd').format(date) : day.date;
-        final weekday = date != null ? DateFormat('E').format(date) : '';
+        final dayLabel = date != null ? formatDayMonth(date) : day.date;
+        final weekday = date != null ? formatWeekday(date) : '';
         return Container(
           margin: const EdgeInsets.only(bottom: 6),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -854,8 +856,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             .fold<int>(0, (s, t) => s + ((t['amount'] ?? 0) as int));
 
         final parsed = DateTime.tryParse(dateStr);
-        final dayLabel = parsed != null ? DateFormat('MMM dd').format(parsed) : dateStr;
-        final weekday = parsed != null ? DateFormat('E').format(parsed) : '';
+        final dayLabel = parsed != null ? formatDayMonth(parsed) : dateStr;
+        final weekday = parsed != null ? formatWeekday(parsed) : '';
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),

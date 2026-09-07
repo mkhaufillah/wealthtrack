@@ -750,13 +750,13 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
 
   String _sortLabel(String sort) {
     switch (sort) {
-      case '-date': return 'Newest';
-      case 'date': return 'Oldest';
-      case '-amount': return 'Highest';
-      case 'amount': return 'Lowest';
-      case 'name': return 'A\u2013Z';
-      case '-name': return 'Z\u2013A';
-      default: return 'Sort';
+      case '-date': return t('tx.sort_newest');
+      case 'date': return t('tx.sort_oldest');
+      case '-amount': return t('tx.sort_high');
+      case 'amount': return t('tx.sort_low');
+      case 'name': return 'A–Z';
+      case '-name': return 'Z–A';
+      default: return t('tx.sort');
     }
   }
 }
@@ -823,7 +823,7 @@ class _PaginationRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            'Page $page of $totalPages',
+            'Hal $page / $totalPages',
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
           ),
           const SizedBox(width: 8),

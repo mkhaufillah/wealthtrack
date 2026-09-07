@@ -483,6 +483,34 @@ async def _migrate_category_icons(conn):
             """UPDATE categories SET icon = 'strokeRoundedInvoice01'
                WHERE icon IS NULL OR icon = '' OR icon NOT LIKE 'strokeRounded%'"""
         )
+        name_icons = {
+            "Dana Darurat": "strokeRoundedPiggyBank",
+            "Kebutuhan Pribadi": "strokeRoundedUser",
+            "Protein, Buah, dan Sayuran": "strokeRoundedServingFood",
+            "Hobi & Belajar": "strokeRoundedSchool",
+            "Kebutuhan Rumah": "strokeRoundedHouse01",
+            "Tagihan & Cicilan": "strokeRoundedInvoice01",
+            "Pendidikan": "strokeRoundedSchool",
+            "Kebutuhan Bayi/Anak": "strokeRoundedGift",
+            "Lainnya": "strokeRoundedSparkles",
+            "Freelance": "strokeRoundedLaptop",
+            "Hasil Investasi": "strokeRoundedMoneyBag01",
+            "Penarikan Tabungan & Investasi": "strokeRoundedWallet01",
+        }
+        for name, key in name_icons.items():
+            await conn.execute(
+                "UPDATE categories SET icon = $1 WHERE name = $2 AND icon = 'strokeRoundedInvoice01'",
+                key,
+                name,
+            )
+        await conn.execute(
+            """UPDATE transactions SET description = replace(description, 'Transfer to ', 'Transfer ke ')
+               WHERE description LIKE 'Transfer to %'"""
+        )
+        await conn.execute(
+            """UPDATE transactions SET description = replace(description, 'Transfer from ', 'Transfer dari ')
+               WHERE description LIKE 'Transfer from %'"""
+        )
     except Exception as e:
         print(f"Schema init warning (non-fatal): {e}")
     try:

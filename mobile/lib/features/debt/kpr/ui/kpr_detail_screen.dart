@@ -451,8 +451,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     final applyYear = startYear + (totalMonths - 1) ~/ 12;
     final applyMonthDate = ((totalMonths - 1) % 12) + 1;
     final monthNames = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
     ];
     final startDateStr = '${monthNames[applyMonthDate]} $applyYear';
     // Convert "2040-12" → "Dec 2040"

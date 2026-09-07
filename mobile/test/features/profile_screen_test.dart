@@ -166,8 +166,8 @@ void main() {
       // After post-frame callback, household loads from mock API (returns empty)
       // so Join Household and Create New are shown
       await tester.pump();
-      expect(find.text('Rumah'), findsOneWidget);
-      expect(find.text('Gabung rumah'), findsOneWidget);
+      expect(find.text('Keluarga'), findsOneWidget);
+      expect(find.text('Gabung keluarga'), findsOneWidget);
       expect(find.text('Buat baru'), findsOneWidget);
     });
 

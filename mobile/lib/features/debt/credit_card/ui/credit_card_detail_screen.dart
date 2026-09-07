@@ -678,7 +678,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(success ? 'Transaction added' : 'Failed to add transaction'),
+                      content: Text(success ? 'Transaksi kesimpen' : 'Gagal catat transaksi'),
                     ),
                   );
                 }

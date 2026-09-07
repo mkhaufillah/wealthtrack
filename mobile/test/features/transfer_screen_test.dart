@@ -106,7 +106,7 @@ void main() {
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
       await tester.pumpAndSettle();
       expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedUser), findsOneWidget);
-      expect(find.text('Belum ada anggota rumah'), findsOneWidget);
+      expect(find.text('Belum ada anggota keluarga'), findsOneWidget);
     });
 
     testWidgets('shows sender card when members available', (tester) async {

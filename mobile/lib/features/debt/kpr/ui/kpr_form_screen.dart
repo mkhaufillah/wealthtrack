@@ -398,7 +398,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     } else {
       final err = ref.read(kprProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err ?? 'Failed to save simulation')),
+        SnackBar(content: Text(err ?? 'Gagal simpan simulasi')),
       );
     }
   }
@@ -492,7 +492,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               items: [5, 10, 15, 20, 25, 30].map((y) {
-                return DropdownMenuItem(value: y, child: Text('$y years'));
+                return DropdownMenuItem(value: y, child: Text('$y tahun'));
               }).toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _tenorYears = v);
@@ -793,7 +793,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                       child: TextField(
                         controller: rp.fromMonthCtrl,
                         decoration: InputDecoration(
-                          labelText: 'From (mo)',
+                          labelText: 'Dari (bln)',
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                         ),
@@ -805,7 +805,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                       child: TextField(
                         controller: rp.toMonthCtrl,
                         decoration: InputDecoration(
-                          labelText: 'To (mo)',
+                          labelText: 'Sampai (bln)',
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                         ),
@@ -817,7 +817,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                       child: TextField(
                         controller: rp.rateCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Rate %',
+                          labelText: 'Bunga %',
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                         ),
@@ -830,7 +830,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                 DropdownButtonFormField<String>(
                   value: rp.rateType,
                   decoration: InputDecoration(
-                    labelText: 'Type',
+                    labelText: 'Tipe',
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
