@@ -1,37 +1,37 @@
-# MCP Integration for WealthTrack
+# Integrasi MCP untuk WealthTrack
 
-WealthTrack exposes a Model Context Protocol (MCP) endpoint that allows external AI agents (Hermes, Claude Desktop, Cursor, etc.) to securely interact with the finance tools and resources using the user's existing JWT authentication.
+WealthTrack menyediakan endpoint Model Context Protocol (MCP) yang memungkinkan agen AI eksternal (Hermes, Claude Desktop, Cursor, dll.) berinteraksi dengan tools dan resources finansial secara aman memakai autentikasi JWT milik user.
 
 ## Endpoint
 
-- **Primary Transport**: HTTP + SSE (Server-Sent Events)
+- **Transport utama**: HTTP + SSE (Server-Sent Events)
 - **URL**: `https://wealthtrack.filla.id/api/v1/mcp/stream`
-- **Methods**:
-  - `GET /stream` — Establish SSE connection (requires valid JWT)
-  - `POST /stream` — Send JSON-RPC requests (initialize, tools/list, tools/call)
+- **Metode**:
+  - `GET /stream` — Buat koneksi SSE (butuh JWT yang valid)
+  - `POST /stream` — Kirim request JSON-RPC (initialize, tools/list, tools/call)
 
-**Authentication**: All requests require a valid JWT Bearer token (same as the main API). The token scopes all operations to the authenticated user's household.
+**Autentikasi**: Semua request wajib membawa JWT Bearer token yang valid (sama seperti API utama). Token ini membatasi semua operasi ke household milik user yang terautentikasi.
 
-## Usage Examples
+## Contoh Penggunaan
 
-### 1. Basic SSE Connection (curl)
+### 1. Koneksi SSE Dasar (curl)
 
 ```bash
-curl -N -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+curl -N -H "Authorization: Bearer ***" \
   https://wealthtrack.filla.id/api/v1/mcp/stream
 ```
 
-Expected initial events:
+Event awal yang diharapkan:
 ```json
 {"type": "connected", "user_id": 123, "message": "MCP SSE ready"}
 {"type": "ready", "capabilities": {"tools": true}}
 ```
 
-### 2. Initialize MCP Session (JSON-RPC over POST)
+### 2. Inisialisasi Sesi MCP (JSON-RPC lewat POST)
 
 ```bash
 curl -X POST https://wealthtrack.filla.id/api/v1/mcp/stream \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Authorization: Bearer ***" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -45,11 +45,11 @@ curl -X POST https://wealthtrack.filla.id/api/v1/mcp/stream \
   }'
 ```
 
-### 3. List Available Tools
+### 3. Daftar Tools yang Tersedia
 
 ```bash
 curl -X POST https://wealthtrack.filla.id/api/v1/mcp/stream \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Authorization: Bearer ***" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -58,19 +58,19 @@ curl -X POST https://wealthtrack.filla.id/api/v1/mcp/stream \
   }'
 ```
 
-Available tools (MVP):
+Tools yang tersedia (MVP):
 - `get_current_balance`
-- `list_recent_transactions` (optional `limit`)
-- `create_transaction` (amount, type, category_id, description, optional date)
-- `get_monthly_summary` (optional `month` YYYY-MM)
+- `list_recent_transactions` (opsional `limit`)
+- `create_transaction` (amount, type, category_id, description, tanggal opsional)
+- `get_monthly_summary` (opsional `month` YYYY-MM)
 - `list_budgets`
 - `get_ai_context`
 
-### 4. Calling a Tool Example (create_transaction)
+### 4. Contoh Memanggil Tool (create_transaction)
 
 ```bash
 curl -X POST https://wealthtrack.filla.id/api/v1/mcp/stream \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Authorization: Bearer ***" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -89,28 +89,28 @@ curl -X POST https://wealthtrack.filla.id/api/v1/mcp/stream \
   }'
 ```
 
-## Security Notes
+## Catatan Keamanan
 
-- **Strict User Scoping**: Every tool call is executed in the context of the authenticated user + their household. No cross-user data access is possible.
-- **JWT Required**: No anonymous access. Tokens are validated via the existing `get_current_user` dependency.
-- **Rate Limiting**: MCP endpoints are protected by the existing SlowAPI + Redis rate limiter (same limits as other authenticated endpoints).
-- **No New Secrets**: Reuses existing JWT infrastructure. No additional API keys or MCP-specific auth.
-- **Input Validation**: All tool arguments are validated via Pydantic schemas before execution.
-- **SSE Timeouts**: Long-lived connections are configured with appropriate nginx timeouts (see deployment notes).
-- **Auditability**: Tool calls can be logged alongside existing AI advisor interactions.
+- **Scoping user ketat**: Setiap pemanggilan tool dieksekusi dalam konteks user yang terautentikasi + household-nya. Tidak ada kemungkinan akses data antar-user.
+- **Wajib JWT**: Tidak ada akses anonim. Token divalidasi lewat dependency `get_current_user` yang sudah ada.
+- **Rate limiting**: Endpoint MCP dilindungi rate limiter SlowAPI + Redis yang sudah ada (limit sama seperti endpoint terautentikasi lainnya).
+- **Tanpa rahasia baru**: Memakai ulang infrastruktur JWT yang sudah ada. Tidak ada API key tambahan atau auth khusus MCP.
+- **Validasi input**: Semua argumen tool divalidasi lewat schema Pydantic sebelum dieksekusi.
+- **Timeout SSE**: Koneksi berumur panjang dikonfigurasi dengan timeout nginx yang sesuai (lihat catatan deployment).
+- **Auditability**: Pemanggilan tool bisa dicatat bersama interaksi AI advisor yang sudah ada.
 
-**Important**: The production nginx configuration (including optimized proxy rules for the long-lived `/mcp/stream` SSE endpoint with `proxy_buffering off`, `proxy_read_timeout 3600s`, etc.) lives in the **filla-id-server.git** repository. The `deploy/wealthtrack.nginx` file in this repo is provided as a reference snippet only.
+**Penting**: Konfigurasi nginx production (termasuk aturan proxy yang dioptimalkan untuk endpoint SSE `/mcp/stream` yang berumur panjang dengan `proxy_buffering off`, `proxy_read_timeout 3600s`, dll.) ada di repository **filla-id-server.git**. File `deploy/wealthtrack.nginx` di repo ini cuma disediakan sebagai cuplikan referensi.
 
-## Configuration
+## Konfigurasi
 
-MCP support is controlled via environment variables (see `backend/app/core/config.py`):
+Dukungan MCP dikontrol lewat environment variables (lihat `backend/app/core/config.py`):
 
 - `MCP_ENABLED=true`
 - `MCP_STREAM_PATH=/mcp/stream`
 
-## Compatibility
+## Kompatibilitas
 
-- MCP Protocol: 2024-11-05
-- Follows the same SSE + JSON-RPC pattern used by Penpot's `/mcp/stream` implementation for consistency across filla.id services.
+- Protokol MCP: 2024-11-05
+- Mengikuti pola SSE + JSON-RPC yang sama dengan implementasi `/mcp/stream` milik Penpot demi konsistensi antar layanan filla.id.
 
-For questions or contributions, open an issue or contact the maintainers.
+Kalau ada pertanyaan atau mau kontribusi, buka issue atau hubungi maintainer.

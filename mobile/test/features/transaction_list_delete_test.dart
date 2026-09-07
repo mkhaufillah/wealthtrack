@@ -98,13 +98,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Delete
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Hapus'));
       await tester.pumpAndSettle();
 
       // Confirm dialog appears
-      expect(find.text('Delete Transaction'), findsOneWidget);
+      expect(find.text('Hapus transaksi?'), findsOneWidget);
       expect(find.textContaining('Lunch'), findsAtLeast(1));
-      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Batal'), findsOneWidget);
     });
 
     testWidgets('tapping Cancel closes delete dialog', (tester) async {
@@ -115,18 +115,18 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Delete
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Hapus'));
       await tester.pumpAndSettle();
 
       // Verify dialog is shown
-      expect(find.text('Delete Transaction'), findsOneWidget);
+      expect(find.text('Hapus transaksi?'), findsOneWidget);
 
       // Tap Cancel
-      await tester.tap(find.text('Cancel'));
+      await tester.tap(find.text('Batal'));
       await tester.pumpAndSettle();
 
       // Dialog should be gone
-      expect(find.text('Delete Transaction'), findsNothing);
+      expect(find.text('Hapus transaksi?'), findsNothing);
     });
 
     testWidgets('delete dialog shows warning about undo', (tester) async {
@@ -134,10 +134,10 @@ void main() {
 
       await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Hapus'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('cannot be undone'), findsOneWidget);
+      expect(find.textContaining('Gak bisa dibalikin'), findsOneWidget);
     });
   });
 }

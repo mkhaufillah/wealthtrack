@@ -45,7 +45,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete', style: TextStyle(color: AppColors.highlight)),
+            child: Text('Hapus', style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),

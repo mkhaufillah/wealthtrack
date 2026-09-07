@@ -252,7 +252,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
             IconButton(
               icon: AppIcon(AppIcons.trash, size: 20),
               onPressed: _clearChat,
-              tooltip: 'Clear chat',
+              tooltip: 'Bersihin chat',
             ),
         ],
       ),
@@ -330,13 +330,13 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
         children: [
           AppIcon(AppIcons.ai, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
           const SizedBox(height: 16),
-          Text('Ask me anything about your finances',
+          Text('Nanya apa aja soal duit',
               style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
           const SizedBox(height: 8),
-          Text('"How much did I spend on food this month?"',
+          Text('"Bulan ini makan berapa, ya?"',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
           const SizedBox(height: 4),
-          Text('"Give me saving tips"',
+          Text('"Kasih tips nabung dong"',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
         ],
       ),
@@ -358,7 +358,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
           ),
         ),
         child: msg.isUser
-            ? Text(msg.text, style: TextStyle(color: AppColors.surface, fontSize: 14))
+            ? Text(msg.text, style: TextStyle(color: AppColors.onAccent, fontSize: 14))
             : msg.status == 'processing' && msg.text.isEmpty
                 ? Row(
                     mainAxisSize: MainAxisSize.min,
@@ -368,7 +368,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textSecondary),
                       ),
                       const SizedBox(width: 8),
-                      Text('Thinking...', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                      Text('Lagi mikir…', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                     ],
                   )
                 : msg.status == 'error'
@@ -379,7 +379,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                           children: [
                             AppIcon(AppIcons.alert, size: 16, color: AppColors.highlight),
                             const SizedBox(width: 6),
-                            Text('Failed — tap to retry',
+                            Text('Gagal — tap buat coba lagi',
                                 style: TextStyle(fontSize: 13, color: AppColors.highlight)),
                           ],
                         ),

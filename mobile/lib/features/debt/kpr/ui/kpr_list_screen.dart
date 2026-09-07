@@ -48,7 +48,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete', style: TextStyle(color: AppColors.highlight)),
+            child: Text('Hapus', style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),
@@ -59,7 +59,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(success ? 'Simulation deleted' : 'Failed to delete simulation'),
+            content: Text(success ? 'Simulasi kehapus' : 'Gagal hapus simulasi'),
           ),
         );
       }

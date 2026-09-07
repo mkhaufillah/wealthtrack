@@ -160,7 +160,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Credit card added successfully')),
+        const SnackBar(content: Text('Kartu kesimpen')),
       );
       if (mounted) context.pop();
     } else {
@@ -282,7 +282,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
                       width: 18, height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                   : AppIcon(AppIcons.check, size: 18),
-              label: const Text('Save'),
+              label: const Text('Simpan'),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),

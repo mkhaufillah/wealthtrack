@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../theme/app_theme.dart';
 
-/// Category emoji in a pastel well — not a naked glyph on white.
+/// Map emoji category icons to Hugeicons. Falls back to a receipt glyph.
 class CategoryGlyph extends StatelessWidget {
   final String icon;
   final bool expense;
@@ -13,9 +14,56 @@ class CategoryGlyph extends StatelessWidget {
     this.size = 36,
   });
 
+  List<List<dynamic>> get _mapped {
+    switch (icon.trim()) {
+      case '🍔':
+      case '🍜':
+      case '🍱':
+        return HugeIcons.strokeRoundedServingFood;
+      case '🚗':
+      case '🛵':
+        return HugeIcons.strokeRoundedCar01;
+      case '⛽':
+      case '⛽️':
+        return HugeIcons.strokeRoundedPetrol;
+      case '🛒':
+      case '🛍️':
+        return HugeIcons.strokeRoundedShoppingBag01;
+      case '💡':
+      case '⚡':
+        return HugeIcons.strokeRoundedHome01;
+      case '🏥':
+      case '💊':
+        return HugeIcons.strokeRoundedMedicineBottle01;
+      case '🎓':
+        return HugeIcons.strokeRoundedEducation;
+      case '🎮':
+        return HugeIcons.strokeRoundedGameController01;
+      case '💰':
+      case '💵':
+        return HugeIcons.strokeRoundedMoneyBag01;
+      case '🏦':
+        return HugeIcons.strokeRoundedBank;
+      case '📱':
+        return HugeIcons.strokeRoundedSmartPhone01;
+      case '🏠':
+        return HugeIcons.strokeRoundedHouse01;
+      case '👕':
+        return HugeIcons.strokeRoundedClothes;
+      case '🎁':
+        return HugeIcons.strokeRoundedGift;
+      case '✈️':
+        return HugeIcons.strokeRoundedAirplane01;
+      case '🐶':
+      case '🐱':
+        return HugeIcons.strokeRoundedFishFood; // placeholder: no paw glyph
+      default:
+        return HugeIcons.strokeRoundedInvoice01;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final glyph = icon.trim().isEmpty ? '·' : icon.trim();
     final tint = expense ? AppColors.highlight : AppColors.success;
     return Container(
       width: size,
@@ -25,9 +73,10 @@ class CategoryGlyph extends StatelessWidget {
         color: tint.withOpacity(0.14),
         borderRadius: BorderRadius.circular(size * 0.32),
       ),
-      child: Text(
-        glyph,
-        style: TextStyle(fontSize: size * 0.42, height: 1),
+      child: HugeIcon(
+        icon: _mapped,
+        size: size * 0.5,
+        color: tint,
       ),
     );
   }

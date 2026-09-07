@@ -64,7 +64,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete', style: TextStyle(color: AppColors.highlight)),
+            child: Text('Hapus', style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),
@@ -683,7 +683,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                   );
                 }
               },
-              child: const Text('Save'),
+              child: const Text('Simpan'),
             ),
           ],
         ),

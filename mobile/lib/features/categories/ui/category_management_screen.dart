@@ -105,8 +105,8 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
                         value: type,
                         decoration: InputDecoration(labelText: 'Type'),
                         items: const [
-                          DropdownMenuItem(value: 'expense', child: Text('Expense')),
-                          DropdownMenuItem(value: 'income', child: Text('Income')),
+                          DropdownMenuItem(value: 'expense', child: Text('Keluar')),
+                          DropdownMenuItem(value: 'income', child: Text('Masuk')),
                         ],
                         onChanged: (v) => setSheetState(() => type = v ?? 'expense'),
                       ),
@@ -188,20 +188,22 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditSheet(),
-        child: AppIcon(AppIcons.add),
+        backgroundColor: AppColors.accent,
+        foregroundColor: AppColors.onAccent,
+        child: AppIcon(AppIcons.add, size: 22, color: AppColors.onAccent),
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
-              ? Center(child: Text('Error: ${state.error}'))
+              ? Center(child: Text('Gagal: ${state.error}'))
               : RefreshIndicator(
                   onRefresh: () => ref.read(categoryManagementProvider.notifier).load(),
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
                     children: [
-                      _buildSection('Expense', expense),
+                      _buildSection('Keluar', expense),
                       const SizedBox(height: 24),
-                      _buildSection('Income', income),
+                      _buildSection('Masuk', income),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -228,7 +230,7 @@ class _CategoryManagementScreenState extends ConsumerState<CategoryManagementScr
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Center(
               child: Text(
-                'No categories',
+                'Belum ada kategori',
                 style: TextStyle(color: AppColors.textSecondary.withOpacity(0.5)),
               ),
             ),

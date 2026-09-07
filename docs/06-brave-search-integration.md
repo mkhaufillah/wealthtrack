@@ -1,25 +1,25 @@
-# Brave Search Integration — Verification
+# Integrasi Brave Search — Verifikasi
 
-**See also:** [Backend API](03-backend-api.md) · [Project Overview](01-project-overview.md) · [Deployment](07-deployment.md) · [P4 Plan](08-p4-plan.md)
+**Lihat juga:** [Backend API](03-backend-api.md) · [Project Overview](01-project-overview.md) · [Deployment](07-deployment.md) · [Rencana P4](08-p4-plan.md)
 
-## Brave Search Integration
+## Integrasi Brave Search
 
-The AI Advisor uses Brave Search API to fetch real-time financial data (e.g., current interest rates, gold prices, stock market) when the user's question contains relevant keywords.
+AI Advisor memakai Brave Search API untuk ambil data finansial real-time (misalnya suku bunga terkini, harga emas, pasar saham) saat pertanyaan user mengandung kata kunci yang relevan.
 
-### How It Works
+### Cara Kerjanya
 
-1. **Keyword Detection** — `backend/app/services/web_search.py` checks the user's question against `HIGH_CONFIDENCE` and `MEDIUM_KEYWORDS` lists:
-   - High confidence keywords (always trigger search): `suku bunga`, `inflasi`, `ihsg`, `harga emas`, `stock price`, `gold price`, etc.
-   - Medium keywords (trigger search if present): `terbaru`, `update`, `latest`, `prediksi`, `forecast`, etc.
+1. **Deteksi Kata Kunci** — `backend/app/services/web_search.py` mengecek pertanyaan user terhadap daftar `HIGH_CONFIDENCE` dan `MEDIUM_KEYWORDS`:
+   - Kata kunci high confidence (selalu memicu pencarian): `suku bunga`, `inflasi`, `ihsg`, `harga emas`, `stock price`, `gold price`, dll.
+   - Kata kunci medium (memicu pencarian kalau ada): `terbaru`, `update`, `latest`, `prediksi`, `forecast`, dll.
 
-2. **API Call** — If keywords match, the backend calls `https://api.search.brave.com/res/v1/web/search` with the `BRAVE_SEARCH_API_KEY`.
+2. **Panggilan API** — Kalau kata kunci cocok, backend memanggil `https://api.search.brave.com/res/v1/web/search` dengan `BRAVE_SEARCH_API_KEY`.
 
-3. **Context Injection** — Search results are formatted and injected into the AI prompt as `[Hasil Pencarian Web]` so the model can reference current data.
+3. **Injeksi Konteks** — Hasil pencarian diformat lalu disuntikkan ke prompt AI sebagai `[Hasil Pencarian Web]` supaya model bisa merujuk data terkini.
 
-### Configuration
+### Konfigurasi
 
-`BRAVE_SEARCH_API_KEY` is loaded from two sources (in order):
-- `backend/.env` — primary location
-- `~/.hermes/.env` — fallback (Hermes env), so WealthTrack can reuse an existing key
+`BRAVE_SEARCH_API_KEY` dimuat dari dua sumber (berurutan):
+- `backend/.env` — lokasi utama
+- `~/.hermes/.env` — fallback (env Hermes), jadi WealthTrack bisa pakai key yang sudah ada
 
-If no key is found, the AI Advisor still works but without web search capabilities.
+Kalau tidak ada key, AI Advisor tetap jalan tapi tanpa kemampuan pencarian web.

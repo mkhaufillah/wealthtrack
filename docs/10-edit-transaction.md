@@ -1,19 +1,19 @@
-# Edit Transaction
+# Edit Transaksi
 
-**Feature added:** 2026-05-27 · Commit: `bffe0ec`
-**See also:** [Backend API](03-backend-api.md) · [Flutter Mobile](05-flutter-mobile.md) · [P4 Plan](08-p4-plan.md)
-
----
-
-## Overview
-
-Allows users to edit any field of an existing transaction — amount, type (expense/income), category, description, note, and **date** — from the transaction list screen.
-
-The edit flow reuses the existing `AddTransactionScreen` in edit mode rather than building a separate screen. This keeps UI consistent and reduces duplication.
+**Fitur ditambahkan:** 2026-05-27 · Commit: `bffe0ec`
+**Lihat juga:** [Backend API](03-backend-api.md) · [Flutter Mobile](05-flutter-mobile.md) · [Rencana P4](08-p4-plan.md)
 
 ---
 
-## Architecture
+## Gambaran Umum
+
+Memungkinkan user mengedit semua field transaksi yang sudah ada — nominal, tipe (pengeluaran/pemasukan), kategori, deskripsi, catatan, dan **tanggal** — langsung dari layar daftar transaksi.
+
+Alur edit memakai ulang `AddTransactionScreen` yang sudah ada dalam mode edit, bukan bikin layar terpisah. Jadi UI tetap konsisten dan tidak ada duplikasi kode.
+
+---
+
+## Arsitektur
 
 ```
 ┌─ Transaction List ─────────────────────┐
@@ -71,11 +71,11 @@ The edit flow reuses the existing `AddTransactionScreen` in edit mode rather tha
 
 ---
 
-## Route Design
+## Desain Route
 
-**Why `state.extra` instead of path params?**
+**Kenapa `state.extra` bukan path params?**
 
-Since the transaction data is already loaded in memory (in `TransactionListNotifier`), fetching it again from the API via `id` would be wasteful. Using GoRouter's `extra` parameter avoids an extra network call.
+Karena data transaksi sudah dimuat di memori (di `TransactionListNotifier`), mengambilnya lagi dari API via `id` hanya buang-buang resource. Memakai parameter `extra` milik GoRouter menghindari panggilan jaringan tambahan.
 
 ```dart
 // Navigation (from tile popup menu)
@@ -92,35 +92,35 @@ GoRoute(
 );
 ```
 
-The screen infers mode from the presence of `editTransaction`:
-- `null` → create mode
-- `TransactionModel` → edit mode
+Layar menentukan mode dari keberadaan `editTransaction`:
+- `null` → mode buat
+- `TransactionModel` → mode edit
 
 ---
 
-## Prefill Logic
+## Logika Prefill
 
 **File:** `lib/features/transactions/ui/add_transaction_screen.dart`
 
-When `widget.editTransaction != null`, `_prefillFields()` is called from `initState`:
+Saat `widget.editTransaction != null`, `_prefillFields()` dipanggil dari `initState`:
 
-| Field | Prefill Source |
+| Field | Sumber Prefill |
 |-------|---------------|
-| Amount | `txn.amount.toString()` |
-| Description | `txn.description` |
-| Note | `txn.note` |
-| Type (expense/income) | `txn.type == 'expense'` |
-| Category | `txn.category.id` |
-| Date | `DateTime.tryParse(txn.date)` |
+| Nominal | `txn.amount.toString()` |
+| Deskripsi | `txn.description` |
+| Catatan | `txn.note` |
+| Tipe (pengeluaran/pemasukan) | `txn.type == 'expense'` |
+| Kategori | `txn.category.id` |
+| Tanggal | `DateTime.tryParse(txn.date)` |
 
-Categories are loaded from the API first (shared with create mode), so the
-selected category's ID is guaranteed to exist in the picker. If the transaction
-type changed (e.g., editing an income to become expense), the category picker
-switches to the correct category list.
+Kategori dimuat dari API terlebih dahulu (dishare dengan mode buat), jadi ID
+kategori yang dipilih dijamin ada di picker. Kalau tipe transaksi berubah
+(misalnya mengubah pemasukan jadi pengeluaran), picker kategori otomatis
+pindah ke daftar kategori yang benar.
 
 ---
 
-## Provider Method
+## Method Provider
 
 **File:** `lib/features/transactions/providers/transaction_provider.dart`
 
@@ -137,16 +137,16 @@ Future<bool> update(int id, Map<String, dynamic> data) async {
 }
 ```
 
-The `update` method:
-1. Sends a PUT request via `TransactionRepository.update()`
-2. Refreshes the transaction list (so changes appear immediately)
-3. Returns `true` on success, `false` on failure
+Method `update`:
+1. Mengirim request PUT via `TransactionRepository.update()`
+2. Me-refresh daftar transaksi (biar perubahan langsung kelihatan)
+3. Mengembalikan `true` kalau sukses, `false` kalau gagal
 
 ---
 
 ## Backend
 
-The backend already supported editing the `date` field via `PUT /transactions/{txn_id}`:
+Backend sudah mendukung pengeditan field `date` via `PUT /transactions/{txn_id}` sejak awal:
 
 ```python
 # routers/transactions.py — update_transaction()
@@ -157,30 +157,30 @@ for field in ["amount", "description", "note", "category_id", "date"]:
         updates[field] = val
 ```
 
-No backend changes were needed — the endpoint dynamically builds a `SET` clause from whichever fields are provided, so `date` was always available.
+Tidak perlu perubahan backend — endpoint ini membangun klausa `SET` secara dinamis dari field apa pun yang dikirim, jadi `date` memang sudah tersedia sejak awal.
 
 ---
 
-## Edit vs Create: Visual Differences
+## Edit vs Buat: Perbedaan Visual
 
-| Aspect | Create Mode | Edit Mode |
-|--------|------------|-----------|
-| AppBar title | "Add Transaction" | "Edit Transaction" |
-| Button label | "Save" | "Update" |
-| Snackbar | "Transaction recorded" | "Transaction updated" |
-| API method | POST | PUT |
-| Provider method | `create()` | `update()` |
-| Pre-filled | No | Yes, all fields |
+| Aspek | Mode Buat | Mode Edit |
+|-------|------------|-----------|
+| Judul AppBar | "Tambah Transaksi" | "Edit Transaksi" |
+| Label tombol | "Simpan" | "Perbarui" |
+| Snackbar | "Transaksi tercatat" | "Transaksi diperbarui" |
+| Metode API | POST | PUT |
+| Method provider | `create()` | `update()` |
+| Field terisi otomatis | Tidak | Ya, semua field |
 
 ---
 
-## Files Changed
+## File yang Diubah
 
-| File | Change |
-|------|--------|
-| `lib/features/transactions/providers/transaction_provider.dart` | +`update(id, data)` method |
-| `lib/features/transactions/ui/add_transaction_screen.dart` | +`editTransaction` param, prefill logic, mode-aware title/button/save |
-| `lib/app.dart` | +route builder passes `state.extra` as `editTransaction`, +import `TransactionModel` |
-| `lib/features/transactions/ui/widgets/transaction_tile.dart` | +"Edit" popup menu item, +GoRouter push with extra |
+| File | Perubahan |
+|------|-----------|
+| `lib/features/transactions/providers/transaction_provider.dart` | +method `update(id, data)` |
+| `lib/features/transactions/ui/add_transaction_screen.dart` | +param `editTransaction`, logika prefill, judul/tombol/simpan yang sadar-mode |
+| `lib/app.dart` | +route builder meneruskan `state.extra` sebagai `editTransaction`, +import `TransactionModel` |
+| `lib/features/transactions/ui/widgets/transaction_tile.dart` | +item menu popup "Edit", +push GoRouter dengan extra |
 
-No backend changes.
+Tidak ada perubahan backend.

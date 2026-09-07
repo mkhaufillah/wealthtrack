@@ -130,6 +130,12 @@ class AppTheme {
           backgroundColor: AppColors._accent,
           foregroundColor: AppColors._textPrimary,
         ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors._accent,
+            foregroundColor: AppColors._onAccent,
+          ),
+        ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: AppColors._background,
@@ -214,6 +220,12 @@ class AppTheme {
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors.darkAccent,
           foregroundColor: AppColors.darkTextPrimary,
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.darkAccent,
+            foregroundColor: AppColors.darkTextPrimary,
+          ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,

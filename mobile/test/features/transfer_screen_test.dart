@@ -106,7 +106,7 @@ void main() {
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
       await tester.pumpAndSettle();
       expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedUser), findsOneWidget);
-      expect(find.text('No household members available'), findsOneWidget);
+      expect(find.text('Belum ada anggota rumah'), findsOneWidget);
     });
 
     testWidgets('shows sender card when members available', (tester) async {
@@ -179,7 +179,7 @@ void main() {
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
       await tester.pumpAndSettle();
 
-      expect(find.text('Send Transfer'), findsOneWidget);
+      expect(find.text('Kirim'), findsOneWidget);
     });
 
     testWidgets('shows error display when transfer fails', (tester) async {
@@ -211,10 +211,10 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Processing...'), findsOneWidget);
+      expect(find.text('Lagi diproses…'), findsOneWidget);
       // FilledButton should be disabled (onPressed: null) when submitting
       final button = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Processing...'),
+        find.widgetWithText(FilledButton, 'Lagi diproses…'),
       );
       expect(button.onPressed, isNull);
     });

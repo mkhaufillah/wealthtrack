@@ -82,7 +82,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       state = state.copyWith(
         isEditing: false,
         savingProfile: false,
-        message: 'Profile updated',
+        message: 'Profil kesimpen',
       );
     } catch (e) {
       state = state.copyWith(
@@ -115,7 +115,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       await authNotifier.changePassword(current, newPw);
       state = state.copyWith(
         changingPassword: false,
-        message: 'Password changed successfully',
+        message: 'Sandi berhasil diganti',
       );
       return true;
     } catch (e) {

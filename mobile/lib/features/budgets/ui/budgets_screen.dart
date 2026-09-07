@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../core/ui/app_icons.dart';
+import '../../../core/ui/category_glyph.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -80,7 +81,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         userCycleDay: cycleStartDay,
         cycleDateFrom: DateFormat('yyyy-MM-dd').format(dFrom),
         cycleDateTo: DateFormat('yyyy-MM-dd').format(dTo),
-        cycleLabel: '${DateFormat('dd MMM yyyy').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}',
+        cycleLabel: '${formatDayMonth(dFrom)} ${dFrom.year} – ${formatDayMonth(dTo)} ${dTo.year}',
       );
     } catch (e) {
       debugPrint('ERROR: $e');
@@ -203,7 +204,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         children: [
           IconButton(icon: AppIcon(AppIcons.back), onPressed: () => _prevMonth()),
           Text(
-            nav.cycleLabel.isNotEmpty ? nav.cycleLabel : DateFormat('MMMM yyyy').format(nav.currentMonth),
+            nav.cycleLabel.isNotEmpty ? nav.cycleLabel : formatMonthYear(nav.currentMonth),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           IconButton(
@@ -222,10 +223,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         children: [
           AppIcon(AppIcons.wallet, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
           const SizedBox(height: 16),
-          Text('No budgets set for this month',
+          Text(t('budget.empty_title'),
               style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
           const SizedBox(height: 8),
-          Text('Tap + to add a spending limit per category',
+          Text(t('budget.empty_hint'),
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
           const SizedBox(height: 20),
           FilledButton.icon(
@@ -241,8 +242,12 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               );
               _load();
             },
-            icon: AppIcon(AppIcons.spark, size: 18),
-            label: const Text('Suggestions'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.accent,
+              foregroundColor: AppColors.onAccent,
+            ),
+            icon: AppIcon(AppIcons.spark, size: 18, color: AppColors.onAccent),
+            label: Text(t('budget.suggest_btn')),
           ),
         ],
       ),
@@ -309,19 +314,19 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                     child: AppIcon(AppIcons.chart, color: AppColors.textPrimary, size: 20),
                   ),
                   const SizedBox(width: 12),
-                  const Text('Budget Overview',
+                  Text(t('budget.overview'),
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 ],
               ),
               const SizedBox(height: 16),
-              _summaryRow('Total Budget', formatCurrency(totalBudget), AppColors.textPrimary),
+              _summaryRow(t('budget.total'), formatCurrency(totalBudget), AppColors.textPrimary),
               const SizedBox(height: 6),
-              _summaryRow('Total Spent', formatCurrency(totalSpent), AppColors.highlight),
+              _summaryRow(t('budget.spent'), formatCurrency(totalSpent), AppColors.highlight),
               const SizedBox(height: 6),
-              _summaryRow('Remaining', formatCurrency(totalRemaining),
+              _summaryRow(t('budget.remaining'), formatCurrency(totalRemaining),
                   totalRemaining >= 0 ? AppColors.success : AppColors.highlight),
               Divider(height: 24, color: AppColors.divider),
-              _summaryRow('Total Income', formatCurrency(income), AppColors.textPrimary),
+              _summaryRow(t('budget.income'), formatCurrency(income), AppColors.textPrimary),
               const SizedBox(height: 4),
               Row(
                 children: [
@@ -334,10 +339,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   Expanded(
                     child: Text(
                       isOverBudgeted
-                          ? 'Budget exceeds income by ${formatCurrency(totalBudget - income)}'
+                          ? t('budget.over_by').replaceAll('{n}', formatCurrency(totalBudget - income))
                           : diff >= 0
-                              ? 'Income covers all budgets (${formatCurrency(diff)} extra)'
-                              : 'Shortfall of ${formatCurrency(-diff)}',
+                              ? t('budget.covered').replaceAll('{n}', formatCurrency(diff))
+                              : t('budget.shortfall').replaceAll('{n}', formatCurrency(-diff)),
                       style: TextStyle(
                         fontSize: 12,
                         color: isOverBudgeted ? AppColors.warning : AppColors.textSecondary,
@@ -387,18 +392,18 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                     child: AppIcon(AppIcons.info, color: AppColors.warning, size: 20),
                   ),
                   const SizedBox(width: 12),
-                  const Text('Outside Budget',
+                  Text(t('budget.outside'),
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
-                'You have spending in categories without a budget. Consider adding budgets for these categories.',
+                t('budget.outside_hint'),
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary.withOpacity(0.8)),
               ),
               const SizedBox(height: 12),
               ...List.generate(1, (_) => _summaryRow(
-                'Total', formatCurrency(total), AppColors.warning,
+                t('budget.total'), formatCurrency(total), AppColors.warning,
               )),
             ],
           ),
@@ -418,10 +423,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
+              CategoryGlyph(icon: item.categoryIcon, size: 32),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName,
+                child: Text(item.categoryName.isNotEmpty ? item.categoryName : item.categoryNameEn,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ),
               Text(formatCurrency(item.total),
@@ -463,10 +468,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             children: [
               Row(
               children: [
-                Text(item.categoryIcon, style: const TextStyle(fontSize: 20)),
+                CategoryGlyph(icon: item.categoryIcon, size: 32),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName,
+                  child: Text(item.categoryName.isNotEmpty ? item.categoryName : item.categoryNameEn,
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
                 // Cycle date range badge
@@ -479,7 +484,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   child: Text(
                     () {
                       final (from, to) = getCycleRangeForMonth(_monthParam, item.cycleOn);
-                      return '${DateFormat('dd MMM').format(from)} – ${DateFormat('dd MMM').format(to)}';
+                      return '${formatDayMonth(from)} – ${formatDayMonth(to)}';
                     }(),
                     style: TextStyle(
                       fontSize: 10,
@@ -559,10 +564,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 const Spacer(),
                 Text(
                   item.remaining < 0
-                      ? 'Over by ${formatCurrency(-item.remaining)}'
+                      ? t('budget.over_by_short').replaceAll('{n}', formatCurrency(-item.remaining))
                       : item.remaining == 0
-                          ? 'Budget exhausted'
-                          : '${formatCurrency(item.remaining)} remaining',
+                          ? t('budget.exhausted')
+                          : t('budget.remaining_n').replaceAll('{n}', formatCurrency(item.remaining)),
                   style: TextStyle(
                     fontSize: 12,
                     color: isOverBudget ? AppColors.highlight : AppColors.textSecondary,
@@ -614,13 +619,13 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(t('budget.delete')),
-        content: Text('Remove budget for ${item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName}?'),
+        content: Text(t('budget.remove_q').replaceAll('{c}', item.categoryName.isNotEmpty ? item.categoryName : item.categoryNameEn)),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(t('common.cancel'))),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.highlight),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.highlight, foregroundColor: AppColors.onAccent),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
+            child: Text(t('common.delete')),
           ),
         ],
       ),
@@ -702,13 +707,13 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
           ),
           const SizedBox(height: 20),
           Text(
-            widget.existingItem != null ? 'Edit Budget' : 'Set Monthly Budget',
+            widget.existingItem != null ? t('budget.edit') : t('budget.set'),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 16),
 
           // Category picker
-          const Text('Category', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(t('tx.categories'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
           if (widget.existingItem != null) ...[
             // Edit mode: readonly category display
@@ -721,10 +726,10 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
               ),
               child: Row(
                 children: [
-                  Text(widget.existingItem!.categoryIcon, style: const TextStyle(fontSize: 18)),
+                  CategoryGlyph(icon: widget.existingItem!.categoryIcon, size: 28),
                   const SizedBox(width: 10),
                   Text(
-                    (widget.existingItem!.categoryNameEn.isNotEmpty ? widget.existingItem!.categoryNameEn : widget.existingItem!.categoryName),
+                    (widget.existingItem!.categoryName.isNotEmpty ? widget.existingItem!.categoryName : widget.existingItem!.categoryNameEn),
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ],
@@ -735,12 +740,12 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
             DropdownButtonFormField<int>(
               value: _selectedCategoryId,
               decoration: InputDecoration(
-                hintText: 'Select category',
+                hintText: t('budget.pick_cat'),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               items: widget.categories.map((c) => DropdownMenuItem(
                 value: c['id'] as int,
-                child: Text('${c['icon'] ?? '📦'}  ${(c['name_en'] as String? ?? c['name']) as String}'),
+                child: Text((c['name'] as String? ?? c['name_en']) as String),
               )).toList(),
               onChanged: (v) => setState(() => _selectedCategoryId = v),
             ),
@@ -748,24 +753,24 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
           const SizedBox(height: 16),
 
           // Amount
-          const Text('Monthly Limit', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(t('budget.limit'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
           AmountField(controller: _amountCtrl),
           const SizedBox(height: 16),
 
           // Cycle Day picker
-          const Text('Billing Cycle Day', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(t('budget.cycle_day'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
           DropdownButtonFormField<int>(
             value: _cycleOn,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
-              hintText: 'Select cycle day',
+              hintText: t('budget.pick_day'),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),
             items: List.generate(28, (i) => DropdownMenuItem<int>(
               value: i + 1,
-              child: Text('Day ${i + 1}', style: TextStyle(color: AppColors.textPrimary)),
+              child: Text(t('budget.day_n').replaceAll('{n}', '${i + 1}'), style: TextStyle(color: AppColors.textPrimary)),
             )),
             onChanged: (v) {
               if (v != null) setState(() => _cycleOn = v);
@@ -773,7 +778,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Actual spending is computed from this cycle day of previous month\nto day before this cycle day of current month.',
+            t('budget.cycle_hint'),
             style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
@@ -784,7 +789,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
               onPressed: _isSaving ? null : _save,
               child: _isSaving
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(widget.existingItem != null ? 'Update Budget' : 'Save Budget'),
+                  : Text(widget.existingItem != null ? t('budget.update') : t('budget.save')),
             ),
           ),
           const SizedBox(height: 24),

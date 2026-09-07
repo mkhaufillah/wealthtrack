@@ -125,7 +125,7 @@ class _TransferBalanceScreenState
       if (amount <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Amount for ${r.displayName} must be > 0'),
+            content: Text('Jumlah buat ${r.displayName} harus lebih dari 0'),
           ),
         );
         return;
@@ -135,7 +135,7 @@ class _TransferBalanceScreenState
 
     if (transfers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add at least one recipient')),
+        const SnackBar(content: Text('Tambah minimal satu penerima')),
       );
       return;
     }
@@ -185,7 +185,7 @@ class _TransferBalanceScreenState
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Send Transfer'),
+            child: Text(t('transfer.send')),
           ),
         ],
       ),
@@ -207,7 +207,7 @@ class _TransferBalanceScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              '✅ Transfer successful! ${transfers.length} transaction pair(s) created.'),
+              t('transfer.ok').replaceAll('{n}', '${transfers.length}')),
         ),
       );
       // Refresh transaction list when we go back
@@ -215,7 +215,7 @@ class _TransferBalanceScreenState
     } else {
       final state = ref.read(transferBalanceProvider);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(state.error ?? 'Transfer failed')),
+        SnackBar(content: Text(state.error ?? t('transfer.fail'))),
       );
     }
   }
@@ -243,7 +243,7 @@ class _TransferBalanceScreenState
                     children: [
                       AppIcon(AppIcons.user, size: 64, color: AppColors.textSecondary),
                       SizedBox(height: 16),
-                      Text('No household members available',
+                      Text(t('transfer.no_members'),
                           style: TextStyle(color: AppColors.textSecondary)),
                     ],
                   ),
@@ -318,7 +318,7 @@ class _TransferBalanceScreenState
                           TextButton.icon(
                             onPressed: isSubmitting ? null : _addRecipient,
                             icon: AppIcon(AppIcons.user, size: 18),
-                            label: const Text('Add'),
+                            label: const Text('Tambah'),
                           ),
                       ],
                     ),
@@ -413,8 +413,12 @@ class _TransferBalanceScreenState
                               )
                             : AppIcon(AppIcons.send),
                         label: Text(isSubmitting
-                            ? 'Processing...'
-                            : 'Send Transfer'),
+                            ? t('transfer.sending')
+                            : t('transfer.send')),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: AppColors.onAccent,
+                        ),
                       ),
                     ),
 

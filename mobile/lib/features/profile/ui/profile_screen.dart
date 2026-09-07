@@ -75,12 +75,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(t('profile.logout')),
-        content: const Text('Are you sure you want to logout?'),
+        content: Text(t('profile.logout_q')),
         actions: [
           TextButton(onPressed: () => ctx.pop(false), child: Text(t('common.cancel'))),
           FilledButton(
             onPressed: () => ctx.pop(true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.highlight),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.highlight, foregroundColor: AppColors.onAccent),
             child: Text(t('profile.logout')),
           ),
         ],
@@ -150,11 +150,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Cycle Start Day',
+                Text(t('profile.cycle_day'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Text(
-                  'Your billing cycle runs from day {n} to day {n-1} of next month.',
+                  t('profile.cycle_hint'),
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 16),
@@ -238,7 +238,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Join Household',
+                Text(t('hh.join'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
           Text(
@@ -249,7 +249,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           TextField(
                   controller: codeCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Invite Code',
+                    labelText: t('hh.invite_code'),
                     hintText: 'e.g. ABC1234',
                     border: OutlineInputBorder(),
                   ),
@@ -293,7 +293,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
                           )
                         : AppIcon(AppIcons.user),
-                    label: Text(joining ? 'Joining...' : 'Join'),
+                    label: Text(joining ? t('hh.joining') : t('hh.join_btn')),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -327,13 +327,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Create Household',
+                Text(t('hh.create'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: nameCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Household Name',
+                    labelText: t('hh.name'),
                     hintText: 'e.g. Home',
                     border: OutlineInputBorder(),
                   ),
@@ -356,7 +356,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               await _loadHousehold();
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('✅ Household created')),
+                                  const SnackBar(content: Text('Rumah berhasil dibuat')),
                                 );
                               }
                             } catch (e) {
@@ -374,7 +374,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
                           )
-                        : const Text('Create'),
+                        : Text(t('hh.create_btn')),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -426,13 +426,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 24),
 
                 // ── Account Settings ──
-                _buildSectionHeader(Icons.settings_outlined, 'Account Settings'),
+                _buildSectionHeader(Icons.settings_outlined, t('profile.sec_account')),
                 const SizedBox(height: 8),
 
                 if (!state.isEditing)
                   _buildMenuItem(
                     icon: Icons.edit_outlined,
-                    title: 'Edit Profile',
+                    title: t('profile.edit'),
                     onTap: () {
                       _displayNameCtrl.text = user?.displayName ?? '';
                       ref.read(profileProvider.notifier).toggleEdit();
@@ -443,14 +443,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 _buildMenuItem(
                   icon: Icons.lock_outline,
-                  title: 'Change Password',
+                  title: t('profile.change_pass'),
                   onTap: () => _showChangePasswordSheet(),
                 ),
 
                 const SizedBox(height: 24),
 
                 // ── Features ──
-                _buildSectionHeader(Icons.widgets_outlined, 'Features'),
+                _buildSectionHeader(Icons.widgets_outlined, t('profile.sec_features')),
                 const SizedBox(height: 8),
 
                 _buildMenuItem(
@@ -461,21 +461,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 _buildMenuItem(
                   icon: Icons.account_balance_outlined,
-                  title: 'Debt Tracker',
+                  title: t('profile.debt_tracker'),
                   onTap: () => context.push('/debt'),
                 ),
 
                 if (user?.role == 'admin')
                   _buildMenuItem(
                     icon: Icons.category_outlined,
-                    title: 'Manage Categories',
+                    title: t('cat.manage'),
                     onTap: () => context.push('/categories/manage'),
                   ),
 
                 const SizedBox(height: 24),
 
                 // ── Billing Cycle ──
-                _buildSectionHeader(Icons.calendar_month_outlined, 'Billing Cycle'),
+                _buildSectionHeader(Icons.calendar_month_outlined, t('profile.sec_cycle')),
                 const SizedBox(height: 8),
 
                 _buildMenuItem(
@@ -487,19 +487,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 24),
 
                 // ── Preferences ──
-                _buildSectionHeader(Icons.palette_outlined, 'Appearance'),
+                _buildSectionHeader(Icons.palette_outlined, t('profile.sec_look')),
                 const SizedBox(height: 8),
                 _buildThemeSelector(),
 
                 const SizedBox(height: 24),
 
                 // ── Account Actions ──
-                _buildSectionHeader(Icons.shield_outlined, 'Account Actions'),
+                _buildSectionHeader(Icons.shield_outlined, t('profile.sec_actions')),
                 const SizedBox(height: 8),
 
                 _buildMenuItem(
                   icon: Icons.logout,
-                  title: 'Logout',
+                  title: t('profile.logout'),
                   textColor: AppColors.highlight,
                   onTap: _logout,
                 ),
@@ -507,7 +507,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 8),
                 _buildMenuItem(
                   icon: Icons.delete_forever,
-                  title: 'Delete Account',
+                  title: t('profile.delete_account'),
                   textColor: AppColors.highlight,
                   onTap: _deleteAccount,
                 ),
@@ -644,7 +644,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 children: [
                   AppIcon(AppIcons.home, size: 18, color: AppColors.textSecondary),
                   const SizedBox(width: 8),
-                  const Text('Household',
+                  Text(t('hh.title'),
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ],
               ),
@@ -654,7 +654,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _showJoinHouseholdSheet,
                   icon: AppIcon(AppIcons.user, size: 18),
-                  label: const Text('Join Household'),
+                  label: Text(t('hh.join')),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: AppColors.divider),
                   ),
@@ -666,7 +666,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: TextButton.icon(
                   onPressed: _showCreateHouseholdSheet,
                   icon: AppIcon(AppIcons.add, size: 18),
-                  label: const Text('Create New'),
+                  label: Text(t('hh.create_new')),
                 ),
               ),
             ],
@@ -695,7 +695,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 AppIcon(AppIcons.home, size: 18, color: AppColors.textPrimary),
                 const SizedBox(width: 8),
                 Text(
-                  hh['name'] as String? ?? 'Home',
+                  hh['name'] as String? ?? t('hh.default_name'),
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
                 if (state.isAdmin) ...[
@@ -740,7 +740,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 10),
               Divider(height: 1, color: AppColors.divider),
               const SizedBox(height: 8),
-              Text('Members',
+              Text(t('hh.members'),
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               const SizedBox(height: 4),
               ...state.members.map<Widget>((m) {
@@ -814,13 +814,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Edit Display Name',
+            Text(t('profile.edit_name'),
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             TextField(
               controller: _displayNameCtrl,
               decoration: InputDecoration(
-                hintText: 'New display name',
+                hintText: t('profile.name_hint'),
                 border: OutlineInputBorder(),
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -845,7 +845,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           child:
                               CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
                         )
-                      : const Text('Save'),
+                      : Text(t('common.save')),
                 ),
               ],
             ),
@@ -909,7 +909,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Change Password',
+                  Text(t('profile.change_pass'),
                       style: TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
@@ -917,7 +917,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     controller: _currentPwCtrl,
                     obscureText: obscureCurrent,
                     decoration: InputDecoration(
-                      labelText: 'Current Password',
+                      labelText: t('profile.cur_pass'),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(obscureCurrent
@@ -928,7 +928,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     validator: (v) =>
-                        v == null || v.isEmpty ? 'Required' : null,
+                        v == null || v.isEmpty ? t('profile.required') : null,
                     enabled: !changing,
                   ),
                   const SizedBox(height: 12),
@@ -936,7 +936,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     controller: _newPwCtrl,
                     obscureText: obscureNew,
                     decoration: InputDecoration(
-                      labelText: 'New Password',
+                      labelText: t('profile.new_pass'),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(obscureNew
@@ -947,7 +947,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Required';
+                      if (v == null || v.isEmpty) return t('profile.required');
                       if (v.length < 6) return 'Min 6 characters';
                       return null;
                     },
@@ -958,7 +958,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     controller: _confirmPwCtrl,
                     obscureText: obscureConfirm,
                     decoration: InputDecoration(
-                      labelText: 'Confirm New Password',
+                      labelText: t('profile.confirm_pass'),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(obscureConfirm
@@ -969,7 +969,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     validator: (v) {
-                      if (v != _newPwCtrl.text) return 'Passwords do not match';
+                      if (v != _newPwCtrl.text) return t('auth.err_match');
                       return null;
                     },
                     enabled: !changing,
@@ -995,7 +995,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: AppColors.surface),
                             )
-                          : const Text('Change Password'),
+                          : Text(t('profile.change_pass')),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -1024,11 +1024,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       elevation: 0,
       child: Column(
         children: [
-          _buildThemeOption(icon: Icons.brightness_auto, label: 'Follow System', value: ThemeMode.system, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.system)),
+          _buildThemeOption(icon: Icons.brightness_auto, label: t('profile.theme_system'), value: ThemeMode.system, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.system)),
           Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.divider),
-          _buildThemeOption(icon: Icons.light_mode_outlined, label: 'Light', value: ThemeMode.light, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.light)),
+          _buildThemeOption(icon: Icons.light_mode_outlined, label: t('profile.theme_light'), value: ThemeMode.light, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.light)),
           Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.divider),
-          _buildThemeOption(icon: Icons.dark_mode_outlined, label: 'Dark', value: ThemeMode.dark, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.dark)),
+          _buildThemeOption(icon: Icons.dark_mode_outlined, label: t('profile.theme_dark'), value: ThemeMode.dark, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.dark)),
         ],
       ),
     );
@@ -1084,7 +1084,7 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
             style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
-          const Text('Type DELETE to confirm:',
+          Text('Ketik HAPUS buat konfirmasi:',
               style: TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           TextField(
@@ -1102,8 +1102,8 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
         TextButton(onPressed: widget.onCancel, child: Text(t('common.cancel'))),
         FilledButton(
           onPressed: _canConfirm ? widget.onConfirm : null,
-          style: FilledButton.styleFrom(backgroundColor: AppColors.highlight),
-          child: const Text('Delete Permanently'),
+          style: FilledButton.styleFrom(backgroundColor: AppColors.highlight, foregroundColor: AppColors.onAccent),
+          child: Text(t('profile.delete_forever')),
         ),
       ],
     );

@@ -1,9 +1,18 @@
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+const _months = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+  'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+];
+
+String _monthName(DateTime d) => _months[d.month - 1];
+
+/// dd MMM yyyy → 07 Sep 2026 (Indonesian month names).
 String formatDate(String isoDate) {
   final date = DateTime.tryParse(isoDate);
   if (date == null) return isoDate;
-  return DateFormat('MMM dd, yyyy').format(date);
+  return '${date.day} ${_monthName(date)} ${date.year}';
 }
 
 String formatDateRelative(String isoDate) {
@@ -15,11 +24,15 @@ String formatDateRelative(String isoDate) {
   final target = DateTime(date.year, date.month, date.day);
   final diff = today.difference(target).inDays;
 
-  if (diff == 0) return 'Today';
-  if (diff == 1) return 'Yesterday';
-  if (diff < 7) return '$diff days ago';
-  return DateFormat('MMM dd').format(date);
+  if (diff == 0) return 'Hari ini';
+  if (diff == 1) return 'Kemarin';
+  if (diff < 7) return '$diff hari lalu';
+  return '${date.day} ${_monthName(date)}';
 }
+
+String formatMonthYear(DateTime d) => '${_monthName(d)} ${d.year}';
+
+String formatDayMonth(DateTime d) => '${d.day} ${_monthName(d)}';
 
 /// Mirror of backend's get_cycle_range_for_month.
 /// Returns (startDate, endDate) for a budget month label + cycle day.

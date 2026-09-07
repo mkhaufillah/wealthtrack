@@ -31,6 +31,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   late DateTime _currentMonth;
   String _cycleLabel = '';
   int _userCycleDay = 1;
+  DateTime? _cycleFrom;
+  DateTime? _cycleTo;
   List<BudgetSummaryItem> _budgetItems = [];
   List<UnbudgetedExpense> _uncategorizedExpenses = [];
 
@@ -91,7 +93,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final lastDay = DateFormat('yyyy-MM-dd').format(dTo);
 
     // Build cycle label from dates (e.g. "25 Apr – 24 Mei 2026")
-    _cycleLabel = '${DateFormat('dd MMM yyyy').format(dFrom)} – ${DateFormat('dd MMM yyyy').format(dTo)}';
+    _cycleFrom = dFrom;
+    _cycleTo = dTo;
+    _cycleLabel = '${formatDayMonth(dFrom)} ${dFrom.year} – ${formatDayMonth(dTo)} ${dTo.year}';
 
     ref.read(reportProvider.notifier).load(monthStr, dateFrom: firstDay, dateTo: lastDay);
     ref.read(reportProvider.notifier).loadHousehold(dateFrom: firstDay, dateTo: lastDay);
@@ -221,7 +225,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             onPressed: _prevMonth,
           ),
           Text(
-            _cycleLabel.isNotEmpty ? _cycleLabel : DateFormat('MMMM yyyy').format(_currentMonth),
+            _cycleLabel.isNotEmpty ? _cycleLabel : formatMonthYear(_currentMonth),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -344,20 +348,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final cycleDays = _cycleLabel.isNotEmpty ? 30 : 30; // fallback
     // Parse actual days from cycle dates
     int actualDays = 30;
-    if (_cycleLabel.isNotEmpty) {
-      // The label format is "25 May – 24 Jun 2026" — extract day diff
-      final parts = _cycleLabel.split(' – ');
-      if (parts.length == 2) {
-        try {
-          final from = DateFormat('dd MMM yyyy').parse(parts[0]);
-          final to = DateFormat('dd MMM yyyy').parse(parts[1]);
-          actualDays = to.difference(from).inDays;
-          if (actualDays <= 0) actualDays = 30;
-        } catch (e) {
-          debugPrint('ERROR: $e');
-          actualDays = 30;
-        }
-      }
+    if (_cycleFrom != null && _cycleTo != null) {
+      actualDays = _cycleTo!.difference(_cycleFrom!).inDays;
+      if (actualDays <= 0) actualDays = 30;
     }
     final dailyAvg = actualDays > 0 ? expense ~/ actualDays : 0;
 
@@ -432,13 +425,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           child: Row(
             children: [
               Expanded(
-                child: Text('Total Budget', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                child: Text('Total anggaran', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ),
               Text(formatCurrency(totalBudget),
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('Total Spent', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                child: Text('Sudah dipakai', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ),
               Text(formatCurrency(totalSpent),
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
@@ -455,12 +448,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             padding: const EdgeInsets.only(bottom: 10),
             child: Row(
               children: [
-                SizedBox(width: 24, child: Text(item.categoryIcon, style: TextStyle(fontSize: 16))),
+                CategoryGlyph(icon: item.categoryIcon, size: 28),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 3,
                   child: Text(
-                    item.categoryNameEn.isNotEmpty ? item.categoryNameEn : item.categoryName,
+                    item.categoryName.isNotEmpty ? item.categoryName : item.categoryNameEn,
                     style: TextStyle(fontSize: 13),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1001,7 +994,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           children: [
             SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: snackbarColor)),
             SizedBox(width: 12),
-            const Text('Generating export...'),
+            Text('Lagi bikin file…'),
           ],
         )),
       );
@@ -1020,7 +1013,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Export failed: $e')),
+        SnackBar(content: Text('Gagal unduh: $e')),
       );
     }
   }

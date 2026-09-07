@@ -227,7 +227,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     final tenorMonths = _getTenorMonths();
     if (loanAmount <= 0 || tenorMonths <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in property price and down payment first')),
+        const SnackBar(content: Text('Isi harga rumah sama uang muka dulu ya')),
       );
       return;
     }
@@ -296,7 +296,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
           children: [
             AppIcon(AppIcons.chart, size: 22, color: AppColors.accent),
             const SizedBox(width: 8),
-            const Text('Calculation Result'),
+            const Text('Hasil hitungan'),
           ],
         ),
         content: Column(
@@ -319,7 +319,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+            child: const Text('Tutup'),
           ),
         ],
       ),
@@ -350,7 +350,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     final loanAmount = _getLoanAmount();
     if (loanAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Loan amount must be greater than 0')),
+        const SnackBar(content: Text('Nilai pinjaman harus lebih dari 0')),
       );
       return;
     }
@@ -391,7 +391,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Simulation saved successfully')),
+        const SnackBar(content: Text('Simulasi kesimpen')),
       );
       ref.read(homeRefreshProvider.notifier).state++;
       if (mounted) context.pop();
@@ -555,7 +555,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                 hintText: 'Date of month',
               ),
               items: List.generate(28, (i) => i + 1).map((d) {
-                return DropdownMenuItem(value: d, child: Text('Day $d'));
+                return DropdownMenuItem(value: d, child: Text('Tanggal $d'));
               }).toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _dueDate = v);
@@ -568,10 +568,10 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 6),
             SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'fixed', label: Text('Fixed', style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: 'fixed', label: Text('Tetap', style: TextStyle(fontSize: 12))),
                 ButtonSegment(value: 'floating', label: Text('Float', style: TextStyle(fontSize: 12))),
-                ButtonSegment(value: 'graduated', label: Text('Grad', style: TextStyle(fontSize: 12))),
-                ButtonSegment(value: 'mix', label: Text('Mix', style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: 'graduated', label: Text('Bertahap', style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: 'mix', label: Text('Campur', style: TextStyle(fontSize: 12))),
               ],
               selected: {_interestType},
               onSelectionChanged: (v) => setState(() => _interestType = v.first),
@@ -615,7 +615,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                             width: 18, height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2))
                         : AppIcon(AppIcons.chart, size: 18),
-                    label: const Text('Calculate'),
+                    label: const Text('Hitung'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
@@ -630,7 +630,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                             width: 18, height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                         : AppIcon(AppIcons.check, size: 18),
-                    label: const Text('Save'),
+                    label: const Text('Simpan'),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
@@ -740,7 +740,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               });
             },
             icon: AppIcon(AppIcons.add, size: 18),
-            label: const Text('Add Period'),
+            label: const Text('Tambah periode'),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               visualDensity: VisualDensity.compact,
@@ -766,7 +766,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               children: [
                 Row(
                   children: [
-                    Text('Period ${idx + 1}',
+                    Text('Periode ${idx + 1}',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -835,8 +835,8 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'fixed', child: Text('Fixed', style: TextStyle(fontSize: 13))),
-                    DropdownMenuItem(value: 'floating', child: Text('Floating', style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: 'fixed', child: Text('Tetap', style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: 'floating', child: Text('Mengambang', style: TextStyle(fontSize: 13))),
                   ],
                   onChanged: (v) {
                     if (v != null) setState(() => rp.rateType = v);

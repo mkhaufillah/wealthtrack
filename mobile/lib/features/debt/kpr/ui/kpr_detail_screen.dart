@@ -50,7 +50,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete', style: TextStyle(color: AppColors.highlight)),
+            child: Text('Hapus', style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),
@@ -61,12 +61,12 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Simulation deleted')),
+            const SnackBar(content: Text('Simulasi kehapus')),
           );
           context.pop();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to delete simulation')),
+            const SnackBar(content: Text('Gagal hapus simulasi')),
           );
         }
       }
@@ -90,7 +90,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete', style: TextStyle(color: AppColors.highlight)),
+            child: Text('Hapus', style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),
@@ -105,7 +105,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           SnackBar(
             content: Text(
               success
-                  ? 'Extra payment deleted'
+                  ? 'Pembayaran ekstra kehapus'
                   : 'Failed to delete extra payment',
             ),
           ),
@@ -147,7 +147,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                   onRetry: _onRefresh,
                 )
               : sim == null
-                  ? const ErrorDisplay(message: 'Simulation not found')
+                  ? const ErrorDisplay(message: 'Simulasi gak ketemu')
                   : RefreshIndicator(
                       onRefresh: _onRefresh,
                       child: ListView(
@@ -548,7 +548,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                         children: [
                           AppIcon(AppIcons.trash, size: 18),
                           SizedBox(width: 8),
-                          Text('Delete'),
+                          Text('Hapus'),
                         ],
                       ),
                     ),

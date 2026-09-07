@@ -158,14 +158,14 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
 
     if (totalAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Total amount must be greater than 0')),
+        const SnackBar(content: Text('Total harus lebih dari 0')),
       );
       return;
     }
 
     if (monthlyAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Monthly amount must be greater than 0')),
+        const SnackBar(content: Text('Cicilan bulanan harus lebih dari 0')),
       );
       return;
     }
@@ -192,7 +192,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
     if (success) {
       ref.read(homeRefreshProvider.notifier).state++;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Installment added successfully')),
+        const SnackBar(content: Text('Cicilan kesimpen')),
       );
       if (mounted) context.pop();
     } else {
@@ -295,7 +295,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
                       width: 18, height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                   : AppIcon(AppIcons.check, size: 18),
-              label: const Text('Save'),
+              label: const Text('Simpan'),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),

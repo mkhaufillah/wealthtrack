@@ -97,12 +97,12 @@ void main() {
 
     testWidgets('shows Edit Profile menu item', (tester) async {
       await tester.pumpWidget(buildProfileApp());
-      expect(find.text('Edit Profile'), findsOneWidget);
+      expect(find.text('Ubah profil'), findsOneWidget);
     });
 
     testWidgets('shows Change Password menu item', (tester) async {
       await tester.pumpWidget(buildProfileApp());
-      expect(find.text('Change Password'), findsOneWidget);
+      expect(find.text('Ganti sandi'), findsOneWidget);
     });
 
     testWidgets('shows AI Financial Advisor menu item', (tester) async {
@@ -118,32 +118,32 @@ void main() {
 
     testWidgets('shows Account Settings section header', (tester) async {
       await tester.pumpWidget(buildProfileApp());
-      expect(find.text('Account Settings'), findsOneWidget);
+      expect(find.text('Setelan akun'), findsOneWidget);
     });
 
     testWidgets('shows Features section header', (tester) async {
       await tester.pumpWidget(buildProfileApp());
       // Scroll to find Features section
       await tester.dragUntilVisible(
-        find.text('Features'),
+        find.text('Fitur'),
         find.byType(ListView),
         const Offset(0, -200),
       );
-      expect(find.text('Features'), findsOneWidget);
+      expect(find.text('Fitur'), findsOneWidget);
     });
 
     testWidgets('shows Appearance section with theme options', (tester) async {
       await tester.pumpWidget(buildProfileApp());
       // Scroll down to Appearance section
       await tester.dragUntilVisible(
-        find.text('Follow System'),
+        find.text('Ikut sistem'),
         find.byType(ListView),
         const Offset(0, -300),
       );
-      expect(find.text('Appearance'), findsOneWidget);
-      expect(find.text('Follow System'), findsOneWidget);
-      expect(find.text('Light'), findsOneWidget);
-      expect(find.text('Dark'), findsOneWidget);
+      expect(find.text('Tampilan'), findsOneWidget);
+      expect(find.text('Ikut sistem'), findsOneWidget);
+      expect(find.text('Terang'), findsOneWidget);
+      expect(find.text('Gelap'), findsOneWidget);
     });
 
     testWidgets('shows Logout and Delete Account in Account Actions',
@@ -151,13 +151,13 @@ void main() {
       await tester.pumpWidget(buildProfileApp());
       // Scroll down to Account Actions section
       await tester.dragUntilVisible(
-        find.text('Delete Account'),
+        find.text('Hapus akun'),
         find.byType(ListView),
         const Offset(0, -400),
       );
-      expect(find.text('Account Actions'), findsOneWidget);
-      expect(find.text('Logout'), findsOneWidget);
-      expect(find.text('Delete Account'), findsOneWidget);
+      expect(find.text('Aksi akun'), findsOneWidget);
+      expect(find.text('Keluar'), findsOneWidget);
+      expect(find.text('Hapus akun'), findsOneWidget);
     });
 
     testWidgets('shows household section with Join Household and Create New buttons',
@@ -166,9 +166,9 @@ void main() {
       // After post-frame callback, household loads from mock API (returns empty)
       // so Join Household and Create New are shown
       await tester.pump();
-      expect(find.text('Household'), findsOneWidget);
-      expect(find.text('Join Household'), findsOneWidget);
-      expect(find.text('Create New'), findsOneWidget);
+      expect(find.text('Rumah'), findsOneWidget);
+      expect(find.text('Gabung rumah'), findsOneWidget);
+      expect(find.text('Buat baru'), findsOneWidget);
     });
 
     testWidgets('shows app version at bottom', (tester) async {

@@ -92,12 +92,12 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       ),
       builder: (ctx) {
         final options = [
-          {'value': '-date', 'label': 'Newest first'},
-          {'value': 'date', 'label': 'Oldest first'},
-          {'value': '-amount', 'label': 'Highest amount'},
-          {'value': 'amount', 'label': 'Lowest amount'},
-          {'value': 'name', 'label': 'Name A\u2013Z'},
-          {'value': '-name', 'label': 'Name Z\u2013A'},
+          {'value': '-date', 'label': 'Paling baru'},
+          {'value': 'date', 'label': 'Paling lama'},
+          {'value': '-amount', 'label': 'Paling gede'},
+          {'value': 'amount', 'label': 'Paling kecil'},
+          {'value': 'name', 'label': 'Nama A–Z'},
+          {'value': '-name', 'label': 'Nama Z–A'},
         ];
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -106,7 +106,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Center(
-                child: Text('Sort by', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                child: Text('Urutin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 12),
               ...options.map((opt) {
@@ -164,7 +164,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Filter by Category',
+                      Text('Saring kategori',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                       TextButton(
                         onPressed: () {
@@ -172,7 +172,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                             selected.clear();
                           });
                         },
-                        child: Text('Clear',
+                        child: Text('Kosongin',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.accent,
@@ -184,7 +184,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   // Select All toggle
                   CheckboxListTile(
                     value: allSelected,
-                    title: Text('All Categories',
+                    title: Text('Semua kategori',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
@@ -246,6 +246,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
+                        foregroundColor: AppColors.onAccent,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       onPressed: () {
@@ -255,7 +256,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         // Pass empty list = all (no filter)
                         notifier.setCategoryFilter(allSelected ? [] : selected);
                       },
-                      child: Text('Apply', style: TextStyle(color: AppColors.surface, fontSize: 15)),
+                      child: Text('Terapin', style: TextStyle(color: AppColors.onAccent, fontSize: 15, fontWeight: FontWeight.w800)),
                     ),
                   ),
                 ],
@@ -361,7 +362,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     if (!mounted || available.isEmpty) {
       if (mounted && available.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No other household members available')),
+          const SnackBar(content: Text('Belum ada anggota rumah lain')),
         );
       }
       return;
@@ -389,7 +390,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               ),
               const SizedBox(height: 4),
               Center(
-                child: Text('Select the new owner', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                child: Text('Pilih pemilik baru', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ),
               const SizedBox(height: 16),
               ...available.map((member) {
@@ -406,7 +407,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     ),
                   ),
                   title: Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                  subtitle: Text(role == 'admin' ? 'Admin' : 'Member',
+                  subtitle: Text(role == 'admin' ? 'Admin' : 'Anggota',
                     style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   onTap: () async {
                     Navigator.pop(ctx);
@@ -414,12 +415,12 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     if (!mounted) return;
                     if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Ownership transferred to $name')),
+                        SnackBar(content: Text('Pemiliknya ganti ke $name')),
                       );
                     } else {
                       final s = ref.read(transactionListProvider);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(s.transferError ?? 'Failed to transfer ownership')),
+                        SnackBar(content: Text(s.transferError ?? 'Gagal ganti pemilik')),
                       );
                     }
                   },
@@ -441,15 +442,15 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete Transaction'),
+        title: Text(t('tx.delete')),
         content: Text(
-          'Delete "${description.isEmpty ? 'this transaction' : description}"? This cannot be undone.',
+          'Hapus "${description.isEmpty ? 'catatan ini' : description}"? Gak bisa dibalikin.'
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('common.cancel'))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete', style: TextStyle(color: AppColors.highlight)),
+            child: Text(t('common.delete'), style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),
@@ -459,7 +460,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       final success = await ref.read(transactionListProvider.notifier).delete(txnId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(success ? 'Transaction deleted' : 'Failed to delete transaction')),
+          SnackBar(content: Text(success ? 'Transaksi kehapus' : 'Gagal hapus transaksi')),
         );
       }
     }

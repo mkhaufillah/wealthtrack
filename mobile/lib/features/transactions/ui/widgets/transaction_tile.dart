@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/ui/app_icons.dart';
+import '../../../../core/ui/copy_fallback.dart';
 import '../../../../core/ui/category_glyph.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -24,9 +25,9 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isExpense = transaction.type == 'expense';
-    final translatedCategory = transaction.category.nameEn.isNotEmpty
-        ? transaction.category.nameEn
-        : transaction.category.name;
+    final translatedCategory = transaction.category.name.isNotEmpty
+        ? transaction.category.name
+        : transaction.category.nameEn;
     final description = transaction.description;
     final ownerName = transaction.user?.displayName ?? '';
 
@@ -77,7 +78,7 @@ class TransactionTile extends StatelessWidget {
                     children: [
                       AppIcon(AppIcons.edit, size: 18),
                       const SizedBox(width: 8),
-                      const Text('Edit'),
+                      Text(t('common.edit')),
                     ],
                   ),
                 ),
@@ -88,7 +89,7 @@ class TransactionTile extends StatelessWidget {
                       children: [
                         AppIcon(AppIcons.swap, size: 18),
                         const SizedBox(width: 8),
-                        const Text('Change Owner'),
+                        Text(t('common.change_owner')),
                       ],
                     ),
                   ),
@@ -99,7 +100,7 @@ class TransactionTile extends StatelessWidget {
                       children: [
                         AppIcon(AppIcons.trash, size: 18),
                         const SizedBox(width: 8),
-                        const Text('Delete'),
+                        Text(t('common.delete')),
                       ],
                     ),
                   ),

@@ -100,14 +100,14 @@ void main() {
 
     testWidgets('shows empty state when no budgets', (tester) async {
       await tester.pumpWidget(buildBudgetsApp());
-      expect(find.text('No budgets set for this month'), findsOneWidget);
-      expect(find.text('Tap + to add a spending limit per category'),
+      expect(find.text('Belum ada anggaran bulan ini'), findsOneWidget);
+      expect(find.text('Tap + buat pasang limit per kategori'),
           findsOneWidget);
     });
 
     testWidgets('shows budget items in list', (tester) async {
       await tester.pumpWidget(buildBudgetsApp(items: [sampleItem]));
-      expect(find.text('Food & Drinks'), findsOneWidget);
+      expect(find.text('Makanan & Minuman'), findsOneWidget);
       expect(find.textContaining('Rp1.500.000'), findsAtLeast(1));
     });
 
@@ -118,15 +118,15 @@ void main() {
 
     testWidgets('shows remaining amount for budget item', (tester) async {
       await tester.pumpWidget(buildBudgetsApp(items: [sampleItem]));
-      expect(find.textContaining('remaining'), findsOneWidget);
+      expect(find.textContaining('Sisa'), findsAtLeast(1));
       expect(find.textContaining('Rp1.500.000'), findsAtLeast(1));
     });
 
     testWidgets('shows over-budget warning for exceeded budgets',
         (tester) async {
       await tester.pumpWidget(buildBudgetsApp(items: [overBudgetItem]));
-      expect(find.text('Transport & Fuel'), findsOneWidget);
-      expect(find.textContaining('Over by'), findsOneWidget);
+      expect(find.text('Transportasi & Bensin'), findsOneWidget);
+      expect(find.textContaining('Lebih'), findsOneWidget);
       expect(find.textContaining('Rp200.000'), findsOneWidget);
     });
 
@@ -136,14 +136,14 @@ void main() {
 
       // Scroll down to see all items (summary card pushes 3rd item off-screen)
       await tester.dragUntilVisible(
-        find.text('Daily Shopping'),
+        find.text('Belanja Harian'),
         find.byType(ListView),
         const Offset(0, -300),
       );
 
-      expect(find.text('Food & Drinks'), findsOneWidget);
-      expect(find.text('Transport & Fuel'), findsOneWidget);
-      expect(find.text('Daily Shopping'), findsOneWidget);
+      expect(find.text('Makanan & Minuman'), findsOneWidget);
+      expect(find.text('Transportasi & Bensin'), findsOneWidget);
+      expect(find.text('Belanja Harian'), findsOneWidget);
     });
 
     testWidgets('shows FABs for suggestions and add budget', (tester) async {

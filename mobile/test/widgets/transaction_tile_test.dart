@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/features/transactions/ui/widgets/transaction_tile.dart';
 import 'package:wealthtrack/features/transactions/models/transaction_model.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
+import 'package:wealthtrack/core/ui/category_glyph.dart';
 
 Widget wrap(Widget w) => MaterialApp(theme: AppTheme.light, home: Scaffold(body: w));
 
@@ -43,7 +44,7 @@ void main() {
 
     testWidgets('shows category glyph', (tester) async {
       await tester.pumpWidget(wrap(TransactionTile(transaction: expense)));
-      expect(find.text('🍔'), findsOneWidget);
+      expect(find.byType(CategoryGlyph), findsOneWidget);
     });
 
     testWidgets('shows fallback glyph when category icon is empty', (tester) async {
@@ -54,7 +55,7 @@ void main() {
          category: CategoryBrief(id: 9, name: 'Other', nameEn: 'Other', icon: ''),
       );
       await tester.pumpWidget(wrap(TransactionTile(transaction: noIcon)));
-      expect(find.text('·'), findsOneWidget);
+      expect(find.byType(CategoryGlyph), findsOneWidget);
     });
   });
 }

@@ -151,12 +151,12 @@ class _KPRExtraPaymentScreenState
     if (mounted) {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Extra payment applied successfully!')),
+          SnackBar(content: Text('Pembayaran ekstra kesimpen')),
         );
         context.pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to apply extra payment')),
+          const SnackBar(content: Text('Gagal pasang pembayaran ekstra')),
         );
       }
     }
@@ -184,7 +184,7 @@ class _KPRExtraPaymentScreenState
           if (_step == ExtraStep.preview)
             TextButton(
               onPressed: _goBackToForm,
-              child: const Text('Edit'),
+              child: const Text('Ubah'),
             ),
         ],
       ),
@@ -239,7 +239,7 @@ class _KPRExtraPaymentScreenState
               fillColor: AppColors.surface,
             ),
             validator: (v) {
-              if (v == null || v.isEmpty) return 'Enter amount';
+              if (v == null || v.isEmpty) return 'Isi jumlahnya';
               final n = _parseAmount(v);
               if (n == 0 || n < 1000) return 'Minimum Rp1,000';
               return null;
@@ -261,7 +261,7 @@ class _KPRExtraPaymentScreenState
               fillColor: AppColors.surface,
             ),
             validator: (v) {
-              if (v == null || v.isEmpty) return 'Enter month number';
+              if (v == null || v.isEmpty) return 'Isi nomor bulan';
               final n = int.tryParse(v);
               if (n == null || n < _minMonth) {
                 return _minMonth == 1
@@ -303,7 +303,7 @@ class _KPRExtraPaymentScreenState
     if (preview == null) {
       return Center(
         child: Text(
-          state.error ?? 'Preview not available',
+          state.error ?? 'Pratinjau belum tersedia',
           style: TextStyle(color: AppColors.highlight),
         ),
       );

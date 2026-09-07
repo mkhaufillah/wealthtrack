@@ -1,25 +1,25 @@
 # Dark Mode
 
-**Feature added:** 2026-05-27 · Commit: `2f73837`
-**See also:** [Flutter Mobile](05-flutter-mobile.md) · [P4 Plan](08-p4-plan.md)
+**Fitur ditambahkan:** 2026-05-27 · Commit: `2f73837`
+**Lihat juga:** [Flutter Mobile](05-flutter-mobile.md) · [Rencana P4](08-p4-plan.md)
 
 ---
 
-## Overview
+## Gambaran Umum
 
-Adds a full dark theme to WealthTrack with three user-selectable modes:
+Menambahkan dark theme penuh ke WealthTrack dengan tiga mode yang bisa dipilih user:
 
-| Mode | Behavior |
+| Mode | Perilaku |
 |------|----------|
-| **Follow System** (default) | Matches the device's system-wide dark/light setting |
-| **Light** | Always light mode |
-| **Dark** | Always dark mode |
+| **Ikuti Sistem** (default) | Mengikuti pengaturan gelap/terang di perangkat |
+| **Terang** | Selalu mode terang |
+| **Gelap** | Selalu mode gelap |
 
-The preference is persisted via `flutter_secure_storage` so it survives app restarts.
+Preferensinya disimpan via `flutter_secure_storage` jadi tetap bertahan walau app di-restart.
 
 ---
 
-## Architecture
+## Arsitektur
 
 ```
 AppBar / Card / FAB / etc.
@@ -45,7 +45,7 @@ WealthTrackApp (MaterialApp.router)
 
 ## Color Tokens
 
-**File:** `lib/core/theme/app_theme.dart` — `AppColors` class
+**File:** `lib/core/theme/app_theme.dart` — class `AppColors`
 
 ```dart
 // Dark palette
@@ -63,9 +63,9 @@ static const Color darkDivider      = Color(0xFF30363D);  // borders / dividers
 
 **File:** `lib/core/theme/app_theme.dart` — `AppTheme.dark`
 
-Every widget theme was duplicated from `AppTheme.light` with dark-appropriate colours:
+Setiap widget theme diduplikasi dari `AppTheme.light` dengan warna yang sesuai untuk mode gelap:
 
-| Widget | Light | Dark |
+| Widget | Terang | Gelap |
 |--------|-------|------|
 | Scaffold bg | `#F5F6FA` | `#0D1117` |
 | AppBar bg | `#1A1A2E` (navy) | `#161B22` (dark slate) |
@@ -78,7 +78,7 @@ Every widget theme was duplicated from `AppTheme.light` with dark-appropriate co
 | Text secondary | `#7F8C8D` | `#8B949E` |
 
 Accent (`#0F3460`), highlight (`#E94560`), success (`#2ECC71`), warning (`#F39C12`)
-are kept identical in dark mode for visual consistency.
+dibiarkan identik di dark mode demi konsistensi visual.
 
 ---
 
@@ -86,13 +86,13 @@ are kept identical in dark mode for visual consistency.
 
 **File:** `lib/shared/providers/theme_provider.dart` — `ThemeModeNotifier`
 
-- Extends `StateNotifier<ThemeMode>` (Riverpod)
-- Initial state: `ThemeMode.system`
-- On init: reads persisted value from `SecureStorage` key `"theme_mode"`
-- `setTheme(mode)`: updates state + writes to secure storage
-- Provides human-readable `.label` for UI display
+- Turunan `StateNotifier<ThemeMode>` (Riverpod)
+- State awal: `ThemeMode.system`
+- Saat init: membaca nilai tersimpan dari key `SecureStorage` `"theme_mode"`
+- `setTheme(mode)`: memperbarui state + menulis ke secure storage
+- Menyediakan `.label` yang mudah dibaca untuk tampilan UI
 
-### Persistence
+### Persistensi
 
 ```dart
 // Write
@@ -105,13 +105,13 @@ else if (saved == 'light') state = ThemeMode.light;
 else state = ThemeMode.system;
 ```
 
-Uses the generic `saveSecure` / `getSecure` methods added to `SecureStorage`
-(`lib/core/storage/secure_storage.dart`) — works with any string key, no
-migration needed.
+Memakai method generik `saveSecure` / `getSecure` yang ditambahkan ke `SecureStorage`
+(`lib/core/storage/secure_storage.dart`) — bisa dipakai dengan key string apa pun,
+tanpa perlu migrasi.
 
 ---
 
-## App Wiring
+## Wiring di App
 
 **File:** `lib/app.dart`
 
@@ -124,52 +124,52 @@ MaterialApp.router(
 )
 ```
 
-Flutter's `MaterialApp.router` auto-switches between `theme` and `darkTheme`
-based on `themeMode`. No manual rebuild logic needed.
+`MaterialApp.router` milik Flutter otomatis berganti antara `theme` dan `darkTheme`
+berdasarkan `themeMode`. Tidak perlu logika rebuild manual.
 
 ---
 
-## Profile UI
+## UI Profil
 
 **File:** `lib/features/profile/ui/profile_screen.dart`
 
-Added **Appearance** section with three radio-style options:
+Menambahkan seksi **Tampilan** dengan tiga opsi bergaya radio:
 
 ```
 ┌─────────────────────────────────┐
-│ 🎨 Appearance                   │
+│ 🎨 Tampilan                     │
 │                                 │
-│ ○ Follow System    [default]    │
-│ ○ Light                         │
-│ ● Dark                         │
+│ ○ Ikuti Sistem    [default]     │
+│ ○ Terang                        │
+│ ● Gelap                         │
 └─────────────────────────────────┘
 ```
 
-Each option calls `notifier.setTheme(mode)` which:
-1. Updates the Riverpod state → auto rebuilds entire app
-2. Persists to SecureStorage
+Setiap opsi memanggil `notifier.setTheme(mode)` yang:
+1. Memperbarui state Riverpod → seluruh app otomatis di-rebuild
+2. Menyimpan ke SecureStorage
 
 ---
 
-## Edge Cases
+## Kasus Khusus
 
-| Scenario | Behavior |
+| Skenario | Perilaku |
 |----------|----------|
-| First launch (no saved pref) | Follow System (ThemeMode.system) |
-| User selects Light, then uninstalls | Fresh install = Follow System again |
-| Device switches dark/light while app is open | Follow System mode respects it; explicit Light/Dark override locks it |
-| App killed and reopened | Last saved preference restored from SecureStorage |
+| Launch pertama (belum ada preferensi tersimpan) | Ikuti Sistem (ThemeMode.system) |
+| User pilih Terang, lalu uninstall | Install ulang bersih = kembali Ikuti Sistem |
+| Perangkat ganti gelap/terang saat app terbuka | Mode Ikuti Sistem mengikutinya; pilihan eksplisit Terang/Gelap mengunci |
+| App dimatikan lalu dibuka lagi | Preferensi tersimpan terakhir dipulihkan dari SecureStorage |
 
 ---
 
-## Files Changed / Created
+## File yang Diubah / Dibuat
 
-| File | Change |
-|------|--------|
-| `lib/core/theme/app_theme.dart` | +6 `dark*` color constants, +`AppTheme.dark` (60+ lines of ThemeData) |
-| `lib/shared/providers/theme_provider.dart` | **NEW** — `ThemeModeNotifier` with persistence |
-| `lib/core/storage/secure_storage.dart` | +`saveSecure()` / `getSecure()` generic methods |
-| `lib/app.dart` | +`darkTheme` param, +`themeMode` from provider |
-| `lib/features/profile/ui/profile_screen.dart` | +Appearance section with 3 theme options |
+| File | Perubahan |
+|------|-----------|
+| `lib/core/theme/app_theme.dart` | +6 konstanta warna `dark*`, +`AppTheme.dark` (60+ baris ThemeData) |
+| `lib/shared/providers/theme_provider.dart` | **BARU** — `ThemeModeNotifier` dengan persistensi |
+| `lib/core/storage/secure_storage.dart` | +method generik `saveSecure()` / `getSecure()` |
+| `lib/app.dart` | +param `darkTheme`, +`themeMode` dari provider |
+| `lib/features/profile/ui/profile_screen.dart` | +seksi Tampilan dengan 3 opsi tema |
 
-No backend changes.
+Tidak ada perubahan backend.

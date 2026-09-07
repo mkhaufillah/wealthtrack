@@ -22,35 +22,35 @@ void main() {
 
   group('formatDate', () {
     test('formats valid ISO date', () {
-      expect(formatDate('2026-05-27'), 'May 27, 2026');
+      expect(formatDate('2026-05-27'), '27 Mei 2026');
     });
     test('returns original string for invalid date', () {
       expect(formatDate('invalid'), 'invalid');
     });
     test('formats first day of year', () {
-      expect(formatDate('2026-01-01'), 'Jan 01, 2026');
+      expect(formatDate('2026-01-01'), '1 Jan 2026');
     });
   });
 
   group('formatDateRelative', () {
     test('returns Today for todays date', () {
       final today = DateTime.now().toIso8601String().substring(0, 10);
-      expect(formatDateRelative(today), 'Today');
+      expect(formatDateRelative(today), 'Hari ini');
     });
 
     test('returns Yesterday for yesterdays date', () {
       final yesterday = DateTime.now().subtract(const Duration(days: 1)).toIso8601String().substring(0, 10);
-      expect(formatDateRelative(yesterday), 'Yesterday');
+      expect(formatDateRelative(yesterday), 'Kemarin');
     });
 
     test('returns days ago for within a week', () {
       final d = DateTime.now().subtract(const Duration(days: 3)).toIso8601String().substring(0, 10);
-      expect(formatDateRelative(d), '3 days ago');
+      expect(formatDateRelative(d), '3 hari lalu');
     });
 
     test('returns month+day for dates older than a week', () {
       final d = DateTime(2026, 1, 15).toIso8601String().substring(0, 10);
-      expect(formatDateRelative(d), 'Jan 15');
+      expect(formatDateRelative(d), '15 Jan');
     });
 
     test('returns original string for invalid input', () {

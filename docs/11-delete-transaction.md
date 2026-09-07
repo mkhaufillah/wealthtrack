@@ -1,19 +1,19 @@
-# Delete Transaction
+# Hapus Transaksi
 
-**Feature added:** 2026-05-28 · Commit: `6d575dc`
-**See also:** [Backend API](03-backend-api.md) · [Flutter Mobile](05-flutter-mobile.md) · [Edit Transaction](10-edit-transaction.md)
-
----
-
-## Overview
-
-Allows users to delete a transaction from the transaction list screen. The feature uses a confirmation dialog before deletion to prevent accidental data loss.
-
-Delete is only available on the **Transactions page** (not on the Home screen recent transactions) to keep the home screen clean and uncluttered.
+**Fitur ditambahkan:** 2026-05-28 · Commit: `6d575dc`
+**Lihat juga:** [Backend API](03-backend-api.md) · [Flutter Mobile](05-flutter-mobile.md) · [Edit Transaksi](10-edit-transaction.md)
 
 ---
 
-## Architecture
+## Gambaran Umum
+
+Memungkinkan user menghapus transaksi dari layar daftar transaksi. Fitur ini memakai dialog konfirmasi sebelum menghapus supaya data nggak hilang kena tekan salah.
+
+Hapus cuma tersedia di **halaman Transaksi** (bukan di transaksi terbaru di layar Home) biar layar Home tetap bersih dan nggak ramai.
+
+---
+
+## Arsitektur
 
 ```
 ┌─ Transaction List ───────────────────────┐
@@ -48,13 +48,13 @@ Delete is only available on the **Transactions page** (not on the Home screen re
 
 ---
 
-## Mobile Implementation
+## Implementasi Mobile
 
-### TransactionTile — `showActions` flag
+### TransactionTile — flag `showActions`
 
 **File:** `lib/features/transactions/ui/widgets/transaction_tile.dart`
 
-The tile now supports a `showActions` flag (default `false`). When `true`, a `PopupMenuButton` is rendered with Edit, Change Owner, and Delete options.
+Tile sekarang mendukung flag `showActions` (default `false`). Kalau `true`, sebuah `PopupMenuButton` dirender dengan opsi Edit, Change Owner, dan Delete.
 
 ```dart
 class TransactionTile extends StatelessWidget {
@@ -72,12 +72,12 @@ class TransactionTile extends StatelessWidget {
   });
 ```
 
-**Popup menu items** are conditionally rendered:
-- **Edit** — always shown when `showActions == true`
-- **Change Owner** — only shown if `onTransferOwner` is provided
-- **Delete** — only shown if `onDelete` is provided
+**Item menu popup** dirender secara kondisional:
+- **Edit** — selalu tampil kalau `showActions == true`
+- **Change Owner** — cuma tampil kalau `onTransferOwner` disediakan
+- **Delete** — cuma tampil kalau `onDelete` disediakan
 
-### Home screen — no actions
+### Layar Home — tanpa aksi
 
 **File:** `lib/features/home/ui/widgets/recent_transactions.dart`
 
@@ -86,7 +86,7 @@ TransactionTile(transaction: transactions[i])
 // → showActions defaults to false → no popup menu
 ```
 
-### Transaction list screen — with actions
+### Layar daftar transaksi — dengan aksi
 
 **File:** `lib/features/transactions/ui/transaction_list_screen.dart`
 
@@ -99,7 +99,7 @@ TransactionTile(
 ),
 ```
 
-### Delete confirmation dialog
+### Dialog konfirmasi hapus
 
 ```dart
 Future<void> _confirmDelete(int txnId, String description) async {
@@ -132,12 +132,12 @@ Future<void> _confirmDelete(int txnId, String description) async {
 }
 ```
 
-Flow:
-1. User taps ⋮ → "Delete"
-2. Confirmation dialog appears
-3. "Cancel" → dialog closes, nothing happens
-4. "Delete" → calls provider → API → refreshes list → snackbar feedback
-5. Error handling: snackbar shows "Failed to delete transaction" on failure
+Alur:
+1. User tap ⋮ → "Hapus"
+2. Dialog konfirmasi muncul
+3. "Batal" → dialog ditutup, nggak ada yang terjadi
+4. "Hapus" → panggil provider → API → refresh daftar → umpan balik snackbar
+5. Penanganan error: snackbar menampilkan "Gagal menghapus transaksi" kalau gagal
 
 ---
 
@@ -145,7 +145,7 @@ Flow:
 
 **File:** `backend/app/routers/transactions.py`
 
-The `DELETE /api/v1/transactions/{id}` endpoint was already implemented:
+Endpoint `DELETE /api/v1/transactions/{id}` sudah diimplementasikan sejak awal:
 
 ```python
 @router.delete("/{txn_id}", status_code=204)
@@ -164,27 +164,27 @@ async def delete_transaction(
     await db.commit()
 ```
 
-- Only the transaction **owner** can delete
-- Returns `204 No Content` on success
-- Returns `404` if transaction not found or not owned by user
+- Cuma **pemilik** transaksi yang bisa hapus
+- Mengembalikan `204 No Content` kalau sukses
+- Mengembalikan `404` kalau transaksi nggak ditemukan atau bukan milik user
 
-No backend changes were needed for this feature.
+Tidak perlu perubahan backend untuk fitur ini.
 
 ---
 
-## Test Coverage
+## Cakupan Test
 
-| Layer | Tests | File |
+| Layer | Test | File |
 |-------|-------|------|
-| Backend (API) | Delete endpoint tested | `backend/tests/test_transactions.py` |
-| Mobile (widget) | 7 tests — menu visibility, dialog flow, cancel | `mobile/test/features/transaction_list_delete_test.dart` |
+| Backend (API) | Endpoint delete teruji | `backend/tests/test_transactions.py` |
+| Mobile (widget) | 7 test — visibilitas menu, alur dialog, batal | `mobile/test/features/transaction_list_delete_test.dart` |
 
 ---
 
-## Files Changed
+## File yang Diubah
 
-| File | Change |
-|------|--------|
-| `lib/features/transactions/ui/widgets/transaction_tile.dart` | +`showActions`, `onDelete` params; conditional popup menu render |
-| `lib/features/transactions/ui/transaction_list_screen.dart` | +`_confirmDelete()` method, +`showActions: true`, +`onDelete` |
-| `mobile/test/features/transaction_list_delete_test.dart` | **New** — 7 widget tests for delete flow |
+| File | Perubahan |
+|------|-----------|
+| `lib/features/transactions/ui/widgets/transaction_tile.dart` | +param `showActions`, `onDelete`; render popup menu kondisional |
+| `lib/features/transactions/ui/transaction_list_screen.dart` | +method `_confirmDelete()`, +`showActions: true`, +`onDelete` |
+| `mobile/test/features/transaction_list_delete_test.dart` | **Baru** — 7 widget test untuk alur hapus |
