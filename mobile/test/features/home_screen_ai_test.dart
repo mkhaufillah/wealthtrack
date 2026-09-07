@@ -45,6 +45,7 @@ Widget buildHomeApp({bool isLoading = false, String? error, int balance = 0}) {
             balance: balance,
             totalIncome: balance > 0 ? balance + 500000 : 0,
             totalExpense: balance > 0 ? 500000 : 0,
+            balanceDisplay: formatCurrency(balance),
             recentTransactions: const [],
             totalTransactions: 0,
           );
