@@ -124,7 +124,9 @@ void main() {
       await tester.pumpWidget(buildBudgetsApp(items: [overBudgetItem]));
       expect(find.text('Transportasi & Bensin'), findsOneWidget);
       expect(find.textContaining('Lebih'), findsOneWidget);
-      expect(find.textContaining('Rp200.000'), findsOneWidget);
+      // Amount now renders as "-Rp200.000" (negative sign before prefix)
+      expect(find.textContaining('Lebih Rp200.000'), findsOneWidget);
+      expect(find.text('-Rp200.000'), findsOneWidget);
     });
 
     testWidgets('shows multiple budget items', (tester) async {
