@@ -456,8 +456,6 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                             color: AppColors.divider,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          tableCellPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                          tableCells: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
                         ),
                       ),
       ),

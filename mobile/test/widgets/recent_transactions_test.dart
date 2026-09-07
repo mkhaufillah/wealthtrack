@@ -10,7 +10,7 @@ void main() {
   group('RecentTransactions', () {
     testWidgets('shows header', (tester) async {
       await tester.pumpWidget(wrap(const RecentTransactions(transactions: [])));
-      expect(find.text('Baru aja'), findsOneWidget);
+      expect(find.text('Baru saja'), findsOneWidget);
     });
 
     testWidgets('shows empty message when no transactions', (tester) async {
