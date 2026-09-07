@@ -67,7 +67,7 @@ class NoFieldsToUpdateError(Exception):
     """Raised when an update request provides no fields to change."""
 
     def __init__(self) -> None:
-        super().__init__("No fields to update")
+        super().__init__("Gak ada yang diubah")
 
 
 class InvalidOperationError(Exception):
@@ -660,7 +660,7 @@ class TransactionService:
             (data.user_id, household_id),
         )
         if not await cursor.fetchone():
-            raise InvalidOperationError("Target user is not a member of your household")
+            raise InvalidOperationError("Bukan anggota keluarga kamu")
 
         # 4. Perform transfer
         await self.db.execute(

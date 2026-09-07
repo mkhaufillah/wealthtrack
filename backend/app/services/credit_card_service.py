@@ -18,7 +18,7 @@ class CreditCardNotFoundError(Exception):
 
     def __init__(self, card_id: int) -> None:
         self.card_id = card_id
-        super().__init__(f"Credit card {card_id} not found")
+        super().__init__(f"Kartu kredit {card_id} gak ketemu")
 
 
 class CreditCardForbiddenError(Exception):
@@ -26,7 +26,7 @@ class CreditCardForbiddenError(Exception):
 
     def __init__(self, card_id: int) -> None:
         self.card_id = card_id
-        super().__init__(f"Not authorized to access credit card {card_id}")
+        super().__init__("Bukan kartu kredit kamu")
 
 
 class TransactionNotFoundError(Exception):
@@ -198,7 +198,7 @@ class CreditCardService:
             params.append(data.credit_limit)
 
         if not fields:
-            raise ValueError("No fields to update")
+            raise ValueError("Gak ada yang diubah")
 
         params.append(card_id)
         await self.db.execute(

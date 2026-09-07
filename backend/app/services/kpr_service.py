@@ -57,7 +57,7 @@ class KPRService:
         )
         sim = await cursor.fetchone()
         if not sim:
-            raise KPRServiceError("Simulation not found", 404)
+            raise KPRServiceError("Simulasi gak ketemu", 404)
         sim = dict(sim)
         if sim["user_id"] == user_id:
             return sim
@@ -69,7 +69,7 @@ class KPRService:
             )
             if await cursor.fetchone():
                 return sim
-        raise KPRServiceError("Not your simulation", 403)
+        raise KPRServiceError("Bukan simulasi kamu", 403)
 
     @staticmethod
     def convert_sim_row(row: dict) -> KPRSimulationOut:
@@ -377,7 +377,7 @@ class KPRService:
             params.append(new_total)
 
         if not fields:
-            raise KPRServiceError("No fields to update", status_code=400)
+            raise KPRServiceError("Gak ada yang diubah", status_code=400)
 
         params.append(sim_id)
         await db.execute(
@@ -428,7 +428,7 @@ class KPRService:
             )
             row = await cursor.fetchone()
             if not row:
-                raise KPRServiceError("Month not found in schedule", status_code=404)
+                raise KPRServiceError("Bulan gak ada di jadwal", status_code=404)
             return dict(row)
         else:
             cursor = await db.execute(
@@ -713,7 +713,7 @@ class KPRService:
             (extra_payment_id, sim_id),
         )
         if not await cursor.fetchone():
-            raise KPRServiceError("Extra payment not found", status_code=404)
+            raise KPRServiceError("Pembayaran ekstra gak ketemu", status_code=404)
 
         async with db.transaction():
             # Delete the extra payment record

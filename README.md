@@ -49,7 +49,7 @@ A personal finance tracker. Tracks daily expenses, income, budgets, and generate
 ## Project Structure
 
 ```
-~/dev/wealthtrack/
+wealthtrack/
 ├── backend/                    # FastAPI backend
 │   ├── app/
 │   │   ├── main.py            # App entry point, lifespan, middleware
@@ -153,6 +153,12 @@ Every CI run sends **start + result notifications** to Keluarga Super Sapi → t
 ||| P8 — Home Polishing | Refresh, spacing, projection, due_date, white screen fix | ✅ Done |
 ||| P9 — Extra Payment KPR + Household Debt | Extra Payment (Option A: Reduce Installment, Option B: Reduce Tenor), preview comparison, household debt aggregation | ✅ Done |
 ||| P10 — Dockerization | Migrate to GitHub-hosted runners, Dockerize backend | ✅ Done |
+|| S1 — Server-Driven UI (Phase 1) | `GET /ui/bootstrap`: copy/format/theme/flags from Postgres `ui_copy`/`ui_config` + Redis TTL; APK `t()`/`AppColors.applyRemote`/`MoneyFormat` overlay | ✅ Done |
+|| S2 — Home One Round-Trip (Phase 3) | `/home` serves hero+pots+debt+recent with `*_display` strings; home screen stops calling legacy summaries/debt endpoints | ✅ Done |
+|| S3 — Server Error Copy (Phase 5) | API errors (auth/households/validation/500) are Bahasa from the backend; APK passes `detail` through, no client mapping | ✅ Done |
+|| S4 — Server Report Formulas (Phase 4) | `POST /kpr/calculate` stateless; `savings_rate` + `daily_avg_expense` from `/summaries/monthly`; no client amortization math | ✅ Done |
+|| S5 — Admin Copy + Config (Phase 6) | Admin panel: Kelola Copy (`/ui/copy`) + Setelan Config (`/ui/config`, format/flags only) with Redis cache bust on write | ✅ Done |
+|| S6 — Category Delete + Polish | `DELETE /categories/{id}` (default/used protected); search + delete UI; no hardcoded UI literals (374 copy keys sync fallback=seed) | ✅ Done |
 
 ## Deployment
 

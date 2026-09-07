@@ -83,7 +83,7 @@ Current version: **v0.7.2** — Dockerized Backend & GitHub-hosted Runners Migra
 ## Project Structure
 
 ```
-~/dev/wealthtrack/
+wealthtrack/
 ├── backend/                    # FastAPI backend
 │   ├── app/
 │   │   ├── main.py            # App entry point, lifespan, middleware

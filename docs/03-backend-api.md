@@ -1522,9 +1522,91 @@ Validation errors use FastAPI's default `RequestValidationError` format:
 - **401** — Missing or invalid token
 - **404** — Resource not found
 - **409** — Conflict (duplicate username, etc.)
-- **422** — Request validation error (Pydantic)
+- **422** — Request validation error (Pydantic) — returns ID copy
 - **429** — Rate limit exceeded
-- **500** — Internal server error
+- **500** — Internal server error — returns ID copy
+
+## UI Bootstrap & Home (Phase 1-3)
+
+### `GET /ui/bootstrap` — public
+
+Server-driven copy/config payload (locale, format, theme tokens, flags,
+`copy`). Cached in Redis `ui:bootstrap:{locale}` TTL 3600; `Cache-Control:
+public, max-age=300`. Copy SoT is `ui_copy` (Postgres). `format`/`theme`/`flags`
+come from `ui_config`.
+
+### `GET /home` — JWT
+
+Personal all-time dashboard (per-user, not household): `hero` with `amount`,
+`income`, `expense` + `*_display` strings, `pots` (savings/emergency), `debt_summary`,
+`recent`. Single round-trip for the home screen.
+
+## Server-Driven Report Stats (Phase 4)
+
+### `GET /summaries/monthly` — JWT
+
+Single-month report adds server-computed fields:
+
+- `savings_rate` — adjusted savings rate `((income - expense) +
+  savings_expense - savings_income) / income * 100` (0 when income <= 0)
+- `daily_avg_expense` — `expense // range_days` (falls back to 30 days)
+
+## KPR Stateless Calculate (Phase 4)
+
+### `POST /kpr/calculate` — JWT
+
+```json
+{
+  "property_price": 500000000,
+  "down_payment": 140000000,
+  "tenor_months": 360,
+  "interest_type": "fixed",
+  "base_interest_rate": 0.075,
+  "graduated_increment": 0.005,
+  "graduated_every_months": 12,
+  "rate_periods": [{"period_start": 1, "period_end": 60, "interest_rate": 0.08, "rate_type": "fixed"}]
+}
+```
+
+Returns a light preview (no DB write, no full schedule): `total_loan`,
+`tenor_months`, `monthly_payment`, `total_payment`, `total_interest`,
+`total_months`. Single source for amortization math.
+
+## Category Delete (Phase 6)
+
+### `DELETE /categories/{id}` — JWT, admin only
+
+Deletes an unused **custom** category. 403 for non-admin or default categories
+(`Cuma admin yang bisa hapus kategori`, `Kategori bawaan gak bisa diubah atau
+dihapus`); 409 when the category is referenced by transactions (`Kategori ini
+sudah dipakai transaksi, jadi gak bisa dihapus`).
+
+## Admin UI (Phase 6-7)
+
+Admin-only (`role=admin`) endpoints; 403 otherwise (`Cuma admin yang bisa
+ubah copy`).
+
+### `GET /ui/copy?search=` — list `ui_copy` rows (id-ID), optional key/value filter
+
+### `PUT /ui/copy/{key}`
+
+```json
+{ "value": "Teks baru" }
+```
+
+Upserts `ui_copy` and busts the Redis bootstrap cache — copy change is live
+without deploy/build.
+
+### `GET /ui/config` — list `ui_config` rows (parsed JSON)
+
+### `PUT /ui/config/{key}`
+
+```json
+{ "value": { "currency_prefix": "Rp", "group_sep": ".", "decimal_sep": "," } }
+```
+
+Only `format` and `flags` are editable through the app; `theme.*` returns 422
+(`Key config theme.light gak dikenal atau gak bisa diubah via app`).
 
 ## Auth Headers
 

@@ -7,9 +7,9 @@
 
 ## Overview
 
-Admin-only category management — create/update income and expense categories. One Indonesian `name`. Icon = Hugeicons key (`strokeRounded…`) from the in-app picker. `keywords` stay in the DB for classification.
+Admin-only category management — create/update/delete income and expense categories. One Indonesian `name`. Icon = Hugeicons key (`strokeRounded…`) from the in-app picker. `keywords` stay in the DB for classification.
 
-**No DELETE** — categories already used on transactions/budgets are not removed.
+**Delete (added Phase 6):** `DELETE /api/v1/categories/{id}` (admin only) removes an **unused custom** category. Default categories are never deletable (403 `Kategori bawaan gak bisa diubah atau dihapus`). Categories referenced by transactions are protected with 409 (`Kategori ini sudah dipakai transaksi, jadi gak bisa dihapus`) — financial history is never altered.
 
 Default categories (`is_default=1`) cannot be edited. Seed names (as shown in the app): Gaji, Makanan & Minuman, Lainnya, Transfer, Tabungan & Investasi, Penarikan Tabungan & Investasi, Hasil Investasi, Dana Darurat.
 
@@ -71,6 +71,17 @@ Update an existing category. Cannot edit default categories (`is_default=1`).
 | `sort_order` | int | Sort order |
 
 **Errors:** 403 (non-admin or is_default), 404, 409 (duplicate on rename)
+
+### DELETE `/api/v1/categories/{id}` (admin only, added Phase 6)
+
+Delete an unused custom category. No body.
+
+**Errors:**
+- `403` — non-admin (`Cuma admin yang bisa hapus kategori`) or default category (`Kategori bawaan gak bisa diubah atau dihapus`)
+- `404` — not found (`Kategori gak ketemu`)
+- `409` — category used by transactions (`Kategori ini sudah dipakai transaksi, jadi gak bisa dihapus`)
+
+**Success:** `204 No Content`.
 
 ### GET `/api/v1/categories` (updated)
 

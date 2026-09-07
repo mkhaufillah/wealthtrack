@@ -32,28 +32,28 @@ class AlreadyInHouseholdError(Exception):
     """Raised when a user tries to create/join a household but is already in one."""
 
     def __init__(self) -> None:
-        super().__init__("Already in a household")
+        super().__init__("Kamu sudah di keluarga")
 
 
 class NotInHouseholdError(Exception):
     """Raised when a user who is not a member of any household tries an operation."""
 
     def __init__(self) -> None:
-        super().__init__("Not a member of any household")
+        super().__init__("Belum gabung keluarga")
 
 
 class InvalidInviteCodeError(Exception):
     """Raised when the provided invite code does not match any household."""
 
     def __init__(self) -> None:
-        super().__init__("Invalid invite code")
+        super().__init__("Kode undangan gak valid")
 
 
 class InviteCodeGenerationError(Exception):
     """Raised when a unique invite code cannot be generated after retries."""
 
     def __init__(self) -> None:
-        super().__init__("Failed to generate unique invite code")
+        super().__init__("Gagal bikin kode undangan")
 
 
 # ── Helpers ─────────────────────────────────────────────────────────

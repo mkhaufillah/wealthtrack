@@ -121,7 +121,7 @@ class TestProcessOcr:
             files={"file": ("test.txt", b"not an image", "text/plain")},
         )
         assert resp.status_code == 400
-        assert "Unsupported image format" in resp.json()["detail"]
+        assert "Format foto gak didukung" in resp.json()["detail"]
 
     async def test_empty_upload_rejected(self, client: AsyncClient, filla_token: str):
         """POST /ocr/process without file field returns 422."""
@@ -182,7 +182,7 @@ class TestProcessOcr:
                 files={"file": ("receipt.png", png_data, "image/png")},
             )
             assert resp.status_code == 502
-            assert "Vision API error" in resp.json()["detail"]
+            assert "layanan baca struk error" in resp.json()["detail"].lower()
         finally:
             from app.core.config import settings
             settings.OPENCODE_GO_API_KEY = saved
@@ -200,7 +200,7 @@ class TestProcessOcr:
                 files={"file": ("receipt.png", png_data, "image/png")},
             )
             assert resp.status_code == 504
-            assert "timed out" in resp.json()["detail"].lower()
+            assert "lambat" in resp.json()["detail"].lower()
         finally:
             from app.core.config import settings
             settings.OPENCODE_GO_API_KEY = saved
@@ -250,7 +250,7 @@ class TestProcessOcr:
                 files={"file": ("receipt.png", png_data, "image/png")},
             )
             assert resp.status_code == 500
-            assert "not configured" in resp.json()["detail"].lower()
+            assert "belum dikonfigurasi" in resp.json()["detail"].lower()
         finally:
             settings.OPENCODE_GO_API_KEY = saved
 

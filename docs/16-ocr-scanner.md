@@ -168,14 +168,14 @@ OCR scanning utilizes a background processing architecture:
 
 | Scenario | Behavior |
 |----------|----------|
-| Non-image file | 400: "Unsupported image format" |
-| Corrupted image | 400: "Invalid image" (magic byte check fails) |
-| File > 10 MB | 400: "Image too large" |
-| API key missing | 500: "OCR not configured" |
-| Vision API timeout | 504: "Vision API timed out" |
-| Vision API error | 502: "Vision API error: {status}" |
-| Rate limit exceeded (10/day) | 429: "OCR rate limit: max 10/day" |
-| Per-user queue busy | 429: "You already have an OCR job being processed..." |
+| Non-image file | 400: "Format foto gak didukung: {mime}. Yang bisa: image/png, image/jpeg, …" |
+| Corrupted image | 400: "Foto rusak atau gak lengkap" |
+| File > 10 MB | 400: "Gambar terlalu besar (maks 10 MB)" |
+| API key missing | 500: "OCR belum dikonfigurasi (API key kosong)" |
+| Vision API timeout | 504: "Layanan baca struk lambat, coba lagi ya" |
+| Vision API error | 502: "Layanan baca struk error (HTTP {status})" |
+| Rate limit exceeded (10/day) | 429: "Kebanyakan request. Tunggu sebentar, coba lagi." |
+| Per-user queue busy | 429: "Struk sebelumnya masih diproses, tunggu ya." |
 | System semaphore full | Internal queue — retries automatically when slot opens |
 | Non-receipt image | `raw_text` populated with AI description, structured fields remain null |
 | Malformed JSON from API | `raw_text` populated with raw response text |

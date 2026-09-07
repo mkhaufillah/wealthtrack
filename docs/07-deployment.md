@@ -54,7 +54,7 @@ The backend is now fully containerized. A Docker container handles the applicati
 
 To manually deploy on the server:
 ```bash
-cd ~/dev/wealthtrack/backend
+cd /home/deploy/apps/wealthtrack/backend
 docker build -t wealthtrack-backend .
 docker stop wealthtrack-backend 2>/dev/null || true
 docker rm wealthtrack-backend 2>/dev/null || true

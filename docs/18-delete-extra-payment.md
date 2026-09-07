@@ -335,7 +335,7 @@ Expected: new group PASS. If Flutter SDK is missing on this VPS, record that in 
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(t('common.cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),

@@ -66,7 +66,7 @@
 - Month picker / swiper to navigate between months
 - Dark/light theme support (matching existing AppTheme)
 
-**Mockups location:** `~/dev/wealthtrack/sketches/`
+**Mockups location:** `wealthtrack/sketches/`
 
 ---
 

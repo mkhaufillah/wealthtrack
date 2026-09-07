@@ -291,7 +291,7 @@ await check_rate_limit(
     key=f"ocr:user_{user_id}",
     max_requests=30,
     window_sec=86400,  # 24 hours
-    error_message="OCR rate limit: max 30/day",
+    error_message="Kebanyakan baca struk. Maks 30x per hari.",
 )
 ```
 
@@ -508,7 +508,7 @@ WealthTrack uses **pytest** + **pytest-asyncio** with a dedicated PostgreSQL tes
 ### Running Tests
 
 ```bash
-cd ~/dev/wealthtrack
+cd /home/deploy/apps/wealthtrack
 source .venv/bin/activate
 pytest backend/tests/ -v --asyncio-mode=auto
 ```

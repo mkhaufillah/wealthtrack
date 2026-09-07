@@ -85,7 +85,7 @@ class OcrImageError(OcrError):
 class OcrApiKeyError(OcrError):
     """Missing or invalid API key."""
 
-    def __init__(self, detail: str = "OCR not configured (missing API key)") -> None:
+    def __init__(self, detail: str = "OCR belum dikonfigurasi (API key kosong)") -> None:
         super().__init__(detail)
 
 
@@ -100,7 +100,7 @@ class OcrVisionApiError(OcrError):
 class OcrTimeoutError(OcrError):
     """Vision API timed out."""
 
-    def __init__(self, detail: str = "Vision API timed out") -> None:
+    def __init__(self, detail: str = "Layanan baca struk lambat, coba lagi ya") -> None:
         super().__init__(detail)
 
 
@@ -366,18 +366,18 @@ class OcrService:
         """Validate MIME type and image magic bytes. Raises OcrImageError."""
         if mime not in ALLOWED_MIME:
             raise OcrImageError(
-                f"Unsupported image format: {mime}. "
-                f"Allowed: {', '.join(sorted(ALLOWED_MIME))}"
+                f"Format foto gak didukung: {mime}. "
+                f"Yang bisa: {', '.join(sorted(ALLOWED_MIME))}"
             )
 
         if len(raw_bytes) < 12:
-            raise OcrImageError("Invalid or corrupted image file")
+            raise OcrImageError("Foto rusak atau gak lengkap")
 
         for magic, fmt in IMAGE_MAGIC.items():
             if raw_bytes[: len(magic)] == magic:
                 return
 
-        raise OcrImageError("Invalid image — unrecognised file signature")
+        raise OcrImageError("Foto tidak dikenali — formatnya aneh")
 
     def _compress_image(self, image_bytes: bytes) -> str:
         """Resize (max 1200px longest side) and re-encode as JPEG, return data URL."""
@@ -467,7 +467,7 @@ class OcrService:
                 )
             elif resp.status_code != 200:
                 logger.warning("OCR vision HTTP %s: %s", resp.status_code, (resp.text or "")[:400])
-                raise OcrVisionApiError(f"Vision API error: HTTP {resp.status_code}")
+                raise OcrVisionApiError(f"Layanan baca struk error (HTTP {resp.status_code})")
 
             body = resp.json()
             content = body["choices"][0]["message"]["content"].strip()
@@ -478,7 +478,7 @@ class OcrService:
         except httpx.TimeoutException:
             raise OcrTimeoutError()
         except httpx.RequestError as e:
-            raise OcrVisionApiError(f"Vision API request failed: {e}")
+            raise OcrVisionApiError(f"Gagal hubungi layanan baca struk: {e}")
 
     async def _call_vision_api_with_retry(
         self, data_url: str, prompt: str, api_key: str
@@ -561,4 +561,4 @@ class OcrService:
 
         if last_exc:
             raise last_exc
-        raise OcrVisionApiError("Vision API retries exhausted — no response")
+        raise OcrVisionApiError("Layanan baca struk mentok setelah dicoba ulang")

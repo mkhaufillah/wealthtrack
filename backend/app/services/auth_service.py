@@ -35,7 +35,7 @@ class UsernameAlreadyExistsError(Exception):
 
     def __init__(self, username: str) -> None:
         self.username = username
-        super().__init__(f"Username '{username}' already exists")
+        super().__init__("Username sudah kepakai")
 
 
 class EmailAlreadyRegisteredError(Exception):
@@ -43,37 +43,35 @@ class EmailAlreadyRegisteredError(Exception):
 
     def __init__(self, email: str) -> None:
         self.email = email
-        super().__init__(f"Email '{email}' already registered")
+        super().__init__("Email ini sudah terdaftar")
 
 
 class NoOtpSentError(Exception):
     """Raised when trying to register without a prior OTP request."""
 
     def __init__(self) -> None:
-        super().__init__(
-            "No OTP sent to this email. Request one via /auth/send-otp first"
-        )
+        super().__init__("Belum ada kode OTP. Minta dulu ya.")
 
 
 class InvalidOtpError(Exception):
     """Raised when the provided OTP code does not match."""
 
     def __init__(self) -> None:
-        super().__init__("Invalid OTP code")
+        super().__init__("Kode OTP salah")
 
 
 class OtpAlreadyUsedError(Exception):
     """Raised when the OTP has already been used."""
 
     def __init__(self) -> None:
-        super().__init__("OTP already used")
+        super().__init__("Kode OTP sudah dipakai")
 
 
 class OtpExpiredError(Exception):
     """Raised when the OTP has expired."""
 
     def __init__(self) -> None:
-        super().__init__("OTP has expired. Request a new one")
+        super().__init__("Kode OTP kadaluarsa. Minta yang baru ya")
 
 
 class EmailSendError(Exception):
@@ -88,14 +86,14 @@ class InvalidCredentialsError(Exception):
     """Raised when login credentials are incorrect."""
 
     def __init__(self) -> None:
-        super().__init__("Invalid username or password")
+        super().__init__("Username atau password salah")
 
 
 class UserNotFoundError(Exception):
     """Raised when a user lookup fails."""
 
     def __init__(self) -> None:
-        super().__init__("User not found")
+        super().__init__("Akun gak ketemu")
 
 
 class EmailAlreadyInUseError(Exception):
@@ -110,14 +108,14 @@ class NoFieldsToUpdateError(Exception):
     """Raised when an update request provides no fields to change."""
 
     def __init__(self) -> None:
-        super().__init__("No fields to update")
+        super().__init__("Gak ada yang diubah")
 
 
 class InvalidPasswordError(Exception):
     """Raised when the current password provided is incorrect."""
 
     def __init__(self) -> None:
-        super().__init__("Current password is incorrect")
+        super().__init__("Sandi sekarang salah")
 
 
 # ── Service ─────────────────────────────────────────────────────────

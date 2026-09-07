@@ -199,7 +199,7 @@ class CategoryService:
             updates["sort_order"] = sort_order
 
         if not updates:
-            raise ValueError("No fields to update")
+            raise ValueError("Gak ada yang diubah")
 
         set_clause = ", ".join(f"{k} = ?" for k in updates)
         await self.db.execute(

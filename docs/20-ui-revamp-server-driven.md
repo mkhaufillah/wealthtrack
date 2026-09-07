@@ -161,7 +161,10 @@ Do **not** keep a parallel SoT in `ui_copy.py` dicts.
 3. TTL **1 hour** is the invalidate. After expiry the next request hits DB again and refills Redis.
 4. No in-process cache. Redis is the only server cache so multiple workers share one copy.
 
-Live `UPDATE ui_copy` can take up to 1 hour to show. Phase 1 does **not** `DEL` on write. Optional later: `DEL ui:bootstrap:*` after an admin edit.
+Live `UPDATE ui_copy` can take up to 1 hour to show via plain SQL. Since
+Phase 5/6, admin writes (`PUT /ui/copy/{key}`, `PUT /ui/config/{key}`) do
+**`DEL ui:bootstrap:id-ID`** on write, so app-driven copy/config changes are
+live immediately. Plain SQL edits still need a manual flush or TTL expiry.
 
 Client still caches (memory + SecureStorage) with `ETag` / `Cache-Control: max-age=300`. That is the APK layer; Redis is the DB shield.
 
@@ -338,6 +341,9 @@ Register router in `main.py`. Auth: same JWT.
 
 ### Phase 2 — `GET /home`
 
+**Status:** ✅ Implemented. Personal all-time hero with `*_display` strings;
+pots/debt/recent in the same payload.
+
 **TDD**
 
 - Filla vs Nahda amounts differ (reuse marker idea from `test_daily_no_dates_all_time_personal_not_household`).
@@ -348,7 +354,7 @@ Flutter `HomeNotifier.load` → `/home` only (plus OCR pending as today). Remove
 
 ### Phase 3 — Home layout polish + one round-trip
 
-**Status:** `/home` live (Phase 1/2). Remaining: home stops calling `/summaries/all-time-category-balance` and `/summaries/debt(/household)` — `/home` already returns `pots` + `debt_summary`. Single fetch on load; hero/pots/debt/recent all from it.
+**Status:** ✅ Done. Home screen loads `/home` once; hero/pots/debt/recent all from the single payload. Legacy calls removed (fallback `/summaries/daily` kept only offline/error).
 
 Spacing tokens (`xs=4 … xl=32`) used consistently on home. Drop competing 32px type. Outstanding + Teman AI + Catatan utang stay, visually secondary.
 
@@ -356,17 +362,15 @@ Do **not** merge Catatan utang into outstanding (cancelled).
 
 ### Phase 4 — Kill client math
 
-- Delete any residual client-side calc in `kpr_form_screen.dart` (loan/payment preview) — server already returns schedule/totals; form just posts inputs.
-- `formatCurrency` reads `MoneyFormat` from bootstrap (done). Extra-payment preview already server.
-- Report savings-rate math stays client-side (presentation-only, derived from server numbers). Optional: move later if it drifts.
+**Status:** ✅ Done. `POST /kpr/calculate` is the single source for amortization (fixed/floating/graduated/mix); `kpr_form_screen.dart` no longer imports `dart:math`. Report savings-rate + daily average moved to the server (`savings_rate`, `daily_avg_expense` from `/summaries/monthly`).
 
 ### Phase 5 — Server copy for API errors
 
-`auth`/`households`/`ocr` `detail=` strings are still English at source. Add server-side ID messages OR extend `api_client.dart` map to 100% coverage. APK fallback stays generic.
+**Status:** ✅ Done. `auth`/`households`/`ocr`/validation/500 `detail=` are Bahasa at the source. `api_client.dart` passes `detail` through (no client mapping); client only decides transport-level cases (timeout, 401 non-login = session expired, empty detail fallback).
 
 ### Phase 6 — Admin surface for ui_copy
 
-SQL edits work, but add a small admin UI (or MCP tool) to `UPDATE ui_copy` + bust Redis, so Nahda-level copy changes don't need DB access.
+**Status:** ✅ Done. Admin-only `GET/PUT /ui/copy` (Kelola Copy in APK) + `GET/PUT /ui/config` (Setelan Config: format/flags only, theme read-only). Writes bust the Redis bootstrap cache (`DEL ui:bootstrap:id-ID`) so changes are live without deploy/build.
 
 ---
 

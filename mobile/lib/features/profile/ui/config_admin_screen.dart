@@ -87,7 +87,7 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
     final decimal = _decimalSepCtrl.text.trim();
     if (prefix.isEmpty || group.isEmpty || decimal.isEmpty || group == decimal) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cek lagi isiannya ya.')),
+        SnackBar(content: Text(t('common.check_input'))),
       );
       return;
     }
