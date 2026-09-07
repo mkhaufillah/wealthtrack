@@ -50,8 +50,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Bottom sheet should show
-      expect(find.text('Scan Receipt'), findsOneWidget);
-      expect(find.text('Choose an image source'), findsOneWidget);
+      expect(find.text('Ambil struk'), findsOneWidget);
+      expect(find.text('Kamera atau dari galeri'), findsOneWidget);
     });
 
     testWidgets('bottom sheet shows Take Photo option', (tester) async {
@@ -89,7 +89,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Bottom sheet should close (Scan Receipt title gone)
-      expect(find.text('Scan Receipt'), findsNothing);
+      expect(find.text('Ambil struk'), findsNothing);
     });
 
     testWidgets('tapping Choose from Gallery closes bottom sheet',
@@ -102,7 +102,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Bottom sheet should close
-      expect(find.text('Scan Receipt'), findsNothing);
+      expect(find.text('Ambil struk'), findsNothing);
     });
   });
 }
