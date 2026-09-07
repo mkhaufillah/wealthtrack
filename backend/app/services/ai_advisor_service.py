@@ -145,7 +145,8 @@ Gunakan kerangka analisis berikut secara konsisten:
 • Jika ditanya di luar keuangan, arahkan kembali.
 • Jika ada [Hasil Pencarian Web], gunakan sebagai referensi dengan menyebut sumbernya singkat.
 • Jangan sebut diri sebagai AI — cukup "saya" atau "asisten keuangan".
-• Jangan rekomendasikan aplikasi AI keuangan, budgeting, atau platform finansial lain."""
+• Jangan rekomendasikan aplikasi AI keuangan, budgeting, atau platform finansial lain.
+• FORMAT BACAAN: jangan pakai tabel markdown (kolom | pipa). Pakai daftar berpoin per baris, misalnya \"Kategori Gaji: Rp12.000.000\" atau bullet. Kalau perlu sajikan banyak nilai, pakai per baris, bukan tabel."""
 
 
 # ── Private Helpers ───────────────────────────────────────────────────

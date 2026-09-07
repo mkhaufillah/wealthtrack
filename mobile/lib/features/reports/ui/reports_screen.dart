@@ -442,22 +442,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 2,
-                  child: Text(
-                    formatCurrency(item.actualSpent),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isOver ? AppColors.highlight : AppColors.textPrimary,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      formatCurrencyCompact(item.actualSpent),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isOver ? AppColors.highlight : AppColors.textPrimary,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 4),
                 SizedBox(
-                  width: 40,
-                  child: Text(
-                    '/ ${formatCurrency(item.budgetAmount)}',
-                    style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-                    textAlign: TextAlign.right,
+                  width: 55,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '/ ${formatCurrencyCompact(item.budgetAmount)}',
+                      style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                      textAlign: TextAlign.right,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 6),

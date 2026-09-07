@@ -96,9 +96,13 @@ Widget buildBarChartSection(List<CategoryBreakdown> categories) {
             const SizedBox(width: 6),
             SizedBox(
               width: 65,
-              child: Text(
-                formatCurrency(cat.total),
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  formatCurrencyCompact(cat.total),
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
             const SizedBox(width: 6),

@@ -106,7 +106,13 @@ async def list_config(
     _require_admin(current_user)
     cursor = await db.execute("SELECT key, value FROM ui_config ORDER BY key")
     rows = await cursor.fetchall()
-    return {"items": [{"key": r["key"], "value": r["value"]} for r in rows]}
+    items = []
+    for r in rows:
+        val = r["value"]
+        if isinstance(val, str):
+            val = json.loads(val)
+        items.append({"key": r["key"], "value": val})
+    return {"items": items}
 
 
 @router.put("/ui/config/{key}")

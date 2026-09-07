@@ -452,6 +452,12 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                           h3: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                           a: TextStyle(color: AppColors.accent, decoration: TextDecoration.underline),
                           listBullet: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                          tableBorder: TableBorder.all(
+                            color: AppColors.divider,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          tableCellPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          tableCells: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
                         ),
                       ),
       ),
