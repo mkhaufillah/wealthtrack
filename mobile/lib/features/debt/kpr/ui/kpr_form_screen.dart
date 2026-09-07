@@ -1,6 +1,6 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/money.dart';
 import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -215,16 +215,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     }
   }
 
-  /// Calculate monthly payment for a fixed-rate loan using standard amortization formula.
-  double _calcMonthlyPayment(int loanAmount, double annualRate, int months) {
-    if (loanAmount <= 0 || months <= 0) return 0;
-    if (annualRate <= 0) return loanAmount / months;
-    final monthlyRate = annualRate / 12 / 100;
-    final factor = pow(1 + monthlyRate, months);
-    return (loanAmount * monthlyRate * factor) / (factor - 1);
-  }
-
-  void _calculate() {
+  Future<void> _calculate() async {
     final loanAmount = _getLoanAmount();
     final tenorMonths = _getTenorMonths();
     if (loanAmount <= 0 || tenorMonths <= 0) {
@@ -236,58 +227,50 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
 
     setState(() => _isCalculating = true);
 
-    double monthlyPayment;
-    double totalPayment;
-    double totalInterest;
+    double monthlyPayment = 0;
+    double totalPayment = 0;
+    double totalInterest = 0;
 
-    switch (_interestType) {
-      case 'fixed':
-      case 'floating':
-        final rate = _getBaseRate();
-        monthlyPayment = _calcMonthlyPayment(loanAmount, rate, tenorMonths);
-        totalPayment = monthlyPayment * tenorMonths;
-        totalInterest = totalPayment - loanAmount;
-        break;
-      case 'graduated':
-        // Simplified: average the graduated rates
-        final baseRate = _getBaseRate();
-        final increment = double.tryParse(_gradIncrementCtrl.text) ?? 0.0;
-        final everyMonths = int.tryParse(_gradEveryMonthsCtrl.text) ?? 12;
-        // Compute with varying rate per period
-        totalPayment = 0;
-        int monthsDone = 0;
-        int period = 0;
-        while (monthsDone < tenorMonths) {
-          final periodMonths = everyMonths < 1
-              ? tenorMonths - monthsDone
-              : everyMonths.clamp(1, tenorMonths - monthsDone);
-          final rate = baseRate + period * increment;
-          final pmt = _calcMonthlyPayment(loanAmount, rate, tenorMonths);
-          totalPayment += pmt * periodMonths;
-          monthsDone += periodMonths;
-          period++;
-        }
-        monthlyPayment = totalPayment / tenorMonths;
-        totalInterest = totalPayment - loanAmount;
-        break;
-      case 'mix':
-        // Use first rate period as effective rate for estimate
-        final rate = _ratePeriods.isNotEmpty
-            ? double.tryParse(_ratePeriods.first.rateCtrl.text) ?? 9.0
-            : 9.0;
-        monthlyPayment = _calcMonthlyPayment(loanAmount, rate, tenorMonths);
-        totalPayment = monthlyPayment * tenorMonths;
-        totalInterest = totalPayment - loanAmount;
-        break;
-      default:
-        monthlyPayment = 0;
-        totalPayment = 0;
-        totalInterest = 0;
+    try {
+      final api = ref.read(apiClientProvider);
+      final data = <String, dynamic>{
+        'property_price': _getPropertyPrice(),
+        'down_payment': _getDownPayment(),
+        'tenor_months': tenorMonths,
+        'interest_type': _interestType,
+        'base_interest_rate': _getBaseRate() / 100,
+      };
+
+      if (_interestType == 'graduated') {
+        data['graduated_increment'] = (double.tryParse(_gradIncrementCtrl.text) ?? 0.0) / 100;
+        data['graduated_every_months'] = int.tryParse(_gradEveryMonthsCtrl.text) ?? 12;
+      }
+
+      if (_interestType == 'mix') {
+        data['rate_periods'] = _ratePeriods.map((rp) => {
+          'period_start': int.tryParse(rp.fromMonthCtrl.text) ?? 1,
+          'period_end': int.tryParse(rp.toMonthCtrl.text) ?? 12,
+          'interest_rate': (double.tryParse(rp.rateCtrl.text) ?? 0.0) / 100,
+          'rate_type': rp.rateType,
+        }).toList();
+      }
+
+      final res = await api.post('/kpr/calculate', data: data);
+      final result = res.data as Map<String, dynamic>?;
+      monthlyPayment = (result?['monthly_payment'] as num?)?.toDouble() ?? 0;
+      totalPayment = (result?['total_payment'] as num?)?.toDouble() ?? 0;
+      totalInterest = (result?['total_interest'] as num?)?.toDouble() ?? 0;
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t('kpr.calc_failed'))),
+      );
+      if (!mounted) return;
+      setState(() => _isCalculating = false);
+      return;
     }
 
-    setState(() => _isCalculating = false);
-
     if (!mounted) return;
+    setState(() => _isCalculating = false);
 
     showDialog(
       context: context,
@@ -438,7 +421,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               focusNode: _propertyFocus,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: 'Rp 0',
+                hintText: '${MoneyFormat.prefix} 0',
                 prefixIcon: AppFieldIcon(AppIcons.home),
               ),
             ),
@@ -452,7 +435,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               focusNode: _downPaymentFocus,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: 'Rp 0',
+                hintText: '${MoneyFormat.prefix} 0',
                 prefixIcon: AppFieldIcon(AppIcons.money),
               ),
             ),

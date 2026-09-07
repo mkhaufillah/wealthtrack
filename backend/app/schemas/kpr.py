@@ -9,6 +9,26 @@ class RatePeriodIn(BaseModel):
     rate_type: str = "fixed"
 
 
+class KPRCalculateRequest(BaseModel):
+    property_price: int = Field(ge=0)
+    down_payment: int = Field(ge=0, default=0)
+    tenor_months: int = Field(ge=12, le=360)
+    interest_type: str = "fixed"
+    base_interest_rate: float = 0.075
+    graduated_increment: float = 0.005
+    graduated_every_months: int = 12
+    rate_periods: list[RatePeriodIn] = []
+
+
+class KPRCalculateOut(BaseModel):
+    total_loan: int
+    tenor_months: int
+    monthly_payment: int
+    total_payment: int
+    total_interest: int
+    total_months: int
+
+
 class KPRSimulationCreate(BaseModel):
     name: str = "KPR Simulation"
     property_price: int = Field(ge=0)

@@ -80,7 +80,7 @@ class TestAuthRegister:
             },
         )
         assert resp.status_code == 400
-        assert "No OTP sent" in resp.json()["detail"]
+        assert "Belum ada kode OTP" in resp.json()["detail"]
 
     async def test_register_duplicate(self, client: AsyncClient):
         """Duplicate username returns 409."""
@@ -235,7 +235,7 @@ class TestChangePassword:
             json={"current_password": "wrongpassword", "new_password": "newpass456"},
         )
         assert resp.status_code == 400
-        assert "incorrect" in resp.json()["detail"].lower()
+        assert "sandi sekarang salah" in resp.json()["detail"].lower()
 
     async def test_change_password_no_token(self, client: AsyncClient):
         """Change password without auth returns 401."""

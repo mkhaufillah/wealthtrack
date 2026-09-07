@@ -139,7 +139,7 @@ class TestJoinHousehold:
             json={"invite_code": "ZZZZZZZZ"},
         )
         assert resp.status_code == 404
-        assert "Invalid invite code" in resp.json()["detail"]
+        assert "Kode undangan gak valid" in resp.json()["detail"]
 
         await _cleanup_user(db, uid)
 
@@ -193,7 +193,7 @@ class TestGetMyHousehold:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 404
-        assert "Not a member" in resp.json()["detail"]
+        assert "Belum gabung keluarga" in resp.json()["detail"]
 
         await _cleanup_user(db, uid)
 

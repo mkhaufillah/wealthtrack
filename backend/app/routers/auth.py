@@ -52,7 +52,7 @@ async def send_otp(
     try:
         return await svc.send_otp(data.email)
     except EmailSendError as e:
-        raise HTTPException(status_code=500, detail=f"Failed to send email: {e}")
+        raise HTTPException(status_code=500, detail=f"Gagal kirim email: {e}")
 
 
 # ── Register ─────────────────────────────────────────────────────────
@@ -70,22 +70,22 @@ async def register(
     try:
         return await svc.register(data)
     except UsernameAlreadyExistsError:
-        raise HTTPException(status_code=409, detail="Username already exists")
+        raise HTTPException(status_code=409, detail="Username sudah kepakai")
     except EmailAlreadyRegisteredError:
-        raise HTTPException(status_code=409, detail="Email already registered")
+        raise HTTPException(status_code=409, detail="Email ini sudah terdaftar")
     except NoOtpSentError:
         raise HTTPException(
             status_code=400,
-            detail="No OTP sent to this email. Request one via /auth/send-otp first",
+            detail="Belum ada kode OTP. Minta dulu ya.",
         )
     except InvalidOtpError:
-        raise HTTPException(status_code=400, detail="Invalid OTP code")
+        raise HTTPException(status_code=400, detail="Kode OTP salah")
     except OtpAlreadyUsedError:
-        raise HTTPException(status_code=400, detail="OTP already used")
+        raise HTTPException(status_code=400, detail="Kode OTP sudah dipakai")
     except OtpExpiredError:
-        raise HTTPException(status_code=400, detail="OTP has expired. Request a new one")
+        raise HTTPException(status_code=400, detail="Kode OTP kadaluarsa. Minta yang baru ya")
     except UserNotFoundError:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Akun gak ketemu")
 
 
 # ── Login ────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ async def login(
     try:
         return await svc.login(data)
     except InvalidCredentialsError:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        raise HTTPException(status_code=401, detail="Username atau password salah")
 
 
 # ── Get Me ───────────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ async def me(
     try:
         return await svc.get_me(current_user["id"])
     except UserNotFoundError:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Akun gak ketemu")
 
 
 # ── Update Profile ───────────────────────────────────────────────────
@@ -136,11 +136,11 @@ async def update_profile(
     try:
         return await svc.update_profile(current_user["id"], data)
     except EmailAlreadyInUseError:
-        raise HTTPException(status_code=409, detail="Email already in use")
+        raise HTTPException(status_code=409, detail="Email ini sudah terdaftar")
     except NoFieldsToUpdateError:
-        raise HTTPException(status_code=400, detail="No fields to update")
+        raise HTTPException(status_code=400, detail="Gak ada yang diubah")
     except UserNotFoundError:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Akun gak ketemu")
 
 
 # ── Change Password ──────────────────────────────────────────────────
@@ -159,9 +159,9 @@ async def change_password(
     try:
         return await svc.change_password(current_user["id"], data)
     except UserNotFoundError:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Akun gak ketemu")
     except InvalidPasswordError:
-        raise HTTPException(status_code=400, detail="Current password is incorrect")
+        raise HTTPException(status_code=400, detail="Sandi sekarang salah")
 
 
 # ── Delete Account ───────────────────────────────────────────────────

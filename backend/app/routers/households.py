@@ -43,10 +43,10 @@ async def create_household(
     try:
         return await service.create_household(data, current_user["id"])
     except AlreadyInHouseholdError:
-        raise HTTPException(status_code=409, detail="Already in a household")
+        raise HTTPException(status_code=409, detail="Kamu sudah di keluarga")
     except InviteCodeGenerationError:
         raise HTTPException(
-            status_code=500, detail="Failed to generate unique invite code"
+            status_code=500, detail="Gagal bikin kode undangan"
         )
 
 
@@ -61,9 +61,9 @@ async def join_household(
     try:
         return await service.join_household(data, current_user["id"])
     except AlreadyInHouseholdError:
-        raise HTTPException(status_code=409, detail="Already in a household")
+        raise HTTPException(status_code=409, detail="Kamu sudah di keluarga")
     except InvalidInviteCodeError:
-        raise HTTPException(status_code=404, detail="Invalid invite code")
+        raise HTTPException(status_code=404, detail="Kode undangan gak valid")
 
 
 @router.get("/me", response_model=HouseholdDetailOut)
@@ -77,7 +77,7 @@ async def get_my_household(
         return await service.get_my_household(current_user["id"])
     except NotInHouseholdError:
         raise HTTPException(
-            status_code=404, detail="Not a member of any household"
+            status_code=404, detail="Belum gabung keluarga"
         )
 
 
@@ -92,5 +92,5 @@ async def get_invite_code(
         return await service.get_invite_code(current_user["id"])
     except NotInHouseholdError:
         raise HTTPException(
-            status_code=404, detail="Not a member of any household"
+            status_code=404, detail="Belum gabung keluarga"
         )

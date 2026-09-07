@@ -13,10 +13,59 @@ from app.schemas.kpr import (
     ExtraPaymentPreviewOut,
     ExtraPaymentOptionOut,
     ExtraPaymentOut,
+    KPRCalculateRequest,
+    KPRCalculateOut,
 )
 from app.services.kpr_service import KPRService, KPRServiceError
+from app.services.kpr_engine import calculate_kpr, simulate_summary, RatePeriod
 
 router = APIRouter(prefix="/kpr", tags=["kpr"])
+
+
+# ── Stateless calculate ──────────────────────────────────────────────
+
+
+@router.post("/calculate", response_model=KPRCalculateOut)
+async def calculate(
+    data: KPRCalculateRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Stateless KPR preview — no DB write. Single source for amortization math."""
+    total_loan = data.property_price - data.down_payment
+    if total_loan < 0:
+        raise HTTPException(status_code=422, detail="Uang muka lebih besar dari harga rumah")
+
+    rate_periods = None
+    if data.interest_type == "mix" and data.rate_periods:
+        rate_periods = [
+            RatePeriod(
+                period_start=rp.period_start,
+                period_end=rp.period_end,
+                interest_rate=rp.interest_rate,
+                rate_type=rp.rate_type,
+            )
+            for rp in data.rate_periods
+        ]
+
+    schedule = calculate_kpr(
+        total_loan=total_loan,
+        tenor_months=data.tenor_months,
+        rate_periods=rate_periods,
+        interest_type=data.interest_type,
+        base_interest_rate=data.base_interest_rate,
+        graduated_increment=data.graduated_increment,
+        graduated_every_months=data.graduated_every_months,
+    )
+
+    summary = simulate_summary(schedule)
+    return KPRCalculateOut(
+        total_loan=total_loan,
+        tenor_months=data.tenor_months,
+        monthly_payment=summary["monthly_payment"],
+        total_payment=summary["total_payment"],
+        total_interest=summary["total_interest"],
+        total_months=summary["total_months"],
+    )
 
 
 # ── Create simulation ───────────────────────────────────────────────

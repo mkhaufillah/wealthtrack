@@ -320,6 +320,7 @@ COPY_ID: dict[str, str] = {
     'kpr.sim_delete_fail': 'Gagal hapus simulasi',
     'kpr.sim_saved': 'Simulasi kesimpen',
     'kpr.fill_price_dp': 'Isi harga rumah sama uang muka dulu ya',
+    'kpr.calc_failed': 'Gagal hitung. Coba lagi ya',
     'kpr.loan_positive': 'Nilai pinjaman harus lebih dari 0',
     'kpr.name_hint': 'mis. Rumah Impian',
     'kpr.rate_hint': 'mis. 9.0',
