@@ -302,18 +302,18 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _resultRow('Property Price', formatCurrency(loanAmount + _getDownPayment())),
-            _resultRow('Down Payment', formatCurrency(_getDownPayment())),
-            _resultRow('Loan Amount', formatCurrency(loanAmount)),
+            _resultRow('Harga rumah', formatCurrency(loanAmount + _getDownPayment())),
+            _resultRow('Uang muka', formatCurrency(_getDownPayment())),
+            _resultRow('Pinjaman', formatCurrency(loanAmount)),
             Divider(height: 24, color: AppColors.divider),
-            _resultRow('Monthly Payment', formatCurrency(monthlyPayment.round()),
+            _resultRow('Cicilan / bulan', formatCurrency(monthlyPayment.round()),
                 valueColor: AppColors.accent),
-            _resultRow('Total Payment', formatCurrency(totalPayment.round())),
-            _resultRow('Total Interest', formatCurrency(totalInterest.round()),
+            _resultRow('Total bayar', formatCurrency(totalPayment.round())),
+            _resultRow('Total bunga', formatCurrency(totalInterest.round()),
                 valueColor: AppColors.highlight),
             Divider(height: 24, color: AppColors.divider),
-            _resultRow('Tenor', '$_tenorYears years ($tenorMonths months)'),
-            _resultRow('Interest Type', _interestType[0].toUpperCase() + _interestType.substring(1)),
+            _resultRow('Tenor', '$_tenorYears tahun ($tenorMonths bulan)'),
+            _resultRow('Tipe bunga', _interestType),
           ],
         ),
         actions: [
@@ -417,19 +417,19 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
             // ─── Simulation Name ─────────────────────
-            _sectionLabel('Simulation Name'),
+            _sectionLabel('Nama simulasi'),
             const SizedBox(height: 6),
             TextFormField(
               controller: _nameCtrl,
               decoration: InputDecoration(
-                hintText: 'e.g. Rumah Impian',
+                hintText: 'mis. Rumah Impian',
               ),
               validator: _validateRequired,
             ),
             const SizedBox(height: 20),
 
             // ─── Property Price ──────────────────────
-            _sectionLabel('Property Price'),
+            _sectionLabel('Harga rumah'),
             const SizedBox(height: 6),
             TextField(
               controller: _propertyPriceCtrl,
@@ -443,7 +443,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Down Payment ────────────────────────
-            _sectionLabel('Down Payment (DP)'),
+            _sectionLabel('Uang muka (DP)'),
             const SizedBox(height: 6),
             TextField(
               controller: _downPaymentCtrl,
@@ -457,7 +457,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Loan Amount (read-only) ─────────────
-            _sectionLabel('Loan Amount (Auto-calculated)'),
+            _sectionLabel('Pinjaman (otomatis)'),
             const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -501,7 +501,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Start Month & Year ──────────────────
-            _sectionLabel('First Payment'),
+            _sectionLabel('Cicilan pertama'),
             const SizedBox(height: 6),
             Row(
               children: [
@@ -546,13 +546,13 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Due Date ───────────────────────────
-            _sectionLabel('Payment Due Date'),
+            _sectionLabel('Tanggal jatuh tempo'),
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               value: _dueDate,
               decoration: InputDecoration(
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
-                hintText: 'Date of month',
+                hintText: 'Tanggal dalam bulan',
               ),
               items: List.generate(28, (i) => i + 1).map((d) {
                 return DropdownMenuItem(value: d, child: Text('Tanggal $d'));
@@ -564,7 +564,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Interest Type ──────────────────────
-            _sectionLabel('Interest Type'),
+            _sectionLabel('Tipe bunga'),
             const SizedBox(height: 6),
             SegmentedButton<String>(
               segments: const [
@@ -658,13 +658,13 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
   // ─── Fixed / Floating Fields ────────────────────────────
   List<Widget> _buildFixedFloatingFields() {
     return [
-      _sectionLabel('Base Interest Rate (%)'),
+      _sectionLabel('Bunga dasar (%)'),
       const SizedBox(height: 6),
       TextField(
         controller: _baseRateCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
-          hintText: 'e.g. 9.0',
+          hintText: 'mis. 9.0',
           suffixText: '%',
           prefixIcon: AppFieldIcon(AppIcons.money),
         ),
@@ -676,37 +676,37 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
   // ─── Graduated Fields ────────────────────────────────
   List<Widget> _buildGraduatedFields() {
     return [
-      _sectionLabel('Base Interest Rate (%)'),
+      _sectionLabel('Bunga dasar (%)'),
       const SizedBox(height: 6),
       TextField(
         controller: _baseRateCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
-          hintText: 'e.g. 7.0',
+          hintText: 'mis. 7.0',
           suffixText: '%',
           prefixIcon: AppFieldIcon(AppIcons.money),
         ),
       ),
       const SizedBox(height: 16),
-      _sectionLabel('Increment per Period (%)'),
+      _sectionLabel('Kenaikan per periode (%)'),
       const SizedBox(height: 6),
       TextField(
         controller: _gradIncrementCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
-          hintText: 'e.g. 0.5',
+          hintText: 'mis. 0.5',
           suffixText: '%',
           prefixIcon: AppFieldIcon(AppIcons.chartUp),
         ),
       ),
       const SizedBox(height: 16),
-      _sectionLabel('Period Length (months)'),
+      _sectionLabel('Lama periode (bulan)'),
       const SizedBox(height: 6),
       TextField(
         controller: _gradEveryMonthsCtrl,
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
-          hintText: 'e.g. 12',
+          hintText: 'mis. 12',
           suffixText: 'months',
           prefixIcon: AppFieldIcon(AppIcons.calendar),
         ),
@@ -721,7 +721,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _sectionLabel('Rate Periods'),
+          _sectionLabel('Periode bunga'),
           TextButton.icon(
             onPressed: () {
               setState(() {

@@ -9,18 +9,18 @@ import 'api_exceptions.dart';
 /// Maps raw backend error strings to user-friendly messages.
 /// Unknown/unmatched errors fall back to a generic "Something went wrong."
 const _friendlyErrors = <String, String>{
-  'invalid email or password': 'Email or password is incorrect.',
-  'email already registered': 'This email is already registered.',
-  'account not found': 'Account not found.',
-  'user not found': 'Account not found.',
-  'invalid token': 'Session expired. Please login again.',
-  'could not determine amount or category': 'Something went wrong. Please try again.',
-  'ocr rate limit': 'Please wait before uploading another receipt.',
-  'you already have an ocr job': 'Please wait for the current receipt to finish processing.',
-  'vision api error': 'Something went wrong. Please try again.',
-  'vision api timed out': 'Something went wrong. Please try again.',
-  'image too large': 'Image is too large. Max 10 MB.',
-  'unsupported image format': 'Unsupported image format. Use JPG or PNG.',
+  'invalid email or password': 'Email atau password salah.',
+  'email already registered': 'Email ini sudah terdaftar.',
+  'account not found': 'Akun gak ketemu.',
+  'user not found': 'Akun gak ketemu.',
+  'invalid token': 'Sesi habis. Masuk lagi ya.',
+  'could not determine amount or category': 'Ada yang gak beres. Coba lagi ya.',
+  'ocr rate limit': 'Tunggu sebentar sebelum unggah struk lagi.',
+  'you already have an ocr job': 'Struk sebelumnya masih diproses, tunggu ya.',
+  'vision api error': 'Ada yang gak beres. Coba lagi ya.',
+  'vision api timed out': 'Ada yang gak beres. Coba lagi ya.',
+  'image too large': 'Fotonya kegedean. Maks 10 MB.',
+  'unsupported image format': 'Format foto gak didukung. Pakai JPG atau PNG.',
 };
 
 /// Returns a user-friendly message for a given error string.
@@ -31,7 +31,7 @@ String _friendly(String raw) {
       return entry.value;
     }
   }
-  return 'Something went wrong. Please try again.';
+  return 'Ada yang gak beres. Coba lagi ya.';
 }
 
 class ApiClient {
@@ -183,17 +183,17 @@ class ApiClient {
       }
 
       if (rawMsg.isEmpty) {
-        return ApiException('Something went wrong. Please try again.');
+        return ApiException('Ada yang gak beres. Coba lagi ya.');
       }
 
       // Rate limit (429)
       if (error.response?.statusCode == 429) {
-        return ApiException('Too many requests. Please wait a moment.');
+        return ApiException('Kebanyakan request. Tunggu sebentar ya.');
       }
 
       return ApiException(_friendly(rawMsg));
     }
 
-    return ApiException('Something went wrong. Please try again.');
+    return ApiException('Ada yang gak beres. Coba lagi ya.');
   }
 }

@@ -73,7 +73,7 @@ void main() {
 
     testWidgets('shows empty state when no transactions', (tester) async {
       await tester.pumpWidget(buildTxListApp());
-      expect(find.text('No transactions found.'), findsOneWidget);
+      expect(find.text('Sepi. Belum ada yang tercatat.'), findsOneWidget);
     });
 
     testWidgets('shows transaction items in list', (tester) async {

@@ -41,7 +41,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         backgroundColor: AppColors.surface,
         title: Text(t('kpr.delete')),
         content: Text(
-          'Delete "${sim.name.isEmpty ? 'this simulation' : sim.name}"? This cannot be undone.',
+          'Hapus "${sim.name.isEmpty ? 'simulasi ini' : sim.name}"? Gak bisa dibalikin.',
         ),
         actions: [
           TextButton(
@@ -80,8 +80,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         backgroundColor: AppColors.surface,
         title: Text(t('kpr.extra')),
         content: Text(
-          'Delete extra payment ${formatCurrency(ep.amount)} at month ${ep.applyMonth}? '
-          'The schedule will be rebuilt. This cannot be undone.',
+          'Hapus pembayaran ekstra ${formatCurrency(ep.amount)} di bulan ke-${ep.applyMonth}? '
+          'Jadwalnya dihitung ulang. Gak bisa dibalikin.',
         ),
         actions: [
           TextButton(
@@ -106,7 +106,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             content: Text(
               success
                   ? 'Pembayaran ekstra kehapus'
-                  : 'Failed to delete extra payment',
+                  : 'Gagal hapus pembayaran ekstra',
             ),
           ),
         );
@@ -122,19 +122,19 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(sim?.name.isNotEmpty == true ? sim!.name : 'KPR Detail'),
+        title: Text(sim?.name.isNotEmpty == true ? sim!.name : 'Detail KPR'),
         actions: [
           if (sim != null)
             IconButton(
               icon: AppIcon(AppIcons.money),
-              tooltip: 'Extra Payment',
+              tooltip: 'Pembayaran ekstra',
               onPressed: () => context.push(
                   '/debt/kpr/${sim.id}/extra-payment'),
             ),
           if (sim != null)
             IconButton(
               icon: AppIcon(AppIcons.trash),
-              tooltip: 'Delete',
+              tooltip: 'Hapus',
               onPressed: () => _confirmDelete(sim),
             ),
         ],
@@ -182,7 +182,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         // ── First row: Property Price ───────────────
         _buildSummaryCard(
           icon: Icons.home_outlined,
-          label: 'Property Price',
+          label: 'Harga rumah',
           value: formatCurrency(sim.propertyPrice),
         ),
         const SizedBox(height: 10),
@@ -193,7 +193,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             Expanded(
               child: _buildSummaryCard(
                 icon: Icons.account_balance_outlined,
-                label: 'Loan Amount',
+                label: 'Pinjaman',
                 value: formatCurrency(sim.totalLoan),
               ),
             ),
@@ -201,7 +201,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             Expanded(
               child: _buildSummaryCard(
                 icon: Icons.payments_outlined,
-                label: 'Monthly Payment',
+                label: 'Cicilan / bulan',
                 value: formatCurrency(monthlyPayment),
                 accent: true,
               ),
@@ -216,7 +216,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             Expanded(
               child: _buildSummaryCard(
                 icon: Icons.trending_up,
-                label: 'Total Interest',
+                label: 'Total bunga',
                 value: formatCurrency(totalInterest),
                 valueColor: AppColors.highlight,
               ),
@@ -225,7 +225,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             Expanded(
               child: _buildSummaryCard(
                 icon: Icons.account_balance_wallet_outlined,
-                label: 'Total Payment',
+                label: 'Total bayar',
                 value: formatCurrency(totalPayment),
               ),
             ),
@@ -386,7 +386,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 8),
             Text(
-              'Extra Payments',
+              'Pembayaran ekstra',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -422,7 +422,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'No extra payments yet. Tap the payments icon in the app bar to add one.',
+                    'Belum ada pembayaran ekstra. Tap ikon uang di atas buat nambah.',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
@@ -508,15 +508,15 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                   children: [
                     Text(
                       isTenor
-                          ? 'Shorten Tenor'
-                          : 'Reduce Installment',
+                          ? 'Tenor lebih pendek'
+                          : 'Cicilan lebih kecil',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
-                      'Month ${ep.applyMonth} • ${formatCurrency(ep.amount)}',
+                      'Bulan ke-${ep.applyMonth} • ${formatCurrency(ep.amount)}',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
@@ -561,13 +561,13 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
               children: [
                 Expanded(
                   child: _statItem(
-                      'Installment',
+                      'Cicilan',
                       '${formatCurrency(ep.oldInstallment)} → ${formatCurrency(ep.newInstallment)}'),
                 ),
                 Expanded(
                   child: _statItem(
-                    'Tenor Left',
-                    '${ep.oldRemainingMonths} → ${ep.newRemainingMonths} mo',
+                    'Sisa tenor',
+                    '${ep.oldRemainingMonths} → ${ep.newRemainingMonths} bln',
                   ),
                 ),
               ],
@@ -577,13 +577,13 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
               children: [
                 Expanded(
                   child: _statItem(
-                    'End Date',
+                    'Lunas',
                     '${ep.originalEndDate} → ${ep.newEndDate}',
                   ),
                 ),
                 Expanded(
                   child: _statItem(
-                    'Interest Saved',
+                    'Bunga dihemat',
                     formatCurrency(ep.totalInterestSaving),
                     highlight: true,
                   ),
@@ -602,7 +602,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
               ),
               child: Text(
-                'Recalculation of installment amount and new tenor starts from $startDateStr — $endDateStr',
+                'Hitungan cicilan & tenor baru mulai $startDateStr — $endDateStr',
                 style: TextStyle(
                   fontSize: 11,
                   color: AppColors.accent,
@@ -625,8 +625,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
                 child: Text(
                   isTenor
-                      ? 'Paid off $monthsSaved months faster 🎯'
-                      : 'Installment down ${formatCurrency(paymentDiff)}/month 💰',
+                      ? 'Lunas $monthsSaved bulan lebih cepet 🎯'
+                      : 'Cicilan turun ${formatCurrency(paymentDiff)}/bulan 💰',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

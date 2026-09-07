@@ -530,7 +530,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${_uncategorizedExpenses.length} categor${_uncategorizedExpenses.length > 1 ? 'ies' : 'y'} without budget',
+                    '${_uncategorizedExpenses.length} kategori belum ada anggarannya',
                     style: TextStyle(fontSize: 12, color: AppColors.warning),
                   ),
                 ),
@@ -696,7 +696,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       return Padding(
         padding: EdgeInsets.all(16),
         child: Text(
-          'No transactions this month',
+          'Bulan ini sepi, belum ada catatan',
           style: TextStyle(color: AppColors.textSecondary),
           textAlign: TextAlign.center,
         ),

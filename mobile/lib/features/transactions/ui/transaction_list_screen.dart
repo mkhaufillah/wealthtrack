@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/utils/date_formatter.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
@@ -390,7 +391,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Center(
-                child: Text('Transfer Ownership',
+                child: Text('Ganti pemilik',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 4),
@@ -493,7 +494,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
             padding: const EdgeInsets.only(right: 16),
             child: IconButton(
               icon: AppIcon(AppIcons.swap),
-              tooltip: 'Transfer Balance',
+              tooltip: t('transfer.title'),
               onPressed: () async {
                 final result = await context.push<bool>('/transactions/transfer');
                 if (result == true && mounted) {
@@ -521,8 +522,8 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   const SizedBox(width: 8),
                   Text(
                     ocrState.pendingCount == 1
-                        ? '⏳ 1 transaction being processed...'
-                        : '⏳ ${ocrState.pendingCount} transactions being processed...',
+                        ? '⏳ 1 struk lagi diproses…'
+                        : '⏳ ${ocrState.pendingCount} struk lagi diproses…',
                     style: TextStyle(fontSize: 13, color: AppColors.warning),
                   ),
                 ],
@@ -540,7 +541,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      ocrState.error ?? 'OCR processing failed',
+                      ocrState.error ?? 'Gagal proses struk',
                       style: TextStyle(fontSize: 13, color: AppColors.highlight),
                     ),
                   ),
@@ -710,7 +711,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                               physics: const AlwaysScrollableScrollPhysics(),
                               slivers: [
                                 SliverFillRemaining(
-                                  child: EmptyState(message: 'No transactions found.'),
+                                  child: EmptyState(message: t('tx.empty')),
                                 ),
                               ],
                             ),

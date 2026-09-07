@@ -35,9 +35,9 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
   String get label {
     switch (state) {
-      case ThemeMode.system: return 'System';
-      case ThemeMode.light: return 'Light';
-      case ThemeMode.dark: return 'Dark';
+      case ThemeMode.system: return 'Ikuti sistem';
+      case ThemeMode.light: return 'Terang';
+      case ThemeMode.dark: return 'Gelap';
     }
   }
 }

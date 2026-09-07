@@ -62,7 +62,7 @@ void main() {
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
         final apiExc = result as ApiException;
-        expect(apiExc.message, 'Something went wrong. Please try again.');
+        expect(apiExc.message, 'Ada yang gak beres. Coba lagi ya.');
       });
 
       test('returns generic message for 500', () {
@@ -78,14 +78,14 @@ void main() {
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
         final apiExc = result as ApiException;
-        expect(apiExc.message, 'Something went wrong. Please try again.');
+        expect(apiExc.message, 'Ada yang gak beres. Coba lagi ya.');
       });
 
       test('returns generic ApiException for unknown error types', () {
         final result = client.handleError('Some random string');
         expect(result, isA<ApiException>());
         final apiExc = result as ApiException;
-        expect(apiExc.message, 'Something went wrong. Please try again.');
+        expect(apiExc.message, 'Ada yang gak beres. Coba lagi ya.');
       });
 
       test('returns ApiException for non-Dio Exception', () {
@@ -104,7 +104,7 @@ void main() {
         );
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
-        expect((result as ApiException).message, 'Email or password is incorrect.');
+        expect((result as ApiException).message, 'Email atau password salah.');
       });
 
       test('returns generic message for empty detail', () {
@@ -118,7 +118,7 @@ void main() {
         );
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
-        expect((result as ApiException).message, 'Something went wrong. Please try again.');
+        expect((result as ApiException).message, 'Ada yang gak beres. Coba lagi ya.');
       });
     });
 

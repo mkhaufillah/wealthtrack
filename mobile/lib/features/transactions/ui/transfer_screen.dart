@@ -90,7 +90,7 @@ class _TransferBalanceScreenState
     setState(() {
       _recipients.add(_TransferRecipient(
         userId: member['user_id'] as int,
-        displayName: member['display_name'] as String? ?? 'User',
+        displayName: member['display_name'] as String? ?? 'Pengguna',
       ));
     });
   }

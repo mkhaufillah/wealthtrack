@@ -6,7 +6,7 @@ const Map<String, String> copyFallback = {
   'home.expense': 'Keluar',
   'home.greeting': 'Hai',
   'home.subtitle': 'Saldo kamu, sepanjang waktu',
-  'home.savings': 'Tabungan',
+  'home.savings': 'Simpanan',
   'home.emergency': 'Dana darurat',
   'home.debt_running': 'Utang jalan',
   'home.ai': 'Teman AI',

@@ -10,13 +10,13 @@ void main() {
     });
 
     test('toString returns just the message', () {
-      final exc = ApiException('Email or password is incorrect.', statusCode: 401);
-      expect(exc.toString(), 'Email or password is incorrect.');
+      final exc = ApiException('Email atau password salah.', statusCode: 401);
+      expect(exc.toString(), 'Email atau password salah.');
     });
 
     test('toString without status code', () {
-      final exc = ApiException('Something went wrong. Please try again.');
-      expect(exc.toString(), 'Something went wrong. Please try again.');
+      final exc = ApiException('Ada yang gak beres. Coba lagi ya.');
+      expect(exc.toString(), 'Ada yang gak beres. Coba lagi ya.');
     });
 
     test('is an Exception', () {
@@ -37,12 +37,12 @@ void main() {
       final exc = UnauthorizedException();
       expect(exc, isA<ApiException>());
       expect(exc.statusCode, 401);
-      expect(exc.message, 'Session expired. Please login again.');
+      expect(exc.message, 'Sesi habis. Masuk lagi ya.');
     });
 
     test('toString returns friendly message', () {
       final exc = UnauthorizedException();
-      expect(exc.toString(), 'Session expired. Please login again.');
+      expect(exc.toString(), 'Sesi habis. Masuk lagi ya.');
     });
 
     test('can be thrown and caught as ApiException', () {
@@ -58,12 +58,12 @@ void main() {
       final exc = NetworkException();
       expect(exc, isA<ApiException>());
       expect(exc.statusCode, isNull);
-      expect(exc.message, 'No internet connection. Please check and try again.');
+      expect(exc.message, 'Gak ada internet. Cek koneksi, coba lagi.');
     });
 
     test('toString returns friendly message', () {
       final exc = NetworkException();
-      expect(exc.toString(), 'No internet connection. Please check and try again.');
+      expect(exc.toString(), 'Gak ada internet. Cek koneksi, coba lagi.');
     });
 
     test('can be thrown and caught', () {

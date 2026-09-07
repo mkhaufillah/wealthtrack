@@ -206,7 +206,7 @@ class _KPRExtraPaymentScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Extra Payment Details',
+            'Detail pembayaran ekstra',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -215,8 +215,8 @@ class _KPRExtraPaymentScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            'Extra payment reduces your loan principal directly. '
-            'You can choose to reduce the monthly installment or shorten the tenor.',
+            'Pembayaran ekstra ngepotong pokok pinjaman langsung. '
+            'Bisa pilih cicilan lebih kecil atau tenor lebih pendek.',
             style: TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary,
@@ -231,7 +231,7 @@ class _KPRExtraPaymentScreenState
             focusNode: _amountFocusNode,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'Extra Payment Amount (Rp)',
+              labelText: 'Jumlah pembayaran ekstra (Rp)',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -252,7 +252,7 @@ class _KPRExtraPaymentScreenState
             controller: _monthController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'Apply at Month Number',
+              labelText: 'Pasang di bulan ke',
               hintText: '$_minMonth — $_maxMonth',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -265,10 +265,10 @@ class _KPRExtraPaymentScreenState
               final n = int.tryParse(v);
               if (n == null || n < _minMonth) {
                 return _minMonth == 1
-                    ? 'Must be 1 or more'
-                    : 'Must be $_minMonth or more (after existing extra payments)';
+                    ? 'Minimal 1'
+                    : 'Minimal $_minMonth (setelah pembayaran ekstra yang ada)';
               }
-              if (n > _maxMonth) return 'Cannot exceed $_maxMonth (tenor end)';
+              if (n > _maxMonth) return 'Maksimal $_maxMonth (akhir tenor)';
               return null;
             },
           ),
@@ -288,7 +288,7 @@ class _KPRExtraPaymentScreenState
                 ),
               ),
               child: const Text(
-                'Preview Comparison',
+                'Lihat perbandingan',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
@@ -321,7 +321,7 @@ class _KPRExtraPaymentScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Choose Your Preference',
+          'Pilih yang kamu mau',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -330,8 +330,7 @@ class _KPRExtraPaymentScreenState
         ),
         const SizedBox(height: 8),
         Text(
-          'Both options reduce your remaining loan. Pick the one that '
-          'fits your financial goals.',
+          'Dua opsi sama-sama ngecilin sisa pinjaman. Pilih yang pas.',
           style: TextStyle(
             fontSize: 13,
             color: AppColors.textSecondary,
@@ -341,30 +340,30 @@ class _KPRExtraPaymentScreenState
         const SizedBox(height: 20),
 
         _buildOptionCard(
-          title: 'A. Reduce Installment',
-          subtitle: 'Fixed tenor, lower monthly payment',
+          title: 'A. Cicilan lebih kecil',
+          subtitle: 'Tenor tetap, cicilan turun',
           isSelected: _selectedOption == 0,
           fields: {
-            'New Installment': formatCurrency(optA.newInstallment),
-            'New Tenor': '${optA.newTenor} mo',
-            'Total Interest': formatCurrency(optA.totalInterestPaid),
-            'Interest Saved': formatCurrency(optA.interestSaved),
-            'End Date': optA.endDate,
+            'Cicilan baru': formatCurrency(optA.newInstallment),
+            'Tenor baru': '${optA.newTenor} bln',
+            'Total bunga': formatCurrency(optA.totalInterestPaid),
+            'Bunga dihemat': formatCurrency(optA.interestSaved),
+            'Lunas': optA.endDate,
           },
           onTap: () => setState(() => _selectedOption = 0),
         ),
         const SizedBox(height: 12),
 
         _buildOptionCard(
-          title: 'B. Shorten Tenor',
-          subtitle: 'Fixed payment, pay off faster',
+          title: 'B. Tenor lebih pendek',
+          subtitle: 'Cicilan tetap, lunas lebih cepet',
           isSelected: _selectedOption == 1,
           fields: {
-            'New Installment': formatCurrency(optB.newInstallment),
-            'New Tenor': '${optB.newTenor} mo',
-            'Total Interest': formatCurrency(optB.totalInterestPaid),
-            'Interest Saved': formatCurrency(optB.interestSaved),
-            'End Date': optB.endDate,
+            'Cicilan baru': formatCurrency(optB.newInstallment),
+            'Tenor baru': '${optB.newTenor} bln',
+            'Total bunga': formatCurrency(optB.totalInterestPaid),
+            'Bunga dihemat': formatCurrency(optB.interestSaved),
+            'Lunas': optB.endDate,
           },
           onTap: () => setState(() => _selectedOption = 1),
         ),
@@ -390,7 +389,7 @@ class _KPRExtraPaymentScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Difference',
+                      'Selisih',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -399,8 +398,8 @@ class _KPRExtraPaymentScreenState
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Installment: $installmentDiff/month lower (Option A)\n'
-                      'Tenor: $monthsSaved months faster (Option B)',
+                      'Cicilan: $installmentDiff/bulan lebih kecil (Opsi A)\n'
+                      'Tenor: $monthsSaved bulan lebih cepet (Opsi B)',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -431,8 +430,8 @@ class _KPRExtraPaymentScreenState
             ),
             child: Text(
               _selectedOption != null
-                  ? 'Confirm & Apply Extra Payment'
-                  : 'Select an Option Above',
+                  ? 'Pasang pembayaran ekstra'
+                  : 'Pilih opsi di atas dulu',
               style:
                   const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),

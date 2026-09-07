@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:ui' as ui;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -191,6 +192,13 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
     if (!_initialized) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
+        locale: const Locale('id'),
+        supportedLocales: const [Locale('id'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         theme: AppTheme.light,
         home: const Scaffold(
           body: Center(child: CircularProgressIndicator()),
@@ -208,6 +216,13 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
     AppColors.sync(brightness);
     return MaterialApp.router(
       title: 'WealthTrack',
+      locale: const Locale('id'),
+      supportedLocales: const [Locale('id'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,

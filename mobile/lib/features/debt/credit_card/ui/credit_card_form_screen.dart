@@ -166,7 +166,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
     } else {
       final err = ref.read(creditCardProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err ?? 'Failed to add credit card')),
+        SnackBar(content: Text(err ?? 'Gagal nambah kartu kredit')),
       );
     }
   }
@@ -184,12 +184,12 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
             // ─── Card Name ────────────────────────────
-            _sectionLabel('Card Name'),
+            _sectionLabel('Nama kartu'),
             const SizedBox(height: 6),
             TextFormField(
               controller: _nameCtrl,
               decoration: InputDecoration(
-                hintText: 'e.g. Mandiri Visa Platinum',
+                hintText: 'mis. Mandiri Visa Platinum',
                 prefixIcon: AppFieldIcon(AppIcons.card),
               ),
               validator: _validateRequired,
@@ -198,12 +198,12 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Last 4 Digits ──────────────────────────
-            _sectionLabel('Last 4 Digits (optional)'),
+            _sectionLabel('4 digit terakhir (opsional)'),
             const SizedBox(height: 6),
             TextFormField(
               controller: _last4Ctrl,
               decoration: InputDecoration(
-                hintText: 'e.g. 1234',
+                hintText: 'mis. 1234',
                 prefixIcon: AppFieldIcon(AppIcons.info),
               ),
               keyboardType: TextInputType.number,
@@ -213,7 +213,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Billing Date ─────────────────────────
-            _sectionLabel('Billing Date'),
+            _sectionLabel('Tanggal tagihan'),
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               initialValue: _billingDate,
@@ -230,7 +230,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Due Date ─────────────────────────────
-            _sectionLabel('Due Date'),
+            _sectionLabel('Jatuh tempo'),
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               initialValue: _dueDate,
@@ -247,7 +247,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Credit Limit ──────────────────────────
-            _sectionLabel('Credit Limit'),
+            _sectionLabel('Limit kredit'),
             const SizedBox(height: 6),
             TextField(
               controller: _creditLimitCtrl,

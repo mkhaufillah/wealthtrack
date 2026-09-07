@@ -8,9 +8,9 @@ class ApiException implements Exception {
 }
 
 class UnauthorizedException extends ApiException {
-  UnauthorizedException() : super('Session expired. Please login again.', statusCode: 401);
+  UnauthorizedException() : super('Sesi habis. Masuk lagi ya.', statusCode: 401);
 }
 
 class NetworkException extends ApiException {
-  NetworkException() : super('No internet connection. Please check and try again.');
+  NetworkException() : super('Gak ada internet. Cek koneksi, coba lagi.');
 }

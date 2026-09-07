@@ -130,7 +130,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
       firstDate: DateTime(2020, 1, 1),
       lastDate: DateTime(2035, 12, 31),
       initialDatePickerMode: DatePickerMode.year,
-      helpText: 'Select Start Month',
+      helpText: 'Pilih bulan mulai',
     );
     if (picked != null) {
       final formatted = '${picked.year}-${picked.month.toString().padLeft(2, '0')}';
@@ -198,7 +198,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
     } else {
       final err = ref.read(creditCardProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err ?? 'Failed to add installment')),
+        SnackBar(content: Text(err ?? 'Gagal nambah cicilan')),
       );
     }
   }
@@ -216,12 +216,12 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
             // ─── Description ──────────────────────────
-            _sectionLabel('Description'),
+            _sectionLabel('Keterangan'),
             const SizedBox(height: 6),
             TextFormField(
               controller: _descriptionCtrl,
               decoration: InputDecoration(
-                hintText: 'e.g. MacBook Pro Installment',
+                hintText: 'mis. Cicilan MacBook',
                 prefixIcon: AppFieldIcon(AppIcons.edit),
               ),
               validator: _validateRequired,
@@ -230,7 +230,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             const SizedBox(height: 20),
 
             // ─── Total Amount ─────────────────────────
-            _sectionLabel('Total Amount'),
+            _sectionLabel('Total'),
             const SizedBox(height: 6),
             TextField(
               controller: _totalAmountCtrl,
@@ -244,7 +244,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             const SizedBox(height: 20),
 
             // ─── Monthly Amount ───────────────────────
-            _sectionLabel('Monthly Amount'),
+            _sectionLabel('Cicilan / bulan'),
             const SizedBox(height: 6),
             TextField(
               controller: _monthlyAmountCtrl,
@@ -258,13 +258,13 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             const SizedBox(height: 20),
 
             // ─── Total Months ─────────────────────────
-            _sectionLabel('Total Months'),
+            _sectionLabel('Jumlah bulan'),
             const SizedBox(height: 6),
             TextFormField(
               controller: _totalMonthsCtrl,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: 'e.g. 12',
+                hintText: 'mis. 12',
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               validator: _validateMonths,
@@ -272,7 +272,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             const SizedBox(height: 20),
 
             // ─── Start Month ──────────────────────────
-            _sectionLabel('Start Month'),
+            _sectionLabel('Bulan mulai'),
             const SizedBox(height: 6),
             TextFormField(
               controller: _startMonthCtrl,

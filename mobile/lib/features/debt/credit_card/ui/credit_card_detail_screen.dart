@@ -55,7 +55,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         backgroundColor: AppColors.surface,
         title: Text(t('cc.delete')),
         content: Text(
-          'Delete "${card.name}"? This will also remove all transactions and installments.',
+          'Hapus "${card.name}"? Transaksi dan cicilannya ikut kehapus.',
         ),
         actions: [
           TextButton(
@@ -97,7 +97,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(card?.name ?? 'Credit Card'),
+        title: Text(card?.name ?? 'Kartu kredit'),
         scrolledUnderElevation: 0,
         actions: [
           if (card != null)
@@ -116,8 +116,8 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 dividerColor: AppColors.divider,
                 indicatorSize: TabBarIndicatorSize.label,
                 tabs: const [
-                  Tab(text: 'Transactions'),
-                  Tab(text: 'Installments'),
+                  Tab(text: 'Transaksi'),
+                  Tab(text: 'Cicilan'),
                 ],
               )
             : null,
@@ -147,7 +147,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 )
               : card == null
                   ? ErrorDisplay(
-                      message: 'Card not found',
+                      message: 'Kartu gak ketemu',
                       onRetry: _onRefresh,
                     )
                   : Column(
@@ -216,10 +216,10 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           Row(
             children: [
               Expanded(
-                child: _headerInfoItem('Billing Date', _ordinalSuffix(card.billingDate), Icons.calendar_today),
+                child: _headerInfoItem('Tanggal tagihan', _ordinalSuffix(card.billingDate), Icons.calendar_today),
               ),
               Expanded(
-                child: _headerInfoItem('Due Date', _ordinalSuffix(card.dueDate), Icons.event),
+                child: _headerInfoItem('Jatuh tempo', _ordinalSuffix(card.dueDate), Icons.event),
               ),
             ],
           ),
@@ -227,7 +227,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           Row(
             children: [
               Expanded(
-                child: _headerInfoItem('Credit Limit', formatCurrency(card.creditLimit), Icons.credit_card),
+                child: _headerInfoItem('Limit', formatCurrency(card.creditLimit), Icons.credit_card),
               ),
               const Expanded(child: SizedBox()),
             ],
@@ -291,7 +291,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Next Month Projection',
+                  'Proyeksi bulan depan',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -300,7 +300,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${perCardCount} installments · ${formatCurrency(totalForCard)} expected',
+                  '$perCardCount cicilan · ${formatCurrency(totalForCard)} perkiraan',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textPrimary,
@@ -329,7 +329,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'No transactions yet',
+              'Belum ada transaksi',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -428,7 +428,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'No installments yet',
+              'Belum ada cicilan',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -468,7 +468,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
             children: [
               Expanded(
                 child: Text(
-                  inst.description.isNotEmpty ? inst.description : 'Installment',
+                  inst.description.isNotEmpty ? inst.description : 'Cicilan',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -612,8 +612,8 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
               TextField(
                 controller: descriptionCtrl,
                 decoration: InputDecoration(
-                  labelText: 'Description',
-                  hintText: 'e.g. Groceries',
+                  labelText: 'Keterangan',
+                  hintText: 'mis. belanja',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -622,7 +622,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 controller: amountCtrl,
                 focusNode: amountFocusNode,
                 decoration: InputDecoration(
-                  labelText: 'Amount',
+                  labelText: 'Jumlah',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
@@ -642,7 +642,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 },
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: 'Date',
+                    labelText: 'Tanggal',
                     border: OutlineInputBorder(),
                     suffixIcon: AppIcon(AppIcons.calendar),
                   ),

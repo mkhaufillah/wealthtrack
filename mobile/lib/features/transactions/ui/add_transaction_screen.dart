@@ -227,6 +227,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       initialDate: _selectedDate,
       firstDate: DateTime(2024),
       lastDate: DateTime.now(),
+      helpText: t('tx.date_specific'),
+      cancelText: t('common.cancel'),
+      confirmText: t('common.save'),
+      fieldLabelText: t('tx.date'),
     );
     if (picked != null) setState(() => _selectedDate = picked);
   }

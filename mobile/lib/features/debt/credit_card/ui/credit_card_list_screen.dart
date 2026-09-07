@@ -36,7 +36,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
         backgroundColor: AppColors.surface,
         title: Text(t('cc.delete')),
         content: Text(
-          'Delete "${card.name.isEmpty ? 'this card' : card.name}"? This cannot be undone.',
+          'Hapus "${card.name.isEmpty ? 'kartu ini' : card.name}"? Gak bisa dibalikin.',
         ),
         actions: [
           TextButton(
@@ -56,7 +56,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(success ? 'Credit card deleted' : 'Failed to delete credit card'),
+            content: Text(success ? 'Kartu kredit kehapus' : 'Gagal hapus kartu kredit'),
           ),
         );
       }
@@ -142,11 +142,11 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
           Row(
             children: [
               Expanded(
-                child: _summaryItem('Total Credit Limit', formatCurrency(totalLimit), Icons.credit_card_outlined),
+                child: _summaryItem('Total limit', formatCurrency(totalLimit), Icons.credit_card_outlined),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _summaryItem('Active Installments', totalActiveInstallments.toString(), Icons.receipt_long_outlined),
+                child: _summaryItem('Cicilan aktif', totalActiveInstallments.toString(), Icons.receipt_long_outlined),
               ),
             ],
           ),
@@ -196,7 +196,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No credit cards yet',
+            'Belum ada kartu kredit',
             style: TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,
@@ -204,7 +204,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap + to add your first credit card',
+            'Tap + buat nambah kartu kredit',
             style: TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary.withAlpha(180),
@@ -218,9 +218,9 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
   Widget _buildCard(CreditCardModel card) {
     final maskedNumber = card.cardNumberLast4.isNotEmpty
         ? '**** **** **** ${card.cardNumberLast4}'
-        : 'No number';
-    final dueDateLabel = 'Due on ${_ordinalSuffix(card.dueDate)}';
-    final billingDateLabel = 'Billing ${_ordinalSuffix(card.billingDate)}';
+        : 'Gak ada nomor';
+    final dueDateLabel = 'Jatuh tempo ${_ordinalSuffix(card.dueDate)}';
+    final billingDateLabel = 'Tagihan ${_ordinalSuffix(card.billingDate)}';
 
     // Owner badge check
     final currentUser = ref.read(authProvider).user;
@@ -278,7 +278,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  card.name.isNotEmpty ? card.name : 'Credit Card',
+                                  card.name.isNotEmpty ? card.name : 'Kartu kredit',
                                   style: const TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
@@ -321,13 +321,13 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                   children: [
                     Expanded(
                       child: _infoColumn(
-                        'Credit Limit',
+                        'Limit',
                         formatCurrency(card.creditLimit),
                       ),
                     ),
                     Expanded(
                       child: _infoColumn(
-                        'Due Date',
+                        'Jatuh tempo',
                         dueDateLabel,
                       ),
                     ),
@@ -338,7 +338,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                   children: [
                     Expanded(
                       child: _infoColumn(
-                        'Billing Date',
+                        'Tanggal tagihan',
                         billingDateLabel,
                       ),
                     ),

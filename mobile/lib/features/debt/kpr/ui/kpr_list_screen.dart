@@ -39,7 +39,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
         backgroundColor: AppColors.surface,
         title: Text(t('kpr.delete')),
         content: Text(
-          'Delete "${sim.name.isEmpty ? 'this simulation' : sim.name}"? This cannot be undone.',
+          'Hapus "${sim.name.isEmpty ? 'simulasi ini' : sim.name}"? Gak bisa dibalikin.',
         ),
         actions: [
           TextButton(
@@ -123,7 +123,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No mortgage simulations yet',
+            'Belum ada simulasi KPR',
             style: TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,
@@ -131,7 +131,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap + to create your first KPR simulation',
+            'Tap + buat simulasi KPR pertama',
             style: TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary.withAlpha(180),
@@ -248,13 +248,13 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                   children: [
                     Expanded(
                       child: _infoColumn(
-                        'Property Price',
+                        'Harga rumah',
                         formatCurrency(sim.propertyPrice),
                       ),
                     ),
                     Expanded(
                       child: _infoColumn(
-                        'Loan Amount',
+                        'Pinjaman',
                         formatCurrency(sim.totalLoan),
                       ),
                     ),
@@ -265,13 +265,13 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                   children: [
                     Expanded(
                       child: _infoColumn(
-                        'Monthly Payment',
+                        'Cicilan / bulan',
                         monthlyPaymentStr,
                       ),
                     ),
                     Expanded(
                       child: _infoColumn(
-                        'Total Interest',
+                        'Total bunga',
                         totalInterestStr,
                       ),
                     ),

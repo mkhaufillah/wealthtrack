@@ -31,13 +31,13 @@ void main() {
     });
 
     test('label returns System for initial state', () {
-      expect(notifier.label, 'System');
+      expect(notifier.label, 'Ikuti sistem');
     });
 
     test('setTheme changes to light mode and persists', () async {
       await notifier.setTheme(ThemeMode.light);
       expect(notifier.state, ThemeMode.light);
-      expect(notifier.label, 'Light');
+      expect(notifier.label, 'Terang');
       final saved = await storage.getSecure('theme_mode');
       expect(saved, 'light');
     });
@@ -45,7 +45,7 @@ void main() {
     test('setTheme changes to dark mode and persists', () async {
       await notifier.setTheme(ThemeMode.dark);
       expect(notifier.state, ThemeMode.dark);
-      expect(notifier.label, 'Dark');
+      expect(notifier.label, 'Gelap');
       final saved = await storage.getSecure('theme_mode');
       expect(saved, 'dark');
     });
@@ -55,7 +55,7 @@ void main() {
       // Now switch back to system
       await notifier.setTheme(ThemeMode.system);
       expect(notifier.state, ThemeMode.system);
-      expect(notifier.label, 'System');
+      expect(notifier.label, 'Ikuti sistem');
       final saved = await storage.getSecure('theme_mode');
       expect(saved, 'system');
     });
@@ -90,13 +90,13 @@ void main() {
     });
 
     test('label cycles correctly', () async {
-      expect(notifier.label, 'System');
+      expect(notifier.label, 'Ikuti sistem');
       await notifier.setTheme(ThemeMode.light);
-      expect(notifier.label, 'Light');
+      expect(notifier.label, 'Terang');
       await notifier.setTheme(ThemeMode.dark);
-      expect(notifier.label, 'Dark');
+      expect(notifier.label, 'Gelap');
       await notifier.setTheme(ThemeMode.system);
-      expect(notifier.label, 'System');
+      expect(notifier.label, 'Ikuti sistem');
     });
   });
 }
