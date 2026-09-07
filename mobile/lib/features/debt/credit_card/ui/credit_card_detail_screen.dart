@@ -180,7 +180,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 indicatorWeight: 2,
                 dividerColor: AppColors.divider,
                 indicatorSize: TabBarIndicatorSize.label,
-                tabs: const [
+                tabs: [
                   Tab(text: t('cc.tab_txn')),
                   Tab(text: t('cc.tab_inst')),
                 ],

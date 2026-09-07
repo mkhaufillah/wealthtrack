@@ -566,7 +566,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             _sectionLabel('Tipe bunga'),
             const SizedBox(height: 6),
             SegmentedButton<String>(
-              segments: const [
+              segments: [
                 ButtonSegment(value: 'fixed', label: Text(t('kpr.interest_fixed'), style: TextStyle(fontSize: 12))),
                 ButtonSegment(value: 'floating', label: Text(t('kpr.interest_floating'), style: TextStyle(fontSize: 11))),
                 ButtonSegment(value: 'graduated', label: Text(t('kpr.interest_graduated'), style: TextStyle(fontSize: 12))),
@@ -843,7 +843,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
-                  items: const [
+                  items: [
                     DropdownMenuItem(value: 'fixed', child: Text(t('kpr.interest_fixed'), style: TextStyle(fontSize: 13))),
                     DropdownMenuItem(value: 'floating', child: Text(t('kpr.interest_floating'), style: TextStyle(fontSize: 13))),
                   ],

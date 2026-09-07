@@ -543,7 +543,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                       _confirmDeleteExtraPayment(ep);
                     }
                   },
-                  itemBuilder: (_) => const [
+                  itemBuilder: (_) => [
                     PopupMenuItem(
                       value: 'delete',
                       child: Row(
