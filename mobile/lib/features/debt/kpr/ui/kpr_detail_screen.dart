@@ -259,15 +259,16 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: (accent ? AppColors.accent : AppColors.textSecondary).withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: AppIcon(
               icon,
-              size: 18,
+              size: 16,
               color: accent ? AppColors.accent : AppColors.textSecondary,
             ),
           ),
@@ -486,12 +487,13 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             Row(
               children: [
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: (isTenor ? AppColors.accent : AppColors.success)
                         .withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: AppIcon(
                     isTenor

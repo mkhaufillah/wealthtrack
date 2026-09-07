@@ -186,13 +186,14 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                 Row(
                   children: [
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: 32,
+                      height: 32,
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: AppColors.accent.withAlpha(25),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: AppIcon(AppIcons.house, size: 22, color: AppColors.accent),
+                      child: AppIcon(AppIcons.house, size: 16, color: AppColors.accent),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

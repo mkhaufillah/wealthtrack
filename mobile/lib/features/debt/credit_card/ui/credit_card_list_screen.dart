@@ -255,13 +255,14 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                 Row(
                   children: [
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: 32,
+                      height: 32,
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: AppColors.accent.withAlpha(25),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: AppIcon(AppIcons.card, size: 22, color: AppColors.accent),
+                      child: AppIcon(AppIcons.card, size: 16, color: AppColors.accent),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

@@ -361,17 +361,18 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: tx.isInstallment
                   ? AppColors.accent.withAlpha(25)
                   : AppColors.highlight.withAlpha(25),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: AppIcon(
               tx.isInstallment ? AppIcons.repeat : AppIcons.receipt,
-              size: 18,
+              size: 16,
               color: tx.isInstallment ? AppColors.accent : AppColors.highlight,
             ),
           ),
