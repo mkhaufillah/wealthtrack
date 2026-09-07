@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../providers/credit_card_provider.dart';
 import '../../models/credit_card_model.dart';
 import '../../../../shared/utils/currency_formatter.dart';
+import '../../../../shared/utils/date_formatter.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../features/home/providers/dashboard_provider.dart';
@@ -76,6 +77,70 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         context.pop();
       }
       return success;
+    }
+    return false;
+  }
+
+  Future<bool> _confirmDeleteTxn(CCTransaction tx) async {
+    final label = tx.description.isNotEmpty ? tx.description : 'Transaksi';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(t('cc.del_txn')),
+        content: Text('Hapus "$label"? Gak bisa dibalikin.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('common.cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('common.delete'), style: TextStyle(color: AppColors.highlight)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      final ok = await ref.read(creditCardProvider.notifier).deleteTransaction(widget.cardId, tx.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ok ? t('cc.txn_gone') : t('tx.del_fail'))),
+        );
+      }
+      return ok;
+    }
+    return false;
+  }
+
+  Future<bool> _confirmDeleteInst(CCInstallment inst) async {
+    final label = inst.description.isNotEmpty ? inst.description : 'Cicilan';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(t('cc.del_inst')),
+        content: Text('Hapus "$label"? Gak bisa dibalikin.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('common.cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('common.delete'), style: TextStyle(color: AppColors.highlight)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      final ok = await ref.read(creditCardProvider.notifier).deleteInstallment(widget.cardId, inst.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ok ? t('cc.inst_gone') : t('tx.del_fail'))),
+        );
+      }
+      return ok;
     }
     return false;
   }
@@ -351,7 +416,21 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         ? _formatDate(tx.transactionDate)
         : '';
 
-    return Container(
+    return Dismissible(
+      key: ValueKey('cc-txn-${tx.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: AppColors.highlight,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: AppIcon(AppIcons.trash, color: AppColors.surface, size: 22),
+      ),
+      confirmDismiss: (_) => _confirmDeleteTxn(tx),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -409,6 +488,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -452,7 +532,21 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         ? progress / inst.totalMonths
         : 0.0;
 
-    return Container(
+    return Dismissible(
+      key: ValueKey('cc-inst-${inst.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppColors.highlight,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: AppIcon(AppIcons.trash, color: AppColors.surface, size: 22),
+      ),
+      confirmDismiss: (_) => _confirmDeleteInst(inst),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -510,6 +604,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -541,12 +636,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
   }
 
   String _formatDate(String dateStr) {
-    try {
-      final date = DateTime.parse(dateStr);
-      return DateFormat('MMM dd, yyyy').format(date);
-    } catch (_) {
-      return dateStr;
-    }
+    return formatDate(dateStr);
   }
 
   void _addTransaction() {
@@ -636,7 +726,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                     suffixIcon: AppIcon(AppIcons.calendar),
                   ),
                   child: Text(
-                    DateFormat('MMM dd, yyyy').format(selectedDate),
+                    formatDate(selectedDate.toIso8601String().substring(0, 10)),
                   ),
                 ),
               ),

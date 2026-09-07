@@ -358,6 +358,10 @@ class CreditCardService:
             raise InstallmentNotFoundError(inst_id)
 
         await self.db.execute(
+            "DELETE FROM credit_card_transactions WHERE installment_id = ?",
+            (inst_id,),
+        )
+        await self.db.execute(
             "DELETE FROM credit_card_installments WHERE id = ?", (inst_id,)
         )
 

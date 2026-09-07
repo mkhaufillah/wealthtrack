@@ -128,11 +128,23 @@ class CreditCardNotifier extends StateNotifier<CreditCardState> {
     }
   }
 
+  Future<bool> deleteTransaction(int cardId, int txnId) async {
+    try {
+      await _api.delete('/credit-cards/$cardId/transactions/$txnId');
+      await loadCardDetail(cardId);
+      await loadProjection();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: _api.handleError(e).toString());
+      return false;
+    }
+  }
 
   Future<bool> deleteInstallment(int cardId, int instId) async {
     try {
       await _api.delete('/credit-cards/$cardId/installments/$instId');
       await loadCardDetail(cardId);
+      await loadProjection();
       return true;
     } catch (e) {
       state = state.copyWith(error: _api.handleError(e).toString());
