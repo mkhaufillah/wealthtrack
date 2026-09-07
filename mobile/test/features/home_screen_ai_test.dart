@@ -16,7 +16,7 @@ Widget buildHomeApp({bool isLoading = false, String? error, int balance = 0}) {
   mockApi.onGet('/home', {
     'hero': {
       'amount': balance,
-      'amount_display': 'Rp$balance',
+      'amount_display': formatCurrency(balance),
       'income': balance > 0 ? balance + 500000 : 0,
       'income_display': formatCurrency(balance > 0 ? balance + 500000 : 0),
       'expense': 500000,
