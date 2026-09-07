@@ -346,7 +346,9 @@ Register router in `main.py`. Auth: same JWT.
 
 Flutter `HomeNotifier.load` → `/home` only (plus OCR pending as today). Remove `/summaries/daily` and `/summaries/all-time-category-balance` from home if `/home` includes pots.
 
-### Phase 3 — Home layout polish
+### Phase 3 — Home layout polish + one round-trip
+
+**Status:** `/home` live (Phase 1/2). Remaining: home stops calling `/summaries/all-time-category-balance` and `/summaries/debt(/household)` — `/home` already returns `pots` + `debt_summary`. Single fetch on load; hero/pots/debt/recent all from it.
 
 Spacing tokens (`xs=4 … xl=32`) used consistently on home. Drop competing 32px type. Outstanding + Teman AI + Catatan utang stay, visually secondary.
 
@@ -354,17 +356,17 @@ Do **not** merge Catatan utang into outstanding (cancelled).
 
 ### Phase 4 — Kill client math
 
-- Delete `_estimateMonthlyPayment` / `annualRate = 0.09` in `kpr_list_screen.dart`. Use API.
-- `formatCurrency` becomes wrapper around bootstrap format.
-- Extra payment cards already API snapshots — leave.
+- Delete any residual client-side calc in `kpr_form_screen.dart` (loan/payment preview) — server already returns schedule/totals; form just posts inputs.
+- `formatCurrency` reads `MoneyFormat` from bootstrap (done). Extra-payment preview already server.
+- Report savings-rate math stays client-side (presentation-only, derived from server numbers). Optional: move later if it drifts.
 
-### Phase 5 — Copy pack rest
+### Phase 5 — Server copy for API errors
 
-Transactions, budgets, profile, KPR dialogs. One file server-side. Grep mobile for `const Text('` and migrate product strings. Leave Material chrome.
+`auth`/`households`/`ocr` `detail=` strings are still English at source. Add server-side ID messages OR extend `api_client.dart` map to 100% coverage. APK fallback stays generic.
 
-### Phase 6 — Transactions / Budgets / Reports visual pass
+### Phase 6 — Admin surface for ui_copy
 
-Same palette, no new endpoints unless a screen still computes.
+SQL edits work, but add a small admin UI (or MCP tool) to `UPDATE ui_copy` + bust Redis, so Nahda-level copy changes don't need DB access.
 
 ---
 
