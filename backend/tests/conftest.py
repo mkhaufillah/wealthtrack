@@ -393,6 +393,21 @@ async def nahda_token(db: CursorWrapper) -> str:
     return create_access_token(user_id=2, username="nahda", role="user")
 
 
+@pytest.fixture(autouse=True)
+def _global_redis_isolation():
+    """Reset the process-global Redis singleton before every test.
+
+    Each pytest-asyncio test runs in its own (function-scoped) event loop. If an
+    earlier test creates the global ``app.core.redis._redis`` connection, a later
+    test reusing it fails with ``RuntimeError: Task ... attached to a different loop``.
+    Discarding it per-test forces a fresh connection bound to the current loop.
+    """
+    import app.core.redis as redis_mod
+    redis_mod._redis = None
+    yield
+    redis_mod._redis = None
+
+
 @pytest_asyncio.fixture
 async def fake_token() -> str:
     """JWT with non-existent user ID."""
