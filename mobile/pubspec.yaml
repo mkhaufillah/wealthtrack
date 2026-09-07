@@ -33,3 +33,8 @@ flutter:
   assets:
     - assets/images/debt/
     - assets/logo.png
+    - assets/logo_mark.png
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito.ttf

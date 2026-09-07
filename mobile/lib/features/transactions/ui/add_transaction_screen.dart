@@ -91,7 +91,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   void dispose() { _amountCtrl.dispose(); _descCtrl.dispose(); _noteCtrl.dispose(); super.dispose(); }
 
   Future<void> _scanReceipt() async {
-    // Show source picker: camera or gallery
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: AppColors.surface,
@@ -103,23 +102,23 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Center(
-              child: Text('Scan Receipt',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            Center(
+              child: Text(t('tx.scan_title'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
             ),
             const SizedBox(height: 4),
             Center(
-              child: Text('Choose an image source',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              child: Text(t('tx.scan_sub'),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: AppIcon(AppIcons.camera),
+              leading: const AppIcon(AppIcons.camera),
               title: Text(t('tx.photo')),
               onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
             ListTile(
-              leading: AppIcon(AppIcons.gallery),
+              leading: const AppIcon(AppIcons.gallery),
               title: Text(t('tx.gallery')),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
             ),
@@ -137,18 +136,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
       final api = ref.read(apiClientProvider);
 
-      // Clear any visible error banner immediately — user doesn't need to see
-      // the old failure while the new scan is in progress.
       ref.read(ocrPendingCountProvider.notifier).clearError();
 
       await api.uploadFile('/ocr/process-and-save', picked.path);
 
       if (!mounted) return;
 
-      // Trigger OCR badge immediately so user sees processing status right away
       ref.read(ocrPendingCountProvider.notifier).load();
 
-      // Navigate to transactions page immediately — banner shows processing status
       context.go('/transactions');
     } catch (e) {
       if (!mounted) return;
@@ -165,8 +160,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   Future<void> _save() async {
     final amountText = _amountCtrl.text.replaceAll('Rp', '').replaceAll('.', '').replaceAll(',', '').trim();
     final amount = int.tryParse(amountText);
-    if (amount == null || amount <= 0) { _showError('Amount must be greater than 0'); return; }
-    if (_selectedCategoryId == null) { _showError('Please select a category'); return; }
+    if (amount == null || amount <= 0) { _showError(t('tx.amount_err')); return; }
+    if (_selectedCategoryId == null) { _showError(t('tx.cat_err')); return; }
 
     setState(() => _isSaving = true);
     final notifier = ref.read(transactionListProvider.notifier);
@@ -193,10 +188,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         SnackBar(
           content: Row(
             children: [
-              AppIcon(AppIcons.check, color: AppColors.surface, size: 20),
+              AppIcon(AppIcons.check, color: AppColors.onAccent, size: 20),
               const SizedBox(width: 8),
-              Text(_isEditing ? 'Transaction updated' : 'Transaction recorded',
-                  style: TextStyle(color: AppColors.surface)),
+              Text(_isEditing ? t('tx.updated') : t('tx.recorded'),
+                  style: TextStyle(color: AppColors.onAccent, fontWeight: FontWeight.w700)),
             ],
           ),
           backgroundColor: AppColors.success,
@@ -204,7 +199,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       );
       context.pop();
     } else {
-      _showError('Failed to save. Try again.');
+      _showError(t('tx.save_fail'));
     }
   }
 
@@ -213,10 +208,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         SnackBar(
           content: Row(
             children: [
-              AppIcon(AppIcons.alert, color: AppColors.surface, size: 20),
+              AppIcon(AppIcons.alert, color: AppColors.onAccent, size: 20),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(msg, style: TextStyle(color: AppColors.surface)),
+                child: Text(msg, style: TextStyle(color: AppColors.onAccent, fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -235,6 +230,20 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
+  Widget _label(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final formattedDate = '${_selectedDate.day} ${_monthName(_selectedDate.month)} ${_selectedDate.year}';
@@ -243,108 +252,148 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Transaction' : 'Add Transaction'),
+        title: Text(_isEditing ? t('tx.edit_title') : t('tx.new')),
         actions: [
           if (!_isEditing)
             IconButton(
-              icon: AppIcon(AppIcons.camera),
+              icon: const AppIcon(AppIcons.camera, size: 20),
               onPressed: _isScanning ? null : _scanReceipt,
-              tooltip: 'Scan receipt',
+              tooltip: t('tx.photo'),
             ),
         ],
       ),
       body: Stack(
         children: [
-          SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Type toggle
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface, borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: _TypeButton(
-                    label: 'Expense', isSelected: _isExpense, color: AppColors.highlight,
-                    onTap: () => _toggleType(true),
-                  )),
-                  Expanded(child: _TypeButton(
-                    label: 'Income', isSelected: !_isExpense, color: AppColors.success,
-                    onTap: () => _toggleType(false),
-                  )),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Amount
-            AmountField(controller: _amountCtrl),
-            const SizedBox(height: 20),
-            // Category
-            const Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            CategoryPicker(
-              categories: _categories,
-              selectedId: _selectedCategoryId,
-              onSelected: (id) => setState(() => _selectedCategoryId = id),
-            ),
-            const SizedBox(height: 20),
-            // Description
-            const Text('Description', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _descCtrl,
-              decoration: InputDecoration(hintText: 'What was this for?'),
-            ),
-            const SizedBox(height: 20),
-            // Date
-            const Text('Date', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: _pickDate,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.divider),
-                ),
-                child: Row(
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                child: Column(
                   children: [
-                    AppIcon(AppIcons.calendar, size: 18, color: AppColors.textSecondary),
-                    const SizedBox(width: 8),
-                    Text(formattedDate, style: const TextStyle(fontSize: 14)),
-                    const Spacer(),
-                    AppIcon(AppIcons.next, color: AppColors.textSecondary),
+                    Text(
+                      _isExpense ? t('tx.kind_out') : t('tx.kind_in'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    AmountField(controller: _amountCtrl, hero: true),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.heroFill,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: Row(
+                        children: [
+                          _TypeSeg(
+                            label: t('tx.filter_out'),
+                            selected: _isExpense,
+                            onTap: () => _toggleType(true),
+                          ),
+                          _TypeSeg(
+                            label: t('tx.filter_in'),
+                            selected: !_isExpense,
+                            onTap: () => _toggleType(false),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            // Note
-            const Text('Note (optional)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _noteCtrl,
-              maxLines: 3,
-              decoration: InputDecoration(hintText: 'Add a note...'),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _save,
-                child: _isSaving
-                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
-                    : Text(_isEditing ? 'Update' : 'Save'),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  children: [
+                    _label(t('tx.categories')),
+                    CategoryPicker(
+                      categories: _categories,
+                      selectedId: _selectedCategoryId,
+                      isExpense: _isExpense,
+                      onSelected: (id) => setState(() => _selectedCategoryId = id),
+                    ),
+                    const SizedBox(height: 16),
+                    _label(t('tx.for')),
+                    TextField(
+                      controller: _descCtrl,
+                      decoration: InputDecoration(
+                        hintText: t('tx.for_hint'),
+                        fillColor: AppColors.surface,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _label(t('tx.date')),
+                    InkWell(
+                      onTap: _pickDate,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: double.infinity,
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            AppIcon(AppIcons.calendar, size: 16, color: AppColors.textSecondary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                formattedDate,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            AppIcon(AppIcons.next, size: 16, color: AppColors.textSecondary),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _label(t('tx.note_opt')),
+                    TextField(
+                      controller: _noteCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: t('tx.note_hint'),
+                        fillColor: AppColors.surface,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _save,
+                      child: _isSaving
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.onAccent,
+                              ),
+                            )
+                          : Text(_isEditing ? t('tx.update') : t('common.save')),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           if (_isScanning) _buildScanOverlay(),
         ],
       ),
@@ -354,7 +403,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   Widget _buildScanOverlay() {
     return AbsorbPointer(
       child: Container(
-        color: AppColors.textPrimary,
+        color: AppColors.textPrimary.withOpacity(0.92),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -365,13 +414,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Processing your receipt...',
-                style: TextStyle(color: AppColors.surface, fontSize: 18, fontWeight: FontWeight.w600),
+                t('tx.processing'),
+                style: TextStyle(color: AppColors.surface, fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               Text(
-                'This may take a few seconds',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                t('tx.processing_sub'),
+                style: TextStyle(color: AppColors.surface.withOpacity(0.7), fontSize: 14, fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -380,25 +429,42 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     );
   }
 
-  String _monthName(int m) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1];
+  String _monthName(int m) =>
+      ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][m - 1];
 }
 
-class _TypeButton extends StatelessWidget {
-  final String label; final bool isSelected; final Color color; final VoidCallback onTap;
-  const _TypeButton({required this.label, required this.isSelected, required this.color, required this.onTap});
+class _TypeSeg extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _TypeSeg({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? AppColors.surface : AppColors.heroFill,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+            ),
+          ),
         ),
-        child: Text(label, textAlign: TextAlign.center,
-          style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? color : AppColors.textSecondary)),
       ),
     );
   }

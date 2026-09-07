@@ -49,7 +49,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset('assets/logo.png', height: 88),
+                  Image.asset(
+                    'assets/logo_mark.png',
+                    height: 88,
+                    filterQuality: FilterQuality.medium,
+                    errorBuilder: (_, __, ___) => Image.asset(
+                      'assets/logo.png',
+                      height: 88,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Text('WealthTrack',
                       style: TextStyle(
@@ -65,7 +73,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _usernameCtrl,
                     decoration: InputDecoration(
                         labelText: 'Username',
-                        prefixIcon: AppIcon(AppIcons.user)),
+                        prefixIcon: const AppIcon(AppIcons.user, size: 20)),
                     validator: (v) =>
                         v == null || v.trim().length < 3 ? 'Min 3 characters' : null,
                     enabled: !isLoading,
@@ -76,10 +84,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: AppIcon(AppIcons.shield),
+                      prefixIcon: const AppIcon(AppIcons.shield, size: 20),
                       suffixIcon: IconButton(
                         icon: AppIcon(
                           _obscurePassword ? AppIcons.viewOff : AppIcons.view,
+                          size: 20,
                         ),
                         onPressed: () =>
                             setState(() => _obscurePassword = !_obscurePassword),
@@ -106,7 +115,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: AppColors.surface))
+                                  strokeWidth: 2, color: AppColors.onAccent))
                           : Text(t('auth.login')),
                     ),
                   ),

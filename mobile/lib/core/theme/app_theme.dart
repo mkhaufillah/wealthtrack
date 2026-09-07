@@ -29,7 +29,9 @@ class AppColors {
   static const Color _warning = Color(0xFFE8B86D);
   static const Color darkWarning = Color(0xFFE8C47A);
   static const Color _heroFill = Color(0xFFFFE8DC);
-  static const Color _heroOn = Color(0xFF4A3A48);
+  static const Color _onAccent = Color(0xFF4A3A48);
+
+  static Color get onAccent => _onAccent;
   static const Color _mint = Color(0xFF9DD9C0);
   static const Color darkMint = Color(0xFF8FCFB6);
   static const Color _butter = Color(0xFFF6E3A1);
@@ -52,10 +54,12 @@ class AppColors {
   static Color get success => _dark ? darkSuccess : _success;
   static Color get warning => _dark ? darkWarning : _warning;
   static Color get heroFill => _dark ? darkCard : _heroFill;
-  static Color get heroOn => _dark ? darkTextPrimary : _heroOn;
+  static Color get heroOn => _dark ? darkTextPrimary : _onAccent;
   static Color get mint => _dark ? darkMint : _mint;
   static Color get butter => _dark ? darkButter : _butter;
   static Color get card => _dark ? darkCard : _surface;
+  static Color get navActive => _dark ? darkTextPrimary : _textPrimary;
+  static Color get navInactive => _dark ? darkTextSecondary : _textSecondary;
 
   static const List<Color> chartPalette = [
     Color(0xFFF3A6B8),
@@ -92,8 +96,11 @@ class AppColors {
 }
 
 class AppTheme {
+  static const String fontFamily = 'Nunito';
+
   static ThemeData get light => ThemeData(
         brightness: Brightness.light,
+        fontFamily: fontFamily,
         primaryColor: AppColors._primary,
         scaffoldBackgroundColor: AppColors._background,
         colorScheme: const ColorScheme.light(
@@ -111,6 +118,12 @@ class AppTheme {
           backgroundColor: AppColors._background,
           foregroundColor: AppColors._textPrimary,
           elevation: 0,
+          titleTextStyle: TextStyle(
+            fontFamily: fontFamily,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: AppColors._textPrimary,
+          ),
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors._accent,
@@ -132,11 +145,21 @@ class AppTheme {
             borderSide: BorderSide(color: AppColors._accent, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          suffixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors._accent,
-            foregroundColor: AppColors._textPrimary,
+            foregroundColor: AppColors._onAccent,
+            disabledForegroundColor: AppColors._onAccent.withOpacity(0.5),
+            disabledBackgroundColor: AppColors._accent.withOpacity(0.5),
+            textStyle: const TextStyle(
+              fontFamily: fontFamily,
+              color: AppColors._onAccent,
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -160,6 +183,7 @@ class AppTheme {
 
   static ThemeData get dark => ThemeData(
         brightness: Brightness.dark,
+        fontFamily: fontFamily,
         primaryColor: AppColors.darkPrimary,
         scaffoldBackgroundColor: AppColors.darkBackground,
         colorScheme: const ColorScheme.dark(
@@ -177,6 +201,12 @@ class AppTheme {
           backgroundColor: AppColors.darkBackground,
           foregroundColor: AppColors.darkTextPrimary,
           elevation: 0,
+          titleTextStyle: TextStyle(
+            fontFamily: fontFamily,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: AppColors.darkTextPrimary,
+          ),
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors.darkAccent,
@@ -201,11 +231,21 @@ class AppTheme {
             borderSide: BorderSide(color: AppColors.darkPrimary, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          suffixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.darkAccent,
-            foregroundColor: AppColors.darkTextPrimary,
+            backgroundColor: AppColors._accent,
+            foregroundColor: AppColors._onAccent,
+            disabledForegroundColor: AppColors._onAccent.withOpacity(0.5),
+            disabledBackgroundColor: AppColors._accent.withOpacity(0.5),
+            textStyle: const TextStyle(
+              fontFamily: fontFamily,
+              color: AppColors._onAccent,
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -219,7 +259,7 @@ class AppTheme {
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: AppColors.darkSurface,
-          selectedItemColor: AppColors.darkPrimary,
+          selectedItemColor: AppColors.darkTextPrimary,
           unselectedItemColor: AppColors.darkTextSecondary,
         ),
         dialogTheme: DialogThemeData(

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Search — pill inline</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#1c1820;color:#4A3A48;-webkit-font-smoothing:antialiased}
+  .phone{width:390px;height:844px;margin:24px auto;background:#FFF3EE;border-radius:36px;overflow:hidden;position:relative;box-shadow:0 20px 60px #0008}
+  header{padding:54px 20px 8px;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:22px;font-weight:800}
+  .search{margin:0 16px;background:#fff;border-radius:16px;display:flex;align-items:center;height:44px;padding:0 12px;gap:8px}
+  .search svg{width:16px;height:16px;flex:0 0 16px;stroke:#9B8794;fill:none;stroke-width:2}
+  .search input{border:0;outline:0;flex:1;font-size:15px;background:transparent;color:#4A3A48}
+  .search input::placeholder{color:#9B8794}
+  .clear{width:22px;height:22px;border:0;background:#F3E0D8;border-radius:11px;color:#4A3A48;font-size:14px;display:none}
+  .chips{display:flex;gap:8px;padding:12px 16px;overflow-x:auto}
+  .chip{border:0;background:#fff;color:#9B8794;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;white-space:nowrap}
+  .chip.on{background:#F3A6B8;color:#4A3A48}
+  .list{padding:0 16px 90px}
+  .row{background:#fff;border-radius:18px;padding:12px 14px;display:flex;gap:12px;align-items:center;margin-bottom:8px}
+  .dot{width:36px;height:36px;border-radius:12px;background:#FFE8DC;display:grid;place-items:center;font-size:16px}
+  .meta{flex:1}
+  .meta b{display:block;font-size:14px}
+  .meta span{font-size:12px;color:#9B8794}
+  .amt{font-weight:800;font-size:14px}
+  .amt.out{color:#E08B7C}
+  .amt.in{color:#4EAE90}
+  .empty{text-align:center;padding:48px 24px;color:#9B8794}
+  nav{position:absolute;bottom:0;left:0;right:0;height:72px;background:#fff;display:flex;justify-content:space-around;align-items:center;font-size:10px;color:#9B8794}
+  nav .on{color:#4A3A48;font-weight:800}
+</style>
+</head>
+<body>
+<div class="phone">
+  <header><h1>Catatan</h1><span style="font-size:13px;color:#9B8794">Maret</span></header>
+  <div class="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
+    <input id="q" placeholder="Cari catatan…" autocomplete="off"/>
+    <button class="clear" id="x" type="button">×</button>
+  </div>
+  <div class="chips">
+    <button class="chip on" data-f="all">Semua</button>
+    <button class="chip" data-f="out">Keluar</button>
+    <button class="chip" data-f="in">Masuk</button>
+    <button class="chip" data-f="food">Makan</button>
+  </div>
+  <div class="list" id="list"></div>
+  <nav><span>Home</span><span class="on">Catatan</span><span>Anggaran</span><span>Laporan</span><span>Profil</span></nav>
+</div>
+<script>
+const rows=[
+  {t:'out',n:'Sate padang',s:'Makan · tunai',a:'−32.000',e:'🍜'},
+  {t:'in',n:'Gaji Filla',s:'Gaji · BCA',a:'+12.500.000',e:'💼'},
+  {t:'out',n:'Grab ke kantor',s:'Transport',a:'−28.500',e:'🛵'},
+  {t:'out',n:'Alfamart susu',s:'Belanja',a:'−47.200',e:'🛒'},
+  {t:'in',n:'Refund tiket',s:'Lainnya',a:'+180.000',e:'↩️'},
+];
+let f='all',q='';
+function render(){
+  const el=document.getElementById('list');
+  const hit=rows.filter(r=>(f==='all'||r.t===f||(f==='food'&&r.n.toLowerCase().includes('sate')))&&r.n.toLowerCase().includes(q));
+  el.innerHTML=hit.length?hit.map(r=>`<div class="row"><div class="dot">${r.e}</div><div class="meta"><b>${r.n}</b><span>${r.s}</span></div><div class="amt ${r.t}">${r.a}</div></div>`).join(''):'<div class="empty">Tidak ketemu. Coba kata lain.</div>';
+  document.getElementById('x').style.display=q?'grid':'none';
+}
+document.getElementById('q').oninput=e=>{q=e.target.value.toLowerCase();render()};
+document.getElementById('x').onclick=()=>{document.getElementById('q').value='';q='';render()};
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');f=c.dataset.f;render()});
+render();
+</script>
+</body>
+</html>

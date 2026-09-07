@@ -111,10 +111,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: state.isLoading
-            ? const Padding(
-                padding: EdgeInsets.all(18),
-                child: ShimmerLoading(itemCount: 5, itemHeight: 96),
-              )
+            ? const HomeSkeleton()
             : state.error != null
                 ? ErrorDisplay(
                     message: state.error!,
@@ -129,7 +126,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(18, 12, 18, 96),
                       children: [
-                        _HiRow(name: firstName),
+                        _HiRow(
+                          name: firstName,
+                          fullName: user?.displayName ?? firstName,
+                        ),
                         const SizedBox(height: 14),
                         BalanceCard(
                           balance: state.balance,
@@ -231,7 +231,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 class _HiRow extends StatelessWidget {
   final String name;
-  const _HiRow({required this.name});
+  final String fullName;
+  const _HiRow({required this.name, required this.fullName});
 
   @override
   Widget build(BuildContext context) {
@@ -266,7 +267,7 @@ class _HiRow extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: AppColors.secondary,
+            color: AppColors.avatarBackground(fullName),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Center(
@@ -275,7 +276,7 @@ class _HiRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+                color: AppColors.avatarText(fullName),
               ),
             ),
           ),
@@ -340,13 +341,14 @@ class _PocketCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: iconBg,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: AppIcon(icon, size: 20, color: AppColors.textPrimary),
+            child: AppIcon(icon, size: 16, color: AppColors.onAccent),
           ),
           const SizedBox(height: 12),
           Text(
@@ -388,13 +390,14 @@ class _DebtStrip extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: AppColors.highlight.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: AppIcon(AppIcons.home, size: 20, color: AppColors.highlight),
+            child: AppIcon(AppIcons.home, size: 16, color: AppColors.highlight),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -497,13 +500,14 @@ class _QuickItem extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: iconBg,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: AppIcon(icon, size: 22, color: AppColors.textPrimary),
+              child: AppIcon(icon, size: 16, color: AppColors.onAccent),
             ),
             const SizedBox(width: 12),
             Expanded(

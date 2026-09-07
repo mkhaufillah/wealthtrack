@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Add — receipt led</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Nunito,sans-serif;background:#1c1820}
+  .phone{width:390px;height:844px;margin:24px auto;background:#FFF3EE;border-radius:36px;overflow:hidden;color:#4A3A48;position:relative;display:flex;flex-direction:column}
+  .bar{padding:52px 16px 8px;display:flex;align-items:center;gap:8px}
+  .bar b{flex:1;text-align:center;font-size:16px}
+  .ghost{border:0;background:transparent;color:#4A3A48;font:inherit;font-weight:800;width:56px}
+  .hero{margin:8px 16px;background:#FFE8DC;border-radius:22px;padding:18px}
+  .hero h2{font-size:18px;font-weight:800}
+  .hero p{font-size:13px;font-weight:700;color:#9B8794;margin-top:4px}
+  .acts{display:flex;gap:8px;margin-top:14px}
+  .acts button{flex:1;height:44px;border:0;border-radius:14px;font:inherit;font-weight:800}
+  .cam{background:#F3A6B8;color:#4A3A48}
+  .gal{background:#fff;color:#4A3A48}
+  .or{text-align:center;font-size:12px;font-weight:800;color:#9B8794;margin:14px 0 4px}
+  .body{flex:1;overflow:auto;padding:0 16px 100px}
+  .seg{background:#FFE8DC;border-radius:16px;padding:4px;display:flex;margin-bottom:12px}
+  .seg button{flex:1;border:0;background:transparent;height:36px;border-radius:12px;font-weight:800;font-size:13px;color:#9B8794}
+  .seg button.on{background:#fff;color:#4A3A48}
+  label{display:block;font-size:12px;font-weight:800;color:#9B8794;margin:12px 0 8px}
+  .field{background:#fff;border-radius:16px;min-height:48px;display:flex;align-items:center;padding:0 14px}
+  .field input{border:0;outline:0;flex:1;font:inherit;font-size:15px;font-weight:700;background:transparent}
+  .chips{display:flex;gap:8px;overflow:auto;padding-bottom:4px}
+  .chip{flex:0 0 auto;border:0;background:#fff;border-radius:14px;padding:8px 12px;font:inherit;font-weight:700;font-size:13px}
+  .chip.on{background:#fff;box-shadow:inset 0 0 0 1.5px #4A3A48}
+  .save{position:absolute;left:16px;right:16px;bottom:24px;height:52px;border:0;border-radius:16px;background:#F3A6B8;color:#4A3A48;font:inherit;font-weight:800;font-size:16px}
+  .sheet{position:absolute;inset:0;background:#4A3A4888;display:none;align-items:flex-end}
+  .sheet.on{display:flex}
+  .panel{width:100%;background:#fff;border-radius:22px 22px 0 0;padding:16px 16px 28px}
+  .panel button{width:100%;height:48px;border:0;border-radius:14px;background:#FFF3EE;font:inherit;font-weight:800;margin-top:8px;text-align:left;padding:0 16px}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="bar"><button class="ghost">Tutup</button><b>Catatan baru</b><span class="ghost"></span></div>
+  <div class="hero">
+    <h2>Punya struk?</h2>
+    <p>Foto dulu, sisanya diisi dari OCR. Manual tetap ada di bawah.</p>
+    <div class="acts">
+      <button class="cam" id="open">Foto struk</button>
+      <button class="gal" id="open2">Galeri</button>
+    </div>
+  </div>
+  <div class="or">atau isi sendiri</div>
+  <div class="body">
+    <div class="seg">
+      <button class="on" data-t="out">Keluar</button>
+      <button data-t="in">Masuk</button>
+    </div>
+    <label>Jumlah</label>
+    <div class="field"><input value="Rp 0"/></div>
+    <label>Kategori</label>
+    <div class="chips">
+      <button class="chip on">Makan</button>
+      <button class="chip">Transport</button>
+      <button class="chip">Belanja</button>
+      <button class="chip">Tagihan</button>
+    </div>
+    <label>Untuk apa</label>
+    <div class="field"><input placeholder="Sate padang…"/></div>
+    <label>Tanggal</label>
+    <div class="field">7 Sep 2026</div>
+    <label>Catatan (opsional)</label>
+    <div class="field"><input placeholder="Tambah catatan…"/></div>
+  </div>
+  <button class="save">Simpan</button>
+  <div class="sheet" id="sheet">
+    <div class="panel">
+      <b>Ambil struk</b>
+      <button>Kamera</button>
+      <button>Galeri</button>
+      <button id="close">Batal</button>
+    </div>
+  </div>
+</div>
+<script>
+const sheet=document.getElementById("sheet");
+document.getElementById("open").onclick=document.getElementById("open2").onclick=()=>sheet.classList.add("on");
+document.getElementById("close").onclick=()=>sheet.classList.remove("on");
+sheet.onclick=e=>{if(e.target===sheet)sheet.classList.remove("on")};
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".seg button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+});
+document.querySelectorAll(".chips .chip").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".chips .chip").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+});
+</script>
+</body>
+</html>

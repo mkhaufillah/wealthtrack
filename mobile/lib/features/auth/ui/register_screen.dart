@@ -98,7 +98,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _emailCtrl,
                   decoration: InputDecoration(
                       labelText: 'Email',
-                      prefixIcon: AppIcon(AppIcons.user)),
+                      prefixIcon: const AppIcon(AppIcons.user, size: 20)),
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) =>
                       v != null && v.contains('@') ? null : 'Valid email required',
@@ -112,7 +112,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _usernameCtrl,
                   decoration: InputDecoration(
                       labelText: 'Username',
-                      prefixIcon: AppIcon(AppIcons.user)),
+                      prefixIcon: const AppIcon(AppIcons.user, size: 20)),
                   validator: (v) =>
                       v != null && v.trim().length >= 3 ? null : 'Min 3 characters',
                   enabled: !_registering,
@@ -125,7 +125,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _displayNameCtrl,
                   decoration: InputDecoration(
                       labelText: 'Display Name',
-                      prefixIcon: AppIcon(AppIcons.user)),
+                      prefixIcon: const AppIcon(AppIcons.user, size: 20)),
                   validator: (v) =>
                       v != null && v.trim().isNotEmpty ? null : 'Display name is required',
                   enabled: !_registering,
@@ -139,10 +139,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: AppIcon(AppIcons.shield),
+                    prefixIcon: const AppIcon(AppIcons.shield, size: 20),
                     suffixIcon: IconButton(
                       icon: AppIcon(
                         _obscurePassword ? AppIcons.viewOff : AppIcons.view,
+                        size: 20,
                       ),
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
@@ -161,10 +162,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   obscureText: _obscureConfirm,
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
-                    prefixIcon: AppIcon(AppIcons.shield),
+                    prefixIcon: const AppIcon(AppIcons.shield, size: 20),
                     suffixIcon: IconButton(
                       icon: AppIcon(
                         _obscureConfirm ? AppIcons.viewOff : AppIcons.view,
+                        size: 20,
                       ),
                       onPressed: () =>
                           setState(() => _obscureConfirm = !_obscureConfirm),
@@ -185,11 +187,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       onPressed: _sendingOtp ? null : _sendOtp,
                       icon: _sendingOtp
                           ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onAccent),
                             )
-                          : AppIcon(AppIcons.user),
+                          : AppIcon(AppIcons.user, size: 18, color: AppColors.onAccent),
                       label: Text(_sendingOtp ? 'Sending...' : 'Send OTP'),
                     ),
                   ),
@@ -200,7 +202,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     controller: _otpCtrl,
                     decoration: InputDecoration(
                         labelText: 'OTP Code',
-                        prefixIcon: AppIcon(AppIcons.settings),
+                        prefixIcon: const AppIcon(AppIcons.settings, size: 20),
                         hintText: '6-digit code from email'),
                     keyboardType: TextInputType.number,
                     maxLength: 6,
@@ -220,7 +222,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: AppColors.surface))
+                                  strokeWidth: 2, color: AppColors.onAccent))
                           : Text(t('auth.register')),
                     ),
                   ),

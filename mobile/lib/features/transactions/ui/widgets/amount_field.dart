@@ -21,7 +21,12 @@ String _formatAmount(String text) {
 
 class AmountField extends StatefulWidget {
   final TextEditingController controller;
-  const AmountField({super.key, required this.controller});
+  final bool hero;
+  const AmountField({
+    super.key,
+    required this.controller,
+    this.hero = false,
+  });
 
   @override
   State<AmountField> createState() => _AmountFieldState();
@@ -109,30 +114,44 @@ class _AmountFieldState extends State<AmountField> {
   Widget build(BuildContext context) {
     final showHint = !_isFocused && !_hasText;
 
+    final size = widget.hero ? 40.0 : 32.0;
+    final style = TextStyle(
+      fontSize: size,
+      fontWeight: FontWeight.w800,
+      color: AppColors.textPrimary,
+    );
+    final hint = TextStyle(
+      fontSize: size,
+      fontWeight: FontWeight.w800,
+      color: AppColors.textSecondary,
+    );
+
     return TextField(
       controller: widget.controller,
       focusNode: _focusNode,
       keyboardType: TextInputType.number,
       textAlign: TextAlign.center,
-      decoration: InputDecoration(
-        hintText: showHint ? 'Rp 0' : null,
-        hintStyle: TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textSecondary,
-        ),
-        filled: true,
-        fillColor: AppColors.background,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.divider),
-        ),
-      ),
-      style: TextStyle(
-        fontSize: 32,
-        fontWeight: FontWeight.bold,
-        color: AppColors.textPrimary,
-      ),
+      decoration: widget.hero
+          ? InputDecoration(
+              hintText: showHint ? 'Rp 0' : null,
+              hintStyle: hint,
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            )
+          : InputDecoration(
+              hintText: showHint ? 'Rp 0' : null,
+              hintStyle: hint,
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.divider),
+              ),
+            ),
+      style: style,
     );
   }
 }

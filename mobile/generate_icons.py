@@ -89,14 +89,56 @@ def load_and_prepare(source_path, padding=0.12):
     scaled_ch = max(1, int(ch * scale_factor))
     scaled = cropped.resize((scaled_cw, scaled_ch), Image.Resampling.LANCZOS)
 
-    # Pad to square (center scaled content)
-    side = max(cw, ch)  # keep original canvas size (which was tight)
-    square = Image.new("RGBA", (side, side), (255, 255, 255, 255))
+    # Pad to square on a TRANSPARENT canvas. Never bake a white/peach plate —
+    # Samsung OneUI masks adaptive icons and a baked plate becomes a double-box.
+    side = max(cw, ch)
+    square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     x_offset = (side - scaled_cw) // 2
     y_offset = (side - scaled_ch) // 2
     square.paste(scaled, (x_offset, y_offset), scaled)
 
     return square
+
+
+PEACH = (255, 232, 220)  # #FFE8DC
+
+
+def _is_plate_pixel(r, g, b, a) -> bool:
+    if a == 0:
+        return True
+    if r > 228 and g > 228 and b > 228:
+        return True
+    if abs(r - PEACH[0]) < 18 and abs(g - PEACH[1]) < 22 and abs(b - PEACH[2]) < 22:
+        return True
+    mx, mn = max(r, g, b), min(r, g, b)
+    if mx > 200 and (mx - mn) < 40 and a < 255:
+        return True
+    return False
+
+
+def knock_out_plate(img: Image.Image) -> Image.Image:
+    """Mascot-only RGBA. Drops white/peach plates and gray defringe from bg removal."""
+    fg = img.convert("RGBA")
+    px = fg.load()
+    w, h = fg.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if _is_plate_pixel(r, g, b, a):
+                px[x, y] = (r, g, b, 0)
+    bbox = fg.getbbox()
+    return fg.crop(bbox) if bbox else fg
+
+
+def composite_on_peach(mascot: Image.Image, size_px: int) -> Image.Image:
+    canvas = Image.new("RGBA", (size_px, size_px), PEACH + (255,))
+    art = knock_out_plate(mascot)
+    factor = size_px / max(art.size)
+    fw = max(1, int(art.size[0] * factor))
+    fh = max(1, int(art.size[1] * factor))
+    inner = art.resize((fw, fh), Image.Resampling.LANCZOS)
+    canvas.paste(inner, ((size_px - fw) // 2, (size_px - fh) // 2), inner)
+    return canvas
 
 
 def resize_and_save(img, size_px, output_path):
@@ -115,12 +157,13 @@ def generate_android_legacy(img, project_root):
         size = int(48 * scale)  # legacy base size is 48dp
         dir_path = os.path.join(base, f"mipmap-{density}")
         os.makedirs(dir_path, exist_ok=True)
+        legacy = composite_on_peach(img, size)
         output_path = os.path.join(dir_path, "ic_launcher.png")
-        resize_and_save(img, size, output_path)
-
-        # Round icon (same for simplicity)
+        legacy.save(output_path, "PNG")
+        print(f"  V {output_path} ({size}x{size})")
         round_path = os.path.join(dir_path, "ic_launcher_round.png")
-        resize_and_save(img, size, round_path)
+        legacy.save(round_path, "PNG")
+        print(f"  V {round_path} ({size}x{size})")
 
 
 def generate_android_adaptive(img, project_root):
@@ -134,28 +177,8 @@ def generate_android_adaptive(img, project_root):
     """
     base = os.path.join(project_root, "android", "app", "src", "main", "res")
 
-    # Mascot art only: drop near-peach background so the canvas stays transparent.
-    fg_img = img.convert("RGBA")
-    bg_reference = (255, 232, 220)  # #FFE8DC
-    px = fg_img.load()
-    w, h = fg_img.size
-    for y in range(h):
-        for x in range(w):
-            r, g, b, a = px[x, y]
-            if (
-                abs(r - bg_reference[0]) < 12
-                and abs(g - bg_reference[1]) < 12
-                and abs(b - bg_reference[2]) < 12
-            ):
-                px[x, y] = (r, g, b, 0)
-    # Tight-crop to remaining art, then re-scale into safe zone below.
-    bbox = fg_img.getbbox()
-    if bbox:
-        fg_img = fg_img.crop(bbox)
-
-    # Background color
-    bg_color = (255, 232, 220)  # Pastel cozy peach #FFE8DC
-    bg_img = Image.new("RGBA", (w, h), bg_color + (255,))
+    # Mascot art only on transparent canvas. OS supplies the peach plate.
+    fg_img = knock_out_plate(img)
 
     for density, scale in ANDROID_LEGACY_SCALES.items():
         adaptive_size = int(ADAPTIVE_BASE_SIZE * scale)
@@ -181,8 +204,7 @@ def generate_android_adaptive(img, project_root):
         content.save(fg_path, "PNG")
         print(f"  V {fg_path} ({adaptive_size}x{adaptive_size}, foreground)")
 
-        # Save background (solid color, full bleed)
-        bg_scaled = bg_img.resize((adaptive_size, adaptive_size), Image.Resampling.LANCZOS)
+        bg_scaled = Image.new("RGBA", (adaptive_size, adaptive_size), PEACH + (255,))
         bg_path = os.path.join(fg_dir, "ic_launcher_background.png")
         bg_scaled.save(bg_path, "PNG")
         print(f"  V {bg_path} ({adaptive_size}x{adaptive_size}, background)")
@@ -193,7 +215,7 @@ def generate_android_adaptive(img, project_root):
 
     adaptive_xml = """<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@mipmap/ic_launcher_background"/>
+    <background android:drawable="@color/ic_launcher_background"/>
     <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
 </adaptive-icon>"""
 
@@ -318,6 +340,16 @@ def main():
     print("\n1. Loading and preparing image...")
     img = load_and_prepare(source_path)
     print(f"   Image size: {img.size}")
+
+    mark_path = os.path.join(project_root, "assets", "logo_mark.png")
+    mark = knock_out_plate(Image.open(source_path))
+    # Small transparent pad so dark-mode login doesn't clip fringe.
+    pad = max(8, int(max(mark.size) * 0.04))
+    padded = Image.new("RGBA", (mark.size[0] + 2 * pad, mark.size[1] + 2 * pad), (0, 0, 0, 0))
+    padded.paste(mark, (pad, pad), mark)
+    os.makedirs(os.path.dirname(mark_path), exist_ok=True)
+    padded.save(mark_path, "PNG")
+    print(f"   V {mark_path} ({padded.size[0]}x{padded.size[1]}, transparent mark)")
 
     if "android" in platforms:
         print("\n2. Generating Android legacy icons...")

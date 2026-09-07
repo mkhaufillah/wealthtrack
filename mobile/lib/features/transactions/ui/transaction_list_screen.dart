@@ -539,63 +539,88 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               ),
             ),
 
-          // Search bar
+          // Search + type (C) — category/date/sort stay below
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search transactions...',
-                prefixIcon: AppIcon(AppIcons.search, size: 20),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: AppIcon(AppIcons.close, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          _onSearch('');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: AppColors.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: t('tx.search'),
+                    prefixIcon: const AppIcon(AppIcons.search, size: 16),
+                    prefixIconConstraints:
+                        const BoxConstraints(minWidth: 36, minHeight: 36),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const AppIcon(AppIcons.close, size: 16),
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearch('');
+                              setState(() {});
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(22),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(22),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(22),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  ),
+                  onChanged: (q) {
+                    setState(() {});
+                    _onSearch(q);
+                  },
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-              ),
-              onChanged: _onSearch,
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.heroFill,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      _TypeSeg(
+                        label: t('tx.filter_all'),
+                        selected: state.typeFilter == 'all',
+                        onTap: () => notifier.setTypeFilter('all'),
+                      ),
+                      _TypeSeg(
+                        label: t('tx.filter_out'),
+                        selected: state.typeFilter == 'expense',
+                        onTap: () => notifier.setTypeFilter('expense'),
+                      ),
+                      _TypeSeg(
+                        label: t('tx.filter_in'),
+                        selected: state.typeFilter == 'income',
+                        onTap: () => notifier.setTypeFilter('income'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
 
-          // Filter row
+          // Existing extra filters: category, date, sort
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  // Type filter chips
-                  _FilterChip(
-                    label: 'All',
-                    selected: state.typeFilter == 'all',
-                    onTap: () => notifier.setTypeFilter('all'),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Expense',
-                    selected: state.typeFilter == 'expense',
-                    onTap: () => notifier.setTypeFilter('expense'),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Income',
-                    selected: state.typeFilter == 'income',
-                    onTap: () => notifier.setTypeFilter('income'),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Category filter button
                   ActionChip(
                     avatar: AppIcon(AppIcons.filter, size: 16,
                         color: state.selectedCategoryIds.isNotEmpty
@@ -603,8 +628,8 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                             : AppColors.textSecondary),
                     label: Text(
                       state.selectedCategoryIds.isNotEmpty
-                          ? '${state.selectedCategoryIds.length} categories'
-                          : 'Categories',
+                          ? '${state.selectedCategoryIds.length} ${t('tx.categories').toLowerCase()}'
+                          : t('tx.categories'),
                       style: TextStyle(fontSize: 12,
                           color: state.selectedCategoryIds.isNotEmpty
                               ? AppColors.accent
@@ -730,11 +755,11 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   }
 }
 
-class _FilterChip extends StatelessWidget {
+class _TypeSeg extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  const _FilterChip({
+  const _TypeSeg({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -742,25 +767,24 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.accent
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppColors.divider,
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? AppColors.surface : AppColors.heroFill,
+            borderRadius: BorderRadius.circular(12),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected ? AppColors.surface : AppColors.textSecondary,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+            ),
           ),
         ),
       ),

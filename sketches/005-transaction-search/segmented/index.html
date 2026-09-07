@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Search — segmented</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#1c1820}
+  .phone{width:390px;height:844px;margin:24px auto;background:#FFF3EE;border-radius:36px;overflow:hidden;color:#4A3A48}
+  .top{padding:54px 16px 12px}
+  .search{background:#fff;border-radius:22px;height:48px;display:flex;align-items:center;padding:0 14px;gap:10px;box-shadow:0 8px 24px #4A3A4810}
+  .search svg{width:16px;height:16px;stroke:#4A3A48;fill:none;stroke-width:2;flex:0 0 16px}
+  .search input{border:0;outline:0;flex:1;font-size:16px;font-weight:600;background:transparent}
+  .seg{margin-top:12px;background:#FFE8DC;border-radius:16px;padding:4px;display:flex}
+  .seg button{flex:1;border:0;background:transparent;height:36px;border-radius:12px;font-weight:800;font-size:13px;color:#9B8794}
+  .seg button.on{background:#fff;color:#4A3A48}
+  .day{padding:16px 20px 6px;font-size:12px;font-weight:800;color:#9B8794}
+  .row{margin:0 16px 8px;background:#fff;border-radius:18px;padding:14px;display:flex;justify-content:space-between;align-items:center}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="top">
+    <div class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
+      <input id="q" placeholder="Cari di catatan"/>
+    </div>
+    <div class="seg">
+      <button class="on" data-f="all">Semua</button>
+      <button data-f="out">Keluar</button>
+      <button data-f="in">Masuk</button>
+    </div>
+  </div>
+  <div class="day">Hari ini</div>
+  <div class="row" data-n="sate padang" data-f="out"><span>Sate padang</span><b style="color:#E08B7C">−32.000</b></div>
+  <div class="row" data-n="grab ke kantor" data-f="out"><span>Grab ke kantor</span><b style="color:#E08B7C">−28.500</b></div>
+  <div class="day">Kemarin</div>
+  <div class="row" data-n="gaji filla" data-f="in"><span>Gaji Filla</span><b style="color:#4EAE90">+12.500.000</b></div>
+  <div class="row" data-n="alfamart susu" data-f="out"><span>Alfamart susu</span><b style="color:#E08B7C">−47.200</b></div>
+</div>
+<script>
+let f='all',q='';
+function apply(){
+  document.querySelectorAll('.row').forEach(r=>{
+    const okF=f==='all'||r.dataset.f===f;
+    const okQ=r.dataset.n.includes(q);
+    r.classList.toggle('hide',!(okF&&okQ));
+  });
+}
+document.getElementById('q').oninput=e=>{q=e.target.value.toLowerCase();apply()};
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');f=b.dataset.f;apply();
+});
+</script>
+</body>
+</html>

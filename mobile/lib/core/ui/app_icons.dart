@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import '../theme/app_theme.dart';
 
 /// Hugeicons stroke-rounded. Never use Material [Icons] in product UI.
 class AppIcons {
@@ -51,10 +50,13 @@ class AppIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolved = color ??
+        IconTheme.of(context).color ??
+        Theme.of(context).colorScheme.onSurface;
     return HugeIcon(
       icon: icon,
       size: size,
-      color: color ?? AppColors.textPrimary,
+      color: resolved,
     );
   }
 }

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Add — amount first</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Nunito,sans-serif;background:#1c1820}
+  .phone{width:390px;height:844px;margin:24px auto;background:#FFF3EE;border-radius:36px;overflow:hidden;color:#4A3A48;display:flex;flex-direction:column;position:relative}
+  .bar{padding:52px 16px 8px;display:flex;align-items:center;justify-content:space-between}
+  .bar b{font-size:16px;font-weight:800}
+  .ghost{border:0;background:transparent;color:#4A3A48;font:inherit;font-weight:800;font-size:14px;padding:8px}
+  .amt{padding:8px 20px 4px;text-align:center}
+  .amt small{display:block;font-size:13px;font-weight:800;color:#9B8794;letter-spacing:.04em}
+  .amt input{width:100%;border:0;background:transparent;text-align:center;font:inherit;font-size:40px;font-weight:800;color:#4A3A48;outline:0}
+  .seg{margin:12px 16px 0;background:#FFE8DC;border-radius:16px;padding:4px;display:flex}
+  .seg button{flex:1;border:0;background:transparent;height:36px;border-radius:12px;font-weight:800;font-size:13px;color:#9B8794}
+  .seg button.on{background:#fff;color:#4A3A48}
+  .body{flex:1;overflow:auto;padding:16px 16px 100px}
+  label{display:block;font-size:12px;font-weight:800;color:#9B8794;margin:14px 0 8px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:0;background:#fff;border-radius:14px;padding:8px 12px;font:inherit;font-weight:700;font-size:13px;color:#4A3A48}
+  .chip.on.out{background:#E08B7C22;color:#E08B7C}
+  .chip.on.in{background:#4EAE9022;color:#4EAE90}
+  .field{background:#fff;border-radius:16px;height:48px;display:flex;align-items:center;padding:0 14px;gap:8px}
+  .field input,.note{border:0;outline:0;flex:1;font:inherit;font-size:15px;font-weight:700;background:transparent;color:#4A3A48}
+  .note{min-height:72px;padding:12px 14px;align-items:flex-start}
+  .row{display:flex;gap:8px}
+  .row .field{flex:1}
+  .save{position:absolute;left:16px;right:16px;bottom:24px;height:52px;border:0;border-radius:16px;background:#F3A6B8;color:#4A3A48;font:inherit;font-weight:800;font-size:16px}
+  .toast{position:absolute;left:16px;right:16px;bottom:88px;background:#4EAE90;color:#fff;border-radius:14px;padding:12px 14px;font-weight:800;display:none}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="bar">
+    <button class="ghost">Tutup</button>
+    <b>Catatan baru</b>
+    <button class="ghost" id="cam">Foto</button>
+  </div>
+  <div class="amt">
+    <small id="kind">KELUAR</small>
+    <input id="rp" value="Rp 0" inputmode="numeric"/>
+  </div>
+  <div class="seg">
+    <button class="on" data-t="out">Keluar</button>
+    <button data-t="in">Masuk</button>
+  </div>
+  <div class="body">
+    <label>Kategori</label>
+    <div class="chips" id="chips"></div>
+    <label>Untuk apa</label>
+    <div class="field"><input placeholder="Sate padang, Grab, gaji…"/></div>
+    <label>Tanggal</label>
+    <div class="field" id="date">7 Sep 2026</div>
+    <label>Catatan (opsional)</label>
+    <div class="field note"><input placeholder="Tambah catatan…"/></div>
+  </div>
+  <div class="toast" id="toast">Tersimpan. Card transaksi tidak berubah.</div>
+  <button class="save" id="save">Simpan</button>
+</div>
+<script>
+const out=["Makan","Transport","Belanja","Tagihan","Kesehatan"];
+const inn=["Gaji","Bonus","Transfer masuk","Lainnya"];
+let t="out", cat=0;
+function chips(){
+  const list=t==="out"?out:inn;
+  document.getElementById("chips").innerHTML=list.map((n,i)=>`<button class="chip ${i===cat?"on "+t:""}" data-i="${i}">${n}</button>`).join("");
+  document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{cat=+b.dataset.i;chips();});
+}
+chips();
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".seg button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); t=b.dataset.t; cat=0; chips();
+  document.getElementById("kind").textContent=t==="out"?"KELUAR":"MASUK";
+});
+document.getElementById("rp").onfocus=e=>{if(e.target.value==="Rp 0")e.target.value="";};
+document.getElementById("save").onclick=()=>{
+  const el=document.getElementById("toast"); el.style.display="block";
+  setTimeout(()=>el.style.display="none",1600);
+};
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/transactions/providers/transaction_provider.dart';
 import '../../core/ui/copy_fallback.dart';
 import '../../core/ui/app_icons.dart';
+import '../providers/theme_provider.dart';
 
 class MainShell extends ConsumerWidget {
   final Widget child;
@@ -20,6 +21,7 @@ class MainShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeModeProvider);
     final index = _currentIndex(context);
     return Scaffold(
       body: child,

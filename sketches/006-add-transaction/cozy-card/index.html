@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Add — cozy card</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Nunito,sans-serif;background:#1c1820}
+  .phone{width:390px;height:844px;margin:24px auto;background:#FFF3EE;border-radius:36px;overflow:hidden;color:#4A3A48;display:flex;flex-direction:column}
+  .bar{padding:52px 20px 12px;display:flex;align-items:center;justify-content:space-between}
+  .bar b{font-size:18px;font-weight:800}
+  .icon{width:40px;height:40px;border:0;border-radius:14px;background:#fff;color:#4A3A48;font-weight:800}
+  .card{margin:0 16px 16px;background:#fff;border-radius:22px;padding:16px;flex:1;overflow:auto}
+  .seg{background:#FFE8DC;border-radius:16px;padding:4px;display:flex}
+  .seg button{flex:1;border:0;background:transparent;height:36px;border-radius:12px;font-weight:800;font-size:13px;color:#9B8794}
+  .seg button.on{background:#fff;color:#4A3A48}
+  .money{margin-top:16px;background:#FFE8DC;border-radius:18px;padding:16px 14px}
+  .money small{font-size:12px;font-weight:800;color:#9B8794}
+  .money input{width:100%;border:0;background:transparent;font:inherit;font-size:32px;font-weight:800;outline:0;color:#4A3A48}
+  label{display:block;font-size:12px;font-weight:800;color:#9B8794;margin:16px 0 8px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .chip{border:0;background:#FFF3EE;border-radius:14px;padding:12px 10px;font:inherit;font-weight:800;font-size:13px;text-align:left;color:#4A3A48}
+  .chip.on{background:#F3A6B8;color:#4A3A48}
+  .line{display:flex;align-items:center;gap:10px;background:#FFF3EE;border-radius:16px;min-height:48px;padding:0 14px}
+  .line input{border:0;outline:0;flex:1;background:transparent;font:inherit;font-weight:700;font-size:15px}
+  .save{margin-top:20px;width:100%;height:52px;border:0;border-radius:16px;background:#F3A6B8;color:#4A3A48;font:inherit;font-weight:800;font-size:16px}
+  .ok{display:none;margin-top:10px;text-align:center;font-weight:800;color:#4EAE90}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="bar">
+    <button class="icon">×</button>
+    <b>Catatan baru</b>
+    <button class="icon" title="Foto struk">📷</button>
+  </div>
+  <div class="card">
+    <div class="seg">
+      <button class="on" data-t="out">Keluar</button>
+      <button data-t="in">Masuk</button>
+    </div>
+    <div class="money">
+      <small id="kind">Jumlah keluar</small>
+      <input value="Rp 32.000"/>
+    </div>
+    <label>Kategori</label>
+    <div class="grid" id="grid"></div>
+    <label>Untuk apa</label>
+    <div class="line"><input value="Sate padang"/></div>
+    <label>Tanggal</label>
+    <div class="line" id="date">Hari ini · 7 Sep 2026</div>
+    <label>Catatan (opsional)</label>
+    <div class="line"><input placeholder="Tambah catatan…"/></div>
+    <button class="save" id="save">Simpan</button>
+    <div class="ok" id="ok">Tersimpan</div>
+  </div>
+</div>
+<script>
+const out=["Makan","Transport","Belanja","Tagihan","Kesehatan","Lainnya"];
+const inn=["Gaji","Bonus","Transfer","Lainnya"];
+let t="out", cat=0;
+function grid(){
+  const list=t==="out"?out:inn;
+  document.getElementById("grid").innerHTML=list.map((n,i)=>`<button class="chip ${i===cat?"on":""}" data-i="${i}">${n}</button>`).join("");
+  document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{cat=+b.dataset.i;grid();});
+}
+grid();
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".seg button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); t=b.dataset.t; cat=0; grid();
+  document.getElementById("kind").textContent=t==="out"?"Jumlah keluar":"Jumlah masuk";
+});
+document.getElementById("save").onclick=()=>{
+  document.getElementById("ok").style.display="block";
+};
+</script>
+</body>
+</html>
