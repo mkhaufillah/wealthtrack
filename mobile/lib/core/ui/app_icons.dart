@@ -36,7 +36,7 @@ class AppIcons {
   static const card = HugeIcons.strokeRoundedCreditCard;
   static const money = HugeIcons.strokeRoundedMoneyBag01;
   static const filter = HugeIcons.strokeRoundedFilter;
-  static const more = HugeIcons.strokeRoundedMoreHorizontal;
+  static const more = HugeIcons.strokeRoundedMoreVertical;
   static const check = HugeIcons.strokeRoundedCheckmarkCircle01;
   static const inbox = HugeIcons.strokeRoundedInbox;
   static const spark = HugeIcons.strokeRoundedSparkles;

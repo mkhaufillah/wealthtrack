@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:wealthtrack/core/ui/app_icons.dart';
 import 'package:wealthtrack/features/ai/ui/ai_advisor_screen.dart';
 import 'package:wealthtrack/features/auth/providers/auth_provider.dart';
 import 'package:wealthtrack/features/auth/data/auth_repository.dart';
@@ -106,7 +108,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byIcon(Icons.send), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedSent), findsOneWidget);
     });
 
     testWidgets('shows Flash model toggle for admin user', (tester) async {
@@ -140,7 +142,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Advanced'), findsOneWidget);
-      expect(find.byIcon(Icons.auto_awesome), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedSparkles), findsOneWidget);
     });
 
     testWidgets('model toggle hidden for non-user-1', (tester) async {
@@ -167,7 +169,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byIcon(Icons.delete_outline), findsNothing);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedDelete02), findsNothing);
     });
 
     testWidgets('empty message does not send', (tester) async {
@@ -177,7 +179,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Tap send with empty text field
-      await tester.tap(find.byIcon(Icons.send));
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedSent));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -194,7 +196,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byIcon(Icons.send), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedSent), findsOneWidget);
     });
 
     testWidgets('text field has send textInputAction', (tester) async {

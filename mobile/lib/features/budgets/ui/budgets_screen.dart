@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -321,8 +322,8 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(
-                    isOverBudgeted ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+                  AppIcon(
+                    isOverBudgeted ? HugeIcons.strokeRoundedAlert02 : HugeIcons.strokeRoundedCheckmarkCircle01,
                     size: 14,
                     color: isOverBudgeted ? AppColors.warning : AppColors.success,
                   ),

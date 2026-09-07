@@ -78,35 +78,35 @@ class TransactionTile extends StatelessWidget {
                 }
               },
               itemBuilder: (_) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'edit',
                   child: Row(
                     children: [
                       AppIcon(AppIcons.edit, size: 18),
-                      SizedBox(width: 8),
-                      Text('Edit'),
+                      const SizedBox(width: 8),
+                      const Text('Edit'),
                     ],
                   ),
                 ),
                 if (onTransferOwner != null)
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'change_owner',
                     child: Row(
                       children: [
                         AppIcon(AppIcons.swap, size: 18),
-                        SizedBox(width: 8),
-                        Text('Change Owner'),
+                        const SizedBox(width: 8),
+                        const Text('Change Owner'),
                       ],
                     ),
                   ),
                 if (onDelete != null)
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
                         AppIcon(AppIcons.trash, size: 18),
-                        SizedBox(width: 8),
-                        Text('Delete'),
+                        const SizedBox(width: 8),
+                        const Text('Delete'),
                       ],
                     ),
                   ),

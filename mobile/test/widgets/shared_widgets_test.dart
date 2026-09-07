@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:wealthtrack/shared/widgets/loading_indicator.dart';
 import 'package:wealthtrack/shared/widgets/error_display.dart';
 import 'package:wealthtrack/shared/widgets/empty_state.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
+import 'package:wealthtrack/core/ui/app_icons.dart';
 
 Widget wrap(Widget w) => MaterialApp(theme: AppTheme.light, home: w);
 
@@ -24,7 +26,8 @@ void main() {
       )));
       expect(find.text('Network error occurred'), findsOneWidget);
       expect(find.text('Coba lagi'), findsOneWidget);
-      expect(find.byIcon(Icons.refresh), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsNothing); // Material icon replaced by Hugeicons
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedRefresh), findsOneWidget);
 
       await tester.tap(find.text('Coba lagi'));
       expect(retried, isTrue);
@@ -38,7 +41,7 @@ void main() {
 
     testWidgets('shows error icon', (tester) async {
       await tester.pumpWidget(wrap(const ErrorDisplay(message: 'Error')));
-      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedAlert02), findsOneWidget);
     });
   });
 
@@ -50,7 +53,7 @@ void main() {
 
     testWidgets('shows inbox icon', (tester) async {
       await tester.pumpWidget(wrap(const EmptyState(message: 'Empty')));
-      expect(find.byIcon(Icons.inbox_outlined), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedInbox), findsOneWidget);
     });
   });
 }

@@ -434,12 +434,12 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text(t('tx.delete')),
+        title: const Text('Delete Transaction'),
         content: Text(
           'Delete "${description.isEmpty ? 'this transaction' : description}"? This cannot be undone.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('common.cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text('Delete', style: TextStyle(color: AppColors.highlight)),

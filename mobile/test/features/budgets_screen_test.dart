@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:wealthtrack/core/ui/app_icons.dart';
 import 'package:wealthtrack/features/budgets/ui/budgets_screen.dart';
 import 'package:wealthtrack/features/budgets/providers/budget_provider.dart';
 import 'package:wealthtrack/features/budgets/data/budget_repository.dart';
@@ -146,15 +148,15 @@ void main() {
 
     testWidgets('shows FABs for suggestions and add budget', (tester) async {
       await tester.pumpWidget(buildBudgetsApp());
-      expect(find.byIcon(Icons.add), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedAdd01), findsOneWidget);
       // auto_awesome appears in both FAB and empty state button
-      expect(find.byIcon(Icons.auto_awesome), findsAtLeast(1));
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedSparkles), findsAtLeast(1));
     });
 
     testWidgets('shows month picker with navigation arrows', (tester) async {
       await tester.pumpWidget(buildBudgetsApp(items: [sampleItem]));
-      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedArrowLeft01), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedArrowRight01), findsOneWidget);
     });
 
     testWidgets('shows progress bar for budget', (tester) async {

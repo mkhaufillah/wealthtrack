@@ -229,8 +229,8 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        _useAdvancedModel ? Icons.auto_awesome : Icons.flash_on,
+                      AppIcon(
+                        _useAdvancedModel ? AppIcons.spark : AppIcons.ai,
                         size: 14,
                         color: _useAdvancedModel ? AppColors.surface : AppColors.textSecondary,
                       ),

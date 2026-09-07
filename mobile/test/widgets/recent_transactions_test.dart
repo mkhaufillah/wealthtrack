@@ -10,12 +10,12 @@ void main() {
   group('RecentTransactions', () {
     testWidgets('shows header', (tester) async {
       await tester.pumpWidget(wrap(const RecentTransactions(transactions: [])));
-      expect(find.text('Recent Transactions'), findsOneWidget);
+      expect(find.text('Baru aja'), findsOneWidget);
     });
 
     testWidgets('shows empty message when no transactions', (tester) async {
       await tester.pumpWidget(wrap(const RecentTransactions(transactions: [])));
-      expect(find.text('No transactions this month'), findsOneWidget);
+      expect(find.text('Belum ada transaksi. Yuk catat yang pertama!'), findsOneWidget);
     });
 
     testWidgets('displays transaction tiles when data exists', (tester) async {
@@ -36,7 +36,7 @@ void main() {
       await tester.pumpWidget(wrap(RecentTransactions(transactions: txns)));
       expect(find.text('Coffee'), findsOneWidget);
       expect(find.text('Gaji'), findsOneWidget);
-      expect(find.text('View All'), findsOneWidget);
+      expect(find.text('Lihat semua'), findsOneWidget);
     });
   });
 }

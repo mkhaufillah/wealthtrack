@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:wealthtrack/core/ui/app_icons.dart';
 import 'package:wealthtrack/features/reports/ui/reports_screen.dart';
 import 'package:wealthtrack/features/reports/providers/report_provider.dart';
 import 'package:wealthtrack/features/reports/data/report_repository.dart';
@@ -189,7 +191,7 @@ void main() {
       await tester.pumpWidget(
           buildReportsApp(error: 'Failed to load reports'));
       expect(find.text('Failed to load reports'), findsOneWidget);
-      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedAlert02), findsOneWidget);
     });
 
     testWidgets('shows error display with retry button', (tester) async {
@@ -202,8 +204,8 @@ void main() {
 
     testWidgets('shows month picker with navigation arrows', (tester) async {
       await tester.pumpWidget(buildReportsApp());
-      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedArrowLeft01), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedArrowRight01), findsOneWidget);
     });
 
     testWidgets('shows RefreshIndicator', (tester) async {

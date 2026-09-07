@@ -455,7 +455,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 _buildMenuItem(
                   icon: Icons.psychology_outlined,
-                  title: 'AI Financial Advisor',
+                  title: 'Teman AI',
                   onTap: () => context.push('/ai/advise'),
                 ),
 

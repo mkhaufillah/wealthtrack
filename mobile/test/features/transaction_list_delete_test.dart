@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:wealthtrack/core/ui/app_icons.dart';
 import 'package:wealthtrack/features/transactions/providers/transaction_provider.dart';
 import 'package:wealthtrack/features/transactions/data/transaction_repository.dart';
 import 'package:wealthtrack/features/transactions/models/transaction_model.dart';
@@ -64,26 +66,26 @@ void main() {
   group('TransactionListScreen — Delete', () {
     testWidgets('shows popup menu button on transaction tile', (tester) async {
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn]));
-      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical), findsOneWidget);
     });
 
     testWidgets('shows Delete option in popup menu', (tester) async {
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn]));
-      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical));
       await tester.pumpAndSettle();
       expect(find.text('Delete'), findsOneWidget);
     });
 
     testWidgets('shows Edit option in popup menu', (tester) async {
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn]));
-      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical));
       await tester.pumpAndSettle();
       expect(find.text('Edit'), findsOneWidget);
     });
 
     testWidgets('shows Change Owner option in popup menu', (tester) async {
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn]));
-      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical));
       await tester.pumpAndSettle();
       expect(find.text('Change Owner'), findsOneWidget);
     });
@@ -92,7 +94,7 @@ void main() {
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn]));
 
       // Open popup menu
-      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical));
       await tester.pumpAndSettle();
 
       // Tap Delete
@@ -109,7 +111,7 @@ void main() {
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn]));
 
       // Open popup menu
-      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical));
       await tester.pumpAndSettle();
 
       // Tap Delete
@@ -130,7 +132,7 @@ void main() {
     testWidgets('delete dialog shows warning about undo', (tester) async {
       await tester.pumpWidget(buildTxListApp(txns: [sampleTxn]));
 
-      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedMoreVertical));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/ui/app_icons.dart';
+import '../../../../core/ui/copy_fallback.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../transactions/models/transaction_model.dart';
@@ -14,15 +15,15 @@ class RecentTransactions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Recent Transactions',
+        Text(t('home.recent'),
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
         const SizedBox(height: 12),
         if (transactions.isEmpty)
           Card(
             elevation: 0,
             child: Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(child: Text('No transactions this month', style: TextStyle(color: AppColors.textSecondary))),
+              padding: const EdgeInsets.all(32),
+              child: Center(child: Text(t('home.empty_tx'), style: TextStyle(color: AppColors.textSecondary))),
             ),
           )
         else ...[
@@ -40,10 +41,10 @@ class RecentTransactions extends StatelessWidget {
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => context.go('/transactions'),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('View All'), SizedBox(width: 4), AppIcon(AppIcons.next, size: 16),
+                Text(t('home.see_all')), const SizedBox(width: 4), AppIcon(AppIcons.next, size: 16),
               ],
             ),
           ),

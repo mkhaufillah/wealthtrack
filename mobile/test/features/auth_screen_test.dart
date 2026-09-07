@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:wealthtrack/core/ui/app_icons.dart';
 import 'package:wealthtrack/features/auth/providers/auth_provider.dart';
 import 'package:wealthtrack/features/auth/ui/login_screen.dart';
 import 'package:wealthtrack/features/auth/ui/register_screen.dart';
@@ -118,26 +120,26 @@ void main() {
   group('LoginScreen Eye Icon', () {
     testWidgets('shows visibility icon on password field', (tester) async {
       await tester.pumpWidget(buildLoginApp());
-      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.visibility_outlined), findsNothing);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedViewOffSlash), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedView), findsNothing);
     });
 
     testWidgets('toggles password visibility on tap', (tester) async {
       await tester.pumpWidget(buildLoginApp());
       // Tap the eye icon
-      await tester.tap(find.byIcon(Icons.visibility_off_outlined));
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedViewOffSlash));
       await tester.pump();
-      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.visibility_off_outlined), findsNothing);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedView), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedViewOffSlash), findsNothing);
     });
 
     testWidgets('toggles back to hidden on second tap', (tester) async {
       await tester.pumpWidget(buildLoginApp());
-      await tester.tap(find.byIcon(Icons.visibility_off_outlined));
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedViewOffSlash));
       await tester.pump();
-      await tester.tap(find.byIcon(Icons.visibility_outlined));
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedView));
       await tester.pump();
-      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedViewOffSlash), findsOneWidget);
     });
   });
 
@@ -145,17 +147,17 @@ void main() {
     testWidgets('shows visibility icon on password fields', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
       // Both password fields have independent eye icons
-      expect(find.byIcon(Icons.visibility_off_outlined), findsNWidgets(2));
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedViewOffSlash), findsNWidgets(2));
     });
 
     testWidgets('toggles password visibility independently', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
       // Toggle only password eye
-      await tester.tap(find.byIcon(Icons.visibility_off_outlined).first);
+      await tester.tap(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedViewOffSlash).first);
       await tester.pump();
       // Password field toggled to visible, confirm stayed obscured
-      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedView), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedViewOffSlash), findsOneWidget);
     });
   });
 }

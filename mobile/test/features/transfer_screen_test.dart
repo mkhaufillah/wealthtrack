@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:wealthtrack/core/ui/app_icons.dart';
 import 'package:wealthtrack/features/transactions/ui/transfer_screen.dart';
 import 'package:wealthtrack/features/transactions/providers/transfer_provider.dart';
 import 'package:wealthtrack/features/transactions/data/transaction_repository.dart';
@@ -103,7 +105,7 @@ void main() {
       final mockApi = _setupMockHousehold(MockApiClient(), members: []);
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.group_off), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedUser), findsOneWidget);
       expect(find.text('No household members available'), findsOneWidget);
     });
 
@@ -135,8 +137,8 @@ void main() {
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.calendar_today), findsOneWidget);
-      expect(find.byIcon(Icons.edit_calendar), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedCalendar01), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedCalendar01), findsOneWidget);
     });
 
     testWidgets('shows recipients section header', (tester) async {
@@ -193,7 +195,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Insufficient balance'), findsOneWidget);
-      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedAlert02), findsOneWidget);
     });
 
     testWidgets('shows Processing state on Send Transfer button when submitting',

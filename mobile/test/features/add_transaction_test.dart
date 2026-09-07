@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:wealthtrack/core/ui/app_icons.dart';
 import 'package:wealthtrack/features/transactions/providers/transaction_provider.dart';
 import 'package:wealthtrack/features/transactions/data/transaction_repository.dart';
 import 'package:wealthtrack/features/transactions/ui/add_transaction_screen.dart';
@@ -65,7 +67,7 @@ void main() {
     testWidgets('shows date picker', (tester) async {
       await tester.pumpWidget(buildAddTxnApp());
       expect(find.text('Date'), findsOneWidget);
-      expect(find.byIcon(Icons.calendar_today), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedCalendar01), findsOneWidget);
     });
 
     testWidgets('shows note section', (tester) async {
