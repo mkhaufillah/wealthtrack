@@ -633,13 +633,13 @@ async def resolve_model(model: str) -> tuple[str, str, str]:
     if settings.llm_via_openrouter:
         model_map = {
             "flash": "deepseek/deepseek-v4-flash",
-            "opus": "z-ai/glm-5.3",
+            "opus": "deepseek/deepseek-v4-pro",
         }
     else:
         # OpenCode Go catalog
         model_map = {
             "flash": "deepseek-v4-flash",
-            "opus": "glm-5.3",
+            "opus": "deepseek-v4-pro",
         }
     resolved = model_map.get(model, model)
     api_url = settings.llm_api_url
@@ -653,7 +653,7 @@ async def call_model_stream(
     """Call the model API with streaming. Yields token strings as they arrive."""
     resolved, api_url, api_key = await resolve_model(model)
 
-    async with httpx.AsyncClient(timeout=120) as client:
+    async with httpx.AsyncClient(timeout=600) as client:
         async with client.stream(
             "POST",
             api_url,
@@ -668,9 +668,9 @@ async def call_model_stream(
         ) as resp:
             if resp.status_code != 200:
                 error_text = await resp.aread()
-                logger.warning("AI stream HTTP %s", resp.status_code)
+                logger.warning("AI stream HTTP %s: %s", resp.status_code, error_text[:300])
                 if resp.status_code in (401, 403, 429):
-                    yield "[ERROR:Layanan AI lagi kena limit atau diblokir. Cek kuota OpenRouter / kunci OpenCode.]"
+                    yield "[ERROR:Layanan AI lagi kena batas pemakaian (kuota 5 jam OpenCode). Tunggu bentar atau pakai Flash.]"
                 else:
                     yield f"[ERROR:{resp.status_code}]"
                 return
@@ -702,7 +702,7 @@ async def call_model(
     """Call the model API without streaming. Returns full response text."""
     resolved, api_url, api_key = await resolve_model(model)
 
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=300) as client:
         resp = await client.post(
             api_url,
             headers=settings.llm_headers(),
@@ -717,7 +717,7 @@ async def call_model(
     if resp.status_code != 200:
         logger.warning("AI HTTP %s", resp.status_code)
         if resp.status_code in (401, 403, 429):
-            raise Exception("Layanan AI lagi kena limit atau diblokir. Cek kuota OpenRouter / kunci OpenCode.")
+            raise Exception("Layanan AI lagi kena batas pemakaian (kuota 5 jam OpenCode). Tunggu bentar atau pakai Flash.")
         raise Exception(f"AI API error: {resp.status_code}")
 
     body = resp.json()

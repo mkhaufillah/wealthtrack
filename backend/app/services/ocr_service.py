@@ -419,7 +419,7 @@ class OcrService:
         """Call the Vision API (single attempt, no retry)."""
         try:
             async with _ocr_semaphore:
-                async with httpx.AsyncClient(timeout=60) as client:
+                async with httpx.AsyncClient(timeout=120) as client:
                     resp = await client.post(
                         settings.llm_api_url,
                         headers=settings.llm_headers(),
@@ -493,7 +493,7 @@ class OcrService:
         async with _ocr_semaphore:
             for attempt in range(5):
                 try:
-                    async with httpx.AsyncClient(timeout=60) as client:
+                    async with httpx.AsyncClient(timeout=120) as client:
                         vision_resp = await client.post(
                             settings.llm_api_url,
                             headers=settings.llm_headers(),

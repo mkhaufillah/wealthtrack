@@ -103,7 +103,7 @@ async def financial_advise_stream(
 
 
 @router.post("/chat", response_model=ChatResponse)
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def ai_chat(
     request: Request,
     req: ChatRequest,
