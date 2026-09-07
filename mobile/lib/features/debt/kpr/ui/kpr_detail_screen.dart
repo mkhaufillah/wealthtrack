@@ -50,7 +50,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Hapus', style: TextStyle(color: AppColors.highlight)),
+            child: Text(t('common.delete'), style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),
@@ -61,12 +61,12 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Simulasi kehapus')),
+            const SnackBar(content: Text(t('kpr.sim_deleted'))),
           );
           context.pop();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Gagal hapus simulasi')),
+            const SnackBar(content: Text(t('kpr.sim_delete_fail'))),
           );
         }
       }
@@ -90,7 +90,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Hapus', style: TextStyle(color: AppColors.highlight)),
+            child: Text(t('common.delete'), style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),
@@ -147,7 +147,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                   onRetry: _onRefresh,
                 )
               : sim == null
-                  ? const ErrorDisplay(message: 'Simulasi gak ketemu')
+                  ? ErrorDisplay(message: t('kpr.sim_not_found'))
                   : RefreshIndicator(
                       onRefresh: _onRefresh,
                       child: ListView(
@@ -182,7 +182,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         // ── First row: Property Price ───────────────
         _buildSummaryCard(
           icon: AppIcons.house,
-          label: 'Harga rumah',
+          label: t('kpr.house_price'),
           value: formatCurrency(sim.propertyPrice),
         ),
         const SizedBox(height: 10),
@@ -193,7 +193,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             Expanded(
               child: _buildSummaryCard(
                 icon: AppIcons.money,
-                label: 'Pinjaman',
+                label: t('kpr.loan'),
                 value: formatCurrency(sim.totalLoan),
               ),
             ),
@@ -201,7 +201,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             Expanded(
               child: _buildSummaryCard(
                 icon: AppIcons.receipt,
-                label: 'Cicilan / bulan',
+                label: t('kpr.installment'),
                 value: formatCurrency(monthlyPayment),
                 accent: true,
               ),
@@ -216,7 +216,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             Expanded(
               child: _buildSummaryCard(
                 icon: AppIcons.chartUp,
-                label: 'Total bunga',
+                label: t('kpr.total_interest'),
                 value: formatCurrency(totalInterest),
                 valueColor: AppColors.highlight,
               ),
@@ -225,7 +225,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             Expanded(
               child: _buildSummaryCard(
                 icon: AppIcons.wallet,
-                label: 'Total bayar',
+                label: t('kpr.total_payment'),
                 value: formatCurrency(totalPayment),
               ),
             ),
@@ -550,7 +550,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                         children: [
                           AppIcon(AppIcons.trash, size: 18),
                           SizedBox(width: 8),
-                          Text('Hapus'),
+                          Text(t('common.delete')),
                         ],
                       ),
                     ),

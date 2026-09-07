@@ -158,14 +158,14 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
 
     if (totalAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Total harus lebih dari 0')),
+        SnackBar(content: Text(t('cc.total_positive'))),
       );
       return;
     }
 
     if (monthlyAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cicilan bulanan harus lebih dari 0')),
+        SnackBar(content: Text(t('cc.monthly_positive'))),
       );
       return;
     }
@@ -192,7 +192,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
     if (success) {
       ref.read(homeRefreshProvider.notifier).state++;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cicilan kesimpen')),
+        const SnackBar(content: Text(t('cc.inst_saved'))),
       );
       if (mounted) context.pop();
     } else {
@@ -208,7 +208,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Tambah cicilan'),
+        title: Text(t('cc.inst_add')),
       ),
       body: Form(
         key: _formKey,
@@ -221,7 +221,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             TextFormField(
               controller: _descriptionCtrl,
               decoration: InputDecoration(
-                hintText: 'mis. Cicilan MacBook',
+                hintText: t('cc.inst_hint'),
                 prefixIcon: AppFieldIcon(AppIcons.edit),
               ),
               validator: _validateRequired,
@@ -264,7 +264,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               controller: _totalMonthsCtrl,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: 'mis. 12',
+                hintText: t('cc.months_hint'),
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               validator: _validateMonths,
@@ -278,7 +278,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               controller: _startMonthCtrl,
               readOnly: true,
               decoration: InputDecoration(
-                hintText: 'Pilih bulan',
+                hintText: t('cc.months_hint'),
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
                 suffixIcon: AppIcon(AppIcons.next, size: 20, color: AppColors.textSecondary),
               ),
@@ -295,7 +295,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
                       width: 18, height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                   : AppIcon(AppIcons.check, size: 18),
-              label: const Text('Simpan'),
+              label: Text(t('common.save')),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 backgroundColor: AppColors.accent,

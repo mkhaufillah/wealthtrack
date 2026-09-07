@@ -108,7 +108,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Center(
-                child: Text('Urutin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                child: Text(t('tx.sort_title'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 12),
               ...options.map((opt) {
@@ -169,7 +169,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Saring kategori',
+                      Text(t('common.filter_cat'),
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                       TextButton(
                         onPressed: () {
@@ -177,7 +177,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                             selected.clear();
                           });
                         },
-                        child: Text('Kosongin',
+                        child: Text(t('common.clear_all'),
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.accent,
@@ -189,7 +189,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   // Select All toggle
                   CheckboxListTile(
                     value: allSelected,
-                    title: Text('Semua kategori',
+                    title: Text(t('common.all_cat'),
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
@@ -258,7 +258,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                         // Pass empty list = all (no filter)
                         notifier.setCategoryFilter(allSelected ? [] : selected);
                       },
-                      child: Text('Terapin', style: TextStyle(color: AppColors.onAccent, fontSize: 15, fontWeight: FontWeight.w800)),
+                      child: Text(t('common.apply'), style: TextStyle(color: AppColors.onAccent, fontSize: 15, fontWeight: FontWeight.w800)),
                     ),
                   ),
                 ],
@@ -394,12 +394,12 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Center(
-                child: Text('Ganti pemilik',
+                child: Text(t('tx.owner_change'),
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 4),
               Center(
-                child: Text('Pilih pemilik baru', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                child: Text(t('common.select_owner'), style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ),
               const SizedBox(height: 16),
               ...available.map((member) {
@@ -424,7 +424,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     if (!mounted) return;
                     if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Pemiliknya ganti ke $name')),
+                        SnackBar(content: Text(t('common.owner_changed').replaceAll('{name}', name))),
                       );
                     } else {
                       final s = ref.read(transactionListProvider);

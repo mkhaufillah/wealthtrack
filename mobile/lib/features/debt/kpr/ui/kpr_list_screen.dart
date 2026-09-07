@@ -47,7 +47,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Hapus', style: TextStyle(color: AppColors.highlight)),
+            child: Text(t('common.delete'), style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),

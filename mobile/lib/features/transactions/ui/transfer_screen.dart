@@ -130,7 +130,7 @@ class _TransferBalanceScreenState
       if (amount <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Jumlah buat ${r.displayName} harus lebih dari 0'),
+            content: Text(t('transfer.amount_positive').replaceAll('{name}', r.displayName)),
           ),
         );
         return;
@@ -140,7 +140,7 @@ class _TransferBalanceScreenState
 
     if (transfers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tambah minimal satu penerima')),
+        const SnackBar(content: Text(t('transfer.add_recipient'))),
       );
       return;
     }
@@ -175,7 +175,7 @@ class _TransferBalanceScreenState
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Total',
+                Text(t('common.total'),
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 Text('Rp${_fmtAmount(transfers.fold<int>(0, (s, t) => s + (t['amount'] as int)))}',
                     style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -279,7 +279,7 @@ class _TransferBalanceScreenState
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Dari',
+                              Text(t('common.from'),
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: AppColors.textSecondary)),
@@ -323,7 +323,7 @@ class _TransferBalanceScreenState
                           TextButton.icon(
                             onPressed: isSubmitting ? null : _addRecipient,
                             icon: AppIcon(AppIcons.user, size: 18),
-                            label: const Text('Tambah'),
+                            label: Text(t('common.add')),
                           ),
                       ],
                     ),

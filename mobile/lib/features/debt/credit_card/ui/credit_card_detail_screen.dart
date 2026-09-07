@@ -65,7 +65,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Hapus', style: TextStyle(color: AppColors.highlight)),
+            child: Text(t('common.delete'), style: TextStyle(color: AppColors.highlight)),
           ),
         ],
       ),
@@ -88,7 +88,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(t('cc.del_txn')),
-        content: Text('Hapus "$label"? Gak bisa dibalikin.'),
+        content: Text(t('cc.delete_confirm_body').replaceAll('{label}', label)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -120,7 +120,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(t('cc.del_inst')),
-        content: Text('Hapus "$label"? Gak bisa dibalikin.'),
+        content: Text(t('cc.delete_confirm_body').replaceAll('{label}', label)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -181,8 +181,8 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 dividerColor: AppColors.divider,
                 indicatorSize: TabBarIndicatorSize.label,
                 tabs: const [
-                  Tab(text: 'Transaksi'),
-                  Tab(text: 'Cicilan'),
+                  Tab(text: t('cc.tab_txn')),
+                  Tab(text: t('cc.tab_inst')),
                 ],
               )
             : null,
@@ -210,7 +210,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 )
               : card == null
                   ? ErrorDisplay(
-                      message: 'Kartu gak ketemu',
+                      message: t('cc.not_found'),
                       onRetry: _onRefresh,
                     )
                   : Column(
@@ -691,8 +691,8 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
               TextField(
                 controller: descriptionCtrl,
                 decoration: InputDecoration(
-                  labelText: 'Keterangan',
-                  hintText: 'mis. belanja',
+                  labelText: t('cc.desc_label'),
+                  hintText: t('cc.desc_hint'),
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -701,7 +701,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 controller: amountCtrl,
                 focusNode: amountFocusNode,
                 decoration: InputDecoration(
-                  labelText: 'Jumlah',
+                  labelText: t('cc.amount_label'),
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
@@ -721,7 +721,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 },
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: 'Tanggal',
+                    labelText: t('cc.date_label'),
                     border: OutlineInputBorder(),
                     suffixIcon: AppIcon(AppIcons.calendar),
                   ),
@@ -766,7 +766,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                   );
                 }
               },
-              child: const Text('Simpan'),
+              child: Text(t('common.save')),
             ),
           ],
         ),

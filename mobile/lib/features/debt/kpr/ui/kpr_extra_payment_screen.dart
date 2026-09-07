@@ -151,12 +151,12 @@ class _KPRExtraPaymentScreenState
     if (mounted) {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Pembayaran ekstra kesimpen')),
+          SnackBar(content: Text(t('kpr.extra_saved'))),
         );
         context.pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal pasang pembayaran ekstra')),
+          const SnackBar(content: Text(t('kpr.extra_fail'))),
         );
       }
     }
@@ -184,7 +184,7 @@ class _KPRExtraPaymentScreenState
           if (_step == ExtraStep.preview)
             TextButton(
               onPressed: _goBackToForm,
-              child: const Text('Ubah'),
+              child: Text(t('common.edit')),
             ),
         ],
       ),
@@ -231,7 +231,7 @@ class _KPRExtraPaymentScreenState
             focusNode: _amountFocusNode,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'Jumlah pembayaran ekstra (Rp)',
+              labelText: t('kpr.extra_amount'),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -252,7 +252,7 @@ class _KPRExtraPaymentScreenState
             controller: _monthController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'Pasang di bulan ke',
+              labelText: t('kpr.extra_apply_month'),
               hintText: '$_minMonth — $_maxMonth',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -340,30 +340,30 @@ class _KPRExtraPaymentScreenState
         const SizedBox(height: 20),
 
         _buildOptionCard(
-          title: 'A. Cicilan lebih kecil',
-          subtitle: 'Tenor tetap, cicilan turun',
+          title: t('kpr.option_a'),
+          subtitle: t('kpr.option_a_sub'),
           isSelected: _selectedOption == 0,
           fields: {
-            'Cicilan baru': formatCurrency(optA.newInstallment),
-            'Tenor baru': '${optA.newTenor} bln',
-            'Total bunga': formatCurrency(optA.totalInterestPaid),
-            'Bunga dihemat': formatCurrency(optA.interestSaved),
-            'Lunas': optA.endDate,
+            t('kpr.installment'): formatCurrency(optA.newInstallment),
+            t('kpr.period_label'): '${optA.newTenor} bln',
+            t('kpr.total_interest'): formatCurrency(optA.totalInterestPaid),
+            t('kpr.interest_saved'): formatCurrency(optA.interestSaved),
+            t('kpr.paid_off'): optA.endDate,
           },
           onTap: () => setState(() => _selectedOption = 0),
         ),
         const SizedBox(height: 12),
 
         _buildOptionCard(
-          title: 'B. Tenor lebih pendek',
-          subtitle: 'Cicilan tetap, lunas lebih cepet',
+          title: t('kpr.option_b'),
+          subtitle: t('kpr.option_b_sub'),
           isSelected: _selectedOption == 1,
           fields: {
-            'Cicilan baru': formatCurrency(optB.newInstallment),
-            'Tenor baru': '${optB.newTenor} bln',
-            'Total bunga': formatCurrency(optB.totalInterestPaid),
-            'Bunga dihemat': formatCurrency(optB.interestSaved),
-            'Lunas': optB.endDate,
+            t('kpr.installment'): formatCurrency(optB.newInstallment),
+            t('kpr.period_label'): '${optB.newTenor} bln',
+            t('kpr.total_interest'): formatCurrency(optB.totalInterestPaid),
+            t('kpr.interest_saved'): formatCurrency(optB.interestSaved),
+            t('kpr.paid_off'): optB.endDate,
           },
           onTap: () => setState(() => _selectedOption = 1),
         ),

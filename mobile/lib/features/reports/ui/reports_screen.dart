@@ -427,13 +427,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           child: Row(
             children: [
               Expanded(
-                child: Text('Total anggaran', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                child: Text(t('budget.total'), style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ),
               Text(formatCurrency(totalBudget),
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('Sudah dipakai', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                child: Text(t('budget.spent'), style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ),
               Text(formatCurrency(totalSpent),
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
@@ -993,7 +993,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           children: [
             SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: snackbarColor)),
             SizedBox(width: 12),
-            Text('Lagi bikin file…'),
+            Text(t('common.making_file')),
           ],
         )),
       );
@@ -1008,11 +1008,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
 
       scaffold.hideCurrentSnackBar();
-      await Share.shareXFiles([XFile(filePath)], text: 'Ekspor WealthTrack $year');
+      await Share.shareXFiles([XFile(filePath)], text: t('common.export_year').replaceAll('{year}', year.toString()));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal unduh: $e')),
+        SnackBar(content: Text(t('common.failed_download') + ': ' + e.toString())),
       );
     }
   }

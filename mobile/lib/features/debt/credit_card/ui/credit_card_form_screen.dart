@@ -160,7 +160,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kartu kesimpen')),
+        const SnackBar(content: Text(t('cc.card_saved'))),
       );
       if (mounted) context.pop();
     } else {
@@ -189,7 +189,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             TextFormField(
               controller: _nameCtrl,
               decoration: InputDecoration(
-                hintText: 'mis. Mandiri Visa Platinum',
+                hintText: t('cc.card_hint'),
                 prefixIcon: AppFieldIcon(AppIcons.card),
               ),
               validator: _validateRequired,
@@ -203,7 +203,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             TextFormField(
               controller: _last4Ctrl,
               decoration: InputDecoration(
-                hintText: 'mis. 1234',
+                hintText: t('cc.last4_hint'),
                 prefixIcon: AppFieldIcon(AppIcons.info),
               ),
               keyboardType: TextInputType.number,
@@ -221,7 +221,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               items: List.generate(31, (i) => i + 1).map((d) {
-                return DropdownMenuItem(value: d, child: Text('tgl $d'));
+                return DropdownMenuItem(value: d, child: Text(t('common.day_n_short').replaceAll('{n}', d.toString())));
               }).toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _billingDate = v);
@@ -238,7 +238,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               items: List.generate(31, (i) => i + 1).map((d) {
-                return DropdownMenuItem(value: d, child: Text('tgl $d'));
+                return DropdownMenuItem(value: d, child: Text(t('common.day_n_short').replaceAll('{n}', d.toString())));
               }).toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _dueDate = v);
@@ -282,7 +282,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
                       width: 18, height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                   : AppIcon(AppIcons.check, size: 18),
-              label: const Text('Simpan'),
+              label: Text(t('common.save')),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 backgroundColor: AppColors.accent,

@@ -300,7 +300,7 @@ class _PocketRow extends StatelessWidget {
           child: _PocketCard(
             icon: AppIcons.piggy,
             iconBg: AppColors.butter,
-            label: 'Simpanan',
+            label: t('home.savings_pocket'),
             value: formatCurrency(savings),
           ),
         ),
@@ -309,7 +309,7 @@ class _PocketRow extends StatelessWidget {
           child: _PocketCard(
             icon: AppIcons.shield,
             iconBg: AppColors.mint,
-            label: 'Dana darurat',
+            label: t('home.emergency_pocket'),
             value: formatCurrency(emergency),
           ),
         ),

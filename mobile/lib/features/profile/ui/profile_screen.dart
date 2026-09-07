@@ -667,7 +667,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text('admin',
-                        style: TextStyle(fontSize: 10, color: AppColors.avatarText('admin'))),
+                        style: TextStyle(fontSize: 10, color: AppColors.avatarText(t('profile.admin')))),
                   ),
                 ],
               ],
@@ -727,7 +727,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         if (m['role'] == 'admin') ...[
                           const SizedBox(width: 4),
-                          Text('(admin)',
+                          Text(t('profile.admin_badge'),
                               style: TextStyle(
                                   fontSize: 11, color: AppColors.textSecondary)),
                         ],

@@ -229,7 +229,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     final tenorMonths = _getTenorMonths();
     if (loanAmount <= 0 || tenorMonths <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Isi harga rumah sama uang muka dulu ya')),
+        const SnackBar(content: Text(t('kpr.fill_price_dp'))),
       );
       return;
     }
@@ -298,7 +298,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
           children: [
             AppIcon(AppIcons.chart, size: 22, color: AppColors.accent),
             const SizedBox(width: 8),
-            const Text('Hasil hitungan'),
+            Text(t('common.result')),
           ],
         ),
         content: Column(
@@ -321,7 +321,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Tutup'),
+            child: Text(t('common.close')),
           ),
         ],
       ),
@@ -352,7 +352,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     final loanAmount = _getLoanAmount();
     if (loanAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nilai pinjaman harus lebih dari 0')),
+        const SnackBar(content: Text(t('kpr.loan_positive'))),
       );
       return;
     }
@@ -393,7 +393,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Simulasi kesimpen')),
+        const SnackBar(content: Text(t('kpr.sim_saved'))),
       );
       ref.read(homeRefreshProvider.notifier).state++;
       if (mounted) context.pop();
@@ -424,7 +424,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             TextFormField(
               controller: _nameCtrl,
               decoration: InputDecoration(
-                hintText: 'mis. Rumah Impian',
+                hintText: t('kpr.name_hint'),
               ),
               validator: _validateRequired,
             ),
@@ -494,7 +494,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               items: [5, 10, 15, 20, 25, 30].map((y) {
-                return DropdownMenuItem(value: y, child: Text('$y tahun'));
+                return DropdownMenuItem(value: y, child: Text(t('common.year_n').replaceAll('{n}', y.toString())));
               }).toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _tenorYears = v);
@@ -551,10 +551,10 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               value: _dueDate,
               decoration: InputDecoration(
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
-                hintText: 'Tanggal dalam bulan',
+                hintText: t('kpr.date_in_month'),
               ),
               items: List.generate(28, (i) => i + 1).map((d) {
-                return DropdownMenuItem(value: d, child: Text('Tanggal $d'));
+                return DropdownMenuItem(value: d, child: Text(t('common.day_n_short').replaceAll('{n}', d.toString())));
               }).toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _dueDate = v);
@@ -567,10 +567,10 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 6),
             SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'fixed', label: Text('Tetap', style: TextStyle(fontSize: 12))),
-                ButtonSegment(value: 'floating', label: Text('Mengambang', style: TextStyle(fontSize: 11))),
-                ButtonSegment(value: 'graduated', label: Text('Bertahap', style: TextStyle(fontSize: 12))),
-                ButtonSegment(value: 'mix', label: Text('Campur', style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: 'fixed', label: Text(t('kpr.interest_fixed'), style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: 'floating', label: Text(t('kpr.interest_floating'), style: TextStyle(fontSize: 11))),
+                ButtonSegment(value: 'graduated', label: Text(t('kpr.interest_graduated'), style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: 'mix', label: Text(t('kpr.interest_mix'), style: TextStyle(fontSize: 12))),
               ],
               selected: {_interestType},
               onSelectionChanged: (v) => setState(() => _interestType = v.first),
@@ -622,7 +622,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                             width: 18, height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2))
                         : AppIcon(AppIcons.chart, size: 18),
-                    label: const Text('Hitung'),
+                    label: Text(t('common.calculate')),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
@@ -637,7 +637,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                             width: 18, height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                         : AppIcon(AppIcons.check, size: 18),
-                    label: const Text('Simpan'),
+                    label: Text(t('common.save')),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: AppColors.accent,
@@ -673,7 +673,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         controller: _baseRateCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
-          hintText: 'mis. 9.0',
+          hintText: t('kpr.rate_hint'),
           suffixText: '%',
           prefixIcon: AppFieldIcon(AppIcons.money),
         ),
@@ -691,7 +691,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         controller: _baseRateCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
-          hintText: 'mis. 7.0',
+          hintText: t('kpr.rate_low_hint'),
           suffixText: '%',
           prefixIcon: AppFieldIcon(AppIcons.money),
         ),
@@ -703,7 +703,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         controller: _gradIncrementCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
-          hintText: 'mis. 0.5',
+          hintText: t('kpr.increment_hint'),
           suffixText: '%',
           prefixIcon: AppFieldIcon(AppIcons.chartUp),
         ),
@@ -715,7 +715,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         controller: _gradEveryMonthsCtrl,
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
-          hintText: 'mis. 12',
+          hintText: t('kpr.months_hint'),
           suffixText: 'bulan',
           prefixIcon: AppFieldIcon(AppIcons.calendar),
         ),
@@ -749,7 +749,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               });
             },
             icon: AppIcon(AppIcons.add, size: 18),
-            label: const Text('Tambah periode'),
+            label: Text(t('common.add_period')),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               visualDensity: VisualDensity.compact,
@@ -775,7 +775,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               children: [
                 Row(
                   children: [
-                    Text('Periode ${idx + 1}',
+                    Text(t('kpr.period_n').replaceAll('{n}', (idx + 1).toString()),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -802,7 +802,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                       child: TextField(
                         controller: rp.fromMonthCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Dari (bln)',
+                          labelText: t('common.from_month'),
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                         ),
@@ -814,7 +814,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                       child: TextField(
                         controller: rp.toMonthCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Sampai (bln)',
+                          labelText: t('common.to_month'),
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                         ),
@@ -826,7 +826,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                       child: TextField(
                         controller: rp.rateCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Bunga %',
+                          labelText: t('common.rate_pct'),
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                         ),
@@ -839,13 +839,13 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                 DropdownButtonFormField<String>(
                   value: rp.rateType,
                   decoration: InputDecoration(
-                    labelText: 'Tipe',
+                    labelText: t('common.type'),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'fixed', child: Text('Tetap', style: TextStyle(fontSize: 13))),
-                    DropdownMenuItem(value: 'floating', child: Text('Mengambang', style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: 'fixed', child: Text(t('kpr.interest_fixed'), style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: 'floating', child: Text(t('kpr.interest_floating'), style: TextStyle(fontSize: 13))),
                   ],
                   onChanged: (v) {
                     if (v != null) setState(() => rp.rateType = v);

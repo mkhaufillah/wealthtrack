@@ -82,7 +82,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       state = state.copyWith(
         isEditing: false,
         savingProfile: false,
-        message: 'Profil kesimpen',
+        message: t('profile.saved'),
       );
     } catch (e) {
       state = state.copyWith(
@@ -100,7 +100,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
       state = state.copyWith(
         cycleStartDay: day,
-        message: 'Siklus tagihan kesimpen',
+        message: t('profile.cycle_saved'),
       );
     } catch (e) {
       state = state.copyWith(

@@ -371,13 +371,13 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
         children: [
           AppIcon(AppIcons.ai, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
           const SizedBox(height: 16),
-          Text('Nanya apa aja soal duit',
+          Text(t('home.ai_sub'),
               style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
           const SizedBox(height: 8),
-          Text('"Bulan ini makan berapa, ya?"',
+          Text(t('ai.sample1'),
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
           const SizedBox(height: 4),
-          Text('"Kasih tips nabung dong"',
+          Text(t('ai.sample2'),
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
         ],
       ),
@@ -409,7 +409,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textSecondary),
                       ),
                       const SizedBox(width: 8),
-                      Text('Lagi mikir…', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                      Text(t('common.thinking'), style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                     ],
                   )
                 : msg.status == 'error'
@@ -420,7 +420,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                           children: [
                             AppIcon(AppIcons.alert, size: 16, color: AppColors.highlight),
                             const SizedBox(width: 6),
-                            Text('Gagal — tap buat coba lagi',
+                            Text(t('common.try_again'),
                                 style: TextStyle(fontSize: 13, color: AppColors.highlight)),
                           ],
                         ),
