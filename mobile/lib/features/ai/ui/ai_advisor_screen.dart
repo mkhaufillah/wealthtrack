@@ -25,6 +25,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   bool _useAdvancedModel = false;
   bool _loaded = false;
   Timer? _pollTimer;
+  Timer? _scrollBackupTimer;
 
   @override
   void initState() {
@@ -120,6 +121,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _scrollBackupTimer?.cancel();
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
@@ -189,21 +191,18 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollCtrl.hasClients) {
-        _scrollCtrl.animateTo(_scrollCtrl.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-      }
+      if (!mounted || !_scrollCtrl.hasClients) return;
+      _scrollCtrl.animateTo(_scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     });
-    // Backup scroll after list fully lays out (MarkdownBody may need extra frame)
-    Future.delayed(const Duration(milliseconds: 200), () {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_scrollCtrl.hasClients || !mounted) return;
-        final target = _scrollCtrl.position.maxScrollExtent;
-        if (_scrollCtrl.position.pixels < target) {
-          _scrollCtrl.animateTo(target,
-              duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
-        }
-      });
+    _scrollBackupTimer?.cancel();
+    _scrollBackupTimer = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted || !_scrollCtrl.hasClients) return;
+      final target = _scrollCtrl.position.maxScrollExtent;
+      if (_scrollCtrl.position.pixels < target) {
+        _scrollCtrl.animateTo(target,
+            duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+      }
     });
   }
 
