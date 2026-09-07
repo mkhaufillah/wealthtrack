@@ -5,10 +5,12 @@ import re
 
 from app.core.ui_seed import COPY_ID
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
 FALLBACK = Path(
     __import__("os").getenv(
         "WEALTHTRACK_FALLBACK_PATH",
-        str(Path(__file__).parent.parent.parent.parent / "mobile" / "lib" / "core" / "ui" / "copy_fallback.dart"),
+        str(_REPO_ROOT / "mobile" / "lib" / "core" / "ui" / "copy_fallback.dart"),
     )
 )
 
