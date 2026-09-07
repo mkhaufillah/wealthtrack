@@ -82,7 +82,7 @@ class TestOcrProcessAndSave:
             files={"file": ("test.txt", b"not an image", "text/plain")},
         )
         assert resp.status_code == 400
-        assert "Unsupported image format" in resp.json()["detail"]
+        assert "Format foto gak didukung" in resp.json()["detail"]
 
     async def test_large_file_rejected(self, client: AsyncClient, filla_token: str):
         """File > 10 MB returns 400."""
@@ -219,7 +219,7 @@ class TestAiChat:
                 json={"question": "How can I save more?"},
             )
             assert resp.status_code == 500
-            assert "not configured" in resp.json()["detail"].lower()
+            assert "belum dikonfigurasi" in resp.json()["detail"].lower()
         finally:
             if not settings_restored:
                 from app.core.config import settings
