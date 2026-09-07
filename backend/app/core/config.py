@@ -62,18 +62,29 @@ class Settings(BaseSettings):
         return json.loads(self.CORS_ORIGINS)
 
     @property
+    def llm_provider(self) -> str:
+        # OpenCode Go proven working; OpenRouter only when OpenCode absent.
+        if self.OPENCODE_GO_API_KEY:
+            return "opencode"
+        if self.OPENROUTER_API_KEY:
+            return "openrouter"
+        return "opencode"
+
+    @property
     def llm_via_openrouter(self) -> bool:
-        return bool(self.OPENROUTER_API_KEY)
+        return self.llm_provider == "openrouter"
 
     @property
     def llm_api_url(self) -> str:
-        if self.OPENROUTER_API_KEY:
+        if self.llm_provider == "openrouter":
             return "https://openrouter.ai/api/v1/chat/completions"
         return "https://opencode.ai/zen/go/v1/chat/completions"
 
     @property
     def llm_api_key(self) -> str:
-        return self.OPENROUTER_API_KEY or self.OPENCODE_GO_API_KEY
+        if self.llm_provider == "openrouter":
+            return self.OPENROUTER_API_KEY
+        return self.OPENCODE_GO_API_KEY
 
     def llm_headers(self) -> dict:
         headers = {
@@ -81,7 +92,7 @@ class Settings(BaseSettings):
             "Content-Type": "application/json",
             "User-Agent": "wealthtrack-backend/1.0",
         }
-        if self.OPENROUTER_API_KEY:
+        if self.llm_provider == "openrouter":
             headers["HTTP-Referer"] = "https://wealthtrack.filla.id"
             headers["X-Title"] = "WealthTrack"
         else:

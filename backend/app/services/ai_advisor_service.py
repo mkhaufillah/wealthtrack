@@ -630,28 +630,20 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
 async def resolve_model(model: str) -> tuple[str, str, str]:
     """Return (resolved_model, api_url, api_key) for the given model."""
-    via_or = settings.llm_via_openrouter
-    if via_or:
+    if settings.llm_via_openrouter:
         model_map = {
             "flash": "deepseek/deepseek-v4-flash",
-            "opus": "anthropic/claude-opus-4.7",
+            "opus": "z-ai/glm-5.3",
         }
     else:
+        # OpenCode Go catalog
         model_map = {
             "flash": "deepseek-v4-flash",
-            "opus": "anthropic/claude-opus-4.7",
+            "opus": "glm-5.3",
         }
     resolved = model_map.get(model, model)
     api_url = settings.llm_api_url
     api_key = settings.llm_api_key
-
-    if model == "opus" and settings.OPENROUTER_API_KEY:
-        resolved = "anthropic/claude-opus-4.7"
-        api_key = settings.OPENROUTER_API_KEY
-        api_url = "https://openrouter.ai/api/v1/chat/completions"
-    elif model == "opus" and not settings.OPENROUTER_API_KEY:
-        # OpenCode Go model catalog — grok is available here too.
-        resolved = "grok-4.6"
     return resolved, api_url, api_key
 
 
