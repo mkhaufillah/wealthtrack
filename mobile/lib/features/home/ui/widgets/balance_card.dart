@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/brand_mark.dart';
 import '../../../../core/ui/copy_fallback.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 
@@ -29,31 +30,30 @@ class BalanceCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.mint,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Image.asset(
-                    'assets/logo.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.savings_outlined,
-                      size: 20,
-                      color: AppColors.heroOn,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  cycleLabel ?? t('home.hero_title'),
-                  style: TextStyle(
-                    color: AppColors.heroOn.withOpacity(0.7),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                const BrandMark(size: 44),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cycleLabel ?? t('home.hero_title'),
+                        style: TextStyle(
+                          color: AppColors.heroOn,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        t('home.hero_sub'),
+                        style: TextStyle(
+                          color: AppColors.heroOn.withOpacity(0.62),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

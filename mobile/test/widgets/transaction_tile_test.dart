@@ -41,12 +41,12 @@ void main() {
       expect(find.text('Salary'), findsOneWidget);
     });
 
-    testWidgets('shows category icon', (tester) async {
+    testWidgets('does not show category emoji', (tester) async {
       await tester.pumpWidget(wrap(TransactionTile(transaction: expense)));
-      expect(find.text('🍔'), findsOneWidget);
+      expect(find.text('🍔'), findsNothing);
     });
 
-    testWidgets('shows fallback icon when category icon is null', (tester) async {
+    testWidgets('does not show fallback category emoji', (tester) async {
       final noIcon = TransactionModel(
         id: 3, type: 'expense', amount: 10000,
         description: 'Test', note: '',
@@ -54,7 +54,7 @@ void main() {
          category: CategoryBrief(id: 9, name: 'Other', nameEn: 'Other', icon: ''),
       );
       await tester.pumpWidget(wrap(TransactionTile(transaction: noIcon)));
-      expect(find.text('📦'), findsOneWidget);
+      expect(find.text('📦'), findsNothing);
     });
   });
 }

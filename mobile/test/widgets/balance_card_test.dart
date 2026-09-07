@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/features/home/ui/widgets/balance_card.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
+import 'package:wealthtrack/core/ui/brand_mark.dart';
 
 Widget wrap(Widget w) => MaterialApp(theme: AppTheme.light, home: w);
 
@@ -19,6 +20,8 @@ void main() {
         const BalanceCard(balance: 0, income: 0, expense: 0),
       ));
       expect(find.text('Uang kamu'), findsOneWidget);
+      expect(find.text('Rekap pribadi, dari awal sampai sekarang'), findsOneWidget);
+      expect(find.byType(BrandMark), findsOneWidget);
     });
 
     testWidgets('formats balance correctly', (tester) async {

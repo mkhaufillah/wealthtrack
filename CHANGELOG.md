@@ -5,6 +5,7 @@
 ### UI Phase 0 — Pastel cozy
 - **Flutter:** Locked palette (peach/mint/rose) in `AppColors`. Home hero `Uang kamu`, Masuk/Keluar. Nav ID. Launcher mark C (ayam + koin mint).
 - **Flutter:** Login mascot uses rounded light/dark plates (`logo_login_*`) so dark mode has no transparent fringe. Text field icons capped at 16px.
+- **Flutter:** 3D ayam + koin mint on login/hero plates. Transaction list leading emoji removed. Light-mode avatars use plum lettering. FAB plus uses `onAccent`. Date-filter sheet hides the FAB.
 
 ### Transactions date filter & all-time home balance
 - **Flutter:** Transactions list chip for specific date or date range (`date_from`/`date_to` on existing API).

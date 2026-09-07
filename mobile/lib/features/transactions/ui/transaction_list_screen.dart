@@ -282,42 +282,49 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
 
   Future<void> _showDateFilterSheet() async {
     final state = ref.read(transactionListProvider);
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: AppIcon(AppIcons.calendar, color: AppColors.textPrimary),
-              title: Text(t('tx.date_specific')),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickSpecificDate();
-              },
-            ),
-            ListTile(
-              leading: AppIcon(AppIcons.calendar, color: AppColors.textPrimary),
-              title: Text(t('tx.date_range')),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickDateRange();
-              },
-            ),
-            if (state.dateFrom != null)
+    ref.read(isCategoryFilterSheetOpenProvider.notifier).state = true;
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: AppColors.surface,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               ListTile(
-                leading: AppIcon(AppIcons.close, color: AppColors.highlight),
-                title: Text('Clear', style: TextStyle(color: AppColors.highlight)),
+                leading: AppIcon(AppIcons.calendar, color: AppColors.textPrimary),
+                title: Text(t('tx.date_specific')),
                 onTap: () {
                   Navigator.pop(ctx);
-                  ref.read(transactionListProvider.notifier).clearDateFilter();
+                  _pickSpecificDate();
                 },
               ),
-          ],
+              ListTile(
+                leading: AppIcon(AppIcons.calendar, color: AppColors.textPrimary),
+                title: Text(t('tx.date_range')),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickDateRange();
+                },
+              ),
+              if (state.dateFrom != null)
+                ListTile(
+                  leading: AppIcon(AppIcons.close, color: AppColors.highlight),
+                  title: Text('Clear', style: TextStyle(color: AppColors.highlight)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ref.read(transactionListProvider.notifier).clearDateFilter();
+                  },
+                ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      if (mounted) {
+        ref.read(isCategoryFilterSheetOpenProvider.notifier).state = false;
+      }
+    }
   }
 
   Future<void> _pickSpecificDate() async {

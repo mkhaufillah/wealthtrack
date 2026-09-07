@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/transactions/providers/transaction_provider.dart';
 import '../../core/ui/copy_fallback.dart';
 import '../../core/ui/app_icons.dart';
+import '../../core/theme/app_theme.dart';
 import '../providers/theme_provider.dart';
 
 class MainShell extends ConsumerWidget {
@@ -48,7 +49,9 @@ class MainShell extends ConsumerWidget {
       floatingActionButton: index <= 1 && (index == 0 || !ref.watch(isCategoryFilterSheetOpenProvider))
           ? FloatingActionButton(
               onPressed: () => context.push('/transactions/add'),
-              child: AppIcon(AppIcons.add, size: 24),
+              backgroundColor: AppColors.accent,
+              foregroundColor: AppColors.onAccent,
+              child: AppIcon(AppIcons.add, size: 22, color: AppColors.onAccent),
             )
           : null,
     );

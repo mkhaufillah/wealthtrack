@@ -1,6 +1,7 @@
 /// Copy ID — ramah, santai. Source of truth until GET /ui/bootstrap.
 const Map<String, String> copyFallback = {
   'home.hero_title': 'Uang kamu',
+  'home.hero_sub': 'Rekap pribadi, dari awal sampai sekarang',
   'home.income': 'Masuk',
   'home.expense': 'Keluar',
   'home.greeting': 'Hai',

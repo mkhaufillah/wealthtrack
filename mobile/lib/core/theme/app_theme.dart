@@ -80,10 +80,11 @@ class AppColors {
   }
 
   static Color avatarBackground(String name) {
-    return avatarColor(name).withOpacity(_dark ? 0.3 : 0.15);
+    return avatarColor(name).withOpacity(_dark ? 0.35 : 0.42);
   }
 
-  static Color avatarText(String name) => avatarColor(name);
+  static Color avatarText(String name) =>
+      _dark ? avatarColor(name) : _textPrimary;
 
   static Color get highlightBackground =>
       highlight.withOpacity(_dark ? 0.4 : 0.1);

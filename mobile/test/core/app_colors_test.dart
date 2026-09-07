@@ -23,5 +23,12 @@ void main() {
       expect(AppColors.primary, isNot(const Color(0xFF58A6FF)));
       AppColors.sync(Brightness.light);
     });
+
+    test('light avatar stays readable', () {
+      AppColors.sync(Brightness.light);
+      final bg = AppColors.avatarBackground('Filla');
+      expect(bg.opacity, greaterThan(0.3));
+      expect(AppColors.avatarText('Filla'), const Color(0xFF4A3A48));
+    });
   });
 }

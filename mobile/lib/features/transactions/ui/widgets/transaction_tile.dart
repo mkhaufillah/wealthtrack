@@ -4,9 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/utils/date_formatter.dart';
-import '../../data/transaction_repository.dart';
 import '../../models/transaction_model.dart';
-import '../../providers/transaction_provider.dart';
 
 class TransactionTile extends StatelessWidget {
   final TransactionModel transaction;
@@ -25,7 +23,6 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isExpense = transaction.type == 'expense';
-    final icon = transaction.category.icon.isNotEmpty ? transaction.category.icon : '📦';
     final translatedCategory = transaction.category.nameEn.isNotEmpty
         ? transaction.category.nameEn
         : transaction.category.name;
@@ -33,17 +30,7 @@ class TransactionTile extends StatelessWidget {
     final ownerName = transaction.user?.displayName ?? '';
 
     return ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: isExpense
-              ? AppColors.highlight.withOpacity(0.1)
-              : AppColors.success.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(child: Text(icon, style: const TextStyle(fontSize: 20))),
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       title: Text(
         description.isEmpty ? translatedCategory : description,
         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
