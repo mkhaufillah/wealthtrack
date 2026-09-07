@@ -149,7 +149,7 @@ CREATE TABLE budgets (
     category_id: int, items: [{name, price}] }
         │
         ▼
-[Mobile pre-fill Add Transaction form]
+[Mobile pre-fills **Catatan baru**]
   User confirms/modifies → creates transaction
 ```
 
@@ -157,12 +157,12 @@ CREATE TABLE budgets (
 - `POST /api/v1/ocr/process` — accepts image, returns structured data
 - Store API key in `.env`: `OPENCODE_GO_API_KEY`
 - Handle errors: unreadable receipt → 422 with message
-- Rate limit: max 10 OCR/day per user (protect API budget)
+- Rate limit: max 30 OCR/day per user (protect API budget)
 
 **Mobile:**
-- Camera button on Add Transaction screen
+- **Ambil struk** on **Catatan baru**
 - Opens camera or gallery picker
-- Uploads image, shows loading state
+- Uploads image, shows **Struk lagi diproses…**
 - Pre-fills form fields on success
 - Manual edit if OCR fails
 

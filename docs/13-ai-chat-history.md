@@ -150,13 +150,12 @@ Takes the last `count * 2` messages (user + assistant pairs), preserving chronol
 
 ---
 
-## Privacy
+## Privacy / storage (current)
 
-- **No backend storage** — chat history is stored exclusively on-device using `path_provider`'s `getApplicationDocumentsDirectory()`
-- **No cloud sync** — conversations are not uploaded, backed up, or transmitted
-- **Clear on logout** — history is deleted when the user logs out
-- **Manual clear** — user can delete history anytime via the delete button in the AI Advisor AppBar
-- **Corrupted file handling** — if the JSON file is unparseable, it's silently discarded and a fresh history is started
+- **Server:** `ai_messages` (full thread for the UI) plus `ai_chat_summaries` (rolling summary for the model). See [22](22-ai-chat-summary-debt-context.md).
+- **Device:** `wealthtrack_chat_history.json` is a fallback only.
+- **Logout:** local file cleared; server rows stay until the user clears chat or deletes the account.
+- **Manual clear:** Teman AI trash control → `DELETE /ai/chat/messages` (also drops the summary).
 
 ---
 
@@ -183,4 +182,4 @@ Takes the last `count * 2` messages (user + assistant pairs), preserving chronol
 | `lib/features/ai/ui/ai_advisor_screen.dart` | Chat UI — load, add, clear, context sending |
 | `lib/features/profile/ui/profile_screen.dart` | Clear on logout |
 
-No backend changes.
+Backend: `ai_messages`, `ai_chat_summaries`, `GET/DELETE /ai/chat/messages`. Local file is fallback only.

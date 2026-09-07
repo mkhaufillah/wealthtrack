@@ -4,7 +4,7 @@
 
 **Goal:** (1) Filter the transactions list by a date range or a single day. (2) Home balance is all-time (every transaction), not the billing cycle.
 
-**Cancelled:** Feature 3 (clickable outstanding debt / remove Debt Tracker entrypoints). Home Debt Tracker card and Profile menu stay. Outstanding card stays display-only and hidden when `total_debt == 0`.
+**Cancelled:** Feature 3 (clickable outstanding debt / remove **Catatan utang** entrypoints). Home **Catatan utang** card and Profile menu stay. Outstanding card stays display-only and hidden when `total_debt == 0`.
 
 **Architecture:** Backend already has `date_from`/`date_to` on `GET /transactions`. Home saldo uses personal `GET /summaries/daily` with no dates (all-time, current user only — not household).
 
@@ -20,7 +20,7 @@
 |------|--------|
 | Date filter on Transactions | API + `TransactionRepository.list(dateFrom:, dateTo:)` exist. `TransactionListNotifier` never sends them. UI has type/category/sort/search chips only. |
 | Home total saldo | `DashboardNotifier.load` calls `/summaries/current-month?use_cycle=true` — **cycle-bounded**. Savings/emergency already hit `/summaries/all-time-category-balance`. MCP `get_current_balance` is household all-time via `/summaries/household` with no dates. |
-| Debt entry | Home: `_buildDebtSummaryCard` (not tappable) **and** `_buildDebtCard` → `/debt`. Profile Features: **Debt Tracker** → `/debt`. Route `/debt` (`DebtHomeScreen`) stays. |
+| Debt entry | Home: `_buildDebtSummaryCard` (not tappable) **and** `_buildDebtCard` → `/debt`. Profile: **Catatan utang** → `/debt`. Route `/debt` (`DebtHomeScreen`) stays. |
 
 ---
 
@@ -86,7 +86,7 @@ Clear chip resets both to null.
 
 ## 3. Clickable outstanding debt — CANCELLED
 
-Do **not** implement. Leave `_buildDebtSummaryCard` display-only and gated on `total_debt > 0`. Keep `_buildDebtCard` on home and Profile “Debt Tracker”. Route `/debt` unchanged.
+Do **not** implement. Leave `_buildDebtSummaryCard` display-only and gated on `total_debt > 0`. Keep `_buildDebtCard` on home and Profile **Catatan utang**. Route `/debt` unchanged.
 
 ---
 
@@ -102,7 +102,7 @@ Do **not** implement. Leave `_buildDebtSummaryCard` display-only and gated on `t
 
 Do **not** touch `home_screen.dart` debt widgets or `profile_screen.dart` menu except if dashboard load lives only in the provider (home still displays `state.balance`).
 
-`home_screen.dart` only changes if BalanceCard args change (cycleLabel). Minimize: pass `'All-time balance'` from existing `BalanceCard(...)` call.
+`home_screen.dart` only changes if BalanceCard args change. Live label is `t('home.hero_title')` (**Uang kamu**).
 
 No new tables, no new routes, no MCP tools, no deploy from the agent unless asked.
 

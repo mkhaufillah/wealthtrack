@@ -450,7 +450,7 @@ Do **not** run against production DB. Do **not** deploy (GitHub Actions on `main
 2. **Deleting a middle extra** is allowed. Create still forbids going backwards; after a middle delete, a new extra may be applied at a month that was previously “after” the deleted one. That is intended for correction.
 3. **No widget test file** for KPR detail today. Provider + backend tests are the contract; adding a full widget harness is out of scope.
 4. **`deleteExtraPayment` does not set `isLoading`.** Create/preview does. Optional polish only if the schedule rebuild feels slow; do not block the feature on it.
-5. **Confirmation copy** is English to match the rest of KPR extra-payment UI (`Extra Payments`, `Shorten Tenor`). Do not mix ID unless the surrounding screen is already ID.
+5. **Confirmation copy** matches the live KPR screen: section **Pembayaran ekstra**, options **Cicilan lebih kecil** / **Tenor lebih pendek**, dialog **Hapus** / **Batal**, snackbar **Pembayaran ekstra kehapus**.
 
 ---
 

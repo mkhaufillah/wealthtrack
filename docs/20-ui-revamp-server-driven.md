@@ -16,14 +16,14 @@
 
 Today the APK decides:
 
-- English product strings (`All-time balance`, `Debt Tracker`, `Shorten Tenor`)
+- English product strings that used to ship in the APK (`All-time balance`, `Debt Tracker`, `Shorten Tenor`) — **live copy is Indonesian** (`Uang kamu`, `Catatan utang`, `Tenor lebih pendek`)
 - `Rp` + `id_ID` in `formatCurrency`
 - KPR list **hardcodes ~9%** in `_estimateMonthlyPayment`
 - Home **chooses** which summary endpoint (cycle vs household vs daily) — that choice is a product rule stuck in `dashboard_provider.dart`
 
 Every caption or rumus change = Play build. Filla wants that loop dead.
 
-Home is also visually stacked: hero + categories + outstanding debt + AI + Debt Tracker + recents. Hierarchy is flat; navy/coral palette is safe and forgettable.
+Home is also visually stacked: hero + categories + outstanding debt + Teman AI + Catatan utang + recents.
 
 ---
 
@@ -33,7 +33,7 @@ Home is also visually stacked: hero + categories + outstanding debt + AI + Debt 
 2. **No hex in feature widgets.** `AppColors.accent`, not `Color(0xFFE8A317)`.
 3. **Personal all-time saldo** stays the home default (not household mix). Household is an explicit server flag later, not a silent endpoint swap.
 4. **Budgets stay cycle-based.** Home all-time does not infect budget actuals.
-5. **Debt Tracker entrypoints stay** (feature 3 cancelled). Outstanding card still hidden at `total_debt == 0`.
+5. **Catatan utang entrypoints stay** (feature 3 cancelled). Outstanding card still hidden at `total_debt == 0`.
 6. **Indonesian default copy.** EN only if bootstrap `locale` says so.
 7. **Offline:** cache last bootstrap + last `/home` snapshot. Stale UI > blank UI.
 8. First APK after this revamp **is allowed** (new theme + new clients). After that, copy/calc/palette tweaks = backend deploy.
@@ -112,14 +112,14 @@ Keep 5 tabs: Dashboard, Transactions, Budgets, Reports, Profile.
 
 ```
 ┌─────────────────────────────────────┐
-│  [Saldo keseluruhan]     Filla  ▾   │  copy from server
+│  [Uang kamu]     Filla  ▾   │  copy from server
 │  Rp8.743.144                        │  amount_display from server
 │  Pemasukan Rp…    Pengeluaran Rp…   │  display strings, not client math
 └─────────────────────────────────────┘
-  Tabungan     Dana darurat           │  existing all-time category tiles
-  Outstanding debt (if > 0)           │  unchanged entry rules
-  AI advisor                          │
-  Debt Tracker                        │  stays
+  Simpanan     Dana darurat           │  existing all-time category tiles
+  Utang jalan (if > 0)           │  unchanged entry rules
+  Teman AI                          │
+  Catatan utang                     │  stays
   Transaksi terbaru                   │
 ```
 
@@ -178,7 +178,7 @@ Cached by client (memory + SecureStorage). `ETag` / `Cache-Control: max-age=300`
 }
 ```
 
-Missing keys → Flutter fallback map in `lib/core/ui/copy_fallback.dart` (ID). **Do not** scatter `'Saldo keseluruhan'` in widgets.
+Missing keys → Flutter fallback map in `lib/core/ui/copy_fallback.dart` (ID). **Do not** scatter `'Uang kamu'` in widgets — use `t('home.hero_title')`.
 
 ### `GET /home`
 
@@ -270,7 +270,7 @@ Register router in `main.py`. Auth: same JWT.
 
 - Rewrite light/dark `Color(0x…)` in `app_theme.dart` only.
 - Add `heroFill` / `heroOn`.
-- Restyle `BalanceCard` as dark slab (`heroFill`) + saffron hairline. Label still from widget until Phase 2 (`cycleLabel: 'All-time balance'` → later `t('home.hero_title')`).
+- Restyle `BalanceCard` as peach hero (`heroFill`). Label from `t('home.hero_title')` → **Uang kamu**.
 - Update `MainShell` labels only after copy pack exists (Phase 1). Until then English nav can stay **or** hardcode ID in fallback file — prefer `copy_fallback.dart` even in Phase 0.
 - Tests: `balance_card_test` (label + finds amount). Screenshot not required.
 
@@ -299,9 +299,9 @@ Flutter `HomeNotifier.load` → `/home` only (plus OCR pending as today). Remove
 
 ### Phase 3 — Home layout polish
 
-Spacing tokens (`xs=4 … xl=32`) used consistently on home. Drop competing 32px type. Outstanding + AI + Debt Tracker stay, visually secondary.
+Spacing tokens (`xs=4 … xl=32`) used consistently on home. Drop competing 32px type. Outstanding + Teman AI + Catatan utang stay, visually secondary.
 
-Do **not** merge Debt Tracker into outstanding (cancelled).
+Do **not** merge Catatan utang into outstanding (cancelled).
 
 ### Phase 4 — Kill client math
 
@@ -389,7 +389,7 @@ Manual: light + dark, Filla vs Nahda login, cycle budgets unchanged.
 
 | Q | Default |
 |---|---------|
-| Hero language | ID (`Saldo keseluruhan`) |
+| Hero language | ID (`Uang kamu`) |
 | Hero on light mode | Dark slab (`heroFill`) |
 | Household toggle on home | Not in v1 |
 | Remote theme override | Yes, bootstrap can recolor without APK after Phase 1 |

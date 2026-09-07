@@ -1,6 +1,6 @@
 # Categories: Hugeicons keys in DB + Indonesian name only
 
-> **For Hermes:** Implement after Filla says **gas**. TDD backend first. Widgets use `AppColors` only. Do not change Debt Tracker / feature 3.
+> **For Hermes:** Implement after Filla says **gas**. TDD backend first. Widgets use `AppColors` only. Do not change **Catatan utang** / feature 3.
 
 **Goal:** (1) `categories.icon` stores a Hugeicons key, not an emoji. (2) Category management has a Hugeicons picker. (3) Drop `name_en` — one name, Indonesian.
 

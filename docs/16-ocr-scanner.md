@@ -7,14 +7,14 @@
 
 ## Overview
 
-OCR (Optical Character Recognition) extracts structured transaction data from receipt/bill images using a vision AI model. The feature is embedded in the Add Transaction screen — no separate route.
+OCR extracts structured transaction data from receipt images via a vision model. Embedded in **Catatan baru** — no separate route.
 
 | Aspect | Detail |
 |--------|--------|
-| **Trigger** | "Scan Receipt" button in Add Transaction form |
-| **Image source** | Camera (take photo) or Gallery (pick existing) |
-| **Vision model** | `kimi-k2.5` via OpenCode Go API |
-| **Rate limit** | 10 scans per day per user (in-memory) |
+| **Trigger** | **Ambil struk** (`tx.scan_title`) |
+| **Image source** | **Fotoin struk** / **Ambil dari galeri** |
+| **Vision model** | `deepseek-v4-flash-vision-exp` via OpenCode Go |
+| **Rate limit** | 30 scans per user per day (Redis) |
 | **Per-user queue** | Max 1 active job per user — subsequent uploads return 429 |
 | **System semaphore** | Max 2 concurrent Vision API calls across all users (`asyncio.Semaphore(2)`) |
 | **Retry** | 5 attempts with jittered exponential backoff (1s×jitter → 8s×jitter, random 0.5-1.5) |
@@ -43,9 +43,9 @@ OCR (Optical Character Recognition) extracts structured transaction data from re
 
 ### Flow
 
-1. User taps "Scan Receipt" button → bottom sheet with "Take Photo" / "Choose from Gallery"
+1. User taps **Ambil struk** → sheet **Kamera atau dari galeri** (**Fotoin struk** / **Ambil dari galeri**)
 2. User picks image source → `ImagePicker.pickImage()` (quality 70, maxWidth 1920)
-3. Screen shows loading overlay (**spinner + "Processing your receipt..."**)
+3. Overlay: **Struk lagi diproses…** / **Sebentar ya**
 4. Image uploaded as multipart to `POST /api/v1/ocr/process`
 5. Backend validates:
    - MIME type is one of: `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif`
@@ -56,7 +56,7 @@ OCR (Optical Character Recognition) extracts structured transaction data from re
    - Converted to **JPEG quality 85** (RGB, discards alpha)
    - Output size: ~200–500 KB (down from up to 10 MB)
 7. Backend loads categories from PostgreSQL → injects them into the vision AI prompt
-8. Vision AI (`kimi-k2.5`) processes the image → returns structured JSON
+8. Vision AI (`deepseek-v4-flash-vision-exp`) processes the image → structured JSON
 9. Response fields populate the form: amount, description, date, type, category, note
 10. User reviews and edits before saving
 
@@ -146,12 +146,12 @@ OCR scanning utilizes a background processing architecture:
               ),
               const SizedBox(height: 20),
               const Text(
-                'Processing your receipt...',
+                'Struk lagi diproses…',
                 style: TextStyle(color: AppColors.surface, fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Text(
-                'This may take a few seconds',
+                'Sebentar ya',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
             ],

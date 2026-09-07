@@ -93,19 +93,13 @@ Divider:     #E8E8E8    — Light border
 │                                        │
 │    Belum punya akun? Daftar dulu       │  <- Link text
 │                                        │
-│      ┌────────────────────────┐        │
-│      │  Or login as           │        │
-│      │  Filla (default)       │        │  <- Quick login chip
-│      └────────────────────────┘        │
-│                                        │
-│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
 └────────────────────────────────────────┘
 ```
 
 **States:**
 - **Loading:** Button shows spinner, fields disabled
-- **Error:** Red error message below password field: "Username atau password salah"
-- **Validation:** Inline message jika field kosong
+- **Error:** Red error message below password field: **Email atau password salah.**
+- **Validation:** Inline message if a field is empty
 - **Empty state first time:** Show "Daftar" link more prominently
 
 ### 2.2 Home Dashboard
@@ -115,22 +109,22 @@ Divider:     #E8E8E8    — Light border
 │  08:30                          │
 │                                 │
 │  ┌───────────────────────────┐  │
-│  │  💰 Monthly Balance       │  │  <- Balance card
+│  │  Uang kamu                │  │  <- Balance card
 │  │  Rp12.450.000             │  │  <- 32px, bold
 │  │  ───────────────────────  │  │
-│  │  Income       Expense     │  │
+│  │  Pemasukan    Pengeluaran │  │
 │  │  Rp15.000.000 Rp2.550.000 │  │  <- 14px
 │  │  🟢 +12.4% from last      │  │
 │  │       month               │  │
 │  └───────────────────────────┘  │
 │                                 │
 │  ┌────────────┬──────────────┐  │
-│  │ Income      │ Expense     │  │  <- Quick stat cards
+│  │  Pemasukan  │ Pengeluaran │  │  <- Quick stat cards
 │  │ Rp15.000.000│ Rp2.550.000 │  │
 │  │ 🟢        │ 🔴           │  │
 │  └────────────┴──────────────┘  │
 │                                 │
-│  Recent Transactions            │  <- Section title
+│  Baru aja                       │  <- Section title
 │                                 │
 │  ┌───────────────────────────┐  │
 │  │ 🍜  Lunch                 │  │
@@ -155,18 +149,18 @@ Divider:     #E8E8E8    — Light border
 
 **States:**
 - **Loading:** Shimmer skeleton for balance card + 3 transaction tiles
-- **Empty (no transactions):** Show illustration + "No transactions this month. Add one now!" + CTA button
-- **Error (API fail):** Error card with "Failed to load data" + Retry button
-- **Offline:** Subtle banner "Offline mode — data may not be up to date"
+- **Empty (no transactions):** **Sepi. Belum ada yang tercatat.**
+- **Error (API fail):** error card + **Coba lagi**
+- **Offline:** optional stale banner (not a primary chrome string)
 
-### 2.3 Add Transaction
+### 2.3 Add / edit transaction
 
 ```
 ┌────────────────────────────────────────┐
-│  ← Add Transaction                     │  <- AppBar with back
+│  ← Catatan baru                        │  <- AppBar (`tx.new`; edit: **Ubah catatan**)
 │                                        │
 │  ┌──────────────────────────────────┐  │
-│  │  [Expense] [Income]              |  │  <- Segmented control
+│  │  [PENGELUARAN] [PEMASUKAN]       |  │  <- Segmented control
 │  └──────────────────────────────────┘  │
 │                                        │
 │  ┌──────────────────────────────────┐  │
@@ -696,7 +690,7 @@ Backend (passthrough, no change) ──────── translateCategory()
 
 ### 9.6 Category Filtering by Transaction Type
 
-The Add Transaction screen loads categories **filtered by the selected type** (Expense/Income).
+The add-transaction screen (`Catatan baru`) loads categories **filtered by the selected type** (pengeluaran / pemasukan).
 
 **How it works:**
 - On `initState`, two API calls are made in parallel:
@@ -845,18 +839,18 @@ Exception handleError(dynamic e) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.connectionError:
-        return NetworkException('No internet connection. Please check and try again.');
+        return NetworkException('Gak ada internet. Cek koneksi, coba lagi.');
       case DioExceptionType.badResponse:
         final status = e.response?.statusCode;
         final detail = _extractDetail(e.response);
-        if (status == 401) return UnauthorizedException('Session expired. Please login again.');
-        if (status == 429) return ApiException('Too many requests. Please wait a moment.');
+        if (status == 401) return UnauthorizedException('Sesi habis. Masuk lagi ya.');
+        if (status == 429) return ApiException('Kebanyakan request. Tunggu sebentar ya.');
         // Map known backend error messages to friendly text
         return ApiException(_mapToFriendly(detail));
       default:
-        return ApiException('Something went wrong. Please try again.');
+        return ApiException('Ada yang gak beres. Coba lagi ya.');
     }
   }
-  return ApiException('Something went wrong. Please try again.');
+  return ApiException('Ada yang gak beres. Coba lagi ya.');
 }
 ```

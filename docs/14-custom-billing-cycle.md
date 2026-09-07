@@ -121,7 +121,7 @@ The `_build_context()` function now:
 | `lib/features/auth/providers/auth_provider.dart` | Same — propagate `cycleStartDay` |
 | `lib/features/profile/ui/profile_screen.dart` | +Billing Cycle section, grid picker (1–28), `_saveCycleDay()`, dark mode fix |
 | `lib/features/home/providers/dashboard_provider.dart` | Pass `use_cycle=true` + `ref_date=DateTime.now()` to `/current-month`. Store `dateFrom`/`dateTo` from response. |
-| `lib/features/home/ui/widgets/balance_card.dart` | Accept `cycleLabel`, show cycle range (e.g. "25 May – 24 Jun") instead of "Monthly Balance". |
+| `lib/features/home/ui/widgets/balance_card.dart` | Accept `cycleLabel`; live home uses **Uang kamu**, not "Monthly Balance". |
 | `lib/features/home/ui/home_screen.dart` | Format `dateFrom`/`dateTo` into cycle label + pass to BalanceCard. |
 | `lib/features/reports/data/report_repository.dart` | Pass `use_cycle=true` to `/monthly` + trend |
 | `lib/features/reports/ui/reports_screen.dart` | Compute cycle range locally, cycle label, `_maxMonth()` for start-month logic |

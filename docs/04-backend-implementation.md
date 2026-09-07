@@ -342,7 +342,7 @@ SORTABLE_ATTRIBUTES = ["date", "amount"]
   │
   ├── 5. Parse JSON response
   ├── 6. Validate category against PostgreSQL (not AI hallucination)
-  ├── 7. Return OCR result → mobile pre-fills Add Transaction form
+  ├── 7. Return OCR result → mobile pre-fills **Catatan baru**
   └── 8. (Optional) process-and-save → background task auto-creates transaction
 ```
 
