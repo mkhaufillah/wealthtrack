@@ -50,9 +50,11 @@ void main() {
   setUp(() => initTestSecureStorage());
 
   group('LoginScreen', () {
-    testWidgets('shows WealthTrack branding', (tester) async {
+    testWidgets('shows Hai lagi branding', (tester) async {
       await tester.pumpWidget(buildLoginApp());
-      expect(find.text('WealthTrack'), findsOneWidget);
+      expect(find.text('Hai lagi'), findsOneWidget);
+      expect(find.text('Catat duit, tanpa drama'), findsOneWidget);
+      expect(find.text('Username'), findsOneWidget);
       expect(find.byType(BrandMark), findsOneWidget);
     });
 
@@ -121,15 +123,17 @@ void main() {
       await tester.pumpWidget(buildLoginApp());
       await tester.tap(find.text('Masuk'));
       await tester.pumpAndSettle();
-      expect(find.text('Min 3 characters'), findsOneWidget);
-      expect(find.text('Min 6 characters'), findsOneWidget);
+      expect(find.text('Minimal 3 huruf'), findsOneWidget);
+      expect(find.text('Minimal 6 karakter'), findsOneWidget);
     });
   });
 
   group('RegisterScreen', () {
     testWidgets('shows Register title', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      expect(find.text('Daftar'), findsAtLeast(1));
+      expect(find.text('Yuk daftar'), findsOneWidget);
+      expect(find.text('Email'), findsOneWidget);
+      expect(find.text('Username'), findsOneWidget);
     });
 
     testWidgets('shows five input fields', (tester) async {
@@ -140,8 +144,8 @@ void main() {
 
     testWidgets('shows Register button and Login link', (tester) async {
       await tester.pumpWidget(buildRegisterApp());
-      expect(find.text('Daftar'), findsAtLeast(1));
-      expect(find.text('Already have an account? Login'), findsOneWidget);
+      expect(find.text('Kirim kode'), findsOneWidget);
+      expect(find.text('Sudah punya akun? Masuk aja'), findsOneWidget);
     });
 
     testWidgets('validates form fields', (tester) async {
@@ -149,7 +153,7 @@ void main() {
 
       // First fill email and send OTP
       await tester.enterText(find.byType(TextFormField).at(0), 'test@example.com');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Send OTP'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Kirim kode'));
       await tester.pumpAndSettle();
 
       // Now OTP is sent, OTP field appears (6th TextFormField)
@@ -157,9 +161,9 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'Daftar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Min 3 characters'), findsOneWidget);
-      expect(find.text('Display name is required'), findsOneWidget);
-      expect(find.text('Min 6 characters'), findsOneWidget);
+      expect(find.text('Minimal 3 huruf'), findsOneWidget);
+      expect(find.text('Nama tampilan wajib diisi'), findsOneWidget);
+      expect(find.text('Minimal 6 karakter'), findsOneWidget);
       expect(find.text('Valid email required'), findsNothing); // email already filled
     });
   });
