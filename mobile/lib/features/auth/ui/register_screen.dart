@@ -147,9 +147,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                 child: Form(
                   key: _formKey,
-                  child: ListView(
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
-                    children: [
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                       TextFormField(
                         key: const ValueKey('email'),
                         controller: _emailCtrl,
@@ -298,6 +300,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         child: Text(t('auth.have_account')),
                       ),
                     ],
+                    ),
                   ),
                 ),
               ),

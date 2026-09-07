@@ -158,6 +158,7 @@ void main() {
 
       // Now OTP is sent, OTP field appears (6th TextFormField)
       // Leave other fields empty and tap Register
+      await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Daftar'));
       await tester.tap(find.widgetWithText(ElevatedButton, 'Daftar'));
       await tester.pumpAndSettle();
 
