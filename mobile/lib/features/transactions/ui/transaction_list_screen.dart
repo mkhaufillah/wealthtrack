@@ -393,7 +393,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Center(
+              Center(
                 child: Text(t('tx.owner_change'),
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
