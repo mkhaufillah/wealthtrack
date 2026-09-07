@@ -37,7 +37,7 @@ void main() {
           requestOptions: RequestOptions(path: '/auth/login'),
           response: Response(
             statusCode: 401,
-            data: {'detail': 'Invalid username or password'},
+            data: {'detail': 'Username atau password salah'},
             requestOptions: RequestOptions(path: '/auth/login'),
           ),
         );
@@ -46,7 +46,7 @@ void main() {
         expect(result, isNot(isA<UnauthorizedException>()));
         expect(
           (result as ApiException).message,
-          'Username atau password salah.',
+          'Username atau password salah',
         );
       });
 
@@ -65,22 +65,25 @@ void main() {
         expect(result, isNot(isA<UnauthorizedException>()));
         expect(
           (result as ApiException).message,
-          'Username atau password salah.',
+          'Username atau password salah',
         );
       });
 
-      test('maps ID household error to friendly message', () {
+      test('passes through server detail for non-401 errors', () {
         final dioError = DioException(
-          requestOptions: RequestOptions(path: '/households/join'),
+          requestOptions: RequestOptions(path: '/test'),
           response: Response(
-            statusCode: 409,
-            data: {'detail': 'Kamu sudah di keluarga'},
-            requestOptions: RequestOptions(path: '/households/join'),
+            statusCode: 422,
+            data: {'detail': 'Data gak valid. Cek isian kamu ya.'},
+            requestOptions: RequestOptions(path: '/test'),
           ),
         );
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
-        expect((result as ApiException).message, 'Kamu sudah di keluarga.');
+        expect(
+          (result as ApiException).message,
+          'Data gak valid. Cek isian kamu ya.',
+        );
       });
 
       test('returns NetworkException for connection timeout', () {
@@ -101,19 +104,19 @@ void main() {
         expect(result, isA<NetworkException>());
       });
 
-      test('maps unrecognized backend error to generic message', () {
+      test('passes through unknown server detail unchanged', () {
         final dioError = DioException(
           requestOptions: RequestOptions(path: '/test'),
           response: Response(
             statusCode: 422,
-            data: {'detail': 'Unknown validation error'},
+            data: {'detail': 'Data gak valid. Cek isian kamu ya.'},
             requestOptions: RequestOptions(path: '/test'),
           ),
         );
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
         final apiExc = result as ApiException;
-        expect(apiExc.message, 'Ada yang gak beres. Coba lagi ya.');
+        expect(apiExc.message, 'Data gak valid. Cek isian kamu ya.');
       });
 
       test('returns generic message for 500', () {
@@ -144,18 +147,18 @@ void main() {
         expect(result, isA<ApiException>());
       });
 
-      test('maps known error messages to friendly text', () {
+      test('passes through server detail even when non-401', () {
         final dioError = DioException(
           requestOptions: RequestOptions(path: '/test'),
           response: Response(
             statusCode: 400,
-            data: {'detail': 'Invalid email or password'},
+            data: {'detail': 'Email ini sudah terdaftar'},
             requestOptions: RequestOptions(path: '/test'),
           ),
         );
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
-        expect((result as ApiException).message, 'Username atau password salah.');
+        expect((result as ApiException).message, 'Email ini sudah terdaftar');
       });
 
       test('returns generic message for empty detail', () {

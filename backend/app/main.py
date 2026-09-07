@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
@@ -53,6 +54,15 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """422: validation errors are user-facing — send Bahasa, not Pydantic English."""
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Data gak valid. Cek isian kamu ya."},
+    )
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Catch unhandled exceptions & return consistent JSON."""
@@ -63,7 +73,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "detail": {
                 "code": "INTERNAL_ERROR",
-                "message": "An unexpected error occurred",
+                "message": "Ada yang gak beres. Coba lagi ya.",
             }
         },
     )
