@@ -35,7 +35,7 @@ class HistoryItem(BaseModel):
 
 class AdviseRequest(BaseModel):
     question: str
-    model: str = "flash"  # "flash" | "opus"
+    model: str = "flash"  # "flash" | "advanced"  (legacy: "opus")
     history: list[HistoryItem] = []
 
 
@@ -633,13 +633,15 @@ async def resolve_model(model: str) -> tuple[str, str, str]:
     if settings.llm_via_openrouter:
         model_map = {
             "flash": "deepseek/deepseek-v4-flash",
-            "opus": "deepseek/deepseek-v4-pro",
+            "advanced": "deepseek/deepseek-v4-pro",
+            "opus": "deepseek/deepseek-v4-pro",  # legacy APK
         }
     else:
         # OpenCode Go catalog
         model_map = {
             "flash": "deepseek-v4-flash",
-            "opus": "deepseek-v4-pro",
+            "advanced": "deepseek-v4-pro",
+            "opus": "deepseek-v4-pro",  # legacy APK
         }
     resolved = model_map.get(model, model)
     api_url = settings.llm_api_url
@@ -882,7 +884,7 @@ def ensure_api_key_configured():
 
 def check_model_access(req_model: str, current_user: dict) -> None:
     """Check model access restrictions. Raises ValueError if access denied."""
-    if req_model == "opus" and current_user.get("role") != "admin":
+    if req_model in ("advanced", "opus") and current_user.get("role") != "admin":
         raise ValueError(
             "Advanced model is only available for the primary account holder"
         )

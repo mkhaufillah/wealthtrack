@@ -147,7 +147,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
 
       final res = await api.post('/ai/chat', data: {
         'question': text,
-        'model': _useAdvancedModel ? 'opus' : 'flash',
+        'model': _useAdvancedModel ? 'advanced' : 'flash',
         'history': history,
         if (retryParentId != null) 'retry_parent_id': retryParentId,
       });

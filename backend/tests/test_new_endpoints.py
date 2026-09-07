@@ -252,14 +252,14 @@ class TestAiChat:
             else:
                 settings.OPENCODE_GO_API_KEY = ""
 
-    async def test_opus_requires_admin(self, client: AsyncClient, nahda_token: str):
-        """Non-admin user gets 403 when requesting opus model."""
+    async def test_advanced_requires_admin(self, client: AsyncClient, nahda_token: str):
+        """Non-admin user gets 403 when requesting advanced model."""
         saved_key = _ensure_api_key()
         try:
             resp = await client.post(
                 "/api/v1/ai/chat",
                 headers={"Authorization": f"Bearer {nahda_token}"},
-                json={"question": "How am I doing?", "model": "opus"},
+                json={"question": "How am I doing?", "model": "advanced"},
             )
             assert resp.status_code == 403
             assert "Advanced model" in resp.json()["detail"]
