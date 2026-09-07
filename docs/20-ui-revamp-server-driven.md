@@ -114,7 +114,7 @@ Keep 5 tabs: Dashboard, Transactions, Budgets, Reports, Profile.
 ┌─────────────────────────────────────┐
 │  [Saldo keseluruhan]     Filla  ▾   │  copy from server
 │  Rp8.743.144                        │  amount_display from server
-│  Masuk Rp…    Keluar Rp…            │  display strings, not client math
+│  Pemasukan Rp…    Pengeluaran Rp…   │  display strings, not client math
 └─────────────────────────────────────┘
   Tabungan     Dana darurat           │  existing all-time category tiles
   Outstanding debt (if > 0)           │  unchanged entry rules
@@ -157,9 +157,9 @@ Cached by client (memory + SecureStorage). `ETag` / `Cache-Control: max-age=300`
     "dark":  { "background": "#0E1411", "surface": "#1A2320", "ink": "#F3EDE3", "muted": "#A39B8C", "line": "#2C3833", "accent": "#F0B429", "expense": "#FF6B57", "income": "#3DDC97", "warning": "#FBBF24", "heroFill": "#1A2320", "heroOn": "#F3EDE3" }
   },
   "copy": {
-    "home.hero_title": "Saldo keseluruhan",
-    "home.income": "Masuk",
-    "home.expense": "Keluar",
+    "home.hero_title": "Uang kamu",
+    "home.income": "Pemasukan",
+    "home.expense": "Pengeluaran",
     "nav.dashboard": "Beranda",
     "nav.transactions": "Transaksi",
     "nav.budgets": "Anggaran",
@@ -169,8 +169,8 @@ Cached by client (memory + SecureStorage). `ETag` / `Cache-Control: max-age=300`
     "transactions.filter_date_specific": "Tanggal tertentu",
     "transactions.filter_date_range": "Rentang tanggal",
     "common.clear": "Hapus filter",
-    "debt.tracker": "Pencatat utang",
-    "debt.outstanding": "Utang berjalan"
+    "debt.tracker": "Catatan utang",
+    "debt.outstanding": "Utang jalan",
   },
   "flags": {
     "home_all_time": true

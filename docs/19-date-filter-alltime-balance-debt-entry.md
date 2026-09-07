@@ -67,8 +67,8 @@ Clear chip resets both to null.
 
 - `DashboardNotifier.load`: keep fetching recent txns from `/transactions?per_page=5`.
 - Replace `/summaries/current-month?use_cycle=true` with `/summaries/household` (no dates) for `totalIncome`, `totalExpense`, `balance`.
-- Stop sending `dateFrom`/`dateTo` into `BalanceCard` as a cycle range. Label: **All-time balance** (or omit cycleLabel so it does not say “Monthly Balance”).
-- `BalanceCard`: if `cycleLabel` is null, show `'All-time balance'` instead of `'Monthly Balance'`. Pass `cycleLabel: 'All-time balance'` from home so the string is explicit.
+- Stop sending `dateFrom`/`dateTo` into `BalanceCard` as a cycle range. Hero title: **Uang kamu**; subtitle **Rekap pribadi, dari awal sampai sekarang**. Income/expense labels: **Pemasukan** / **Pengeluaran**.
+- `BalanceCard` uses `t('home.hero_title')` — not `'All-time balance'` / `'Monthly Balance'`.
 - Refresh path (`homeRefreshProvider`, pull-to-refresh) stays; still `load(force: true)`.
 
 ### Do not

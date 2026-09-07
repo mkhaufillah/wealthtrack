@@ -1,33 +1,33 @@
-# Ringkas chat AI + konteks utang lengkap
+# AI chat rolling summary + full debt context
 
-> Implementasi: 1 ringkasan jalan (bukan vector). Snapshot utang per KPR/kartu masuk system prompt.
+> One rolling summary (not vector memory). Per-KPR / per-card debt snapshot is injected into the system prompt.
 
-## 1. Masalah
+## 1. Problem
 
-- Model cuma lihat ~10 giliran terakhir. Lebih lama hilang.
-- Kirim semua chat = token gemuk.
-- Blok utang di prompt cuma total + nama, tanpa cicilan/sisa/bunga/jadwal.
+- The model only saw the last ~10 turns. Older context disappeared.
+- Sending the full thread wastes tokens.
+- The debt block was totals + names only — no installment, remaining principal, rate, or schedule.
 
-## 2. Ringkas otomatis
+## 2. Rolling summary
 
-- Tabel `ai_chat_summaries` (1 row per user): `summary`, `covered_through_id`.
-- Jendela utuh: **12 pesan** (~6 giliran) terbaru `complete`.
-- Pesan lebih tua: digabung ke 1 blok ringkasan (Flash, max ~800 token).
-- Payload model: snapshot uang + ringkasan + jendela + pertanyaan baru.
-- Ringkas ulang hanya jika ada pesan complete baru di luar jendela (bukan tiap karakter).
-- Isi ringkasan: keputusan, preferensi, pantangan, topik terbuka. **Jangan** ulang angka (itu dari snapshot).
-- Hapus chat / hapus akun → hapus ringkasan.
+- Table `ai_chat_summaries` (one row per user): `summary`, `covered_through_id`.
+- Raw window: last **12 complete messages** (~6 turns).
+- Older messages fold into one summary (Flash, ~800 tokens max).
+- Model payload: money snapshot + summary + window + new question.
+- Re-summarize only when new complete messages fall out of the window (not per token).
+- Summary content: decisions, preferences, constraints, open threads. **Do not** repeat numbers (those live in the snapshot).
+- Clear chat / delete account → delete the summary.
 
-## 3. Konteks utang
+## 3. Debt context
 
-Per KPR: nama, pemilik, harga, DP, pinjaman, tipe+bunga, tenor, mulai, tgl jatuh tempo, cicilan bulan ini, sisa pokok, extra payment.
+Per KPR: name, owner, property price, down payment, loan, type+rate, tenor, start, due day, current installment, remaining principal, extra payments.
 
-Per kartu: nama, pemilik, limit, tgl tagihan/tempo, belanja bulan ini, tiap cicilan aktif (deskripsi, bulanan, sisa bulan).
+Per card: name, owner, limit, billing/due day, spend this month, each active installment (description, monthly amount, remaining months).
 
-Angka dari DB, bukan estimasi 9%.
+Figures come from the DB, not a 9% client estimate.
 
-## 4. Bukan
+## 4. Out of scope
 
-- Memory vector / embeddings
-- Ubah UI chat
-- Ringkas di APK
+- Vector / embedding memory
+- Chat UI changes
+- Summarizing on the APK

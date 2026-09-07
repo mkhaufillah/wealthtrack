@@ -1,152 +1,77 @@
-# Kategori: ikon Hugeicons di DB + nama Indonesia only
+# Categories: Hugeicons keys in DB + Indonesian name only
 
-> **For Hermes:** Implement setelah Filla bilang **gas**. TDD backend dulu. Widget hanya `AppColors`. Jangan sentuh Debt Tracker / fitur 3.
+> **For Hermes:** Implement after Filla says **gas**. TDD backend first. Widgets use `AppColors` only. Do not change Debt Tracker / feature 3.
 
-**Goal:** (1) `categories.icon` simpan key Hugeicons, bukan emoji. (2) Halaman kelola kategori punya icon picker Hugeicons. (3) Hapus `name_en` — satu nama, bahasa Indonesia.
+**Goal:** (1) `categories.icon` stores a Hugeicons key, not an emoji. (2) Category management has a Hugeicons picker. (3) Drop `name_en` — one name, Indonesian.
 
-**Architecture:** Key ikon = string `strokeRounded…` (nama const hugeicons 1.1.7). Backend simpan apa adanya. Flutter resolve lewat katalog curated (bukan 4000 ikon). Emoji lama di-migrate sekali di startup. `name_en` di-drop dari schema + API.
-
-**Tech Stack:** PostgreSQL (`ALTER` di `database.py` startup), FastAPI schemas/services, Flutter `CategoryGlyph` + picker grid.
+**Architecture:** Icon key = `strokeRounded…` (hugeicons 1.1.7 const name). Backend stores it as-is. Flutter resolves via a curated catalog (not 4000 icons). Legacy emoji migrates once at startup. `name_en` is dropped from schema + API.
 
 **See also:** [Admin Category CRUD](17-admin-category-crud.md) · [Flutter Mobile](05-flutter-mobile.md)
 
 ---
 
-## Sekarang
+## Before
 
-| Hal | Kondisi |
-|-----|---------|
+| Piece | State |
+|-------|--------|
 | `categories.icon` | Emoji (`🍽️`, `🚗`) |
-| Render | FE `CategoryGlyph` switch emoji → Hugeicons |
-| `categories.name_en` | Masih kolom + field API + model Flutter |
-| UI nama | Campur: tile/picker sudah `name`; kelola kategori + filter list + chart masih `name_en` dulu |
-| Lookup khusus | `summary_service` + laporan pakai `name_en == 'Savings & Investment'` dll. |
+| Render | FE `CategoryGlyph` mapped emoji → Hugeicons |
+| `categories.name_en` | Column + API + Flutter model |
+| Name UI | Mixed: some tiles used `name`; manage/filter/charts preferred `name_en` |
+| Special lookups | `summary_service` / reports used `name_en == 'Savings & Investment'` |
 
 ---
 
-## Keputusan
+## Decisions
 
-1. **Value DB** = key Hugeicons, contoh `strokeRoundedServingFood`. Bukan path JSON, bukan emoji.
-2. **Katalog curated** di Flutter (~30 ikon finansial). Picker hanya ini. Key di luar katalog → fallback `strokeRoundedInvoice01`.
-3. **`name` saja.** Drop kolom `name_en`. API tidak kirim `name_en` / `category_name_en`. Flutter hapus `nameEn` / `categoryNameEn`.
-4. **Lookup tabungan/darurat** ganti ke `name` ID (bukan id hardcode — nama bisa custom, tapi default seed tetap):
+1. **DB value** = Hugeicons key, e.g. `strokeRoundedServingFood`.
+2. **Curated catalog** in Flutter. Unknown keys → `strokeRoundedInvoice01`.
+3. **`name` only.** Drop `name_en`. API does not send `name_en` / `category_name_en`. Flutter drops `nameEn`.
+4. **Savings / emergency lookups** use Indonesian `name` (not hardcoded ids):
    - `Tabungan & Investasi`
    - `Penarikan Tabungan & Investasi`
    - `Dana Darurat`
-5. Default categories tetap tidak bisa diedit (`is_default`). Ikon default tetap di-migrate ke key Hugeicons.
-6. APK lama: `name_en` hilang → fallback ke `name` (ID). Ikon jadi string non-emoji → glyph lama (kalau masih emoji-switch) jatuh ke invoice sampai update APK. **Satu ship backend+APK.**
+5. Default categories stay locked (`is_default`). Their icons still migrate to Hugeicons keys.
+6. **Ship backend + APK together.** Old APKs lose `name_en` (fall back to `name`) and unknown icon strings.
 
 ### YAGNI
 
-- Jangan expose 4000 Hugeicons di picker.
-- Jangan server-driven icon catalog v1 (APK punya map).
-- Jangan hapus `keywords`.
-- Jangan DELETE kategori.
-- Jangan ganti `transactions.category_name` snapshot (sudah ID).
+- Do not expose 4000 Hugeicons in the picker.
+- No server-driven icon catalog in v1.
+- Keep `keywords`. No DELETE category.
 
 ---
 
-## 1. Backend — schema + migrate
+## 1. Backend
 
-**Modify:** `backend/app/database.py` (setelah `CREATE TABLE IF NOT EXISTS categories`)
+Startup, idempotent (see `database.py`): emoji → `strokeRounded…`, then `ALTER TABLE categories DROP COLUMN IF EXISTS name_en`.
 
-Startup, idempotent:
+Validate `icon`: prefix `strokeRounded`, max ~64 chars; empty → `strokeRoundedInvoice01`.
 
-```sql
--- icon: emoji → key Hugeicons (hanya jika value masih emoji / belum strokeRounded)
-UPDATE categories SET icon = 'strokeRoundedServingFood' WHERE icon IN ('🍽️','🍽','🍔','🍜','🍱');
-UPDATE categories SET icon = 'strokeRoundedCar01' WHERE icon IN ('🚗','🛵');
-UPDATE categories SET icon = 'strokeRoundedFuelStation' WHERE icon IN ('⛽','⛽️');
-UPDATE categories SET icon = 'strokeRoundedShoppingBag01' WHERE icon IN ('🛒','🛍️');
-UPDATE categories SET icon = 'strokeRoundedHome01' WHERE icon IN ('💡','⚡');
-UPDATE categories SET icon = 'strokeRoundedMedicineBottle01' WHERE icon IN ('🏥','💊');
-UPDATE categories SET icon = 'strokeRoundedSchool' WHERE icon = '🎓';
-UPDATE categories SET icon = 'strokeRoundedGameController01' WHERE icon = '🎮';
-UPDATE categories SET icon = 'strokeRoundedMoneyBag01' WHERE icon IN ('💰','💵');
-UPDATE categories SET icon = 'strokeRoundedBank' WHERE icon = '🏦';
-UPDATE categories SET icon = 'strokeRoundedSmartPhone01' WHERE icon = '📱';
-UPDATE categories SET icon = 'strokeRoundedHouse01' WHERE icon = '🏠';
-UPDATE categories SET icon = 'strokeRoundedClothes' WHERE icon = '👕';
-UPDATE categories SET icon = 'strokeRoundedGift' WHERE icon = '🎁';
-UPDATE categories SET icon = 'strokeRoundedAirplane01' WHERE icon IN ('✈️','✈');
-UPDATE categories SET icon = 'strokeRoundedFishFood' WHERE icon IN ('🐶','🐱');
-UPDATE categories SET icon = 'strokeRoundedTv01' WHERE icon = '🎬';
-UPDATE categories SET icon = 'strokeRoundedInvoice01' WHERE icon = '📄';
-UPDATE categories SET icon = 'strokeRoundedLaptop' WHERE icon = '💻';
-UPDATE categories SET icon = 'strokeRoundedInvoice01'
-  WHERE icon IS NULL OR icon = '' OR icon NOT LIKE 'strokeRounded%';
+Strip `name_en` from schemas/services. Savings lookups use Indonesian `name IN (...)`.
 
-ALTER TABLE categories DROP COLUMN IF EXISTS name_en;
-```
-
-Validasi create/update: `icon` string, prefix `strokeRounded`, max ~64 char. Kosong → `strokeRoundedInvoice01`.
-
-**Modify:** `backend/app/schemas/category.py` — buang `name_en`.
-**Modify:** `backend/app/schemas/transaction.py` — category object tanpa `name_en`.
-**Modify:** `backend/app/schemas/budget.py` — buang semua `category_name_en`.
-**Modify:** `category_service.py`, `transaction_service.py`, `summary_service.py`, `budget_ai.py`, routers — SELECT/INSERT tanpa `name_en`.
-
-**Lookup:** `summary_service.get_all_time_category_balance` pakai `name IN (...)` Indonesia, bukan `name_en`.
-
-**Test dulu:** `backend/tests/test_categories.py`
-- GET tidak punya `name_en`
-- POST tanpa `name_en`, `icon` = `strokeRoundedCar01`
-- GET icon bukan emoji
-- non-admin 403 tetap
-
-Lalu sesuaikan fixture `DEFAULT_CATEGORIES` di `backend/tests/conftest.py` (kolom `name_en` hilang, icon = key).
-
-Run: `python -m pytest tests/test_categories.py tests/test_budgets.py tests/test_transactions.py -v --tb=short` dari `backend/`.
+**Tests:** `tests/test_categories.py` — no `name_en` in GET; POST `icon=strokeRoundedCar01`; non-admin 403.
 
 ---
 
-## 2. Flutter — resolve + picker
+## 2. Flutter
 
-**Create:** `mobile/lib/core/ui/category_icons.dart`
+`category_icons.dart` — map + `kCategoryIconCatalog` with short ID labels (Makan, Mobil, Bensin, …). Identifiers must exist in hugeicons 1.1.7.
 
-- Map `String` → `List<List<dynamic>>` (hanya const yang **ada** di hugeicons 1.1.7 — cek `stroke_rounded.dart`, jangan ulangi bug `Petrol`/`Education`).
-- List `kCategoryIconCatalog` untuk picker (label ID pendek: Makan, Mobil, Bensin, Belanja, Rumah, Kesehatan, Sekolah, Game, Uang, Bank, HP, Baju, Kado, Pesawat, TV, Struk, Laptop, …).
-- `hugeIconFor(String key)` → catalog atau `Invoice01`.
+Manage screen: one name field, dropdown+search picker, `t()` copy (`Kelola kategori`, **Simpan**, **Tambah**). Tiles use `CategoryGlyph` + `name`.
 
-**Modify:** `category_glyph.dart` — input = key DB, bukan emoji. Tetap well pastel + `AppColors`.
-
-**Modify:** `category_management_screen.dart`
-- Satu field nama (ID). Hapus Name (English) + Icon (emoji).
-- Icon picker: grid Hugeicons dari katalog, selected pakai `AppColors.accent` / `onAccent`.
-- Tile: `CategoryGlyph(icon: cat['icon'])` + `cat['name']` only. Copy form ID (`t()`).
-- FAB sudah accent+onAccent.
-
-**Modify:** hapus `nameEn` / `categoryNameEn` dari:
-- `transaction_model.dart`, `add_transaction_screen.dart`, `category_picker.dart`
-- `transaction_list_screen.dart` (filter: nama ID + `CategoryGlyph`, bukan emoji)
-- `budget_model.dart`, `budgets_screen.dart`, `budget_suggestion_sheet.dart`
-- `report_model.dart`, `reports_screen.dart` (savings match pakai `categoryName` ID)
-- `charts_section.dart` — label `name` + glyph, bukan `'${emoji} ${nameEn}'`
-
-**Test:** sesuaikan fixture icon (`🍜` → `strokeRoundedServingFood`) dan assert tanpa `Food & Drinks` / `name_en`. Tes picker: tap ikon katalog ter-select.
-
-CI: `flutter test` hanya di `build-apk.yml`.
+Tests assert Indonesian copy — do not revert to English to make tests pass.
 
 ---
 
 ## 3. Docs
 
-Update `docs/17-admin-category-crud.md` (ID): icon = key Hugeicons, tidak ada `name_en`.
-Jangan rewrite 01–18 penuh di PR ini.
+Keep this file and [17] in **English**. Quoted UI strings stay Indonesian as in the app.
 
 ---
 
-## File touch list
+## Verify
 
-Backend: `database.py`, `schemas/category.py`, `schemas/transaction.py`, `schemas/budget.py`, `services/category_service.py`, `services/transaction_service.py`, `services/summary_service.py`, `utils/budget_ai.py`, `tests/conftest.py`, `tests/test_categories.py` (+ tes lain yang assert `name_en`).
-
-Mobile: `category_icons.dart` (baru), `category_glyph.dart`, `category_management_screen.dart`, models/screens di atas, tes budgets/reports/add_transaction/tile.
-
----
-
-## Verifikasi
-
-- pytest kategori + transaksi + budget + summary hijau.
-- CI APK: compile (tidak ada member Hugeicons fiktif) + tes copy ID.
-- Prod migrate: setelah deploy backend, `icon LIKE 'strokeRounded%'` dan kolom `name_en` hilang.
-- Kelola kategori: picker grid, simpan, list transaksi/anggaran/laporan tampil ikon yang sama.
+- pytest categories + transactions + budgets + summaries
+- CI APK: real Hugeicons members + ID copy tests
+- Prod: `icon LIKE 'strokeRounded%'` and no `name_en` column

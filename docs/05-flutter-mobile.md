@@ -88,10 +88,10 @@ Divider:     #E8E8E8    — Light border
 │       └────────────────────────┘       │
 │                                        │
 │      ┌────────────────────────┐        │
-│      │       Login            │        │  <- Primary button
+│      │       Masuk            │        │  <- Primary button
 │      └────────────────────────┘        │
 │                                        │
-│    Don't have an account? Register     │  <- Link text
+│    Belum punya akun? Daftar dulu       │  <- Link text
 │                                        │
 │      ┌────────────────────────┐        │
 │      │  Or login as           │        │
@@ -282,10 +282,10 @@ Divider:     #E8E8E8    — Light border
 ```
 
 **States:**
-- **Editing profile:** Inline form replaces the info card — text field for display_name, Save and Cancel buttons
-- **Changing password:** Bottom sheet or push screen with: current password, new password, confirm new password fields
-- **Logout:** Confirmation dialog "Are you sure you want to logout?" → Yes clears token → redirects to `/login`
-- **Delete account:** Confirmation dialog "This will permanently delete your account and all transactions. This cannot be undone." → type "DELETE" to confirm → API call → redirect to `/login`
+- **Editing profile:** Inline form — display_name, **Simpan** and **Batal**
+- **Changing password:** Bottom sheet: current / new / confirm
+- **Logout:** Dialog **Yakin mau keluar dulu?** → confirm **Keluar** clears token → `/login`
+- **Delete account:** Destructive confirm in Indonesian (app copy), then API → `/login`
 - **Error (save/change/delete):** Snackbar with error message
 - **Loading:** Buttons show spinner during API calls
 
@@ -826,13 +826,12 @@ Errors are handled centrally in `ApiClient.handleError()` (`api_client.dart`). A
 
 | Backend / Error Type | User-Friendly Message |
 |---|---|
-| Login wrong password | "Username or password is incorrect. Please check and try again." |
-| Email already registered | "Email is already registered. Please use a different email or login." |
-| Network / timeout | "No internet connection. Please check and try again." |
-| 401 Unauthorized | "Session expired. Please login again." |
-| 429 Rate limit | "Too many requests. Please wait a moment." |
-| OCR backend errors | "Something went wrong. Please try again." |
-| Unrecognized / server 5xx | "Something went wrong. Please try again." |
+| Login wrong password | Email atau password salah. |
+| Email already registered | Email ini sudah terdaftar. |
+| Network / timeout | Gak ada internet. Cek koneksi, coba lagi. |
+| 401 Unauthorized | Sesi habis. Masuk lagi ya. |
+| 429 Rate limit | Kebanyakan request. Tunggu sebentar ya. |
+| OCR / unrecognized / 5xx | Ada yang gak beres. Coba lagi ya. |
 
 ### Implementation
 

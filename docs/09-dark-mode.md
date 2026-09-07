@@ -1,117 +1,81 @@
 # Dark Mode
 
-**Fitur ditambahkan:** 2026-05-27 · Commit: `2f73837`
-**Lihat juga:** [Flutter Mobile](05-flutter-mobile.md) · [Rencana P4](08-p4-plan.md)
+**Added:** 2026-05-27 · Commit: `2f73837`  
+**See also:** [Flutter Mobile](05-flutter-mobile.md) · [P4 Plan](08-p4-plan.md)
+
+Palette tokens have since moved to Pastel cozy — see [UI revamp](20-ui-revamp-server-driven.md) and `app_theme.dart`. Screen labels below match the live app.
 
 ---
 
-## Gambaran Umum
+## Overview
 
-Menambahkan dark theme penuh ke WealthTrack dengan tiga mode yang bisa dipilih user:
+Full dark theme with three user-selectable modes:
 
-| Mode | Perilaku |
-|------|----------|
-| **Ikuti Sistem** (default) | Mengikuti pengaturan gelap/terang di perangkat |
-| **Terang** | Selalu mode terang |
-| **Gelap** | Selalu mode gelap |
+| Mode (UI label) | Behavior |
+|-----------------|----------|
+| **Ikuti sistem** (default) | Follows the device light/dark setting |
+| **Terang** | Always light |
+| **Gelap** | Always dark |
 
-Preferensinya disimpan via `flutter_secure_storage` jadi tetap bertahan walau app di-restart.
+Preference is stored in `flutter_secure_storage` and survives restarts.
 
 ---
 
-## Arsitektur
+## Architecture
 
 ```
 AppBar / Card / FAB / etc.
         │ uses
         ▼
-AppTheme.dark (ThemeData) ─── AppColors.dark* (color tokens)
+AppTheme.dark (ThemeData) ─── AppColors getters (synced to brightness)
         │
         ├── ThemeModeNotifier (Riverpod StateNotifier)
-        │      │
         │      ├── state: ThemeMode (system | light | dark)
-        │      │
         │      └── setTheme(mode) → persists to SecureStorage
-        │
         ▼
 WealthTrackApp (MaterialApp.router)
-        │
         ├── theme: AppTheme.light
         ├── darkTheme: AppTheme.dark
-        └── themeMode: themeModeProvider (ThemeModeNotifier)
+        └── themeMode: themeModeProvider
 ```
 
 ---
 
-## Color Tokens
+## Color tokens
 
-**File:** `lib/core/theme/app_theme.dart` — class `AppColors`
+**File:** `lib/core/theme/app_theme.dart` — `AppColors`
 
-```dart
-// Dark palette
-static const Color darkBackground   = Color(0xFF0D1117);  // page bg
-static const Color darkSurface      = Color(0xFF161B22);  // card bg
-static const Color darkCard         = Color(0xFF1C2333);  // elevated card bg
-static const Color darkTextPrimary  = Color(0xFFE6EDF3);  // primary text
-static const Color darkTextSecondary= Color(0xFF8B949E);  // muted text
-static const Color darkDivider      = Color(0xFF30363D);  // borders / dividers
-```
+Hex lives **only** in this file. Widgets use getters (`AppColors.background`, `surface`, `textPrimary`, …). Live Pastel cozy values (not the original navy/coral):
 
----
-
-## ThemeData (Dark)
-
-**File:** `lib/core/theme/app_theme.dart` — `AppTheme.dark`
-
-Setiap widget theme diduplikasi dari `AppTheme.light` dengan warna yang sesuai untuk mode gelap:
-
-| Widget | Terang | Gelap |
-|--------|-------|------|
-| Scaffold bg | `#F5F6FA` | `#0D1117` |
-| AppBar bg | `#1A1A2E` (navy) | `#161B22` (dark slate) |
-| Card bg | `#FFFFFF` | `#1C2333` |
-| Input bg | `#F5F6FA` | `#161B22` |
-| Input border | `#E8E8E8` | `#30363D` |
-| Bottom nav bg | `#FFFFFF` | `#161B22` |
-| Bottom nav selected | `#1A1A2E` | `#E94560` (highlight) |
-| Text primary | `#1A1A2E` | `#E6EDF3` |
-| Text secondary | `#7F8C8D` | `#8B949E` |
-
-Accent (`#0F3460`), highlight (`#E94560`), success (`#2ECC71`), warning (`#F39C12`)
-dibiarkan identik di dark mode demi konsistensi visual.
+| Token | Light | Dark |
+|-------|-------|------|
+| background | `#FFF3EE` | `#2A2430` |
+| surface | `#FFFFFF` | `#3A3242` |
+| textPrimary | `#4A3A48` | `#F7EEE8` |
+| textSecondary | `#9B8794` | `#C4B4BE` |
+| accent | `#F3A6B8` | `#E9A0B2` |
 
 ---
 
-## Theme Provider
+## Theme provider
 
-**File:** `lib/shared/providers/theme_provider.dart` — `ThemeModeNotifier`
+**File:** `lib/shared/providers/theme_provider.dart`
 
-- Turunan `StateNotifier<ThemeMode>` (Riverpod)
-- State awal: `ThemeMode.system`
-- Saat init: membaca nilai tersimpan dari key `SecureStorage` `"theme_mode"`
-- `setTheme(mode)`: memperbarui state + menulis ke secure storage
-- Menyediakan `.label` yang mudah dibaca untuk tampilan UI
-
-### Persistensi
+- `StateNotifier<ThemeMode>`, default `ThemeMode.system`
+- Reads SecureStorage key `theme_mode` on init
+- `setTheme(mode)` updates state + storage
+- `.label` for the profile UI: `Ikuti sistem` / `Terang` / `Gelap`
 
 ```dart
-// Write
 await _storage.saveSecure('theme_mode', 'dark');
-
-// Read
 final saved = await _storage.getSecure('theme_mode');
-if (saved == 'dark') state = ThemeMode.dark;
-else if (saved == 'light') state = ThemeMode.light;
-else state = ThemeMode.system;
 ```
 
-Memakai method generik `saveSecure` / `getSecure` yang ditambahkan ke `SecureStorage`
-(`lib/core/storage/secure_storage.dart`) — bisa dipakai dengan key string apa pun,
-tanpa perlu migrasi.
+Generic `saveSecure` / `getSecure` live in `lib/core/storage/secure_storage.dart`.
 
 ---
 
-## Wiring di App
+## App wiring
 
 **File:** `lib/app.dart`
 
@@ -119,57 +83,39 @@ tanpa perlu migrasi.
 MaterialApp.router(
   theme: AppTheme.light,
   darkTheme: AppTheme.dark,
-  themeMode: ref.watch(themeModeProvider),  // from ThemeModeNotifier
-  // ...
+  themeMode: ref.watch(themeModeProvider),
 )
 ```
 
-`MaterialApp.router` milik Flutter otomatis berganti antara `theme` dan `darkTheme`
-berdasarkan `themeMode`. Tidak perlu logika rebuild manual.
-
 ---
 
-## UI Profil
+## Profile UI
 
 **File:** `lib/features/profile/ui/profile_screen.dart`
 
-Menambahkan seksi **Tampilan** dengan tiga opsi bergaya radio:
+Appearance section (copy via `t()`):
 
 ```
 ┌─────────────────────────────────┐
-│ 🎨 Tampilan                     │
+│ Tampilan                        │
 │                                 │
-│ ○ Ikuti Sistem    [default]     │
+│ ○ Ikuti sistem    [default]     │
 │ ○ Terang                        │
 │ ● Gelap                         │
 └─────────────────────────────────┘
 ```
 
-Setiap opsi memanggil `notifier.setTheme(mode)` yang:
-1. Memperbarui state Riverpod → seluruh app otomatis di-rebuild
-2. Menyimpan ke SecureStorage
+Each option calls `notifier.setTheme(mode)` (rebuild + persist).
 
 ---
 
-## Kasus Khusus
+## Edge cases
 
-| Skenario | Perilaku |
+| Scenario | Behavior |
 |----------|----------|
-| Launch pertama (belum ada preferensi tersimpan) | Ikuti Sistem (ThemeMode.system) |
-| User pilih Terang, lalu uninstall | Install ulang bersih = kembali Ikuti Sistem |
-| Perangkat ganti gelap/terang saat app terbuka | Mode Ikuti Sistem mengikutinya; pilihan eksplisit Terang/Gelap mengunci |
-| App dimatikan lalu dibuka lagi | Preferensi tersimpan terakhir dipulihkan dari SecureStorage |
+| First launch (no saved pref) | Ikuti sistem |
+| User picks Terang, then uninstalls | Fresh install → Ikuti sistem |
+| Device toggles dark while app is open | Ikuti sistem follows; Terang/Gelap stay locked |
+| App killed and reopened | Last saved pref restored |
 
----
-
-## File yang Diubah / Dibuat
-
-| File | Perubahan |
-|------|-----------|
-| `lib/core/theme/app_theme.dart` | +6 konstanta warna `dark*`, +`AppTheme.dark` (60+ baris ThemeData) |
-| `lib/shared/providers/theme_provider.dart` | **BARU** — `ThemeModeNotifier` dengan persistensi |
-| `lib/core/storage/secure_storage.dart` | +method generik `saveSecure()` / `getSecure()` |
-| `lib/app.dart` | +param `darkTheme`, +`themeMode` dari provider |
-| `lib/features/profile/ui/profile_screen.dart` | +seksi Tampilan dengan 3 opsi tema |
-
-Tidak ada perubahan backend.
+No backend changes.

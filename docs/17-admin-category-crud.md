@@ -7,13 +7,13 @@
 
 ## Overview
 
-Admin-only kelola kategori — tambah/ubah kategori masuk/keluar. Satu nama Indonesia. Ikon = key Hugeicons (`strokeRounded…`), dipilih dari picker di app. Keyword tetap di DB buat klasifikasi.
+Admin-only category management — create/update income and expense categories. One Indonesian `name`. Icon = Hugeicons key (`strokeRounded…`) from the in-app picker. `keywords` stay in the DB for classification.
 
-**No DELETE** — kategori yang sudah kepakai transaksi/anggaran gak dihapus.
+**No DELETE** — categories already used on transactions/budgets are not removed.
 
-Kategori bawaan (`is_default=1`) gak bisa diedit. Termasuk: Gaji, Makanan & Minuman, Lainnya, Transfer, Tabungan & Investasi, Penarikan Tabungan & Investasi, Hasil Investasi, Dana Darurat.
+Default categories (`is_default=1`) cannot be edited. Seed names (as shown in the app): Gaji, Makanan & Minuman, Lainnya, Transfer, Tabungan & Investasi, Penarikan Tabungan & Investasi, Hasil Investasi, Dana Darurat.
 
-Lihat juga [plan ikon Hugeicons](21-category-hugeicons-id-only.md).
+See also [Hugeicons + ID-only categories](21-category-hugeicons-id-only.md).
 
 ---
 
@@ -31,15 +31,15 @@ Lihat juga [plan ikon Hugeicons](21-category-hugeicons-id-only.md).
 
 ## Database Changes
 
-Kolom `categories`:
+`categories` columns:
 
 | Column | Type | Default | Description |
 |--------|------|---------|-------------|
-| `name` | TEXT | required | Nama tampilan (Indonesia) |
-| `icon` | TEXT | `strokeRoundedInvoice01` | Key Hugeicons, contoh `strokeRoundedServingFood` |
-| `keywords` | TEXT | `'[]'` | JSON array keyword klasifikasi |
+| `name` | TEXT | required | Display name (Indonesian) |
+| `icon` | TEXT | `strokeRoundedInvoice01` | Hugeicons key, e.g. `strokeRoundedServingFood` |
+| `keywords` | TEXT | `'[]'` | JSON array of classification keywords |
 
-Kolom `name_en` **dihapus**. Emoji lama di-migrate ke key Hugeicons pas startup (`database.py`).
+`name_en` **dropped**. Legacy emoji migrates to Hugeicons keys at startup (`database.py`).
 
 ---
 
@@ -51,11 +51,11 @@ Create a new category.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `name` | string | required | Nama Indonesia (unik per type) |
-| `type` | string | required | `"expense"` atau `"income"` |
-| `icon` | string | invoice fallback | Key Hugeicons `strokeRounded…` |
-| `keywords` | array | `[]` | Keyword klasifikasi |
-| `sort_order` | int | `0` | Urutan tampil |
+| `name` | string | required | Indonesian name (unique per type) |
+| `type` | string | required | `"expense"` or `"income"` |
+| `icon` | string | invoice fallback | Hugeicons key `strokeRounded…` |
+| `keywords` | array | `[]` | Classification keywords |
+| `sort_order` | int | `0` | Display order |
 
 **Errors:** 403 (non-admin), 409 (duplicate name+type), 422 (validation)
 
@@ -65,16 +65,16 @@ Update an existing category. Cannot edit default categories (`is_default=1`).
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `name` | string | Nama baru (dicek duplikat) |
-| `icon` | string | Key Hugeicons |
-| `keywords` | array | Keyword baru |
-| `sort_order` | int | Urutan baru |
+| `name` | string | New name (duplicate-checked) |
+| `icon` | string | Hugeicons key |
+| `keywords` | array | Keywords |
+| `sort_order` | int | Sort order |
 
 **Errors:** 403 (non-admin or is_default), 404, 409 (duplicate on rename)
 
 ### GET `/api/v1/categories` (updated)
 
-Response: `id`, `name`, `type`, `icon`, `is_default`, `keywords`. Tidak ada `name_en`.
+Response: `id`, `name`, `type`, `icon`, `is_default`, `keywords`. No `name_en`.
 
 ---
 
@@ -89,36 +89,17 @@ Response: `id`, `name`, `type`, `icon`, `is_default`, `keywords`. Tidak ada `nam
 
 ## Flutter Changes
 
-### name_en Propagation (v0.3.1)
+### Display name
 
-`name_en` now flows through the entire system from `categories` DB → API responses → Flutter UI.
+UI shows `name` only (Indonesian). There is no `name_en` on the API or in Flutter models.
 
-| Consumer | API Field | Flutter Display |
-|----------|-----------|-----------------|
-| Transaction tiles | `category.name_en` | Primary name, fallback to `category.name` |
-| Budget list | `category_name_en` | Primary name, fallback to `category_name` |
-| Budget summary | `category_name_en` | Primary name, fallback to `category_name` |
-| Reports breakdown | `category_name_en` | Primary name, fallback to `category_name` |
-| Charts (pie/bar) | `category_name_en` | Chart labels |
-| Category picker | `name_en` | Dropdown label, fallback to `name` |
+### Category management screen
 
-**`category_translator.dart` simplified** — `translateCategory()` removed. Flutter no longer does client-side translation; `name_en` comes from the server. The fallback mechanism is:
-
-```dart
-categoryNameEn.isNotEmpty ? categoryNameEn : categoryName
-```
-
-### CategoryChip (category_picker.dart)
-- Added `nameEn` field
-- Label prefers `nameEn` if available, falls back to `name` (not `translateCategory(name)` since that function was removed)
-
-### Category Management Screen
 - **Route:** `/categories/manage`
-- **Access:** menu entry in Profile screen, visible only for `role == 'admin'`
-- **List:** grouped by type (expense / income), shows icon + name_en + name
-- **Add:** FAB → bottom sheet form: name, name_en, type, icon, keywords, sort_order
-- **Edit:** tap non-default category → same form pre-filled
-- **Default categories** are locked (lock icon) — cannot be edited. The is_default flag is set server-side for system-critical categories (Gaji, Makanan & Minuman, Lainnya, Transfer, Tabungan & Investasi, Dana Darurat, Penarikan Tabungan & Investasi, Hasil Investasi).
+- **Access:** Profile, admin only. Title **Kelola kategori**. Save **Simpan**, create **Tambah**.
+- **List:** grouped by type, `CategoryGlyph` + `name`
+- **Add/edit:** one name field, Hugeicons dropdown+search, keywords, sort order
+- **Defaults** locked. Seed names: Gaji, Makanan & Minuman, Lainnya, Transfer, Tabungan & Investasi, Dana Darurat, Penarikan Tabungan & Investasi, Hasil Investasi.
 
 ### Category Provider
 - `CategoryManagementNotifier` — loads, creates, updates via API
