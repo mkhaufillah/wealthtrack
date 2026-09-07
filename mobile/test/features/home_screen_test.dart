@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/features/home/providers/dashboard_provider.dart';
 import 'package:wealthtrack/features/home/ui/home_screen.dart';
+import 'package:wealthtrack/features/home/ui/widgets/balance_card.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
 import 'package:wealthtrack/shared/utils/currency_formatter.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
@@ -83,7 +84,9 @@ void main() {
       await tester.pumpWidget(buildHomeApp(balance: 1500000));
       await tester.pumpAndSettle();
       expect(find.text('Hai, Filla'), findsNothing); // greeting uses login user (mock has none)
-      expect(find.text(formatCurrency(1500000)), findsOneWidget);
+      final card = tester.widget<BalanceCard>(find.byType(BalanceCard));
+      expect(card.balance, 1500000);
+      expect(card.amountText ?? formatCurrency(card.balance), formatCurrency(1500000));
     });
 
     testWidgets('shows all-time balance label when load completes', (tester) async {
