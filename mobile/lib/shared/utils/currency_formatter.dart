@@ -18,13 +18,13 @@ String formatCurrencyCompact(int amount) {
   final abs = amount.abs();
   final sign = amount < 0 ? '-' : '';
   if (abs >= 1000000000) {
-    return '$signRp${_trimNum(abs / 1000000000)}M';
+    return '${sign}Rp${_trimNum(abs / 1000000000)}M';
   }
   if (abs >= 1000000) {
-    return '$signRp${_trimNum(abs / 1000000)}jt';
+    return '${sign}Rp${_trimNum(abs / 1000000)}jt';
   }
   if (abs >= 10000) {
-    return '$signRp${_trimNum(abs / 1000)}rb';
+    return '${sign}Rp${_trimNum(abs / 1000)}rb';
   }
   return formatCurrency(amount);
 }
