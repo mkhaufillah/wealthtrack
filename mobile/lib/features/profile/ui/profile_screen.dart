@@ -242,7 +242,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
           Text(
-            'Enter the invite code from your household admin to join.',
+            t('hh.join_hint'),
             style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
@@ -250,7 +250,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   controller: codeCtrl,
                   decoration: InputDecoration(
                     labelText: t('hh.invite_code'),
-                    hintText: 'e.g. ABC1234',
+                    hintText: t('hh.invite_hint'),
                     border: OutlineInputBorder(),
                   ),
                   textCapitalization: TextCapitalization.characters,
@@ -274,7 +274,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               await _loadHousehold();
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('✅ Joined household')),
+                                  SnackBar(content: Text(t('hh.joined'))),
                                 );
                               }
                             } catch (e) {
@@ -334,7 +334,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   controller: nameCtrl,
                   decoration: InputDecoration(
                     labelText: t('hh.name'),
-                    hintText: 'e.g. Home',
+                    hintText: t('hh.name_hint'),
                     border: OutlineInputBorder(),
                   ),
                   enabled: !creating,
@@ -356,7 +356,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               await _loadHousehold();
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Rumah berhasil dibuat')),
+                                  SnackBar(content: Text(t('hh.created'))),
                                 );
                               }
                             } catch (e) {
@@ -415,103 +415,74 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       body: state.deleting
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
-                // ── User info card ──
-                _buildUserCard(user),
+                _buildHero(user, state),
                 const SizedBox(height: 20),
-
-                // ── Household section ──
                 _buildHouseholdSection(state),
-                const SizedBox(height: 24),
-
-                // ── Account Settings ──
-                _buildSectionHeader(Icons.settings_outlined, t('profile.sec_account')),
+                const SizedBox(height: 20),
+                _buildSectionHeader(AppIcons.settings, t('profile.sec_account')),
                 const SizedBox(height: 8),
-
                 if (!state.isEditing)
                   _buildMenuItem(
-                    icon: Icons.edit_outlined,
+                    icon: AppIcons.edit,
                     title: t('profile.edit'),
                     onTap: () {
                       _displayNameCtrl.text = user?.displayName ?? '';
                       ref.read(profileProvider.notifier).toggleEdit();
                     },
                   ),
-
                 if (state.isEditing) _buildEditProfileForm(state),
-
                 _buildMenuItem(
-                  icon: Icons.lock_outline,
+                  icon: AppIcons.shield,
                   title: t('profile.change_pass'),
                   onTap: () => _showChangePasswordSheet(),
                 ),
-
-                const SizedBox(height: 24),
-
-                // ── Features ──
-                _buildSectionHeader(Icons.widgets_outlined, t('profile.sec_features')),
-                const SizedBox(height: 8),
-
                 _buildMenuItem(
-                  icon: Icons.psychology_outlined,
-                  title: 'Teman AI',
+                  icon: AppIcons.calendar,
+                  title: t('profile.cycle_day'),
+                  subtitle: t('profile.cycle_pill').replaceAll('{n}', '${state.cycleStartDay}'),
+                  onTap: _showCyclePicker,
+                ),
+                const SizedBox(height: 20),
+                _buildSectionHeader(AppIcons.spark, t('profile.sec_features')),
+                const SizedBox(height: 8),
+                _buildMenuItem(
+                  icon: AppIcons.ai,
+                  title: t('home.ai'),
                   onTap: () => context.push('/ai/advise'),
                 ),
-
                 _buildMenuItem(
-                  icon: Icons.account_balance_outlined,
+                  icon: AppIcons.bank,
                   title: t('profile.debt_tracker'),
                   onTap: () => context.push('/debt'),
                 ),
-
                 if (user?.role == 'admin')
                   _buildMenuItem(
-                    icon: Icons.category_outlined,
+                    icon: AppIcons.filter,
                     title: t('cat.manage'),
                     onTap: () => context.push('/categories/manage'),
                   ),
-
-                const SizedBox(height: 24),
-
-                // ── Billing Cycle ──
-                _buildSectionHeader(Icons.calendar_month_outlined, t('profile.sec_cycle')),
-                const SizedBox(height: 8),
-
-                _buildMenuItem(
-                  icon: Icons.edit_calendar,
-                  title: 'Cycle Start Day: Day ${state.cycleStartDay}',
-                  onTap: _showCyclePicker,
-                ),
-
-                const SizedBox(height: 24),
-
-                // ── Preferences ──
-                _buildSectionHeader(Icons.palette_outlined, t('profile.sec_look')),
+                const SizedBox(height: 20),
+                _buildSectionHeader(AppIcons.settings, t('profile.sec_look')),
                 const SizedBox(height: 8),
                 _buildThemeSelector(),
-
-                const SizedBox(height: 24),
-
-                // ── Account Actions ──
-                _buildSectionHeader(Icons.shield_outlined, t('profile.sec_actions')),
+                const SizedBox(height: 20),
+                _buildSectionHeader(AppIcons.alert, t('profile.sec_actions')),
                 const SizedBox(height: 8),
-
                 _buildMenuItem(
-                  icon: Icons.logout,
+                  icon: AppIcons.logout,
                   title: t('profile.logout'),
                   textColor: AppColors.highlight,
                   onTap: _logout,
                 ),
-
                 const SizedBox(height: 8),
                 _buildMenuItem(
-                  icon: Icons.delete_forever,
+                  icon: AppIcons.trash,
                   title: t('profile.delete_account'),
                   textColor: AppColors.highlight,
                   onTap: _deleteAccount,
                 ),
-
                 const SizedBox(height: 32),
                 Center(
                   child: Text(
@@ -527,89 +498,78 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildUserCard(dynamic user) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: AppColors.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: AppColors.avatarBackground(user?.displayName ?? ''),
+  Widget _buildHero(dynamic user, ProfileState state) {
+    final name = user?.displayName as String? ?? '-';
+    final familyN = state.household == null
+        ? 0
+        : (state.members.isEmpty ? 1 : state.members.length);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
+      decoration: BoxDecoration(
+        color: AppColors.heroFill,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.accent,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: AppColors.onAccent,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          Text(
+            '@${user?.username ?? '-'}',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+          if (user?.role != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
               child: Text(
-                (user?.displayName ?? '?')[0].toUpperCase(),
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.avatarText(user?.displayName ?? ''),
+                user.role as String,
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              ),
+            ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _HeroPill(
+                  title: t('profile.cycle_pill').replaceAll('{n}', '${state.cycleStartDay}'),
+                  subtitle: t('profile.sec_cycle'),
+                  onTap: _showCyclePicker,
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user?.displayName ?? '-',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '@${user?.username ?? '-'}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  if (user?.email != null && user!.email.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        AppIcon(AppIcons.user, size: 13, color: AppColors.textSecondary),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            user.email,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.avatarBackground(user?.displayName ?? ''),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      user?.role ?? '-',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.avatarText(user?.displayName ?? ''),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: _HeroPill(
+                  title: t('profile.family_n').replaceAll('{n}', '$familyN'),
+                  subtitle: t('hh.members'),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -719,7 +679,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 AppIcon(AppIcons.next, size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 6),
                 Text(
-                  'Code: $inviteCode',
+                  t('hh.code_label').replaceAll('{c}', inviteCode),
                   style: const TextStyle(
                     fontSize: 13,
                     fontFamily: 'monospace',
@@ -797,8 +757,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('📋 Invite code copied!'),
+      SnackBar(
+        content: Text(t('hh.code_copied')),
         duration: Duration(seconds: 2),
       ),
     );
@@ -856,23 +816,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildMenuItem({
-    required IconData icon,
+    required List<List<dynamic>> icon,
     required String title,
     required VoidCallback onTap,
     Color? textColor,
+    String? subtitle,
   }) {
     final effectiveColor = textColor ?? AppColors.textPrimary;
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: AppColors.surface,
-      margin: const EdgeInsets.only(bottom: 4),
+      margin: const EdgeInsets.only(bottom: 6),
       child: ListTile(
-        leading: Icon(icon, color: effectiveColor),
-        title: Text(title, style: TextStyle(color: effectiveColor)),
+        leading: Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.heroFill,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: AppIcon(icon, size: 18, color: effectiveColor),
+        ),
+        title: Text(title, style: TextStyle(color: effectiveColor, fontWeight: FontWeight.w700)),
+        subtitle: subtitle == null
+            ? null
+            : Text(subtitle, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         trailing: AppIcon(AppIcons.next, color: AppColors.textSecondary),
         onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -920,9 +893,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       labelText: t('profile.cur_pass'),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(obscureCurrent
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined),
+                        icon: AppIcon(obscureCurrent ? AppIcons.viewOff : AppIcons.view),
                         onPressed: () =>
                             setSheetState(() => obscureCurrent = !obscureCurrent),
                       ),
@@ -939,16 +910,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       labelText: t('profile.new_pass'),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(obscureNew
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined),
+                        icon: AppIcon(obscureNew ? AppIcons.viewOff : AppIcons.view),
                         onPressed: () =>
                             setSheetState(() => obscureNew = !obscureNew),
                       ),
                     ),
                     validator: (v) {
                       if (v == null || v.isEmpty) return t('profile.required');
-                      if (v.length < 6) return 'Min 6 characters';
+                      if (v.length < 6) return t('auth.err_pass');
                       return null;
                     },
                     enabled: !changing,
@@ -961,9 +930,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       labelText: t('profile.confirm_pass'),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(obscureConfirm
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined),
+                        icon: AppIcon(obscureConfirm ? AppIcons.viewOff : AppIcons.view),
                         onPressed: () => setSheetState(
                             () => obscureConfirm = !obscureConfirm),
                       ),
@@ -1007,13 +974,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       },
     );
   }
-  Widget _buildSectionHeader(IconData icon, String title) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppColors.textSecondary),
-        const SizedBox(width: 6),
-        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-      ],
+  Widget _buildSectionHeader(List<List<dynamic>> icon, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textSecondary,
+        ),
+      ),
     );
   }
 
@@ -1024,24 +995,60 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       elevation: 0,
       child: Column(
         children: [
-          _buildThemeOption(icon: Icons.brightness_auto, label: t('profile.theme_system'), value: ThemeMode.system, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.system)),
+          _buildThemeOption(icon: AppIcons.settings, label: t('profile.theme_system'), value: ThemeMode.system, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.system)),
           Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.divider),
-          _buildThemeOption(icon: Icons.light_mode_outlined, label: t('profile.theme_light'), value: ThemeMode.light, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.light)),
+          _buildThemeOption(icon: AppIcons.spark, label: t('profile.theme_light'), value: ThemeMode.light, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.light)),
           Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.divider),
-          _buildThemeOption(icon: Icons.dark_mode_outlined, label: t('profile.theme_dark'), value: ThemeMode.dark, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.dark)),
+          _buildThemeOption(icon: AppIcons.viewOff, label: t('profile.theme_dark'), value: ThemeMode.dark, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.dark)),
         ],
       ),
     );
   }
 
-  Widget _buildThemeOption({required IconData icon, required String label, required ThemeMode value, required ThemeMode current, required VoidCallback onTap}) {
+  Widget _buildThemeOption({required List<List<dynamic>> icon, required String label, required ThemeMode value, required ThemeMode current, required VoidCallback onTap}) {
     final isSelected = value == current;
-    final themeColor = Theme.of(context).colorScheme.primary;
     return ListTile(
-      leading: Icon(icon, color: isSelected ? themeColor : AppColors.textSecondary),
+      leading: AppIcon(icon, color: isSelected ? AppColors.accent : AppColors.textSecondary),
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
-      trailing: isSelected ? AppIcon(AppIcons.check, color: themeColor, size: 20) : null,
+      trailing: isSelected ? AppIcon(AppIcons.check, color: AppColors.accent, size: 20) : null,
       onTap: onTap,
+    );
+  }
+}
+
+class _HeroPill extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+  const _HeroPill({required this.title, required this.subtitle, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1079,22 +1086,21 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'This will permanently delete your account and all transactions. '
-            'This cannot be undone.',
+            t('profile.delete_warn'),
             style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
-          Text('Ketik HAPUS buat konfirmasi:',
+          Text(t('profile.delete_type'),
               style: TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           TextField(
             controller: _ctrl,
             decoration: InputDecoration(
               border: OutlineInputBorder(),
-              hintText: 'DELETE',
+              hintText: t('profile.delete_word'),
             ),
             onChanged: (v) =>
-                setState(() => _canConfirm = v.trim() == 'DELETE'),
+                setState(() => _canConfirm = v.trim() == t('profile.delete_word')),
           ),
         ],
       ),
