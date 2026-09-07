@@ -19,7 +19,11 @@ String _rawDetail(DioException error) {
     }
     return d.toString();
   }
-  return error.message ?? '';
+  if (detail is String && detail.isNotEmpty) {
+    return detail;
+  }
+  // Server owns the message. Dio's own English text is never user-facing.
+  return '';
 }
 
 class ApiClient {
