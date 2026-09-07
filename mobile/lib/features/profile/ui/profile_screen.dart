@@ -692,7 +692,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     // Copy to clipboard
                     _copyToClipboard(inviteCode);
                   },
-                  child: AppIcon(AppIcons.edit, size: 16, color: AppColors.textSecondary),
+                  child: AppIcon(AppIcons.copy, size: 16, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -997,9 +997,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         children: [
           _buildThemeOption(icon: AppIcons.settings, label: t('profile.theme_system'), value: ThemeMode.system, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.system)),
           Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.divider),
-          _buildThemeOption(icon: AppIcons.spark, label: t('profile.theme_light'), value: ThemeMode.light, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.light)),
+          _buildThemeOption(icon: AppIcons.sun, label: t('profile.theme_light'), value: ThemeMode.light, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.light)),
           Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.divider),
-          _buildThemeOption(icon: AppIcons.viewOff, label: t('profile.theme_dark'), value: ThemeMode.dark, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.dark)),
+          _buildThemeOption(icon: AppIcons.moon, label: t('profile.theme_dark'), value: ThemeMode.dark, current: themeMode, onTap: () => notifier.setTheme(ThemeMode.dark)),
         ],
       ),
     );

@@ -40,6 +40,9 @@ class AppIcons {
   static const inbox = HugeIcons.strokeRoundedInbox;
   static const spark = HugeIcons.strokeRoundedSparkles;
   static const chartUp = HugeIcons.strokeRoundedAnalyticsUp;
+  static const copy = HugeIcons.strokeRoundedCopy01;
+  static const sun = HugeIcons.strokeRoundedSun01;
+  static const moon = HugeIcons.strokeRoundedMoon02;
 }
 
 class AppIcon extends StatelessWidget {

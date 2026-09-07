@@ -925,10 +925,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: Row(
                     children: [
-                      SizedBox(
-                        width: 24,
-                        child: Text(catIcon, style: TextStyle(fontSize: 14)),
-                      ),
+                      CategoryGlyph(icon: catIcon, size: 24),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Column(

@@ -4,6 +4,7 @@ import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/utils/date_formatter.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../features/home/providers/dashboard_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -107,6 +108,10 @@ class _TransferBalanceScreenState
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
+      helpText: t('tx.date_specific'),
+      cancelText: t('common.cancel'),
+      confirmText: t('common.save'),
+      fieldLabelText: t('tx.date'),
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
@@ -149,7 +154,7 @@ class _TransferBalanceScreenState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Date: ${_formatDate(_selectedDate)}'),
+            Text('${t('tx.date_specific')}: ${formatDayMonth(_selectedDate)}'),
             const SizedBox(height: 8),
             for (final t in transfers)
               Padding(
@@ -274,7 +279,7 @@ class _TransferBalanceScreenState
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('From',
+                              Text('Dari',
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: AppColors.textSecondary)),
@@ -298,8 +303,8 @@ class _TransferBalanceScreenState
                       child: ListTile(
                         leading: AppIcon(AppIcons.calendar,
                             color: AppColors.textPrimary),
-                        title: Text(_formatDate(_selectedDate)),
-                        trailing: AppIcon(AppIcons.calendar, size: 18),
+                        title: Text(formatDayMonth(_selectedDate)),
+                        trailing: AppIcon(AppIcons.next, size: 18),
                         onTap: isSubmitting ? null : _pickDate,
                       ),
                     ),
@@ -309,7 +314,7 @@ class _TransferBalanceScreenState
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Recipients',
+                        Text(t('transfer.recipients'),
                             style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -333,7 +338,7 @@ class _TransferBalanceScreenState
                             AppIcon(AppIcons.user,
                                 size: 48, color: AppColors.textSecondary),
                             const SizedBox(height: 8),
-                            Text('Tap "Add" to select a recipient',
+                            Text(t('transfer.add_hint'),
                                 style: TextStyle(color: AppColors.textSecondary)),
                           ],
                         ),

@@ -447,8 +447,8 @@ class BudgetService:
         warning = ""
         if total_income > 0 and total_suggested > total_income:
             warning = (
-                f"Suggested budgets (Rp{total_suggested:,}) exceed income "
-                f"(Rp{total_income:,}). Consider reducing."
+                f"Usulan anggaran (Rp{total_suggested:,}) lebih besar dari pemasukan "
+                f"(Rp{total_income:,}). Kurangi beberapa ya."
             )
 
         return {

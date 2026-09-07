@@ -125,7 +125,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('From'), findsOneWidget);
+      expect(find.text('Dari'), findsOneWidget);
       expect(find.text('Filla'), findsOneWidget);
     });
 
@@ -148,7 +148,7 @@ void main() {
       await tester.pumpWidget(buildTransferApp(apiClient: mockApi));
       await tester.pumpAndSettle();
 
-      expect(find.text('Recipients'), findsOneWidget);
+      expect(find.text('Penerima'), findsOneWidget);
     });
 
     testWidgets('pre-selects first available recipient', (tester) async {

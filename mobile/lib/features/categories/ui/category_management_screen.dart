@@ -37,6 +37,7 @@ class _CategoryManagementScreenState
     String type = category?['type'] ?? 'expense';
     final isDefault = category?['is_default'] == true;
     bool saving = false;
+    String iconQuery = '';
 
     final saved = await showModalBottomSheet<bool>(
       context: context,
@@ -91,34 +92,41 @@ class _CategoryManagementScreenState
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final item in kCategoryIconCatalog)
-                          GestureDetector(
-                            onTap: isDefault
-                                ? null
-                                : () =>
-                                    setSheetState(() => iconKey = item.key),
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: iconKey == item.key
-                                    ? AppColors.accent.withOpacity(0.18)
-                                    : AppColors.background,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: CategoryGlyph(
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: t('cat.icon_search'),
+                        hintText: 'strokeRounded…',
+                      ),
+                      onChanged: (v) => setSheetState(() => iconQuery = v),
+                    ),
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 220),
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          for (final item in kCategoryIconCatalog.where((i) {
+                            final q = iconQuery.trim().toLowerCase();
+                            if (q.isEmpty) return true;
+                            return i.key.toLowerCase().contains(q) ||
+                                i.label.toLowerCase().contains(q);
+                          }))
+                            ListTile(
+                              dense: true,
+                              selected: iconKey == item.key,
+                              leading: CategoryGlyph(
                                 icon: item.key,
                                 expense: type != 'income',
-                                size: 36,
+                                size: 32,
                               ),
+                              title: Text(item.key, style: const TextStyle(fontSize: 12)),
+                              subtitle: Text(item.label, style: const TextStyle(fontSize: 11)),
+                              onTap: isDefault
+                                  ? null
+                                  : () => setSheetState(() => iconKey = item.key),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(

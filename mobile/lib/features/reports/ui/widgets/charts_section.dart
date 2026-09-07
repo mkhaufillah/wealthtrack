@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/category_glyph.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../models/report_model.dart';
 
@@ -90,7 +91,7 @@ Widget buildBarChartSection(List<CategoryBreakdown> categories) {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           children: [
-            SizedBox(width: 24, child: Text(cat.icon, style: const TextStyle(fontSize: 14))),
+            SizedBox(width: 28, child: CategoryGlyph(icon: cat.icon, size: 24)),
             const SizedBox(width: 6),
             SizedBox(
               width: 65,

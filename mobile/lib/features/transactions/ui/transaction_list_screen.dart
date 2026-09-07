@@ -270,13 +270,12 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   }
 
   String _dateChipLabel(TransactionListState state) {
-    if (state.dateFrom == null || state.dateTo == null) return 'Date';
+    if (state.dateFrom == null || state.dateTo == null) return t('tx.date');
     final from = DateTime.tryParse(state.dateFrom!);
     final to = DateTime.tryParse(state.dateTo!);
-    if (from == null || to == null) return 'Date';
-    final fmt = DateFormat('dd MMM');
-    if (state.dateFrom == state.dateTo) return fmt.format(from);
-    return '${fmt.format(from)} – ${fmt.format(to)}';
+    if (from == null || to == null) return t('tx.date');
+    if (state.dateFrom == state.dateTo) return formatDayMonth(from);
+    return '${formatDayMonth(from)} – ${formatDayMonth(to)}';
   }
 
   Future<void> _showDateFilterSheet() async {
@@ -309,7 +308,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               if (state.dateFrom != null)
                 ListTile(
                   leading: AppIcon(AppIcons.close, color: AppColors.highlight),
-                  title: Text('Clear', style: TextStyle(color: AppColors.highlight)),
+                  title: Text(t('tx.date_clear'), style: TextStyle(color: AppColors.highlight)),
                   onTap: () {
                     Navigator.pop(ctx);
                     ref.read(transactionListProvider.notifier).clearDateFilter();
@@ -333,6 +332,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       initialDate: now,
       firstDate: DateTime(2020),
       lastDate: DateTime(now.year + 1),
+      helpText: t('tx.date_specific'),
+      cancelText: t('common.cancel'),
+      confirmText: t('common.save'),
+      fieldLabelText: t('tx.date'),
     );
     if (picked == null || !mounted) return;
     final day = DateFormat('yyyy-MM-dd').format(picked);
@@ -345,6 +348,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime(now.year + 1),
+      helpText: t('tx.date_range'),
+      cancelText: t('common.cancel'),
+      confirmText: t('common.save'),
+      saveText: t('common.save'),
     );
     if (picked == null || !mounted) return;
     final from = DateFormat('yyyy-MM-dd').format(picked.start);
@@ -360,7 +367,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
     if (!mounted || available.isEmpty) {
       if (mounted && available.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Belum ada anggota rumah lain')),
+          SnackBar(content: Text(t('tx.no_other_member'))),
         );
       }
       return;
