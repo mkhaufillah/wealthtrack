@@ -11,20 +11,32 @@ import 'api_exceptions.dart';
 const _friendlyErrors = <String, String>{
   'invalid email or password': 'Username atau password salah.',
   'invalid username or password': 'Username atau password salah.',
+  'username atau password salah': 'Username atau password salah.',
   'email already registered': 'Email ini sudah terdaftar.',
   'email already in use': 'Email ini sudah terdaftar.',
+  'email ini sudah terdaftar': 'Email ini sudah terdaftar.',
   'username already exists': 'Username sudah kepakai.',
+  'username sudah kepakai': 'Username sudah kepakai.',
   'account not found': 'Akun gak ketemu.',
   'user not found': 'Akun gak ketemu.',
+  'akun gak ketemu': 'Akun gak ketemu.',
   'invalid token': 'Sesi habis. Masuk lagi ya.',
   'invalid otp': 'Kode OTP salah.',
+  'kode otp salah': 'Kode OTP salah.',
   'otp already used': 'Kode OTP sudah dipakai.',
+  'kode otp sudah dipakai': 'Kode OTP sudah dipakai.',
   'otp has expired': 'Kode OTP kadaluarsa. Minta yang baru ya.',
+  'kode otp kadaluarsa': 'Kode OTP kadaluarsa. Minta yang baru ya.',
   'no otp sent': 'Belum ada kode OTP. Minta dulu ya.',
+  'belum ada kode otp': 'Belum ada kode OTP. Minta dulu ya.',
   'current password is incorrect': 'Sandi sekarang salah.',
+  'sandi sekarang salah': 'Sandi sekarang salah.',
   'already in a household': 'Kamu sudah di keluarga.',
+  'kamu sudah di keluarga': 'Kamu sudah di keluarga.',
   'invalid invite code': 'Kode undangan gak valid.',
+  'kode undangan gak valid': 'Kode undangan gak valid.',
   'not a member of any household': 'Belum gabung keluarga.',
+  'belum gabung keluarga': 'Belum gabung keluarga.',
   'could not determine amount or category': 'Ada yang gak beres. Coba lagi ya.',
   'ocr rate limit': 'Tunggu sebentar sebelum unggah struk lagi.',
   'you already have an ocr job': 'Struk sebelumnya masih diproses, tunggu ya.',
@@ -62,7 +74,8 @@ String _rawDetail(DioException error) {
 bool _isCredentialFailure(String raw) {
   final lower = raw.toLowerCase();
   return lower.contains('invalid username or password') ||
-      lower.contains('invalid email or password');
+      lower.contains('invalid email or password') ||
+      lower.contains('username atau password salah');
 }
 
 class ApiClient {

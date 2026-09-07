@@ -50,6 +50,39 @@ void main() {
         );
       });
 
+      test('wrong login with Indonesian backend detail stays credential error', () {
+        // Backend now sends the ID copy directly.
+        final dioError = DioException(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          response: Response(
+            statusCode: 401,
+            data: {'detail': 'Username atau password salah'},
+            requestOptions: RequestOptions(path: '/auth/login'),
+          ),
+        );
+        final result = client.handleError(dioError);
+        expect(result, isA<ApiException>());
+        expect(result, isNot(isA<UnauthorizedException>()));
+        expect(
+          (result as ApiException).message,
+          'Username atau password salah.',
+        );
+      });
+
+      test('maps ID household error to friendly message', () {
+        final dioError = DioException(
+          requestOptions: RequestOptions(path: '/households/join'),
+          response: Response(
+            statusCode: 409,
+            data: {'detail': 'Kamu sudah di keluarga'},
+            requestOptions: RequestOptions(path: '/households/join'),
+          ),
+        );
+        final result = client.handleError(dioError);
+        expect(result, isA<ApiException>());
+        expect((result as ApiException).message, 'Kamu sudah di keluarga.');
+      });
+
       test('returns NetworkException for connection timeout', () {
         final dioError = DioException(
           type: DioExceptionType.connectionTimeout,
