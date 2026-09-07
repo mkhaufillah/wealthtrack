@@ -93,7 +93,7 @@ class TestOcrProcessAndSave:
             files={"file": ("large.png", large_data, "image/png")},
         )
         assert resp.status_code == 400
-        assert "too large" in resp.json()["detail"].lower()
+        assert "terlalu besar" in resp.json()["detail"].lower()
 
     @pytest.mark.skipif(not os.getenv("OPENCODE_GO_API_KEY"), reason="OPENCODE_GO_API_KEY not set")
     async def test_successful_creation(self, client: AsyncClient, filla_token: str):

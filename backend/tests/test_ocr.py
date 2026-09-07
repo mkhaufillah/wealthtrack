@@ -140,7 +140,7 @@ class TestProcessOcr:
             files={"file": ("large.png", large_data, "image/png")},
         )
         assert resp.status_code == 400
-        assert "too large" in resp.json()["detail"].lower()
+        assert "terlalu besar" in resp.json()["detail"].lower()
 
     async def test_successful_ocr_parsing(
         self, client: AsyncClient, filla_token: str, monkeypatch
