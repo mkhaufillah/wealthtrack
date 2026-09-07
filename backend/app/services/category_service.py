@@ -32,7 +32,7 @@ class CategoryNotFoundError(Exception):
 
     def __init__(self, category_id: int) -> None:
         self.category_id = category_id
-        super().__init__(f"Category {category_id} not found")
+        super().__init__("Kategori gak ketemu")
 
 
 class CategoryNameConflictError(Exception):
@@ -41,22 +41,30 @@ class CategoryNameConflictError(Exception):
     def __init__(self, name: str, type_: str) -> None:
         self.name = name
         self.type = type_
-        super().__init__(f"Category '{name}' already exists for type '{type_}'")
+        super().__init__("Nama kategori ini sudah ada")
 
 
 class DefaultCategoryEditError(Exception):
-    """Raised when trying to edit a system-default category."""
+    """Raised when trying to edit or delete a system-default category."""
 
     def __init__(self, category_id: int) -> None:
         self.category_id = category_id
-        super().__init__(f"Category {category_id} is a system default and cannot be edited")
+        super().__init__("Kategori bawaan gak bisa diubah atau dihapus")
+
+
+class CategoryInUseError(Exception):
+    """Raised when a category is referenced by financial history."""
+
+    def __init__(self, category_id: int) -> None:
+        self.category_id = category_id
+        super().__init__("Kategori ini sudah dipakai transaksi, jadi gak bisa dihapus")
 
 
 class NotAuthorizedError(Exception):
     """Raised when a non-admin user attempts an admin-only operation."""
 
-    def __init__(self, action: str = "perform this action") -> None:
-        super().__init__(f"Only admin can {action}")
+    def __init__(self, action: str = "melakukan ini") -> None:
+        super().__init__(f"Cuma admin yang bisa {action}")
 
 
 class CategoryService:
@@ -117,7 +125,7 @@ class CategoryService:
         Returns the created category dict.
         """
         if current_user["role"] != "admin":
-            raise NotAuthorizedError("create categories")
+            raise NotAuthorizedError("bikin kategori")
 
         cursor = await self.db.execute(
             "SELECT id FROM categories WHERE name = ? AND type = ?",
@@ -159,7 +167,7 @@ class CategoryService:
         Returns the updated category dict.
         """
         if current_user["role"] != "admin":
-            raise NotAuthorizedError("update categories")
+            raise NotAuthorizedError("ubah kategori")
 
         cursor = await self.db.execute(
             "SELECT id, name, type, is_default FROM categories WHERE id = ?",
@@ -204,3 +212,25 @@ class CategoryService:
             (category_id,),
         )
         return self._format_category(await cursor.fetchone())
+
+    async def delete_category(self, current_user: dict, category_id: int) -> None:
+        """Delete an unused custom category. Financial history is never altered."""
+        if current_user["role"] != "admin":
+            raise NotAuthorizedError("hapus kategori")
+
+        cursor = await self.db.execute(
+            "SELECT id, is_default FROM categories WHERE id = ?", (category_id,)
+        )
+        existing = await cursor.fetchone()
+        if not existing:
+            raise CategoryNotFoundError(category_id)
+        if existing["is_default"]:
+            raise DefaultCategoryEditError(category_id)
+
+        cursor = await self.db.execute(
+            "SELECT id FROM transactions WHERE category_id = ? LIMIT 1", (category_id,)
+        )
+        if await cursor.fetchone():
+            raise CategoryInUseError(category_id)
+
+        await self.db.execute("DELETE FROM categories WHERE id = ?", (category_id,))

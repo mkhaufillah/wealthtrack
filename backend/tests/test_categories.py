@@ -12,7 +12,7 @@ class TestListCategories:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert len(data) >= 6  # at least seed categories
+        assert len(data) >= 6
         assert data[0]["name"] is not None
         assert data[0]["type"] in ("expense", "income")
         assert "name_en" not in data[0]
@@ -21,7 +21,6 @@ class TestListCategories:
         assert data[0]["icon"].startswith("strokeRounded")
 
     async def test_filter_expense(self, client: AsyncClient, filla_token: str):
-        """GET /categories?type=expense returns only expense categories."""
         resp = await client.get(
             "/api/v1/categories?type=expense",
             headers={"Authorization": f"Bearer {filla_token}"},
@@ -31,7 +30,6 @@ class TestListCategories:
             assert cat["type"] == "expense"
 
     async def test_filter_income(self, client: AsyncClient, filla_token: str):
-        """GET /categories?type=income returns only income categories."""
         resp = await client.get(
             "/api/v1/categories?type=income",
             headers={"Authorization": f"Bearer {filla_token}"},
@@ -41,12 +39,9 @@ class TestListCategories:
             assert cat["type"] == "income"
 
     async def test_requires_auth(self, client: AsyncClient):
-        """Without auth token, returns 401."""
-        resp = await client.get("/api/v1/categories")
-        assert resp.status_code == 401
+        assert (await client.get("/api/v1/categories")).status_code == 401
 
     async def test_invalid_type(self, client: AsyncClient, filla_token: str):
-        """Invalid type parameter returns 422."""
         resp = await client.get(
             "/api/v1/categories?type=invalid",
             headers={"Authorization": f"Bearer {filla_token}"},
@@ -56,16 +51,13 @@ class TestListCategories:
 
 class TestCreateCategory:
     async def test_admin_can_create(self, client: AsyncClient, filla_token: str):
-        """Admin can create a new category with Hugeicons key."""
         resp = await client.post(
             "/api/v1/categories",
             headers={"Authorization": f"Bearer {filla_token}"},
             json={
-                "name": "Kendaraan",
-                "type": "expense",
+                "name": "Kendaraan", "type": "expense",
                 "icon": "strokeRoundedCar01",
-                "keywords": ["mobil", "motor", "kendaraan"],
-                "sort_order": 20,
+                "keywords": ["mobil", "motor", "kendaraan"], "sort_order": 20,
             },
         )
         assert resp.status_code == 201
@@ -77,48 +69,35 @@ class TestCreateCategory:
         assert "mobil" in data["keywords"]
 
     async def test_invalid_icon_falls_back(self, client: AsyncClient, filla_token: str):
-        """Emoji / junk icon is stored as invoice fallback."""
         resp = await client.post(
-            "/api/v1/categories",
-            headers={"Authorization": f"Bearer {filla_token}"},
+            "/api/v1/categories", headers={"Authorization": f"Bearer {filla_token}"},
             json={"name": "Aneh", "type": "expense", "icon": "🚗"},
         )
         assert resp.status_code == 201
         assert resp.json()["icon"] == "strokeRoundedInvoice01"
 
     async def test_non_admin_cannot_create(self, client: AsyncClient, nahda_token: str):
-        """Non-admin gets 403."""
         resp = await client.post(
-            "/api/v1/categories",
-            headers={"Authorization": f"Bearer {nahda_token}"},
+            "/api/v1/categories", headers={"Authorization": f"Bearer {nahda_token}"},
             json={"name": "Test", "type": "expense"},
         )
         assert resp.status_code == 403
 
     async def test_duplicate_name_returns_409(self, client: AsyncClient, filla_token: str):
-        """Duplicate category name+type returns 409."""
         resp = await client.post(
-            "/api/v1/categories",
-            headers={"Authorization": f"Bearer {filla_token}"},
+            "/api/v1/categories", headers={"Authorization": f"Bearer {filla_token}"},
             json={"name": "Makanan & Minuman", "type": "expense"},
         )
         assert resp.status_code == 409
 
     async def test_create_requires_auth(self, client: AsyncClient):
-        """Without auth returns 401."""
-        resp = await client.post(
-            "/api/v1/categories",
-            json={"name": "Test", "type": "expense"},
-        )
-        assert resp.status_code == 401
+        assert (await client.post("/api/v1/categories", json={"name": "Test", "type": "expense"})).status_code == 401
 
 
 class TestUpdateCategory:
     async def test_admin_can_update(self, client: AsyncClient, filla_token: str):
-        """Admin can update a category."""
         resp = await client.put(
-            "/api/v1/categories/8",  # Freelance (not default)
-            headers={"Authorization": f"Bearer {filla_token}"},
+            "/api/v1/categories/8", headers={"Authorization": f"Bearer {filla_token}"},
             json={"icon": "strokeRoundedLaptop", "keywords": ["freelance", "side job"]},
         )
         assert resp.status_code == 200
@@ -128,37 +107,58 @@ class TestUpdateCategory:
         assert "name_en" not in data
 
     async def test_non_admin_cannot_update(self, client: AsyncClient, nahda_token: str):
-        """Non-admin gets 403."""
-        resp = await client.put(
-            "/api/v1/categories/8",
-            headers={"Authorization": f"Bearer {nahda_token}"},
+        assert (await client.put(
+            "/api/v1/categories/8", headers={"Authorization": f"Bearer {nahda_token}"},
             json={"name": "Hacked"},
-        )
-        assert resp.status_code == 403
+        )).status_code == 403
 
     async def test_update_nonexistent_returns_404(self, client: AsyncClient, filla_token: str):
-        """Updating non-existent category returns 404."""
-        resp = await client.put(
-            "/api/v1/categories/9999",
-            headers={"Authorization": f"Bearer {filla_token}"},
+        assert (await client.put(
+            "/api/v1/categories/9999", headers={"Authorization": f"Bearer {filla_token}"},
             json={"name": "Ghost"},
-        )
-        assert resp.status_code == 404
+        )).status_code == 404
 
     async def test_cannot_edit_default_category(self, client: AsyncClient, filla_token: str):
-        """Default categories (is_default=1) cannot be edited."""
-        resp = await client.put(
-            "/api/v1/categories/1",  # Makanan & Minuman (is_default=1)
-            headers={"Authorization": f"Bearer {filla_token}"},
+        assert (await client.put(
+            "/api/v1/categories/1", headers={"Authorization": f"Bearer {filla_token}"},
             json={"name": "Edited"},
-        )
-        assert resp.status_code == 403
+        )).status_code == 403
 
     async def test_duplicate_name_on_update(self, client: AsyncClient, filla_token: str):
-        """Renaming to an existing name returns 409."""
-        resp = await client.put(
-            "/api/v1/categories/8",
-            headers={"Authorization": f"Bearer {filla_token}"},
+        assert (await client.put(
+            "/api/v1/categories/8", headers={"Authorization": f"Bearer {filla_token}"},
             json={"name": "Gaji"},
+        )).status_code == 409
+
+
+class TestDeleteCategory:
+    async def test_admin_deletes_unused_custom_category(self, client: AsyncClient, filla_token: str):
+        created = await client.post(
+            "/api/v1/categories", headers={"Authorization": f"Bearer {filla_token}"},
+            json={"name": "Buat Dihapus", "type": "expense", "icon": "strokeRoundedDelete01"},
         )
+        assert created.status_code == 201
+        category_id = created.json()["id"]
+        deleted = await client.delete(
+            f"/api/v1/categories/{category_id}",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert deleted.status_code == 204
+        remaining = await client.get("/api/v1/categories", headers={"Authorization": f"Bearer {filla_token}"})
+        assert category_id not in [c["id"] for c in remaining.json()]
+
+    async def test_non_admin_cannot_delete(self, client: AsyncClient, nahda_token: str):
+        resp = await client.delete("/api/v1/categories/8", headers={"Authorization": f"Bearer {nahda_token}"})
+        assert resp.status_code == 403
+
+    async def test_cannot_delete_default_category(self, client: AsyncClient, filla_token: str):
+        resp = await client.delete("/api/v1/categories/1", headers={"Authorization": f"Bearer {filla_token}"})
+        assert resp.status_code == 403
+
+    async def test_cannot_delete_category_with_transactions(self, client: AsyncClient, filla_token: str):
+        resp = await client.delete("/api/v1/categories/1", headers={"Authorization": f"Bearer {filla_token}"})
+        assert resp.status_code == 403  # default guard wins before usage check
+        # Category 2 is non-default and has seeded transactions.
+        resp = await client.delete("/api/v1/categories/2", headers={"Authorization": f"Bearer {filla_token}"})
         assert resp.status_code == 409
+        assert "transaksi" in resp.json()["detail"].lower()

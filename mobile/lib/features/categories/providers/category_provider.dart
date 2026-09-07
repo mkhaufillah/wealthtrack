@@ -62,6 +62,17 @@ class CategoryManagementNotifier extends StateNotifier<CategoryManagementState> 
       return false;
     }
   }
+
+  Future<bool> delete(int id) async {
+    try {
+      await _api.delete('/categories/$id');
+      await load();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: _api.handleError(e).toString());
+      return false;
+    }
+  }
 }
 
 final categoryManagementProvider =

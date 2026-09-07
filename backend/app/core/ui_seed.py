@@ -260,6 +260,8 @@ COPY_ID: dict[str, str] = {
     'cat.save': 'Simpan',
     'cat.create': 'Tambah',
     'cat.empty': 'Belum ada kategori',
+    'cat.search': 'Cari kategori…',
+    'cat.delete_confirm': 'Hapus kategori ini? Kategori yang sudah dipakai transaksi tetap aman dan gak bisa dihapus.',
     'cat.fail': 'Gagal',
     'common.close': 'Tutup',
     'common.result': 'Hasil hitungan',

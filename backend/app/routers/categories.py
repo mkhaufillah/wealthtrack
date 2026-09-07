@@ -10,6 +10,7 @@ from app.services.category_service import (
     CategoryNotFoundError,
     CategoryNameConflictError,
     DefaultCategoryEditError,
+    CategoryInUseError,
     NotAuthorizedError,
 )
 
@@ -26,6 +27,8 @@ def _handle_service_error(exc: Exception) -> None:
         raise HTTPException(status_code=409, detail=str(exc))
     if isinstance(exc, DefaultCategoryEditError):
         raise HTTPException(status_code=403, detail=str(exc))
+    if isinstance(exc, CategoryInUseError):
+        raise HTTPException(status_code=409, detail=str(exc))
     if isinstance(exc, ValueError):
         raise HTTPException(status_code=400, detail=str(exc))
     raise
@@ -88,5 +91,26 @@ async def update_category(
         CategoryNameConflictError,
         DefaultCategoryEditError,
         ValueError,
+    ) as exc:
+        _handle_service_error(exc)
+
+
+@router.delete("/{category_id}", status_code=204)
+@limiter.limit("30/minute")
+async def delete_category(
+    request: Request,
+    category_id: int,
+    db: CursorWrapper = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete an unused custom category. Default/history categories are protected."""
+    service = CategoryService(db)
+    try:
+        await service.delete_category(current_user, category_id)
+    except (
+        NotAuthorizedError,
+        CategoryNotFoundError,
+        DefaultCategoryEditError,
+        CategoryInUseError,
     ) as exc:
         _handle_service_error(exc)

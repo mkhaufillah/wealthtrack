@@ -17,12 +17,21 @@ class CategoryManagementScreen extends ConsumerStatefulWidget {
 
 class _CategoryManagementScreenState
     extends ConsumerState<CategoryManagementScreen> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(categoryManagementProvider.notifier).load();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _showAddEditSheet({Map<String, dynamic>? category}) async {
@@ -171,6 +180,49 @@ class _CategoryManagementScreenState
                               color: AppColors.warning, fontSize: 12),
                         ),
                       ),
+                    if (isEdit && !isDefault) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton.icon(
+                          onPressed: saving
+                              ? null
+                              : () async {
+                                  final confirmed = await showDialog<bool>(
+                                    context: ctx,
+                                    builder: (confirmCtx) => AlertDialog(
+                                      title: Text(t('common.delete')),
+                                      content: Text(t('cat.delete_confirm')),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(confirmCtx, false),
+                                          child: Text(t('common.cancel')),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(confirmCtx, true),
+                                          child: Text(t('common.delete')),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirmed != true || !ctx.mounted) return;
+                                  setSheetState(() => saving = true);
+                                  final success = await ref
+                                      .read(categoryManagementProvider.notifier)
+                                      .delete(category!['id'] as int);
+                                  if (!ctx.mounted) return;
+                                  if (success) {
+                                    Navigator.pop(ctx, true);
+                                  } else {
+                                    setSheetState(() => saving = false);
+                                  }
+                                },
+                          icon: AppIcon(AppIcons.trash, size: 18, color: AppColors.highlight),
+                          label: Text(t('common.delete')),
+                          style: TextButton.styleFrom(foregroundColor: AppColors.highlight),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
@@ -247,10 +299,19 @@ class _CategoryManagementScreenState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(categoryManagementProvider);
+    final query = _query.trim().toLowerCase();
+    final filtered = state.categories.where((c) {
+      if (query.isEmpty) return true;
+      final name = (c['name'] as String? ?? '').toLowerCase();
+      final keywords = (c['keywords'] as List? ?? const [])
+          .join(' ')
+          .toLowerCase();
+      return name.contains(query) || keywords.contains(query);
+    }).toList();
     final expense =
-        state.categories.where((c) => c['type'] == 'expense').toList();
+        filtered.where((c) => c['type'] == 'expense').toList();
     final income =
-        state.categories.where((c) => c['type'] == 'income').toList();
+        filtered.where((c) => c['type'] == 'income').toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -273,6 +334,24 @@ class _CategoryManagementScreenState
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
                     children: [
+                      TextField(
+                        controller: _searchCtrl,
+                        onChanged: (value) => setState(() => _query = value),
+                        decoration: InputDecoration(
+                          hintText: t('cat.search'),
+                          prefixIcon: const AppIcon(AppIcons.search, size: 18),
+                          suffixIcon: _query.isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const AppIcon(AppIcons.close, size: 18),
+                                  onPressed: () {
+                                    _searchCtrl.clear();
+                                    setState(() => _query = '');
+                                  },
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       _buildSection(t('tx.filter_out'), expense, true),
                       const SizedBox(height: 24),
                       _buildSection(t('tx.filter_in'), income, false),
