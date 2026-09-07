@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/copy_fallback.dart';
 import '../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/category_glyph.dart';
 import '../../../shared/utils/currency_formatter.dart';
 import '../providers/budget_suggestion_provider.dart';
 import '../models/budget_model.dart';
@@ -63,7 +65,7 @@ class _BudgetSuggestionSheetState
                 children: [
                   Expanded(
                     child: Text(
-                      'Budget Suggestions',
+                      t('suggest.title'),
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.w700),
                     ),
@@ -100,14 +102,14 @@ class _BudgetSuggestionSheetState
                               .withOpacity(0.5)),
                       const SizedBox(height: 12),
                       Text(
-                        'No suggestions available',
+                        t('suggest.empty'),
                         style: TextStyle(
                             fontSize: 16,
                             color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Add more transactions to get budget suggestions.',
+                        t('suggest.empty_sub'),
                         style: TextStyle(
                             fontSize: 13,
                             color: AppColors.textSecondary),
@@ -148,7 +150,7 @@ class _BudgetSuggestionSheetState
                 child: Row(
                   children: [
                     Text(
-                      '${state.numAccepted} of ${resp.items.where((i) => !i.hasBudget).length} selected',
+                      '${state.numAccepted} ${t('suggest.picked')}',
                       style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary),
@@ -157,14 +159,14 @@ class _BudgetSuggestionSheetState
                     TextButton(
                       onPressed: () =>
                           notifier.toggleSelectAll(true),
-                      child: const Text('Select All',
-                          style: TextStyle(fontSize: 13)),
+                      child: Text(t('suggest.all'),
+                          style: TextStyle(fontSize: 13, color: AppColors.textPrimary)),
                     ),
                     TextButton(
                       onPressed: () =>
                           notifier.toggleSelectAll(false),
-                      child: const Text('Clear',
-                          style: TextStyle(fontSize: 13)),
+                      child: Text(t('suggest.clear'),
+                          style: TextStyle(fontSize: 13, color: AppColors.textPrimary)),
                     ),
                   ],
                 ),
@@ -205,7 +207,12 @@ class _BudgetSuggestionSheetState
                                   strokeWidth: 2),
                             )
                           : Text(
-                              'Apply ${state.numAccepted} Budget${state.numAccepted != 1 ? 's' : ''}'),
+                              '${t('suggest.apply')} ${state.numAccepted}',
+                              style: TextStyle(
+                                color: AppColors.onAccent,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -249,8 +256,7 @@ class _BudgetSuggestionSheetState
             children: [
               Row(
                 children: [
-                  Text(item.categoryIcon,
-                      style: const TextStyle(fontSize: 20)),
+                  CategoryGlyph(icon: item.categoryIcon, size: 32),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -258,15 +264,15 @@ class _BudgetSuggestionSheetState
                           CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.categoryNameEn.isNotEmpty
-                              ? item.categoryNameEn
-                              : item.categoryName,
+                          item.categoryName.isNotEmpty
+                              ? item.categoryName
+                              : item.categoryNameEn,
                           style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600),
                         ),
                         Text(
-                          'Avg ${formatCurrency(item.historicalAvg)}/mo (${item.monthsAnalyzed}mo)',
+                          '${t('suggest.avg')} ${formatCurrency(item.historicalAvg)}/bln',
                           style: TextStyle(
                               fontSize: 11,
                               color: AppColors.textSecondary),
@@ -282,7 +288,7 @@ class _BudgetSuggestionSheetState
                         color: AppColors.accent.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text('Existing',
+                      child: Text(t('suggest.existing'),
                           style: TextStyle(
                               fontSize: 10,
                               color: AppColors.textSecondary)),
@@ -304,7 +310,7 @@ class _BudgetSuggestionSheetState
                 mainAxisAlignment:
                     MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Suggested:',
+                  Text(t('suggest.amount'),
                       style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary)),

@@ -172,13 +172,16 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               _load();
             },
             backgroundColor: AppColors.accent,
-            child: AppIcon(AppIcons.spark, size: 20),
+            foregroundColor: AppColors.onAccent,
+            child: AppIcon(AppIcons.spark, size: 18, color: AppColors.onAccent),
           ),
           const SizedBox(height: 12),
           FloatingActionButton(
             heroTag: 'add_budget',
             onPressed: () => _showAddBudgetSheet(),
-            child: AppIcon(AppIcons.add),
+            backgroundColor: AppColors.accent,
+            foregroundColor: AppColors.onAccent,
+            child: AppIcon(AppIcons.add, size: 22, color: AppColors.onAccent),
           ),
         ],
       ),

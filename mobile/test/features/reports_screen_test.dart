@@ -253,9 +253,9 @@ void main() {
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
       await tester.pump(); // Resolve mock API → state has loaded data
-      expect(find.text('Income'), findsOneWidget);
-      expect(find.text('Expense'), findsOneWidget);
-      expect(find.text('Balance'), findsOneWidget);
+      expect(find.text('Masuk'), findsOneWidget);
+      expect(find.text('Keluar'), findsOneWidget);
+      expect(find.text('Sisa'), findsOneWidget);
     });
 
     testWidgets('shows category breakdown section', (tester) async {
@@ -280,9 +280,9 @@ void main() {
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
       await tester.pump();
       // Scroll to bottom to see all sections (content grew with extra stats)
-      await tester.scrollUntilVisible(find.text('Category Comparison'), 100);
-      expect(find.text('Category Breakdown'), findsOneWidget);
-      expect(find.text('Category Comparison'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Banding kategori'), 100);
+      expect(find.text('Per kategori'), findsOneWidget);
+      expect(find.text('Banding kategori'), findsOneWidget);
     });
 
     testWidgets('shows translated category names in breakdown',
@@ -307,7 +307,7 @@ void main() {
       await tester.pumpWidget(
           buildReportsApp(apiClient: mockApi, monthly: sampleMonthlyReport));
       await tester.pump();
-      expect(find.text('Food & Drinks'), findsOneWidget);
+      expect(find.text('Makanan & Minuman'), findsOneWidget);
     });
 
     testWidgets('shows daily breakdown section', (tester) async {

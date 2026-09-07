@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../core/ui/app_icons.dart';
+import '../../../core/ui/category_glyph.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -243,49 +244,49 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         _buildExtraStats(report),
         const SizedBox(height: 20),
         if (_budgetItems.isNotEmpty) ...[
-          _buildSectionHeader('Budget vs Actual', Icons.account_balance_wallet_outlined),
+          _buildSectionHeader(t('report.vs_budget')),
           const SizedBox(height: 8),
           _buildBudgetVsActual(),
           const SizedBox(height: 20),
         ],
         if (report.categories.isNotEmpty) ...[
-          _buildSectionHeader('Category Breakdown', Icons.pie_chart_outline),
+          _buildSectionHeader(t('report.by_cat')),
           const SizedBox(height: 8),
           _buildCategoryBreakdown(report.categories, report.totalExpense),
           const SizedBox(height: 16),
           buildPieChartSection(report.categories),
           const SizedBox(height: 16),
-          _buildSectionHeader('Category Comparison', Icons.bar_chart_outlined),
+          _buildSectionHeader(t('report.compare_cat')),
           const SizedBox(height: 8),
           buildBarChartSection(report.categories),
           const SizedBox(height: 20),
         ],
         if (state.trend.length >= 2) ...[
-          _buildSectionHeader('Monthly Trend', Icons.trending_up),
+          _buildSectionHeader(t('report.trend')),
           const SizedBox(height: 8),
           buildTrendChartSection(state.trend),
           const SizedBox(height: 20),
         ],
         if (report.dailySnapshot.isNotEmpty) ...[
-          _buildSectionHeader('Daily Breakdown', Icons.calendar_view_day),
+          _buildSectionHeader(t('report.daily')),
           const SizedBox(height: 8),
           _buildDailySnapshot(report.dailySnapshot),
           const SizedBox(height: 20),
         ],
         if (state.household != null && state.household!.byUser.length > 1) ...[
-          _buildSectionHeader('Household Split', Icons.people_outline),
+          _buildSectionHeader(t('report.hh_split')),
           const SizedBox(height: 8),
           _buildHouseholdSplit(state.household!),
           const SizedBox(height: 20),
         ],
         if (state.household != null && state.household!.byCategory.isNotEmpty && state.household!.byUser.length > 1) ...[
-          _buildSectionHeader('Household Category Breakdown', Icons.pie_chart_outline),
+          _buildSectionHeader(t('report.hh_cat')),
           const SizedBox(height: 8),
           _buildHouseholdCategoryBreakdown(state.household!.byCategory, state.household!.totalExpense),
           const SizedBox(height: 20),
         ],
         if (state.householdTransactions.isNotEmpty) ...[
-          _buildSectionHeader('Household Daily Breakdown', Icons.calendar_view_day),
+          _buildSectionHeader(t('report.hh_daily')),
           const SizedBox(height: 8),
           _buildHouseholdDailyBreakdown(state.householdTransactions),
         ],
@@ -299,20 +300,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildSummaryCards(MonthlyReport report) {
-    return Row(
-      children: [
-        Expanded(child: _buildStatCard('Income', report.totalIncome, AppColors.success)),
-        const SizedBox(width: 8),
-        Expanded(child: _buildStatCard('Expense', report.totalExpense, AppColors.highlight)),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildStatCard(
-            'Balance',
-            report.balance,
-            report.balance >= 0 ? AppColors.success : AppColors.highlight,
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: AppColors.heroFill,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _buildStatCard(t('report.income'), report.totalIncome, AppColors.success)),
+          const SizedBox(width: 8),
+          Expanded(child: _buildStatCard(t('report.expense'), report.totalExpense, AppColors.highlight)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _buildStatCard(
+              t('report.balance'),
+              report.balance,
+              report.balance >= 0 ? AppColors.success : AppColors.highlight,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -357,7 +365,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       children: [
         Expanded(
           child: _buildStatCard(
-            'Savings Rate',
+            t('report.savings_rate'),
             savingsRate.round(),
             savingsRate >= 0 ? AppColors.success : AppColors.highlight,
             suffix: '%',
@@ -367,7 +375,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         const SizedBox(width: 8),
         Expanded(
           child: _buildStatCard(
-            'Daily Avg',
+            t('report.daily_avg'),
             dailyAvg,
             AppColors.textPrimary,
           ),
@@ -543,19 +551,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppColors.textSecondary),
-        const SizedBox(width: 6),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textPrimary,
+      ),
     );
   }
 
@@ -571,15 +574,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
-              SizedBox(
-                width: 28,
-                child: Text(cat.icon, style: TextStyle(fontSize: 16)),
-              ),
+              CategoryGlyph(icon: cat.icon, size: 28),
               const SizedBox(width: 8),
               Expanded(
                 flex: 3,
                 child: Text(
-                  cat.categoryNameEn.isNotEmpty ? cat.categoryNameEn : cat.categoryName,
+                  cat.categoryName.isNotEmpty ? cat.categoryName : cat.categoryNameEn,
                   style: TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -792,15 +792,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
-              SizedBox(
-                width: 28,
-                child: Text(cat.icon, style: TextStyle(fontSize: 16)),
-              ),
+              CategoryGlyph(icon: cat.icon, size: 28),
               const SizedBox(width: 8),
               Expanded(
                 flex: 3,
                 child: Text(
-                  cat.categoryNameEn.isNotEmpty ? cat.categoryNameEn : cat.categoryName,
+                  cat.categoryName.isNotEmpty ? cat.categoryName : cat.categoryNameEn,
                   style: TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -985,7 +982,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: ElevatedButton.icon(
         onPressed: _exportYearly,
         icon: AppIcon(AppIcons.send, size: 18),
-        label: const Text('Export Yearly (Excel)'),
+        label: Text(t('report.export')),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
         ),

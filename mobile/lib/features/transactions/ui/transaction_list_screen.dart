@@ -555,9 +555,9 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: t('tx.search'),
-                    prefixIcon: const AppIcon(AppIcons.search, size: 16),
+                    prefixIcon: const AppFieldIcon(AppIcons.search),
                     prefixIconConstraints:
-                        const BoxConstraints(minWidth: 36, minHeight: 36),
+                        const BoxConstraints(minWidth: 32, minHeight: 20, maxWidth: 40, maxHeight: 32),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
                             icon: const AppIcon(AppIcons.close, size: 16),

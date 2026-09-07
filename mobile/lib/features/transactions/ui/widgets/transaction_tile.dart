@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/ui/app_icons.dart';
+import '../../../../core/ui/category_glyph.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/utils/currency_formatter.dart';
@@ -31,6 +32,11 @@ class TransactionTile extends StatelessWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      leading: CategoryGlyph(
+        icon: transaction.category.icon,
+        expense: isExpense,
+        size: 36,
+      ),
       title: Text(
         description.isEmpty ? translatedCategory : description,
         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),

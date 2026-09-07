@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/category_glyph.dart';
 
 class CategoryChip {
   final int id;
@@ -47,8 +48,10 @@ class CategoryPicker extends StatelessWidget {
         for (final cat in categories)
           _CatChip(
             label: cat.name,
+            icon: cat.icon,
             selected: cat.id == selectedId,
             selectedTint: selectedTint,
+            expense: isExpense,
             onTap: () => onSelected(cat.id),
           ),
       ],
@@ -58,13 +61,17 @@ class CategoryPicker extends StatelessWidget {
 
 class _CatChip extends StatelessWidget {
   final String label;
+  final String icon;
   final bool selected;
   final Color selectedTint;
+  final bool expense;
   final VoidCallback onTap;
   const _CatChip({
     required this.label,
+    required this.icon,
     required this.selected,
     required this.selectedTint,
+    required this.expense,
     required this.onTap,
   });
 
@@ -74,18 +81,25 @@ class _CatChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
         decoration: BoxDecoration(
           color: selected ? selectedTint.withOpacity(0.14) : AppColors.surface,
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: selected ? selectedTint : AppColors.textPrimary,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CategoryGlyph(icon: icon, expense: expense, size: 24),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: selected ? selectedTint : AppColors.textPrimary,
+              ),
+            ),
+          ],
         ),
       ),
     );
