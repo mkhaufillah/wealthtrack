@@ -1,6 +1,6 @@
 # UI/UX Revamp + Server-Driven Copy, Config, Calc
 
-> **For Hermes:** Phase 0 is closed (APK visual + ID copy). Phase 1 waits for gas. **Copy SoT is Postgres `ui_copy`, not a Python dict and not `copy_fallback.dart`.** Fallback APK map is offline/old-APK only. Widgets never take `Color(0x…)`. Hex lives in `app_theme.dart` (compiled fallback) and bootstrap `theme` (live, from `ui_config`). Product copy and money math do not live in Dart.
+> **For Hermes:** Phase 0 is closed (APK visual + ID copy). Phase 1 waits for gas. **Copy SoT is Postgres `ui_copy`, not a Python dict and not `copy_fallback.dart`.** Serve via Redis `ui:bootstrap:{locale}` TTL 3600; DB only on miss. Fallback APK map is offline/old-APK only. Widgets never take `Color(0x…)`. Hex lives in `app_theme.dart` (compiled fallback) and bootstrap `theme` (live, from `ui_config`). Product copy and money math do not live in Dart.
 
 **Goal:** Total visual rombak (eye-catching palette, quieter home) **and** move wording, format/config, and business calculations to the backend so copy/formula/theme tweaks ship without an APK.
 
@@ -152,7 +152,18 @@ Prefix: `/api/v1`. JWT as today. No MCP change in v1.
 
 Seed on startup from `backend/app/core/ui_seed.py` with `INSERT … ON CONFLICT DO NOTHING` so live edits are never overwritten. Changing a string in prod = `UPDATE ui_copy`, not a code deploy.
 
-Do **not** keep a parallel SoT in `ui_copy.py` dicts. Loader reads DB every request (or 60s process cache keyed by max(`updated_at`)).
+Do **not** keep a parallel SoT in `ui_copy.py` dicts.
+
+**Redis cache (required for Phase 1).** `GET /ui/bootstrap` must not hit Postgres on every request.
+
+1. `GET` → `GET ui:bootstrap:{locale}` (JSON payload).
+2. Miss → read `ui_copy` + `ui_config` once → `SETEX ui:bootstrap:{locale} 3600 <json>`.
+3. TTL **1 hour** is the invalidate. After expiry the next request hits DB again and refills Redis.
+4. No in-process cache. Redis is the only server cache so multiple workers share one copy.
+
+Live `UPDATE ui_copy` can take up to 1 hour to show. Phase 1 does **not** `DEL` on write. Optional later: `DEL ui:bootstrap:*` after an admin edit.
+
+Client still caches (memory + SecureStorage) with `ETag` / `Cache-Control: max-age=300`. That is the APK layer; Redis is the DB shield.
 
 APK `copy_fallback.dart` stays as last-resort if the key is missing in the payload (typo, old APK, empty cache). It is not the live catalog.
 
@@ -283,7 +294,7 @@ New modules (do not dump into `dashboard_provider.dart`):
 | Path | Role |
 |------|------|
 | `backend/app/core/ui_seed.py` | Seed rows only (`ON CONFLICT DO NOTHING`). Not the live catalog. |
-| `backend/app/services/ui_bootstrap_service.py` | Read `ui_copy` + `ui_config`, assemble payload, ETag |
+| `backend/app/services/ui_bootstrap_service.py` | Redis `ui:bootstrap:{locale}` TTL 3600; DB on miss; assemble payload |
 | `backend/app/services/home_service.py` | assemble `/home` from SummaryService + debt summary + recent txns |
 | `backend/app/routers/ui.py` | `/ui/bootstrap` (public), `/home` (JWT) |
 | `backend/tests/test_ui_bootstrap.py` | keys present, hex shape, values match DB not hardcoded dict |
@@ -315,9 +326,9 @@ Register router in `main.py`. Auth: same JWT.
 
 **TDD backend first**
 
-1. `test_ui_bootstrap.py`: 200 without JWT; payload has `copy`, `format`, `theme.light.accent`; `copy['home.hero_title'] == 'Uang kamu'` from DB; updating `ui_copy` changes the next response (cache bust / ETag).
+1. `test_ui_bootstrap.py`: 200 without JWT; payload has `copy`, `format`, `theme.light.accent`; `copy['home.hero_title'] == 'Uang kamu'` from DB; second request does not query `ui_copy` (Redis hit); after TTL/flush, next request refills from DB.
 2. Schema `ui_copy` + `ui_config` in `database.py`. Seed from `ui_seed.py` (`ON CONFLICT DO NOTHING`).
-3. Router reads DB. Process cache ≤ 60s keyed by `max(updated_at)`.
+3. Router: Redis first (`SETEX` 3600). No in-process cache.
 4. Flutter: fetch on cold start (before login), persist, `AppColors.applyRemote`, `t(key)` overlays fallback.
 5. Login screen uses bootstrap copy when cache exists.
 
