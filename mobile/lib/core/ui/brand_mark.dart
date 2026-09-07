@@ -11,11 +11,11 @@ class BrandMark extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(size * 0.22),
       child: Image.asset(
-        dark ? 'assets/logo_login_dark.png' : 'assets/logo_login_light.png',
+        dark ? 'assets/logo_login_dark.jpg' : 'assets/logo_login_light.jpg',
         width: size,
         height: size,
         fit: BoxFit.cover,
-        filterQuality: FilterQuality.medium,
+        filterQuality: FilterQuality.high,
         errorBuilder: (_, __, ___) => Image.asset(
           'assets/logo.png',
           width: size,

@@ -61,7 +61,7 @@ void main() {
       final image = tester.widget<Image>(
         find.descendant(of: find.byType(BrandMark), matching: find.byType(Image)),
       );
-      expect((image.image as AssetImage).assetName, 'assets/logo_login_light.png');
+      expect((image.image as AssetImage).assetName, 'assets/logo_login_light.jpg');
     });
 
     testWidgets('login mark uses dark plate asset', (tester) async {
@@ -86,7 +86,7 @@ void main() {
       final image = tester.widget<Image>(
         find.descendant(of: find.byType(BrandMark), matching: find.byType(Image)),
       );
-      expect((image.image as AssetImage).assetName, 'assets/logo_login_dark.png');
+      expect((image.image as AssetImage).assetName, 'assets/logo_login_dark.jpg');
     });
 
     testWidgets('text field icons stay compact', (tester) async {
