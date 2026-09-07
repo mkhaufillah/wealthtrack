@@ -17,17 +17,7 @@ int _parseAmount(String text) {
 }
 
 /// Formats raw digits into "Rp XXX.XXX" display format.
-String _formatIdrDisplay(String digits) {
-  if (digits.isEmpty) return '';
-  final buf = StringBuffer();
-  int count = 0;
-  for (int i = digits.length - 1; i >= 0; i--) {
-    if (count > 0 && count % 3 == 0) buf.write('.');
-    buf.write(digits[i]);
-    count++;
-  }
-  return 'Rp ${buf.toString().split('').reversed.join('')}';
-}
+String _formatIdrDisplay(String digits) => formatIdrInput(digits);
 
 enum ExtraStep { form, preview, confirm }
 

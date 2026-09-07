@@ -658,14 +658,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
       } else {
         final digits = amountCtrl.text.replaceAll(RegExp(r'[^\d]'), '');
         if (digits.isNotEmpty) {
-          final buf = StringBuffer();
-          int count = 0;
-          for (int i = digits.length - 1; i >= 0; i--) {
-            if (count > 0 && count % 3 == 0) buf.write('.');
-            buf.write(digits[i]);
-            count++;
-          }
-          final formatted = 'Rp ${buf.toString().split('').reversed.join('')}';
+          final formatted = formatIdrInput(digits);
           amountCtrl.value = TextEditingValue(
             text: formatted,
             selection: TextSelection.collapsed(offset: formatted.length),

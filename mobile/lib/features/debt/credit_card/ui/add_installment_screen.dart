@@ -1,5 +1,7 @@
+import '../../../../shared/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/money.dart';
 import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,17 +17,7 @@ int _parseAmount(String text) {
 }
 
 /// Formats raw digits into "Rp XXX.XXX" display format.
-String _formatIdrDisplay(String digits) {
-  if (digits.isEmpty) return '';
-  final buf = StringBuffer();
-  int count = 0;
-  for (int i = digits.length - 1; i >= 0; i--) {
-    if (count > 0 && count % 3 == 0) buf.write('.');
-    buf.write(digits[i]);
-    count++;
-  }
-  return 'Rp ${buf.toString().split('').reversed.join('')}';
-}
+String _formatIdrDisplay(String digits) => formatIdrInput(digits);
 
 class AddInstallmentScreen extends ConsumerStatefulWidget {
   final int cardId;
@@ -237,7 +229,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               focusNode: _totalAmountFocus,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: 'Rp 0',
+                hintText: '${MoneyFormat.prefix} 0',
                 prefixIcon: AppFieldIcon(AppIcons.money),
               ),
             ),
@@ -251,7 +243,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               focusNode: _monthlyAmountFocus,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: 'Rp 0',
+                hintText: '${MoneyFormat.prefix} 0',
                 prefixIcon: AppFieldIcon(AppIcons.refresh),
               ),
             ),

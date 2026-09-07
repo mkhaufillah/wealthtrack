@@ -1,3 +1,5 @@
+import '../../../../core/ui/money.dart';
+import '../../../../shared/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
@@ -6,18 +8,7 @@ String _extractDigits(String text) => text.replaceAll(RegExp(r'[^\d]'), '');
 
 /// Formats raw digits with "Rp" prefix and Indonesian thousand separator (period).
 /// "50000" -> "Rp 50.000"
-String _formatAmount(String text) {
-  final digits = _extractDigits(text);
-  if (digits.isEmpty) return '';
-  final buf = StringBuffer();
-  int count = 0;
-  for (int i = digits.length - 1; i >= 0; i--) {
-    if (count > 0 && count % 3 == 0) buf.write('.');
-    buf.write(digits[i]);
-    count++;
-  }
-  return 'Rp ${buf.toString().split('').reversed.join('')}';
-}
+String _formatAmount(String text) => formatIdrInput(text);
 
 class AmountField extends StatefulWidget {
   final TextEditingController controller;
@@ -133,7 +124,7 @@ class _AmountFieldState extends State<AmountField> {
       textAlign: TextAlign.center,
       decoration: widget.hero
           ? InputDecoration(
-              hintText: showHint ? 'Rp 0' : null,
+              hintText: showHint ? '${MoneyFormat.prefix} 0' : null,
               hintStyle: hint,
               filled: false,
               border: InputBorder.none,
@@ -142,7 +133,7 @@ class _AmountFieldState extends State<AmountField> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             )
           : InputDecoration(
-              hintText: showHint ? 'Rp 0' : null,
+              hintText: showHint ? '${MoneyFormat.prefix} 0' : null,
               hintStyle: hint,
               filled: true,
               fillColor: AppColors.background,
