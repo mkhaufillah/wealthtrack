@@ -190,7 +190,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
               controller: _nameCtrl,
               decoration: InputDecoration(
                 hintText: 'e.g. Mandiri Visa Platinum',
-                prefixIcon: AppIcon(AppIcons.card, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.card),
               ),
               validator: _validateRequired,
               textCapitalization: TextCapitalization.words,
@@ -204,7 +204,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
               controller: _last4Ctrl,
               decoration: InputDecoration(
                 hintText: 'e.g. 1234',
-                prefixIcon: AppIcon(AppIcons.info, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.info),
               ),
               keyboardType: TextInputType.number,
               maxLength: 4,
@@ -218,7 +218,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             DropdownButtonFormField<int>(
               initialValue: _billingDate,
               decoration: InputDecoration(
-                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               items: List.generate(31, (i) => i + 1).map((d) {
                 return DropdownMenuItem(value: d, child: Text('${d}th'));
@@ -235,7 +235,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             DropdownButtonFormField<int>(
               initialValue: _dueDate,
               decoration: InputDecoration(
-                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               items: List.generate(31, (i) => i + 1).map((d) {
                 return DropdownMenuItem(value: d, child: Text('${d}th'));
@@ -255,7 +255,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 hintText: 'Rp 0',
-                prefixIcon: AppIcon(AppIcons.money, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.money),
               ),
             ),
             const SizedBox(height: 20),

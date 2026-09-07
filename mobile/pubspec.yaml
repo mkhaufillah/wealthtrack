@@ -34,6 +34,8 @@ flutter:
     - assets/images/debt/
     - assets/logo.png
     - assets/logo_mark.png
+    - assets/logo_login_light.png
+    - assets/logo_login_dark.png
   fonts:
     - family: Nunito
       fonts:

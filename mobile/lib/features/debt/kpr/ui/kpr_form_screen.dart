@@ -437,7 +437,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 hintText: 'Rp 0',
-                prefixIcon: AppIcon(AppIcons.home, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.home),
               ),
             ),
             const SizedBox(height: 20),
@@ -451,7 +451,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 hintText: 'Rp 0',
-                prefixIcon: AppIcon(AppIcons.money, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.money),
               ),
             ),
             const SizedBox(height: 20),
@@ -489,7 +489,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             DropdownButtonFormField<int>(
               value: _tenorYears,
               decoration: InputDecoration(
-                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               items: [5, 10, 15, 20, 25, 30].map((y) {
                 return DropdownMenuItem(value: y, child: Text('$y years'));
@@ -509,7 +509,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                   child: DropdownButtonFormField<int>(
                     value: _startMonth,
                     decoration: InputDecoration(
-                      prefixIcon: AppIcon(AppIcons.calendar, size: 20),
+                      prefixIcon: AppFieldIcon(AppIcons.calendar),
                     ),
                     items: List.generate(12, (i) => i + 1).map((m) {
                       final months = [
@@ -531,7 +531,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                   child: DropdownButtonFormField<int>(
                     value: _startYear,
                     decoration: InputDecoration(
-                      prefixIcon: AppIcon(AppIcons.calendar, size: 20),
+                      prefixIcon: AppFieldIcon(AppIcons.calendar),
                     ),
                     items: List.generate(31, (i) => 2020 + i).map((y) {
                       return DropdownMenuItem(value: y, child: Text('$y'));
@@ -551,7 +551,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             DropdownButtonFormField<int>(
               value: _dueDate,
               decoration: InputDecoration(
-                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.calendar),
                 hintText: 'Date of month',
               ),
               items: List.generate(28, (i) => i + 1).map((d) {
@@ -666,7 +666,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         decoration: InputDecoration(
           hintText: 'e.g. 9.0',
           suffixText: '%',
-          prefixIcon: AppIcon(AppIcons.money, size: 20),
+          prefixIcon: AppFieldIcon(AppIcons.money),
         ),
       ),
       const SizedBox(height: 16),
@@ -684,7 +684,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         decoration: InputDecoration(
           hintText: 'e.g. 7.0',
           suffixText: '%',
-          prefixIcon: AppIcon(AppIcons.money, size: 20),
+          prefixIcon: AppFieldIcon(AppIcons.money),
         ),
       ),
       const SizedBox(height: 16),
@@ -696,7 +696,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         decoration: InputDecoration(
           hintText: 'e.g. 0.5',
           suffixText: '%',
-          prefixIcon: AppIcon(AppIcons.chartUp, size: 20),
+          prefixIcon: AppFieldIcon(AppIcons.chartUp),
         ),
       ),
       const SizedBox(height: 16),
@@ -708,7 +708,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         decoration: InputDecoration(
           hintText: 'e.g. 12',
           suffixText: 'months',
-          prefixIcon: AppIcon(AppIcons.calendar, size: 20),
+          prefixIcon: AppFieldIcon(AppIcons.calendar),
         ),
       ),
       const SizedBox(height: 16),

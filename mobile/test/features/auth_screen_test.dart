@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:wealthtrack/core/ui/app_icons.dart';
+import 'package:wealthtrack/core/ui/brand_mark.dart';
 import 'package:wealthtrack/features/auth/providers/auth_provider.dart';
 import 'package:wealthtrack/features/auth/ui/login_screen.dart';
 import 'package:wealthtrack/features/auth/ui/register_screen.dart';
@@ -52,6 +53,52 @@ void main() {
     testWidgets('shows WealthTrack branding', (tester) async {
       await tester.pumpWidget(buildLoginApp());
       expect(find.text('WealthTrack'), findsOneWidget);
+      expect(find.byType(BrandMark), findsOneWidget);
+    });
+
+    testWidgets('login mark uses light plate asset', (tester) async {
+      await tester.pumpWidget(buildLoginApp());
+      final image = tester.widget<Image>(
+        find.descendant(of: find.byType(BrandMark), matching: find.byType(Image)),
+      );
+      expect((image.image as AssetImage).assetName, 'assets/logo_login_light.png');
+    });
+
+    testWidgets('login mark uses dark plate asset', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authProvider.overrideWithProvider(
+              StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+                final notifier = AuthNotifier(
+                    MockAuthRepository(), MockSecureStorage(), MockApiClient());
+                notifier.state = const AuthState(status: AuthStatus.initial);
+                return notifier;
+              }),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.dark,
+            home: const LoginScreen(),
+          ),
+        ),
+      );
+      final image = tester.widget<Image>(
+        find.descendant(of: find.byType(BrandMark), matching: find.byType(Image)),
+      );
+      expect((image.image as AssetImage).assetName, 'assets/logo_login_dark.png');
+    });
+
+    testWidgets('text field icons stay compact', (tester) async {
+      await tester.pumpWidget(buildLoginApp());
+      final fieldIcons = tester
+          .widgetList<AppIcon>(find.byType(AppIcon))
+          .where((w) =>
+              w.icon == HugeIcons.strokeRoundedUser ||
+              w.icon == HugeIcons.strokeRoundedShield01)
+          .toList();
+      expect(fieldIcons, isNotEmpty);
+      expect(fieldIcons.every((w) => w.size <= 16), isTrue);
     });
 
     testWidgets('shows username and password fields', (tester) async {

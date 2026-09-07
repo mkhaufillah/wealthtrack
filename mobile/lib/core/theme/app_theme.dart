@@ -145,8 +145,10 @@ class AppTheme {
             borderSide: BorderSide(color: AppColors._accent, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-          suffixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 36, minHeight: 20, maxWidth: 44, maxHeight: 36),
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 36, minHeight: 20, maxWidth: 44, maxHeight: 36),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -231,8 +233,10 @@ class AppTheme {
             borderSide: BorderSide(color: AppColors.darkPrimary, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-          suffixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 36, minHeight: 20, maxWidth: 44, maxHeight: 36),
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 36, minHeight: 20, maxWidth: 44, maxHeight: 36),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/ui/app_icons.dart';
+import '../../../core/ui/brand_mark.dart';
 import '../../../core/ui/copy_fallback.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,15 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset(
-                    'assets/logo_mark.png',
-                    height: 88,
-                    filterQuality: FilterQuality.medium,
-                    errorBuilder: (_, __, ___) => Image.asset(
-                      'assets/logo.png',
-                      height: 88,
-                    ),
-                  ),
+                  const BrandMark(size: 96),
                   const SizedBox(height: 16),
                   Text('WealthTrack',
                       style: TextStyle(
@@ -73,7 +66,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _usernameCtrl,
                     decoration: InputDecoration(
                         labelText: 'Username',
-                        prefixIcon: const AppIcon(AppIcons.user, size: 20)),
+                        prefixIcon: const AppFieldIcon(AppIcons.user)),
                     validator: (v) =>
                         v == null || v.trim().length < 3 ? 'Min 3 characters' : null,
                     enabled: !isLoading,
@@ -84,11 +77,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: const AppIcon(AppIcons.shield, size: 20),
+                      prefixIcon: const AppFieldIcon(AppIcons.shield),
                       suffixIcon: IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                         icon: AppIcon(
                           _obscurePassword ? AppIcons.viewOff : AppIcons.view,
-                          size: 20,
+                          size: 16,
                         ),
                         onPressed: () =>
                             setState(() => _obscurePassword = !_obscurePassword),

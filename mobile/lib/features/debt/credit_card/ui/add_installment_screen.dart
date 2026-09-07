@@ -222,7 +222,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               controller: _descriptionCtrl,
               decoration: InputDecoration(
                 hintText: 'e.g. MacBook Pro Installment',
-                prefixIcon: AppIcon(AppIcons.edit, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.edit),
               ),
               validator: _validateRequired,
               textCapitalization: TextCapitalization.sentences,
@@ -238,7 +238,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 hintText: 'Rp 0',
-                prefixIcon: AppIcon(AppIcons.money, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.money),
               ),
             ),
             const SizedBox(height: 20),
@@ -252,7 +252,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 hintText: 'Rp 0',
-                prefixIcon: AppIcon(AppIcons.refresh, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.refresh),
               ),
             ),
             const SizedBox(height: 20),
@@ -265,7 +265,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 hintText: 'e.g. 12',
-                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.calendar),
               ),
               validator: _validateMonths,
             ),
@@ -279,7 +279,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               readOnly: true,
               decoration: InputDecoration(
                 hintText: 'YYYY-MM',
-                prefixIcon: AppIcon(AppIcons.calendar, size: 20),
+                prefixIcon: AppFieldIcon(AppIcons.calendar),
                 suffixIcon: AppIcon(AppIcons.next, size: 20, color: AppColors.textSecondary),
               ),
               validator: _validateRequired,

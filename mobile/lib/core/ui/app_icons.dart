@@ -53,10 +53,28 @@ class AppIcon extends StatelessWidget {
     final resolved = color ??
         IconTheme.of(context).color ??
         Theme.of(context).colorScheme.onSurface;
-    return HugeIcon(
-      icon: icon,
-      size: size,
-      color: resolved,
+    return SizedBox(
+      width: size,
+      height: size,
+      child: HugeIcon(
+        icon: icon,
+        size: size,
+        color: resolved,
+      ),
+    );
+  }
+}
+
+/// Compact icon for [InputDecoration.prefixIcon] / suffix.
+class AppFieldIcon extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  const AppFieldIcon(this.icon, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: AppIcon(icon, size: 16),
     );
   }
 }
