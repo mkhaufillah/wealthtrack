@@ -1,6 +1,6 @@
 # UI/UX Revamp + Server-Driven Copy, Config, Calc
 
-> **For Hermes:** Phase 0 (theme + launcher + home hero) is in flight when Filla says gas. Later phases still wait. Widgets never take `Color(0x…)` — tokens only. Hex lives in `app_theme.dart` (fallback) and `GET /ui/bootstrap` (live). Product copy and money math do not live in Dart.
+> **For Hermes:** Phase 0 is closed (APK visual + ID copy). Phase 1 waits for gas. **Copy SoT is Postgres `ui_copy`, not a Python dict and not `copy_fallback.dart`.** Fallback APK map is offline/old-APK only. Widgets never take `Color(0x…)`. Hex lives in `app_theme.dart` (compiled fallback) and bootstrap `theme` (live, from `ui_config`). Product copy and money math do not live in Dart.
 
 **Goal:** Total visual rombak (eye-catching palette, quieter home) **and** move wording, format/config, and business calculations to the backend so copy/formula/theme tweaks ship without an APK.
 
@@ -141,7 +141,40 @@ Prefix: `/api/v1`. JWT as today. No MCP change in v1.
 
 ### `GET /ui/bootstrap`
 
-Cached by client (memory + SecureStorage). `ETag` / `Cache-Control: max-age=300`.
+**Public** (no JWT). Login chrome is copy too — it cannot wait for a token. Rate-limit by IP. Cached by client (memory + SecureStorage). `ETag` / `Cache-Control: max-age=300`.
+
+**Source of truth: database, not Python.**
+
+| Table | Role |
+|-------|------|
+| `ui_copy` | Every product string: `t()` keys. PK `(key, locale)`. |
+| `ui_config` | Non-copy bootstrap: `format`, `theme.light`, `theme.dark`, `flags` as JSONB rows. |
+
+Seed on startup from `backend/app/core/ui_seed.py` with `INSERT … ON CONFLICT DO NOTHING` so live edits are never overwritten. Changing a string in prod = `UPDATE ui_copy`, not a code deploy.
+
+Do **not** keep a parallel SoT in `ui_copy.py` dicts. Loader reads DB every request (or 60s process cache keyed by max(`updated_at`)).
+
+APK `copy_fallback.dart` stays as last-resort if the key is missing in the payload (typo, old APK, empty cache). It is not the live catalog.
+
+Auth/OCR FastAPI `detail=` English strings are **not** this table in Phase 1. Those stay mapped in `api_client.dart`. Phase 1 = every `t()` key.
+
+```sql
+CREATE TABLE IF NOT EXISTS ui_copy (
+    key        TEXT NOT NULL,
+    locale     TEXT NOT NULL DEFAULT 'id-ID',
+    value      TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (key, locale)
+);
+
+CREATE TABLE IF NOT EXISTS ui_config (
+    key        TEXT PRIMARY KEY,
+    value      JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+Seed `locale = id-ID` with the current `copyFallback` map (~250 keys). `Email` / `Username` labels stay English in the value, matching the live APK.
 
 ```json
 {
@@ -249,11 +282,11 @@ New modules (do not dump into `dashboard_provider.dart`):
 
 | Path | Role |
 |------|------|
-| `backend/app/core/ui_copy.py` | ID copy dict (source of truth) |
-| `backend/app/core/ui_theme.py` | light/dark token maps |
+| `backend/app/core/ui_seed.py` | Seed rows only (`ON CONFLICT DO NOTHING`). Not the live catalog. |
+| `backend/app/services/ui_bootstrap_service.py` | Read `ui_copy` + `ui_config`, assemble payload, ETag |
 | `backend/app/services/home_service.py` | assemble `/home` from SummaryService + debt summary + recent txns |
-| `backend/app/routers/ui.py` | `/ui/bootstrap`, `/home` |
-| `backend/tests/test_ui_bootstrap.py` | keys present, hex shape |
+| `backend/app/routers/ui.py` | `/ui/bootstrap` (public), `/home` (JWT) |
+| `backend/tests/test_ui_bootstrap.py` | keys present, hex shape, values match DB not hardcoded dict |
 | `backend/tests/test_home.py` | personal all-time, not household; display strings present |
 
 `get_daily_summary` with no dates remains the personal all-time engine (already done). `/home` calls it; does not invent a third formula.
@@ -278,14 +311,17 @@ Register router in `main.py`. Auth: same JWT.
 
 ### Phase 1 — Bootstrap (API + client)
 
+**Copy lives in Postgres.** No Python dict as SoT.
+
 **TDD backend first**
 
-1. `test_ui_bootstrap.py`: 401 without JWT; 200 with keys `copy`, `format`, `theme.light.accent`.
-2. Implement router + static dicts.
-3. Flutter: fetch on app start (after token), persist, `AppColors.applyRemote`.
-4. `t('home.hero_title')` on BalanceCard.
+1. `test_ui_bootstrap.py`: 200 without JWT; payload has `copy`, `format`, `theme.light.accent`; `copy['home.hero_title'] == 'Uang kamu'` from DB; updating `ui_copy` changes the next response (cache bust / ETag).
+2. Schema `ui_copy` + `ui_config` in `database.py`. Seed from `ui_seed.py` (`ON CONFLICT DO NOTHING`).
+3. Router reads DB. Process cache ≤ 60s keyed by `max(updated_at)`.
+4. Flutter: fetch on cold start (before login), persist, `AppColors.applyRemote`, `t(key)` overlays fallback.
+5. Login screen uses bootstrap copy when cache exists.
 
-**Files:** `routers/ui.py`, `core/ui_copy.py`, `core/ui_theme.py`, `lib/core/ui/*`, `main.py` / `app.dart` startup.
+**Files:** `database.py`, `core/ui_seed.py`, `services/ui_bootstrap_service.py`, `routers/ui.py`, `lib/core/ui/*`, `app.dart` startup.
 
 ### Phase 2 — `GET /home`
 
@@ -343,8 +379,8 @@ Manual: light + dark, Filla vs Nahda login, cycle budgets unchanged.
 
 - `backend/app/routers/ui.py`
 - `backend/app/services/home_service.py`
-- `backend/app/core/ui_copy.py`
-- `backend/app/core/ui_theme.py`
+- `backend/app/services/ui_bootstrap_service.py`
+- `backend/app/core/ui_seed.py`
 - `backend/tests/test_ui_bootstrap.py`
 - `backend/tests/test_home.py`
 - `mobile/lib/core/ui/ui_config.dart`
@@ -355,6 +391,7 @@ Manual: light + dark, Filla vs Nahda login, cycle budgets unchanged.
 **Modify**
 
 - `backend/app/main.py` (include router)
+- `backend/app/database.py` (`ui_copy`, `ui_config` + seed call)
 - `mobile/lib/core/theme/app_theme.dart`
 - `mobile/lib/features/home/ui/widgets/balance_card.dart`
 - `mobile/lib/features/home/ui/home_screen.dart`
