@@ -126,7 +126,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           if (sim != null)
             IconButton(
               icon: AppIcon(AppIcons.money),
-              tooltip: 'Pembayaran ekstra',
+              tooltip: t('kpr.extra_payment'),
               onPressed: () => context.push(
                   '/debt/kpr/${sim.id}/extra-payment'),
             ),
@@ -386,7 +386,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 8),
             Text(
-              'Pembayaran ekstra',
+              t('kpr.extra_deleted'),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -730,7 +730,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             AppIcon(AppIcons.calendar, size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 8),
             Text(
-              'Jadwal cicilan',
+              t('kpr.schedule'),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,

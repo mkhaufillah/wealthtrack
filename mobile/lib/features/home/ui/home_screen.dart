@@ -339,7 +339,7 @@ class _DebtStrip extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Utang berjalan',
+                  t('home.debt_running'),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -489,7 +489,7 @@ class _RecentSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Baru saja',
+              t('home.recent'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
@@ -499,7 +499,7 @@ class _RecentSection extends StatelessWidget {
             TextButton(
               onPressed: () => context.go('/transactions'),
               child: Text(
-                'Lihat semua',
+                t('home.see_all'),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -519,7 +519,7 @@ class _RecentSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(22),
             ),
             child: Text(
-              'Belum ada transaksi',
+              t('home.empty_tx_short'),
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary),
             ),

@@ -196,7 +196,7 @@ class _KPRExtraPaymentScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Detail pembayaran ekstra',
+            t('kpr.extra_detail'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -278,7 +278,7 @@ class _KPRExtraPaymentScreenState
                 ),
               ),
               child: const Text(
-                'Lihat perbandingan',
+                t('kpr.compare'),
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
@@ -311,7 +311,7 @@ class _KPRExtraPaymentScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Pilih yang kamu mau',
+          t('kpr.pick_option'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -379,7 +379,7 @@ class _KPRExtraPaymentScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Selisih',
+                      t('kpr.diff'),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/category_glyph.dart';
+import '../../../../core/ui/copy_fallback.dart';
 
 class CategoryChip {
   final int id;
@@ -30,7 +31,7 @@ class CategoryPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     if (categories.isEmpty) {
       return Text(
-        'Kategori belum ada',
+        t('cat.empty_picker'),
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w700,

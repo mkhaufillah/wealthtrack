@@ -120,7 +120,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
           AppIcon(AppIcons.house, size: 64, color: AppColors.textSecondary.withAlpha(128)),
           const SizedBox(height: 16),
           Text(
-            'Belum ada simulasi KPR',
+            t('kpr.empty'),
             style: TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,

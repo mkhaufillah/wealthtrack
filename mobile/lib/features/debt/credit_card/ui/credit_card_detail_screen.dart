@@ -354,7 +354,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Proyeksi bulan depan',
+                  t('cc.proj_next'),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -392,7 +392,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'Belum ada transaksi',
+              t('cc.empty_tx'),
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -507,7 +507,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'Belum ada cicilan',
+              t('cc.empty_installments'),
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,

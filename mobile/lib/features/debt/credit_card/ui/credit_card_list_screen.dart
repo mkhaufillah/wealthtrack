@@ -133,7 +133,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Ringkasan',
+            t('cc.summary'),
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -194,7 +194,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
           AppIcon(AppIcons.card, size: 64, color: AppColors.textSecondary.withAlpha(128)),
           const SizedBox(height: 16),
           Text(
-            'Belum ada kartu kredit',
+            t('cc.empty'),
             style: TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,
