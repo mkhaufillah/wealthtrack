@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>WealthTrack — login A / B / C</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#FFF3EE; --surface:#FFFFFF; --ink:#4A3A48; --muted:#9B8794;
+    --line:#F3E0D8; --rose:#F3A6B8; --hero:#FFE8DC; --on:#4A3A48;
+    --expense:#E08B7C; --ok:#4EAE90;
+  }
+  [data-theme="dark"] {
+    --bg:#2A2430; --surface:#3A3242; --ink:#F7EEE8; --muted:#C4B4BE;
+    --line:#4C4354; --rose:#E9A0B2; --hero:#463848; --on:#4A3A48;
+    --expense:#F0A090; --ok:#7ED0B4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; background: #f3d5c8; color: #4A3A48;
+    font-family: Nunito, system-ui, sans-serif; padding: 28px 16px 60px;
+  }
+  body.studio-dark { background: #1c1822; color: #F7EEE8; }
+  header { max-width: 1280px; margin: 0 auto 22px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: end; }
+  h1 { font-size: 22px; font-weight: 800; }
+  .lede { font-size: 14px; color: #9B8794; max-width: 560px; }
+  .toggles { display: flex; gap: 8px; }
+  .toggles button {
+    border: 0; background: #fff; padding: 8px 14px; border-radius: 999px;
+    font: 800 12px Nunito; cursor: pointer; color: #4A3A48;
+  }
+  .row { display: flex; gap: 28px; justify-content: center; flex-wrap: wrap; }
+  .col { width: 390px; }
+  .col h2 { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+  .col p { font-size: 12px; color: #9B8794; font-weight: 700; margin-bottom: 10px; min-height: 32px; }
+  .phone {
+    width: 390px; height: 844px; border-radius: 44px; background: var(--bg); color: var(--ink);
+    overflow: hidden; position: relative; box-shadow: 0 30px 60px rgba(74,58,72,.18);
+    display: flex; flex-direction: column;
+  }
+  .notch { height: 48px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 26px 8px; font-size: 12px; font-weight: 800; }
+  .mark { width: 96px; height: 96px; border-radius: 22px; object-fit: cover; display: block; }
+  .mark.sm { width: 64px; height: 64px; border-radius: 16px; }
+  label.lab { display: block; font-size: 11px; font-weight: 800; color: var(--muted); margin: 0 0 6px 4px; }
+  .field {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px; height: 52px; padding: 0 14px;
+  }
+  .field input { flex: 1; border: 0; outline: 0; background: transparent; font: 700 15px Nunito; color: var(--ink); width: 100%; }
+  .field button { border: 0; background: none; color: var(--muted); font: 800 12px Nunito; cursor: pointer; }
+  .go {
+    width: 100%; height: 52px; border: 0; border-radius: 16px; background: var(--rose); color: var(--on);
+    font: 800 16px Nunito; cursor: pointer;
+  }
+  .go:disabled { opacity: .55; }
+  .ghost { border: 0; background: none; color: var(--muted); font: 800 13px Nunito; cursor: pointer; width: 100%; padding: 12px; }
+  .err { color: var(--expense); font-size: 13px; font-weight: 800; min-height: 18px; }
+  .toast { position: absolute; left: 18px; right: 18px; bottom: 24px; background: var(--ink); color: #fff; padding: 12px 14px; border-radius: 16px; font-size: 13px; font-weight: 800; display: none; }
+  .toast.show { display: block; }
+
+  /* A ticket */
+  .a-top { flex: 1; padding: 8px 28px 0; display: flex; flex-direction: column; justify-content: center; transition: all .25s; }
+  .phone.kb .a-top { flex: 0; padding-top: 4px; }
+  .phone.kb .a-top .mark { width: 56px; height: 56px; border-radius: 14px; }
+  .phone.kb .hi { display: none; }
+  .hi { margin-top: 14px; }
+  .hi b { display: block; font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
+  .hi span { font-size: 14px; font-weight: 700; color: var(--muted); }
+  .ticket {
+    background: var(--surface); border-radius: 28px 28px 0 0; padding: 22px 22px 28px;
+    box-shadow: 0 -12px 40px rgba(74,58,72,.06);
+  }
+
+  /* B peach card */
+  .b-wrap { padding: 12px 20px 24px; display: flex; flex-direction: column; gap: 14px; flex: 1; justify-content: center; }
+  .slab { background: var(--hero); border-radius: 28px; padding: 22px 20px 18px; }
+  .slab .rowm { display: flex; align-items: center; gap: 14px; }
+  .white { background: var(--surface); border-radius: 22px; padding: 18px; }
+
+  /* C one breath */
+  .c-wrap { padding: 20px 28px 28px; flex: 1; display: flex; flex-direction: column; }
+  .c-hero { padding-top: 36px; }
+  .c-hero img { width: 88px; height: 88px; border-radius: 20px; }
+  .tag { margin-top: 18px; font-size: 22px; font-weight: 800; letter-spacing: -.03em; line-height: 1.2; }
+  .c-form { margin-top: auto; padding-bottom: 8px; }
+  .bare { background: transparent; border: 0; border-bottom: 1.5px solid var(--line); border-radius: 0; height: 48px; padding: 0; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Login — tiga stance</h1>
+    <p class="lede">Bukan ganti warna. A jempol, B saudara home, C tanpa wordmark. Toggle dark, ketik di A biar ayam mengecil.</p>
+  </div>
+  <div class="toggles">
+    <button type="button" id="theme">Dark</button>
+  </div>
+</header>
+<div class="row">
+
+  <div class="col">
+    <h2>A · Tiket bawah</h2>
+    <p>Form di zona jempol. Keyboard → ayam mengecil.</p>
+    <div class="phone" id="pA" data-theme="light">
+      <div class="notch"><span>09.12</span><span>LTE</span></div>
+      <div class="a-top">
+        <img class="mark" alt="" data-logo/>
+        <div class="hi"><b>Hai lagi</b><span>Catat duit, tanpa drama</span></div>
+      </div>
+      <form class="ticket" onsubmit="return go(event,'A')">
+        <label class="lab">Nama panggilan</label>
+        <div class="field"><input name="u" placeholder="filla" autocomplete="username"/></div>
+        <div style="height:12px"></div>
+        <label class="lab">Kata sandi</label>
+        <div class="field">
+          <input name="p" type="password" placeholder="••••••••" autocomplete="current-password"/>
+          <button type="button" class="eye">Lihat</button>
+        </div>
+        <div class="err" id="eA"></div>
+        <button class="go" type="submit">Masuk</button>
+        <button class="ghost" type="button">Belum punya akun? Daftar dulu</button>
+      </form>
+      <div class="toast" id="tA">Masuk… bentar ya</div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2>B · Kartu peach</h2>
+    <p>Slab peach = DNA kartu Uang kamu.</p>
+    <div class="phone" id="pB" data-theme="light">
+      <div class="notch"><span>09.12</span><span>LTE</span></div>
+      <div class="b-wrap">
+        <div class="slab">
+          <div class="rowm">
+            <img class="mark" alt="" data-logo/>
+            <div>
+              <b style="font-size:22px;font-weight:800;display:block">WealthTrack</b>
+              <span style="font-size:13px;font-weight:700;color:var(--muted)">Buat Filla &amp; Nahda</span>
+            </div>
+          </div>
+        </div>
+        <form class="white" onsubmit="return go(event,'B')">
+          <label class="lab">Nama panggilan</label>
+          <div class="field"><input placeholder="filla"/></div>
+          <div style="height:12px"></div>
+          <label class="lab">Kata sandi</label>
+          <div class="field">
+            <input type="password" placeholder="••••••••"/>
+            <button type="button" class="eye">Lihat</button>
+          </div>
+          <div class="err" id="eB"></div>
+          <button class="go" type="submit">Masuk</button>
+        </form>
+        <button class="ghost" type="button">Belum punya akun? Daftar dulu</button>
+      </div>
+      <div class="toast" id="tB">Masuk… bentar ya</div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2>C · Satu napas</h2>
+    <p>Ayam + kalimat. Field cuma garis. Gak ada judul app.</p>
+    <div class="phone" id="pC" data-theme="light">
+      <div class="notch"><span>09.12</span><span>LTE</span></div>
+      <div class="c-wrap">
+        <div class="c-hero">
+          <img class="mark" alt="" data-logo/>
+          <div class="tag">Catat duit,<br/>tanpa drama.</div>
+        </div>
+        <form class="c-form" onsubmit="return go(event,'C')">
+          <div class="field bare"><input placeholder="Nama panggilan"/></div>
+          <div style="height:8px"></div>
+          <div class="field bare">
+            <input type="password" placeholder="Kata sandi"/>
+            <button type="button" class="eye">Lihat</button>
+          </div>
+          <div class="err" id="eC"></div>
+          <button class="go" type="submit">Masuk</button>
+          <button class="ghost" type="button">Daftar dulu</button>
+        </form>
+      </div>
+      <div class="toast" id="tC">Masuk… bentar ya</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LIGHT = '../brand/logo-light.jpg';
+const DARK = '../brand/logo-dark.jpg';
+function logos(dark) {
+  document.querySelectorAll('[data-logo]').forEach(img => { img.src = dark ? DARK : LIGHT; });
+}
+logos(false);
+document.getElementById('theme').onclick = () => {
+  const on = !document.body.classList.contains('studio-dark');
+  document.body.classList.toggle('studio-dark', on);
+  document.querySelectorAll('.phone').forEach(p => p.setAttribute('data-theme', on ? 'dark' : 'light'));
+  document.getElementById('theme').textContent = on ? 'Light' : 'Dark';
+  logos(on);
+};
+document.querySelectorAll('.eye').forEach(btn => {
+  btn.onclick = () => {
+    const inp = btn.parentElement.querySelector('input');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? 'Lihat' : 'Tutup';
+  };
+});
+const a = document.getElementById('pA');
+a.querySelectorAll('input').forEach(inp => {
+  inp.addEventListener('focus', () => a.classList.add('kb'));
+  inp.addEventListener('blur', () => setTimeout(() => {
+    if (!a.querySelector('input:focus')) a.classList.remove('kb');
+  }, 80));
+});
+function go(e, id) {
+  e.preventDefault();
+  const form = e.target;
+  const u = form.querySelector('input').value.trim();
+  const p = form.querySelectorAll('input')[1].value;
+  const err = document.getElementById('e' + id);
+  if (u.length < 3 || p.length < 6) {
+    err.textContent = u.length < 3 ? 'Nama panggilan minimal 3 huruf' : 'Sandi minimal 6 karakter';
+    return false;
+  }
+  err.textContent = '';
+  const t = document.getElementById('t' + id);
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1400);
+  return false;
+}
+</script>
+</body>
+</html>
