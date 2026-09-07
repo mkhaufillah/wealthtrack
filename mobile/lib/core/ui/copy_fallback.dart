@@ -77,7 +77,7 @@ const Map<String, String> copyFallback = {
   'ai.disclaimer': 'Ini saran mesin, bukan nasihat keuangan resmi ya.',
   'auth.login': 'Masuk',
   'auth.register': 'Daftar',
-  'auth.hi': 'Hai lagi',
+  'auth.hi': 'Halo sob, WealthTrack disini',
   'auth.tagline': 'Catat duit, tanpa drama',
   'auth.username': 'Username',
   'auth.email': 'Email',

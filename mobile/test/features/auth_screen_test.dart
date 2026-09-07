@@ -50,9 +50,9 @@ void main() {
   setUp(() => initTestSecureStorage());
 
   group('LoginScreen', () {
-    testWidgets('shows Hai lagi branding', (tester) async {
+    testWidgets('shows Halo sob branding', (tester) async {
       await tester.pumpWidget(buildLoginApp());
-      expect(find.text('Hai lagi'), findsOneWidget);
+      expect(find.text('Halo sob, WealthTrack disini'), findsOneWidget);
       expect(find.text('Catat duit, tanpa drama'), findsOneWidget);
       expect(find.text('Username'), findsOneWidget);
       expect(find.byType(BrandMark), findsOneWidget);
