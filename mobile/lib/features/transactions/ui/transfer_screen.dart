@@ -140,7 +140,7 @@ class _TransferBalanceScreenState
 
     if (transfers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(t('transfer.add_recipient'))),
+        SnackBar(content: Text(t('transfer.add_recipient'))),
       );
       return;
     }

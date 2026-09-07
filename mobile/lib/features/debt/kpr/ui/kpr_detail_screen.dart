@@ -61,12 +61,12 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text(t('kpr.sim_deleted'))),
+            SnackBar(content: Text(t('kpr.sim_deleted'))),
           );
           context.pop();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text(t('kpr.sim_delete_fail'))),
+            SnackBar(content: Text(t('kpr.sim_delete_fail'))),
           );
         }
       }

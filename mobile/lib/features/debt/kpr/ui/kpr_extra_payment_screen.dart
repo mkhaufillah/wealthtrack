@@ -156,7 +156,7 @@ class _KPRExtraPaymentScreenState
         context.pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(t('kpr.extra_fail'))),
+          SnackBar(content: Text(t('kpr.extra_fail'))),
         );
       }
     }

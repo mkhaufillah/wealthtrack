@@ -229,7 +229,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     final tenorMonths = _getTenorMonths();
     if (loanAmount <= 0 || tenorMonths <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(t('kpr.fill_price_dp'))),
+        SnackBar(content: Text(t('kpr.fill_price_dp'))),
       );
       return;
     }
@@ -352,7 +352,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     final loanAmount = _getLoanAmount();
     if (loanAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(t('kpr.loan_positive'))),
+        SnackBar(content: Text(t('kpr.loan_positive'))),
       );
       return;
     }
@@ -393,7 +393,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(t('kpr.sim_saved'))),
+        SnackBar(content: Text(t('kpr.sim_saved'))),
       );
       ref.read(homeRefreshProvider.notifier).state++;
       if (mounted) context.pop();

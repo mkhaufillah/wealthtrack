@@ -107,7 +107,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Center(
+              Center(
                 child: Text(t('tx.sort_title'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 12),

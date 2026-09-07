@@ -192,7 +192,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
     if (success) {
       ref.read(homeRefreshProvider.notifier).state++;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(t('cc.inst_saved'))),
+        SnackBar(content: Text(t('cc.inst_saved'))),
       );
       if (mounted) context.pop();
     } else {

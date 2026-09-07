@@ -160,7 +160,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(t('cc.card_saved'))),
+        SnackBar(content: Text(t('cc.card_saved'))),
       );
       if (mounted) context.pop();
     } else {
