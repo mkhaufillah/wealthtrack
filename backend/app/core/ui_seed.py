@@ -317,6 +317,8 @@ COPY_ID: dict[str, str] = {
     'common.not_found': 'Gak ketemu',
     'common.empty': 'Kosong',
     'common.saved': 'Kesimpen',
+    'common.saved_live': 'Kesimpen. Live tanpa build.',
+    'common.check_input': 'Cek lagi isiannya ya.',
     'common.delete_fail': 'Gagal hapus',
     'ai.sample1': '"Bulan ini makan berapa, ya?"',
     'ai.sample2': '"Kasih tips nabung dong"',

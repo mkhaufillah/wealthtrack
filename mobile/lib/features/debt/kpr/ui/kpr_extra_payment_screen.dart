@@ -277,7 +277,7 @@ class _KPRExtraPaymentScreenState
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 t('kpr.compare'),
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),

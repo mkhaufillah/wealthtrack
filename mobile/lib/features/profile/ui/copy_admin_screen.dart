@@ -103,7 +103,7 @@ class _CopyAdminScreenState extends ConsumerState<CopyAdminScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Copy kesimpen. Live tanpa build.')),
+        SnackBar(content: Text(t('common.saved_live'))),
       );
       _load();
     } catch (e) {

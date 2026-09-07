@@ -87,7 +87,7 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
     final decimal = _decimalSepCtrl.text.trim();
     if (prefix.isEmpty || group.isEmpty || decimal.isEmpty || group == decimal) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cek lagi isian format. Prefix dan pemisah harus beda.')),
+        const SnackBar(content: Text('Cek lagi isiannya ya.')),
       );
       return;
     }
@@ -106,7 +106,7 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Format kesimpen. Live tanpa build.')),
+        SnackBar(content: Text(t('common.saved_live'))),
       );
       _load();
     } catch (e) {
@@ -130,7 +130,7 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Setelan kesimpen. Live tanpa build.')),
+        SnackBar(content: Text(t('common.saved_live'))),
       );
       _load();
     } catch (e) {
