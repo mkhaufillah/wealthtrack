@@ -501,7 +501,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           Row(
             children: [
               Expanded(
-                child: _infoColumn('Monthly', formatCurrency(inst.monthlyAmount)),
+                child: _infoColumn('Per bulan', formatCurrency(inst.monthlyAmount)),
               ),
               Expanded(
                 child: _infoColumn('Total', formatCurrency(inst.totalAmount)),

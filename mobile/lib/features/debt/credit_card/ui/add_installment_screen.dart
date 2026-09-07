@@ -278,7 +278,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
               controller: _startMonthCtrl,
               readOnly: true,
               decoration: InputDecoration(
-                hintText: 'YYYY-MM',
+                hintText: 'Pilih bulan',
                 prefixIcon: AppFieldIcon(AppIcons.calendar),
                 suffixIcon: AppIcon(AppIcons.next, size: 20, color: AppColors.textSecondary),
               ),

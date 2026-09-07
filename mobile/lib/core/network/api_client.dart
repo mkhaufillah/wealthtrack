@@ -10,10 +10,21 @@ import 'api_exceptions.dart';
 /// Unknown/unmatched errors fall back to a generic "Something went wrong."
 const _friendlyErrors = <String, String>{
   'invalid email or password': 'Email atau password salah.',
+  'invalid username or password': 'Email atau password salah.',
   'email already registered': 'Email ini sudah terdaftar.',
+  'email already in use': 'Email ini sudah terdaftar.',
+  'username already exists': 'Username sudah kepakai.',
   'account not found': 'Akun gak ketemu.',
   'user not found': 'Akun gak ketemu.',
   'invalid token': 'Sesi habis. Masuk lagi ya.',
+  'invalid otp': 'Kode OTP salah.',
+  'otp already used': 'Kode OTP sudah dipakai.',
+  'otp has expired': 'Kode OTP kadaluarsa. Minta yang baru ya.',
+  'no otp sent': 'Belum ada kode OTP. Minta dulu ya.',
+  'current password is incorrect': 'Sandi sekarang salah.',
+  'already in a household': 'Kamu sudah di keluarga.',
+  'invalid invite code': 'Kode undangan gak valid.',
+  'not a member of any household': 'Belum gabung keluarga.',
   'could not determine amount or category': 'Ada yang gak beres. Coba lagi ya.',
   'ocr rate limit': 'Tunggu sebentar sebelum unggah struk lagi.',
   'you already have an ocr job': 'Struk sebelumnya masih diproses, tunggu ya.',
@@ -21,6 +32,8 @@ const _friendlyErrors = <String, String>{
   'vision api timed out': 'Ada yang gak beres. Coba lagi ya.',
   'image too large': 'Fotonya kegedean. Maks 10 MB.',
   'unsupported image format': 'Format foto gak didukung. Pakai JPG atau PNG.',
+  'could not detect file type': 'Tipe file tidak dikenali.',
+  'tipe file tidak dikenali': 'Tipe file tidak dikenali.',
 };
 
 /// Returns a user-friendly message for a given error string.
