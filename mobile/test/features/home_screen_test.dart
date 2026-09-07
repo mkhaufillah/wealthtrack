@@ -18,7 +18,7 @@ Widget buildHomeApp({bool isLoading = false, String? error, int balance = 0}) {
       'income': balance > 0 ? balance + 500000 : 0,
       'income_display': formatCurrency(balance > 0 ? balance + 500000 : 0),
       'expense': 500000,
-      'expense_display': 'Rp500.000',
+      'expense_display': formatCurrency(500000),
     },
     'pots': {'savings': 0, 'savings_display': 'Rp0', 'emergency': 0, 'emergency_display': 'Rp0'},
     'debt_summary': {'visible': false, 'total': 0, 'total_display': 'Rp0', 'title_key': 'home.debt_running'},
