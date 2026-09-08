@@ -46,6 +46,11 @@ class MockApiClient extends ApiClient {
 
   Map<String, dynamic>? lastGetQuery;
   String? lastGetPath;
+  String? lastPutPath;
+  dynamic lastPutData;
+  String? lastDeletePath;
+  String? lastPostPath;
+  dynamic lastPostData;
 
   MockApiClient() : super(storage: MockSecureStorage());
 
@@ -72,16 +77,21 @@ class MockApiClient extends ApiClient {
 
   @override
   Future<Response> post(String path, {dynamic data}) async {
+    lastPostPath = path;
+    lastPostData = data;
     return _postResponses[path] ?? MockResponse(<String, dynamic>{});
   }
 
   @override
   Future<Response> put(String path, {dynamic data}) async {
+    lastPutPath = path;
+    lastPutData = data;
     return _putResponses[path] ?? MockResponse(<String, dynamic>{});
   }
 
   @override
   Future<Response> delete(String path) async {
+    lastDeletePath = path;
     if (!_deletePaths.contains(path)) {
       throw Exception('delete failed');
     }
