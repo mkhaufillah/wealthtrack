@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import '../../core/network/api_client.dart';
+import '../../../core/network/api_client.dart';
 
 /// Android notification-listener bridge. No-ops on tests / iOS.
 class BankCapture {
