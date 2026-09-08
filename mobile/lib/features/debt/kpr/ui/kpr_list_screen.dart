@@ -38,7 +38,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
         backgroundColor: AppColors.surface,
         title: Text(t('kpr.delete')),
         content: Text(
-          'Hapus "${sim.name.isEmpty ? 'simulasi ini' : sim.name}"? Gak bisa dibalikin.',
+          t('kpr.delete_confirm').replaceAll('{label}', sim.name.isEmpty ? t('kpr.this_sim') : sim.name),
         ),
         actions: [
           TextButton(
@@ -128,7 +128,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap + buat simulasi KPR pertama',
+            t('kpr.empty_add'),
             style: TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary.withAlpha(180),
@@ -224,7 +224,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                '🏠 Member',
+                                t('hh.member_badge'),
                                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning),
                               ),
                             ),
@@ -284,7 +284,10 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Bulan ke-$actualMonth dari ${sim.tenorMonths} · ${formatCurrency(sim.currentMonthPayment > 0 ? sim.currentMonthPayment : monthlyPayment)} jatuh tempo',
+                          t('kpr.due_label')
+                              .replaceAll('{month}', '$actualMonth')
+                              .replaceAll('{total}', '${sim.tenorMonths}')
+                              .replaceAll('{amount}', formatCurrency(sim.currentMonthPayment > 0 ? sim.currentMonthPayment : monthlyPayment)),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,

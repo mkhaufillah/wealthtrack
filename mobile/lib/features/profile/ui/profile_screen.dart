@@ -498,7 +498,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 32),
                 Center(
                   child: Text(
-                    'WealthTrack v1.0.0',
+                    t('profile.app_version'),
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary.withOpacity(0.6),

@@ -517,7 +517,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${_uncategorizedExpenses.length} kategori belum ada anggarannya',
+                    t('reports.uncategorized_n').replaceAll('{n}', '${_uncategorizedExpenses.length}'),
                     style: TextStyle(fontSize: 12, color: AppColors.warning),
                   ),
                 ),
@@ -683,7 +683,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       return Padding(
         padding: EdgeInsets.all(16),
         child: Text(
-          'Bulan ini sepi, belum ada catatan',
+          t('reports.empty_month'),
           style: TextStyle(color: AppColors.textSecondary),
           textAlign: TextAlign.center,
         ),

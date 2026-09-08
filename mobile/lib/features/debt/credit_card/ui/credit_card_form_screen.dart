@@ -176,7 +176,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
             // ─── Card Name ────────────────────────────
-            _sectionLabel('Nama kartu'),
+            _sectionLabel(t('cc.name_label')),
             const SizedBox(height: 6),
             TextFormField(
               controller: _nameCtrl,
@@ -190,7 +190,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Last 4 Digits ──────────────────────────
-            _sectionLabel('4 digit terakhir (opsional)'),
+            _sectionLabel(t('cc.last4_label')),
             const SizedBox(height: 6),
             TextFormField(
               controller: _last4Ctrl,
@@ -205,7 +205,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Billing Date ─────────────────────────
-            _sectionLabel('Tanggal tagihan'),
+            _sectionLabel(t('cc.bill_label')),
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               initialValue: _billingDate,
@@ -222,7 +222,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Due Date ─────────────────────────────
-            _sectionLabel('Jatuh tempo'),
+            _sectionLabel(t('cc.due_label')),
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               initialValue: _dueDate,
@@ -239,7 +239,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Credit Limit ──────────────────────────
-            _sectionLabel('Limit kredit'),
+            _sectionLabel(t('cc.limit_label')),
             const SizedBox(height: 6),
             TextField(
               controller: _creditLimitCtrl,

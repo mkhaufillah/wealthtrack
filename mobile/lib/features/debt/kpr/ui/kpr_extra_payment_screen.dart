@@ -205,8 +205,7 @@ class _KPRExtraPaymentScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            'Pembayaran ekstra ngepotong pokok pinjaman langsung. '
-            'Bisa pilih cicilan lebih kecil atau tenor lebih pendek.',
+            t('kpr.extra_intro'),
             style: TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary,
@@ -320,7 +319,7 @@ class _KPRExtraPaymentScreenState
         ),
         const SizedBox(height: 8),
         Text(
-          'Dua opsi sama-sama ngecilin sisa pinjaman. Pilih yang pas.',
+          t('kpr.extra_pick'),
           style: TextStyle(
             fontSize: 13,
             color: AppColors.textSecondary,
@@ -388,8 +387,9 @@ class _KPRExtraPaymentScreenState
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Cicilan: $installmentDiff/bulan lebih kecil (Opsi A)\n'
-                      'Tenor: $monthsSaved bulan lebih cepet (Opsi B)',
+                      t('kpr.extra_result')
+                        .replaceAll('{installment}', installmentDiff)
+                        .replaceAll('{months}', monthsSaved),
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,

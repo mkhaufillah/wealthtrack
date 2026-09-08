@@ -208,7 +208,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
             // ─── Description ──────────────────────────
-            _sectionLabel('Keterangan'),
+            _sectionLabel(t('cc.desc_label')),
             const SizedBox(height: 6),
             TextFormField(
               controller: _descriptionCtrl,
@@ -222,7 +222,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             const SizedBox(height: 20),
 
             // ─── Total Amount ─────────────────────────
-            _sectionLabel('Total'),
+            _sectionLabel(t('cc.inst_total')),
             const SizedBox(height: 6),
             TextField(
               controller: _totalAmountCtrl,
@@ -236,7 +236,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             const SizedBox(height: 20),
 
             // ─── Monthly Amount ───────────────────────
-            _sectionLabel('Cicilan / bulan'),
+            _sectionLabel(t('cc.monthly_label')),
             const SizedBox(height: 6),
             TextField(
               controller: _monthlyAmountCtrl,
@@ -250,7 +250,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             const SizedBox(height: 20),
 
             // ─── Total Months ─────────────────────────
-            _sectionLabel('Jumlah bulan'),
+            _sectionLabel(t('cc.inst_months_label')),
             const SizedBox(height: 6),
             TextFormField(
               controller: _totalMonthsCtrl,
@@ -264,7 +264,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
             const SizedBox(height: 20),
 
             // ─── Start Month ──────────────────────────
-            _sectionLabel('Bulan mulai'),
+            _sectionLabel(t('cc.start_month_label')),
             const SizedBox(height: 6),
             TextFormField(
               controller: _startMonthCtrl,

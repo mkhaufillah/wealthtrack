@@ -36,7 +36,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
         backgroundColor: AppColors.surface,
         title: Text(t('cc.delete')),
         content: Text(
-          'Hapus "${card.name.isEmpty ? 'kartu ini' : card.name}"? Gak bisa dibalikin.',
+          t('cc.delete_confirm_body').replaceAll('{label}', card.name.isEmpty ? t('cc.this_card') : card.name),
         ),
         actions: [
           TextButton(
@@ -144,11 +144,11 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
           Row(
             children: [
               Expanded(
-                child: _summaryItem('Total limit', formatCurrency(totalLimit), AppIcons.card),
+                child: _summaryItem(t('cc.total_limit'), formatCurrency(totalLimit), AppIcons.card),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _summaryItem('Cicilan aktif', totalActiveInstallments.toString(), AppIcons.receipt),
+                child: _summaryItem(t('cc.inst_active'), totalActiveInstallments.toString(), AppIcons.receipt),
               ),
             ],
           ),
@@ -202,7 +202,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap + buat nambah kartu kredit',
+            t('cc.empty_add'),
             style: TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary.withAlpha(180),
@@ -216,8 +216,8 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
   Widget _buildCard(CreditCardModel card) {
     final maskedNumber = card.cardNumberLast4.isNotEmpty
         ? '**** **** **** ${card.cardNumberLast4}'
-        : 'Gak ada nomor';
-    final dueDateLabel = 'Jatuh tempo ${_ordinalSuffix(card.dueDate)}';
+        : t('cc.no_number');
+    final dueDateLabel = '${t('cc.due_label')} ${_ordinalSuffix(card.dueDate)}';
     final billingDateLabel = 'Tagihan ${_ordinalSuffix(card.billingDate)}';
 
     // Owner badge check
@@ -290,7 +290,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      '🏠 Member',
+                                      t('hh.member_badge'),
                                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning),
                                     ),
                                   ),
@@ -322,7 +322,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                     ),
                     Expanded(
                       child: _infoColumn(
-                        'Jatuh tempo',
+                        t('cc.due_label'),
                         dueDateLabel,
                       ),
                     ),
@@ -333,7 +333,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                   children: [
                     Expanded(
                       child: _infoColumn(
-                        'Tanggal tagihan',
+                        t('cc.bill_label'),
                         billingDateLabel,
                       ),
                     ),

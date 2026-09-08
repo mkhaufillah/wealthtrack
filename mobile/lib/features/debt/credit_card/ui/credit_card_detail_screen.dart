@@ -56,7 +56,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
         backgroundColor: AppColors.surface,
         title: Text(t('cc.delete')),
         content: Text(
-          'Hapus "${card.name}"? Transaksi dan cicilannya ikut kehapus.',
+          t('cc.delete_card').replaceAll('{label}', card.name),
         ),
         actions: [
           TextButton(
@@ -363,7 +363,9 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$perCardCount cicilan · ${formatCurrency(totalForCard)} perkiraan',
+                  t('cc.inst_note')
+                    .replaceAll('{count}', '$perCardCount')
+                    .replaceAll('{amount}', formatCurrency(totalForCard)),
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textPrimary,
@@ -585,7 +587,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            '$progress / ${inst.totalMonths} bulan',
+            t('cc.inst_progress').replaceAll('{done}', '$progress').replaceAll('{total}', '${inst.totalMonths}'),
             style: TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -595,10 +597,10 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           Row(
             children: [
               Expanded(
-                child: _infoColumn('Per bulan', formatCurrency(inst.monthlyAmount)),
+                child: _infoColumn(t('cc.per_month'), formatCurrency(inst.monthlyAmount)),
               ),
               Expanded(
-                child: _infoColumn('Total', formatCurrency(inst.totalAmount)),
+                child: _infoColumn(t('cc.inst_total'), formatCurrency(inst.totalAmount)),
               ),
             ],
           ),

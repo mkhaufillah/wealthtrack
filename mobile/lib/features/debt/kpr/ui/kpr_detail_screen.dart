@@ -40,7 +40,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         backgroundColor: AppColors.surface,
         title: Text(t('kpr.delete')),
         content: Text(
-          'Hapus "${sim.name.isEmpty ? 'simulasi ini' : sim.name}"? Gak bisa dibalikin.',
+          t('kpr.delete_confirm').replaceAll('{label}', sim.name.isEmpty ? t('kpr.this_sim') : sim.name),
         ),
         actions: [
           TextButton(
@@ -79,8 +79,9 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
         backgroundColor: AppColors.surface,
         title: Text(t('kpr.extra')),
         content: Text(
-          'Hapus pembayaran ekstra ${formatCurrency(ep.amount)} di bulan ke-${ep.applyMonth}? '
-          'Jadwalnya dihitung ulang. Gak bisa dibalikin.',
+          t('kpr.extra_delete')
+          .replaceAll('{amount}', formatCurrency(ep.amount))
+          .replaceAll('{month}', '${ep.applyMonth}'),
         ),
         actions: [
           TextButton(
@@ -396,7 +397,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
             const Spacer(),
             if (extras.isNotEmpty)
               Text(
-                '${extras.length} catatan',
+                t('kpr.extra_count').replaceAll('{n}', '${extras.length}'),
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
@@ -422,7 +423,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Belum ada pembayaran ekstra. Tap ikon uang di atas buat nambah.',
+                    t('kpr.no_extra'),
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
@@ -517,7 +518,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                       ),
                     ),
                     Text(
-                      'Bulan ke-${ep.applyMonth} • ${formatCurrency(ep.amount)}',
+                      t('kpr.extra_timeline').replaceAll('{month}', '${ep.applyMonth}').replaceAll('{amount}', formatCurrency(ep.amount)),
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
@@ -567,8 +568,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
                 Expanded(
                   child: _statItem(
-                    'Sisa tenor',
-                    '${ep.oldRemainingMonths} → ${ep.newRemainingMonths} bln',
+                    t('kpr.remain_tenor'),
+                    '${ep.oldRemainingMonths} → ${ep.newRemainingMonths} ${t('kpr.unit_bln')}',
                   ),
                 ),
               ],
@@ -584,7 +585,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
                 Expanded(
                   child: _statItem(
-                    'Bunga dihemat',
+                    t('kpr.interest_saved'),
                     formatCurrency(ep.totalInterestSaving),
                     highlight: true,
                   ),
@@ -603,7 +604,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
               ),
               child: Text(
-                'Hitungan cicilan & tenor baru mulai $startDateStr — $endDateStr',
+                t('kpr.extra_applied').replaceAll('{start}', startDateStr).replaceAll('{end}', endDateStr),
                 style: TextStyle(
                   fontSize: 11,
                   color: AppColors.accent,
@@ -804,14 +805,14 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Tahun $yearNumber',
+                      t('kpr.year_label').replaceAll('{n}', '$yearNumber'),
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
-                      '${items.length} bulan',
+                      t('kpr.month_n').replaceAll('{n}', '${items.length}'),
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
@@ -831,7 +832,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                     ),
                   ),
                   Text(
-                    'Bunga: ${formatCurrency(totalYearInterest)}',
+                    t('kpr.interest_year').replaceAll('{amount}', formatCurrency(totalYearInterest)),
                     style: TextStyle(
                       fontSize: 11,
                       color: AppColors.highlight,

@@ -128,7 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const SizedBox(width: 10),
           Text(
-            '$count transaksi sedang diproses…',
+            t('home.ocr_processing').replaceAll('{count}', '$count'),
             style: TextStyle(fontSize: 13, color: AppColors.warning),
           ),
         ],
@@ -365,7 +365,7 @@ class _DebtStrip extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '$members orang',
+                t('home.member_count').replaceAll('{n}', '$members'),
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.onAccent),
               ),
             ),

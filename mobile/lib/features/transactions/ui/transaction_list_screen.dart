@@ -453,7 +453,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
         backgroundColor: AppColors.surface,
         title: Text(t('tx.delete')),
         content: Text(
-          'Hapus "${description.isEmpty ? 'catatan ini' : description}"? Gak bisa dibalikin.'
+          t('tx.delete_confirm').replaceAll('{label}', description.isEmpty ? t('tx.this_note') : description),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('common.cancel'))),
@@ -834,7 +834,7 @@ class _PaginationRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            'Hal $page / $totalPages',
+            t('tx.page_n').replaceAll('{page}', '$page').replaceAll('{total}', '$totalPages'),,
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
           ),
           const SizedBox(width: 8),

@@ -34,7 +34,7 @@ class DebtHomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Pilih yang mau diurus. Gak usah tegang — ini catetan, bukan bank.',
+              t('debt.empty_hint'),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

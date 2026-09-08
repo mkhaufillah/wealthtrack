@@ -392,7 +392,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
             // ─── Simulation Name ─────────────────────
-            _sectionLabel('Nama simulasi'),
+            _sectionLabel(t('kpr.name_label')),
             const SizedBox(height: 6),
             TextFormField(
               controller: _nameCtrl,
@@ -404,7 +404,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Property Price ──────────────────────
-            _sectionLabel('Harga rumah'),
+            _sectionLabel(t('kpr.house_price')),
             const SizedBox(height: 6),
             TextField(
               controller: _propertyPriceCtrl,
@@ -418,7 +418,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Down Payment ────────────────────────
-            _sectionLabel('Uang muka (DP)'),
+            _sectionLabel(t('kpr.dp_label')),
             const SizedBox(height: 6),
             TextField(
               controller: _downPaymentCtrl,
@@ -432,7 +432,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Loan Amount (read-only) ─────────────
-            _sectionLabel('Pinjaman (otomatis)'),
+            _sectionLabel(t('kpr.loan_auto')),
             const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -459,7 +459,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Tenor ──────────────────────────────
-            _sectionLabel('Tenor'),
+            _sectionLabel(t('kpr.tenor_label')),
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               value: _tenorYears,
@@ -476,7 +476,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Start Month & Year ──────────────────
-            _sectionLabel('Cicilan pertama'),
+            _sectionLabel(t('kpr.first_label')),
             const SizedBox(height: 6),
             Row(
               children: [
@@ -518,7 +518,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Due Date ───────────────────────────
-            _sectionLabel('Tanggal jatuh tempo'),
+            _sectionLabel(t('kpr.due_date_label')),
             const SizedBox(height: 6),
             DropdownButtonFormField<int>(
               value: _dueDate,
@@ -536,7 +536,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 20),
 
             // ─── Interest Type ──────────────────────
-            _sectionLabel('Tipe bunga'),
+            _sectionLabel(t('kpr.type_label')),
             const SizedBox(height: 6),
             SegmentedButton<String>(
               segments: [
@@ -640,7 +640,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
   // ─── Fixed / Floating Fields ────────────────────────────
   List<Widget> _buildFixedFloatingFields() {
     return [
-      _sectionLabel('Bunga dasar (%)'),
+      _sectionLabel(t('kpr.base_rate_label')),
       const SizedBox(height: 6),
       TextField(
         controller: _baseRateCtrl,
@@ -658,7 +658,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
   // ─── Graduated Fields ────────────────────────────────
   List<Widget> _buildGraduatedFields() {
     return [
-      _sectionLabel('Bunga dasar (%)'),
+      _sectionLabel(t('kpr.base_rate_label')),
       const SizedBox(height: 6),
       TextField(
         controller: _baseRateCtrl,
@@ -670,7 +670,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         ),
       ),
       const SizedBox(height: 16),
-      _sectionLabel('Kenaikan per periode (%)'),
+      _sectionLabel(t('kpr.incr_label')),
       const SizedBox(height: 6),
       TextField(
         controller: _gradIncrementCtrl,
@@ -682,7 +682,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         ),
       ),
       const SizedBox(height: 16),
-      _sectionLabel('Lama periode (bulan)'),
+      _sectionLabel(t('kpr.period_months_label')),
       const SizedBox(height: 6),
       TextField(
         controller: _gradEveryMonthsCtrl,
@@ -703,7 +703,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _sectionLabel('Periode bunga'),
+          _sectionLabel(t('kpr.periods_label')),
           TextButton.icon(
             onPressed: () {
               setState(() {
