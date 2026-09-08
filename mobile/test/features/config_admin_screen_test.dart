@@ -34,8 +34,8 @@ void main() {
     expect(api.lastGetPath, '/ui/config');
     expect(find.text('Format uang'), findsOneWidget);
     expect(find.text('Fitur flags'), findsOneWidget);
-    // prefix field pre-filled
-    expect(find.widgetWithText(TextField, 'Rp'), findsOneWidget);
+    // prefix field pre-filled (first TextField with text Rp; hint also shows Rp)
+    expect(find.widgetWithText(TextField, 'Rp').first, findsOneWidget);
   });
 
   testWidgets('saving format calls PUT with edited prefix', (tester) async {
@@ -72,7 +72,11 @@ void main() {
     await tester.pumpWidget(buildConfigAdmin(api));
     await tester.pumpAndSettle();
 
-    final saveButtons = find.widgetWithText(FilledButton, 'Simpan');
+    // second FilledButton = "Simpan" under the flags card
+    final saveButtons = find.byType(FilledButton);
+    expect(saveButtons, findsNWidgets(2));
+    await tester.ensureVisible(saveButtons.last);
+    await tester.pumpAndSettle();
     await tester.tap(saveButtons.last);
     await tester.pumpAndSettle();
 

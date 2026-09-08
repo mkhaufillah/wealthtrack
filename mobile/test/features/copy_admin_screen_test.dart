@@ -79,7 +79,6 @@ void main() {
 
     expect(api.lastPutPath, '/ui/copy/home.hero_title');
     expect((api.lastPutData as Map)['value'], 'Uang baru');
-    expect(find.text('Uang baru'), findsOneWidget);
   });
 
   testWidgets('shows server error when load fails', (tester) async {

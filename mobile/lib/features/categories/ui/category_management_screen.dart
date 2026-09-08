@@ -18,6 +18,9 @@ class CategoryManagementScreen extends ConsumerStatefulWidget {
 class _CategoryManagementScreenState
     extends ConsumerState<CategoryManagementScreen> {
   final _searchCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _keywordsCtrl = TextEditingController();
+  final _iconScrollCtrl = ScrollController();
   String _query = '';
 
   @override
@@ -31,15 +34,17 @@ class _CategoryManagementScreenState
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _nameCtrl.dispose();
+    _keywordsCtrl.dispose();
+    _iconScrollCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _showAddEditSheet({Map<String, dynamic>? category}) async {
     final isEdit = category != null;
-    final nameCtrl = TextEditingController(text: category?['name'] ?? '');
-    final keywordsCtrl = TextEditingController(
-      text: (category?['keywords'] as List?)?.join(', ') ?? '',
-    );
+    _nameCtrl.text = category?['name'] ?? '';
+    _keywordsCtrl.text =
+        (category?['keywords'] as List?)?.join(', ') ?? '';
     String iconKey = (category?['icon'] as String?)?.trim().isNotEmpty == true
         ? category!['icon'] as String
         : kDefaultCategoryIcon;
@@ -47,7 +52,6 @@ class _CategoryManagementScreenState
     final isDefault = category?['is_default'] == true;
     bool saving = false;
     String iconQuery = '';
-    final iconScrollCtrl = ScrollController();
 
     final saved = await showModalBottomSheet<bool>(
       context: context,
@@ -89,7 +93,7 @@ class _CategoryManagementScreenState
                     ),
                     const SizedBox(height: 16),
                     TextField(
-                      controller: nameCtrl,
+                      controller: _nameCtrl,
                       decoration: InputDecoration(labelText: t('cat.name')),
                     ),
                     const SizedBox(height: 16),
@@ -115,7 +119,7 @@ class _CategoryManagementScreenState
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxHeight: 220),
                         child: ListView(
-                          controller: iconScrollCtrl,
+                          controller: _iconScrollCtrl,
                           clipBehavior: Clip.hardEdge,
                           shrinkWrap: true,
                           children: [
@@ -150,7 +154,7 @@ class _CategoryManagementScreenState
                     ),
                     const SizedBox(height: 12),
                     TextField(
-                      controller: keywordsCtrl,
+                      controller: _keywordsCtrl,
                       decoration: InputDecoration(
                         labelText: t('cat.keywords'),
                         hintText: t('cat.keywords_hint'),
@@ -230,14 +234,14 @@ class _CategoryManagementScreenState
                         onPressed: saving || isDefault
                             ? null
                             : () async {
-                                if (nameCtrl.text.trim().isEmpty) return;
+                                if (_nameCtrl.text.trim().isEmpty) return;
                                 setSheetState(() => saving = true);
                                 final data = <String, dynamic>{
-                                  'name': nameCtrl.text.trim(),
+                                  'name': _nameCtrl.text.trim(),
                                   'icon': iconKey,
                                 };
-                                if (keywordsCtrl.text.trim().isNotEmpty) {
-                                  data['keywords'] = keywordsCtrl.text
+                                if (_keywordsCtrl.text.trim().isNotEmpty) {
+                                  data['keywords'] = _keywordsCtrl.text
                                       .split(',')
                                       .map((k) => k.trim())
                                       .where((k) => k.isNotEmpty)
@@ -291,9 +295,6 @@ class _CategoryManagementScreenState
     if (saved == true) {
       ref.read(categoryManagementProvider.notifier).load();
     }
-    iconScrollCtrl.dispose();
-    nameCtrl.dispose();
-    keywordsCtrl.dispose();
   }
 
   @override

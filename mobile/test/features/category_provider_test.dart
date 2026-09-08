@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wealthtrack/features/categories/providers/category_provider.dart';
 import 'package:wealthtrack/shared/providers/app_providers.dart';
-import '../../../helpers/mocks.dart';
+import '../helpers/mocks.dart';
 
 void main() {
   group('CategoryManagementNotifier', () {
