@@ -130,4 +130,38 @@ void main() {
     expect(api.lastPutPath, '/ui/config/theme.dark');
     expect((api.lastPutData as Map)['preset'], 'ocean');
   });
+
+  testWidgets('active theme preset from server is selected on load',
+      (tester) async {
+    final api = MockApiClient();
+    api.onGet('/ui/config', {
+      'items': [
+        {'key': 'format', 'value': {'currency': 'IDR', 'currency_prefix': 'Rp', 'group_sep': '.', 'decimal_sep': ','}},
+        {'key': 'flags', 'value': {'home_all_time': true}},
+        // ocean backgrounds — swatch must reflect this, not default peach
+        {'key': 'theme.light', 'value': {'background': '#EFF6FB'}},
+        {'key': 'theme.dark', 'value': {'background': '#1C2532'}},
+      ],
+    });
+    await tester.pumpWidget(buildConfigAdmin(api));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Warna tema'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+
+    // exactly one swatch is highlighted (2.5 border) and it is 'ocean'
+    Finder selectedSwatch() => find.byWidgetPredicate((w) =>
+        w is Container &&
+        w.decoration is BoxDecoration &&
+        (w.decoration as BoxDecoration).border is Border &&
+        ((w.decoration as BoxDecoration).border as Border).top.width == 2.5);
+    expect(selectedSwatch(), findsOneWidget);
+    expect(
+        find.ancestor(of: find.text('ocean'), matching: selectedSwatch()),
+        findsOneWidget);
+    expect(
+        find.ancestor(of: find.text('peach'), matching: selectedSwatch()),
+        findsNothing);
+  });
 }

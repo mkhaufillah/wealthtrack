@@ -68,13 +68,24 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
           .toList();
       Map<String, dynamic>? fmt;
       Map<String, dynamic>? flags;
+      Map<String, dynamic>? themeLight;
+      Map<String, dynamic>? themeDark;
       for (final item in items) {
         if (item['key'] == 'format') fmt = (item['value'] as Map).cast<String, dynamic>();
         if (item['key'] == 'flags') flags = (item['value'] as Map).cast<String, dynamic>();
+        if (item['key'] == 'theme.light') themeLight = (item['value'] as Map).cast<String, dynamic>();
+        if (item['key'] == 'theme.dark') themeDark = (item['value'] as Map).cast<String, dynamic>();
       }
+      // Match the ACTIVE theme preset so the swatch reflects reality
+      // (background tokens are unique per preset).
+      final activePreset = _matchPreset(
+        themeLight?['background']?.toString(),
+        themeDark?['background']?.toString(),
+      );
       setState(() {
         _format = fmt;
         _flags = flags;
+        _selectedPreset = activePreset;
         _prefixCtrl.text = fmt?['currency_prefix']?.toString() ?? 'Rp';
         _groupSepCtrl.text = fmt?['group_sep']?.toString() ?? '.';
         _decimalSepCtrl.text = fmt?['decimal_sep']?.toString() ?? ',';
@@ -170,6 +181,25 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
         SnackBar(content: Text(ref.read(apiClientProvider).handleError(e).toString())),
       );
     }
+  }
+
+  /// Maps active light+dark background hex back to the matching preset id.
+  /// Defaults to 'peach' when the stored theme is custom / unknown.
+  String _matchPreset(String? lightBg, String? darkBg) {
+    String normalize(String? h) =>
+        (h ?? '').replaceAll('#', '').toUpperCase();
+    final l = normalize(lightBg);
+    final d = normalize(darkBg);
+    for (final entry in _presetPreviews.entries) {
+      final preview = entry.value;
+      final pl = normalize(preview['light']);
+      final pd = normalize(preview['dark']);
+      // Match if either active background aligns with a preset's palette.
+      if ((l.isNotEmpty && l == pl) || (d.isNotEmpty && d == pd)) {
+        return entry.key;
+      }
+    }
+    return 'peach';
   }
 
   Widget _themeSwatch(String preset) {

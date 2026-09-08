@@ -154,57 +154,62 @@ class AppColors {
 class AppTheme {
   static const String fontFamily = 'Nunito';
 
+  // NOTE: theme + darkTheme read the remote-aware AppColors getters
+  // (server-driven presets).  AppColors.sync() must run before the
+  // MaterialApp build so _dark resolves the correct palette.
+
   static ThemeData get light => ThemeData(
         brightness: Brightness.light,
         fontFamily: fontFamily,
-        primaryColor: AppColors._primary,
-        scaffoldBackgroundColor: AppColors._background,
-        colorScheme: const ColorScheme.light(
-          primary: AppColors._primary,
-          secondary: AppColors._accent,
-          surface: AppColors._surface,
-          error: AppColors._highlight,
-          onPrimary: AppColors._surface,
-          onSecondary: AppColors._textPrimary,
-          onSurface: AppColors._textPrimary,
+        primaryColor: AppColors.primary,
+        scaffoldBackgroundColor: AppColors.background,
+        colorScheme: ColorScheme.light(
+          primary: AppColors.primary,
+          secondary: AppColors.accent,
+          surface: AppColors.surface,
+          error: AppColors.highlight,
+          onPrimary: AppColors.surface,
+          onSecondary: AppColors.textPrimary,
+          onSurface: AppColors.textPrimary,
         ),
-        cardColor: AppColors._surface,
-        dividerColor: AppColors._divider,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors._background,
-          foregroundColor: AppColors._textPrimary,
+        cardColor: AppColors.surface,
+        dividerColor: AppColors.divider,
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppColors.background,
+          foregroundColor: AppColors.textPrimary,
           elevation: 0,
           titleTextStyle: TextStyle(
             fontFamily: fontFamily,
             fontSize: 20,
             fontWeight: FontWeight.w800,
-            color: AppColors._textPrimary,
+            color: AppColors.textPrimary,
           ),
         ),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: AppColors._accent,
-          foregroundColor: AppColors._textPrimary,
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: AppColors.accent,
+          foregroundColor: AppColors.textPrimary,
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors._accent,
-            foregroundColor: AppColors._onAccent,
+            backgroundColor: AppColors.accent,
+            foregroundColor: AppColors.onAccent,
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: AppColors._background,
+          fillColor: AppColors.background,
+          hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.7)),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors._divider),
+            borderSide: BorderSide(color: AppColors.divider),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors._divider),
+            borderSide: BorderSide(color: AppColors.divider),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors._accent, width: 1.5),
+            borderSide: BorderSide(color: AppColors.accent, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           prefixIconConstraints: const BoxConstraints(
@@ -214,13 +219,13 @@ class AppTheme {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors._accent,
-            foregroundColor: AppColors._onAccent,
-            disabledForegroundColor: AppColors._onAccent.withOpacity(0.5),
-            disabledBackgroundColor: AppColors._accent.withOpacity(0.5),
-            textStyle: const TextStyle(
+            backgroundColor: AppColors.accent,
+            foregroundColor: AppColors.onAccent,
+            disabledForegroundColor: AppColors.onAccent.withOpacity(0.5),
+            disabledBackgroundColor: AppColors.accent.withOpacity(0.5),
+            textStyle: TextStyle(
               fontFamily: fontFamily,
-              color: AppColors._onAccent,
+              color: AppColors.onAccent,
               fontWeight: FontWeight.w700,
               fontSize: 16,
             ),
@@ -230,75 +235,78 @@ class AppTheme {
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
         ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: AppColors._surface,
-          selectedItemColor: AppColors._textPrimary,
-          unselectedItemColor: AppColors._textSecondary,
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: AppColors.surface,
+          selectedItemColor: AppColors.textPrimary,
+          unselectedItemColor: AppColors.textSecondary,
         ),
         dialogTheme: DialogThemeData(
-          backgroundColor: AppColors._surface,
+          backgroundColor: AppColors.surface,
         ),
         cardTheme: CardThemeData(
-          color: AppColors._surface,
+          color: AppColors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         ),
       );
 
+  // Dark theme. AppColors getters resolve the dark remote tokens when
+  // _dark is true (AppColors.sync() in app.dart), so this block simply
+  // reuses the same getters with a dark brightness.
   static ThemeData get dark => ThemeData(
         brightness: Brightness.dark,
         fontFamily: fontFamily,
-        primaryColor: AppColors.darkPrimary,
-        scaffoldBackgroundColor: AppColors.darkBackground,
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.darkPrimary,
-          secondary: AppColors.darkAccent,
-          surface: AppColors.darkSurface,
-          error: AppColors.darkHighlight,
-          onPrimary: AppColors.darkTextPrimary,
-          onSecondary: AppColors.darkTextPrimary,
-          onSurface: AppColors.darkTextPrimary,
+        primaryColor: AppColors.primary,
+        scaffoldBackgroundColor: AppColors.background,
+        colorScheme: ColorScheme.dark(
+          primary: AppColors.primary,
+          secondary: AppColors.accent,
+          surface: AppColors.surface,
+          error: AppColors.highlight,
+          onPrimary: AppColors.textPrimary,
+          onSecondary: AppColors.textPrimary,
+          onSurface: AppColors.textPrimary,
         ),
-        cardColor: AppColors.darkSurface,
-        dividerColor: AppColors.darkDivider,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.darkBackground,
-          foregroundColor: AppColors.darkTextPrimary,
+        cardColor: AppColors.surface,
+        dividerColor: AppColors.divider,
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppColors.background,
+          foregroundColor: AppColors.textPrimary,
           elevation: 0,
           titleTextStyle: TextStyle(
             fontFamily: fontFamily,
             fontSize: 20,
             fontWeight: FontWeight.w800,
-            color: AppColors.darkTextPrimary,
+            color: AppColors.textPrimary,
           ),
         ),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: AppColors.darkAccent,
-          foregroundColor: AppColors._onAccent,
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: AppColors.accent,
+          foregroundColor: AppColors.textPrimary,
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.darkAccent,
-            foregroundColor: AppColors._onAccent,
+            backgroundColor: AppColors.accent,
+            foregroundColor: AppColors.onAccent,
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: AppColors.darkSurface,
-          labelStyle: TextStyle(color: AppColors.darkTextSecondary),
-          hintStyle: TextStyle(color: AppColors.darkTextSecondary.withOpacity(0.6)),
-          floatingLabelStyle: TextStyle(color: AppColors.darkPrimary),
+          fillColor: AppColors.surface,
+          labelStyle: TextStyle(color: AppColors.textSecondary),
+          hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.6)),
+          floatingLabelStyle: TextStyle(color: AppColors.primary),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.darkDivider),
+            borderSide: BorderSide(color: AppColors.divider),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.darkDivider),
+            borderSide: BorderSide(color: AppColors.divider),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.darkPrimary, width: 1.5),
+            borderSide: BorderSide(color: AppColors.primary, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           prefixIconConstraints: const BoxConstraints(
@@ -308,13 +316,13 @@ class AppTheme {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors._accent,
-            foregroundColor: AppColors._onAccent,
-            disabledForegroundColor: AppColors._onAccent.withOpacity(0.5),
-            disabledBackgroundColor: AppColors._accent.withOpacity(0.5),
-            textStyle: const TextStyle(
+            backgroundColor: AppColors.accent,
+            foregroundColor: AppColors.onAccent,
+            disabledForegroundColor: AppColors.onAccent.withOpacity(0.5),
+            disabledBackgroundColor: AppColors.accent.withOpacity(0.5),
+            textStyle: TextStyle(
               fontFamily: fontFamily,
-              color: AppColors._onAccent,
+              color: AppColors.onAccent,
               fontWeight: FontWeight.w700,
               fontSize: 16,
             ),
@@ -326,19 +334,19 @@ class AppTheme {
         ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
-            foregroundColor: AppColors.darkTextPrimary,
+            foregroundColor: AppColors.textPrimary,
           ),
         ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: AppColors.darkSurface,
-          selectedItemColor: AppColors.darkTextPrimary,
-          unselectedItemColor: AppColors.darkTextSecondary,
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: AppColors.surface,
+          selectedItemColor: AppColors.textPrimary,
+          unselectedItemColor: AppColors.textSecondary,
         ),
         dialogTheme: DialogThemeData(
-          backgroundColor: AppColors.darkSurface,
+          backgroundColor: AppColors.surface,
         ),
         cardTheme: CardThemeData(
-          color: AppColors.darkSurface,
+          color: AppColors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         ),
