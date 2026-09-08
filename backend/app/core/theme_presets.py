@@ -87,11 +87,19 @@ PRESETS: dict[str, dict[str, dict[str, str]]] = {
 
 
 def resolve_theme_preset(mode: str, preset_id: str) -> dict[str, str]:
-    """Return the full token dict for a preset+mode, or raise KeyError."""
+    """Return the full token dict for a preset+mode, or raise KeyError.
+
+    Guards that every audited palette carries the full seed key set so a
+    future edit that drops a token fails loudly at request time instead of
+    producing a partial (crash-prone) theme.
+    """
     theme = PRESETS.get(preset_id)
     if theme is None:
         raise KeyError(preset_id)
     palette = theme.get(mode)
     if palette is None:
         raise KeyError(f"{preset_id}.{mode}")
+    missing = THEME_KEYS - set(palette.keys())
+    if missing:
+        raise KeyError(f"{preset_id}.{mode} missing keys {sorted(missing)}")
     return dict(palette)
