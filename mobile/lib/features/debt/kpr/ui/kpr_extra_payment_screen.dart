@@ -388,8 +388,8 @@ class _KPRExtraPaymentScreenState
                     const SizedBox(height: 4),
                     Text(
                       t('kpr.extra_result')
-                        .replaceAll('{installment}', installmentDiff)
-                        .replaceAll('{months}', monthsSaved),
+                        .replaceAll('{installment}', '$installmentDiff')
+                        .replaceAll('{months}', '$monthsSaved'),
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
