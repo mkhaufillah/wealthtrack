@@ -394,6 +394,7 @@ class TestFinancialAdviseStream:
                     yield "data: valid_token\n\n"
                     yield "not a data line\n"
                     yield "data: not json\n"
+                    yield "data: {\"choices\": []}\n\n"
                     yield "data: {\"choices\": [{\"delta\": {\"content\": \"OK\"}}]}\n\n"
                     yield "data: [DONE]\n\n"
 

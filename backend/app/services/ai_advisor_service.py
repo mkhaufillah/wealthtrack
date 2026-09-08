@@ -769,7 +769,11 @@ async def call_model_stream(
                     chunk = json.loads(payload)
                 except json.JSONDecodeError:
                     continue
-                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                # Some providers emit keep-alive/empty events with no choices.
+                choices = chunk.get("choices") or []
+                if not choices:
+                    continue
+                delta = choices[0].get("delta", {})
                 token = delta.get("content", "")
                 if token:
                     full_content += token
@@ -804,7 +808,10 @@ async def call_model(
         raise Exception(f"AI API error: {resp.status_code}")
 
     body = resp.json()
-    content = body["choices"][0]["message"]["content"]
+    choices = body.get("choices") or []
+    if not choices:
+        return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
+    content = choices[0].get("message", {}).get("content", "")
     if not content or not content.strip():
         return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
     return content.strip()
