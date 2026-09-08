@@ -74,10 +74,10 @@ void main() {
 
     // second FilledButton = "Simpan" under the flags card
     final saveButtons = find.byType(FilledButton);
-    expect(saveButtons, findsNWidgets(2));
-    await tester.ensureVisible(saveButtons.last);
+    expect(saveButtons, findsNWidgets(3));
+    await tester.ensureVisible(saveButtons.at(1));
     await tester.pumpAndSettle();
-    await tester.tap(saveButtons.last);
+    await tester.tap(saveButtons.at(1));
     await tester.pumpAndSettle();
 
     expect(api.lastPutPath, '/ui/config/flags');
@@ -108,6 +108,10 @@ void main() {
     await tester.pumpWidget(buildConfigAdmin(api));
     await tester.pumpAndSettle();
 
+    // theme card is below the fold — scroll to it first
+    await tester.scrollUntilVisible(find.text('Warna tema'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     expect(find.text('Warna tema'), findsOneWidget);
     for (final name in ['peach', 'ocean', 'forest', 'rose']) {
       expect(find.text(name), findsOneWidget);
@@ -117,9 +121,9 @@ void main() {
     await tester.tap(find.text('ocean'));
     await tester.pumpAndSettle();
     final buttons = find.byType(FilledButton);
-    await tester.ensureVisible(buttons.last);
+    await tester.ensureVisible(buttons.at(2));
     await tester.pumpAndSettle();
-    await tester.tap(buttons.last);
+    await tester.tap(buttons.at(2));
     await tester.pumpAndSettle();
 
     expect(api.lastPutPath, '/ui/config/theme.dark');
