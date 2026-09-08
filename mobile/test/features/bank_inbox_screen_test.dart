@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
@@ -7,6 +8,8 @@ import 'package:wealthtrack/core/theme/app_theme.dart';
 import 'package:wealthtrack/features/bank_inbox/ui/bank_inbox_screen.dart';
 import 'package:wealthtrack/shared/providers/app_providers.dart';
 import '../helpers/mocks.dart';
+
+const _channel = MethodChannel('com.filla.wealthtrack/bank_capture');
 
 Widget buildInbox(MockApiClient api) {
   return ProviderScope(
@@ -26,11 +29,34 @@ Widget buildInbox(MockApiClient api) {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    initTestSecureStorage();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_channel, (call) async {
+      switch (call.method) {
+        case 'isEnabled':
+          return true;
+        case 'drain':
+          return <dynamic>[];
+        default:
+          return null;
+      }
+    });
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_channel, null);
+  });
+
   testWidgets('shows empty copy when no drafts', (tester) async {
     final api = MockApiClient();
     api.onGet('/bank-inbox', {'items': [], 'pending_count': 0});
     await tester.pumpWidget(buildInbox(api));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
     expect(find.text('Belum ada draf dari notifikasi bank'), findsOneWidget);
   });
 
@@ -72,10 +98,12 @@ void main() {
       'created_at': '2026-09-08T10:00:01Z',
     });
     await tester.pumpWidget(buildInbox(api));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
     expect(find.text('QRIS GRAB'), findsOneWidget);
     await tester.tap(find.text('Catat'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
     expect(api.lastPostPath, '/bank-inbox/7/confirm');
   });
 }

@@ -20,10 +20,11 @@ the phone.
 
 ## v1 scope
 
-- Android `NotificationListenerService` filters a package allow-list:
-  BCA (`com.bca`), Livin (`id.bmri.livin`), BRImo (`id.co.bri.brimo`),
-  Jago (`com.jago.digitalBanking`), Superbank and Krom (alias list in
-  `bank_parser.py`). Unknown packages are ignored.
+- Android `NotificationListenerService` filters the user allow-list in
+  `bank_parser.py` / `BankNotificationListener.kt` (BCA, Livin, BRImo,
+  Jago, Superbank/`id.co.bankfama.android`, Krom/`com.krom.android`,
+  BTN, SeaBank, Bibit, Stockbit, LinkAja, Flip, OVO, GoPay, DANA,
+  ShopeePay). Unknown packages are ignored.
 - Queue on device if the app is dead; drain on next launch.
 - `POST /bank-inbox` with raw `{package, title, text, posted_at}`.
   Server parses amount / type / merchant / bank, dedupes by fingerprint.

@@ -8,24 +8,24 @@ import hashlib
 import re
 from typing import Optional
 
-# Play package → bank slug. Extra aliases survive rebrands.
+# Play package → slug. User-supplied allow-list is the source of truth.
 BANK_PACKAGES: dict[str, str] = {
     "com.bca": "bca",
-    "com.bca.mobile": "bca",
-    "id.bca.mybca": "bca",
-    "com.bca.mybca": "bca",
     "id.bmri.livin": "mandiri",
     "id.co.bri.brimo": "bri",
     "com.jago.digitalBanking": "jago",
-    "id.co.superbank": "superbank",
-    "id.co.superbank.app": "superbank",
-    "com.superbank": "superbank",
-    "id.superbank.mobile": "superbank",
-    "id.co.krom": "krom",
-    "id.co.krom.android": "krom",
-    "com.krom.bank": "krom",
-    "com.krom.id": "krom",
-    "id.krom.mobile": "krom",
+    "id.co.bankfama.android": "superbank",
+    "com.krom.android": "krom",
+    "id.co.btn.mobilebanking.android": "btn",
+    "id.co.bankbkemobile.digitalbank": "seabank",
+    "com.bibit.bibitid": "bibit",
+    "com.stockbit.android": "stockbit",
+    "com.telkom.mwallet": "linkaja",
+    "id.flip": "flip",
+    "ovo.id": "ovo",
+    "com.gojek.gopay": "gopay",
+    "id.dana": "dana",
+    "com.shopeepay.id": "shopeepay",
 }
 
 INCOME_HINTS = (

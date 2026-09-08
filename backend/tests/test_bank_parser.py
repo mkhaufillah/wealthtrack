@@ -1,4 +1,5 @@
 from app.services.bank_parser import (
+    BANK_PACKAGES,
     bank_for_package,
     fingerprint,
     parse_amount,
@@ -13,7 +14,34 @@ def test_package_allow_list():
     assert bank_for_package("id.bmri.livin") == "mandiri"
     assert bank_for_package("id.co.bri.brimo") == "bri"
     assert bank_for_package("com.jago.digitalBanking") == "jago"
+    assert bank_for_package("id.co.bankfama.android") == "superbank"
+    assert bank_for_package("com.krom.android") == "krom"
+    assert bank_for_package("id.dana") == "dana"
+    assert bank_for_package("com.gojek.gopay") == "gopay"
+    assert bank_for_package("ovo.id") == "ovo"
     assert bank_for_package("com.whatsapp") is None
+
+
+def test_required_packages_complete():
+    required = {
+        "com.bibit.bibitid",
+        "com.bca",
+        "id.co.bankfama.android",
+        "com.jago.digitalBanking",
+        "id.co.bri.brimo",
+        "id.bmri.livin",
+        "id.co.btn.mobilebanking.android",
+        "com.telkom.mwallet",
+        "id.flip",
+        "ovo.id",
+        "com.stockbit.android",
+        "com.gojek.gopay",
+        "id.dana",
+        "com.krom.android",
+        "com.shopeepay.id",
+        "id.co.bankbkemobile.digitalbank",
+    }
+    assert required == set(BANK_PACKAGES)
 
 
 def test_amount_rp_dotted():

@@ -15,21 +15,21 @@ class BankNotificationListener : NotificationListenerService() {
         const val QUEUE = "queue"
         val ALLOW: Set<String> = setOf(
             "com.bca",
-            "com.bca.mobile",
-            "id.bca.mybca",
-            "com.bca.mybca",
             "id.bmri.livin",
             "id.co.bri.brimo",
             "com.jago.digitalBanking",
-            "id.co.superbank",
-            "id.co.superbank.app",
-            "com.superbank",
-            "id.superbank.mobile",
-            "id.co.krom",
-            "id.co.krom.android",
-            "com.krom.bank",
-            "com.krom.id",
-            "id.krom.mobile",
+            "id.co.bankfama.android",
+            "com.krom.android",
+            "id.co.btn.mobilebanking.android",
+            "id.co.bankbkemobile.digitalbank",
+            "com.bibit.bibitid",
+            "com.stockbit.android",
+            "com.telkom.mwallet",
+            "id.flip",
+            "ovo.id",
+            "com.gojek.gopay",
+            "id.dana",
+            "com.shopeepay.id",
         )
 
         fun isEnabled(context: Context): Boolean {
