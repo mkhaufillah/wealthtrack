@@ -4,7 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/utils/currency_formatter.dart';
-import 'bank_capture.dart';
+import '../data/bank_capture.dart';
 
 class BankInboxScreen extends ConsumerStatefulWidget {
   const BankInboxScreen({super.key});
