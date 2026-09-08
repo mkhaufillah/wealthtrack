@@ -17,10 +17,10 @@ def test_mcp_router_registers_stream_paths():
 def test_mcp_router_has_stream_methods():
     """Both GET and POST variants exist for /stream."""
     from app.routers.mcp import router
-    methods = {
-        getattr(r, "methods", None)
-        for r in router.routes
-        if getattr(r, "path", "") == "/stream"
-    }
-    assert "GET" in {m for s in methods for m in (s or set())}
-    assert "POST" in {m for s in methods for m in (s or set())}
+    path_methods = set()
+    for r in router.routes:
+        if getattr(r, "path", "") == "/stream":
+            for m in (getattr(r, "methods", None) or set()):
+                path_methods.add(m)
+    assert "GET" in path_methods
+    assert "POST" in path_methods
