@@ -221,6 +221,9 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
     }
 
     final router = ref.watch(goRouterProvider);
+    // Watch bootstrap state so any live copy/theme/format update (admin PUT)
+    // rebuilds the whole tree with the fresh values from /ui/bootstrap.
+    ref.watch(uiConfigProvider);
     final themeMode = ref.watch(themeModeProvider);
     final brightness = switch (themeMode) {
       ThemeMode.light => Brightness.light,

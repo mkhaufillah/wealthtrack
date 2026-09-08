@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/ui_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_icons.dart';
 import '../../../../shared/providers/app_providers.dart';
@@ -129,6 +132,9 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
         SnackBar(content: Text(t('common.saved_live'))),
       );
       _load();
+      // Live-apply format/theme: re-fetch /ui/bootstrap so MoneyFormat and
+      // AppColors pick up the new values and root watch rebuilds the app.
+      unawaited(ref.read(uiConfigProvider.notifier).load());
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -153,6 +159,9 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
         SnackBar(content: Text(t('common.saved_live'))),
       );
       _load();
+      // Live-apply format/theme: re-fetch /ui/bootstrap so MoneyFormat and
+      // AppColors pick up the new values and root watch rebuilds the app.
+      unawaited(ref.read(uiConfigProvider.notifier).load());
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -174,6 +183,9 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
         SnackBar(content: Text(t('common.saved_live'))),
       );
       _load();
+      // Live-apply format/theme: re-fetch /ui/bootstrap so MoneyFormat and
+      // AppColors pick up the new values and root watch rebuilds the app.
+      unawaited(ref.read(uiConfigProvider.notifier).load());
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);

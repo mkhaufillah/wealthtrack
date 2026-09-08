@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/ui/copy_fallback.dart';
+import '../../../../core/ui/ui_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_icons.dart';
 import '../../../../shared/providers/app_providers.dart';
@@ -106,6 +109,9 @@ class _CopyAdminScreenState extends ConsumerState<CopyAdminScreen> {
         SnackBar(content: Text(t('common.saved_live'))),
       );
       _load();
+      // Pull a fresh /ui/bootstrap so ALL screens see the new copy
+      // immediately (remoteCopy is global, root app watches the provider).
+      unawaited(ref.read(uiConfigProvider.notifier).load());
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);

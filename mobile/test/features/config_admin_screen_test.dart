@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/features/profile/ui/config_admin_screen.dart';
 import 'package:wealthtrack/shared/providers/app_providers.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
+import 'package:wealthtrack/core/storage/secure_storage.dart';
 import '../helpers/mocks.dart';
 
 Widget buildConfigAdmin(MockApiClient api) {
@@ -11,6 +12,9 @@ Widget buildConfigAdmin(MockApiClient api) {
     overrides: [
       apiClientProvider.overrideWithProvider(
         Provider<ApiClient>((ref) => api),
+      ),
+      secureStorageProvider.overrideWithProvider(
+        Provider<SecureStorage>((ref) => MockSecureStorage()),
       ),
     ],
     child: MaterialApp(

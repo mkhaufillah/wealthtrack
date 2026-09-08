@@ -5,6 +5,7 @@ import 'package:wealthtrack/features/profile/ui/copy_admin_screen.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
 import 'package:wealthtrack/shared/providers/app_providers.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
+import 'package:wealthtrack/core/storage/secure_storage.dart';
 import '../helpers/mocks.dart';
 
 Widget buildCopyAdmin(MockApiClient api) {
@@ -12,6 +13,9 @@ Widget buildCopyAdmin(MockApiClient api) {
     overrides: [
       apiClientProvider.overrideWithProvider(
         Provider<ApiClient>((ref) => api),
+      ),
+      secureStorageProvider.overrideWithProvider(
+        Provider<SecureStorage>((ref) => MockSecureStorage()),
       ),
     ],
     child: MaterialApp(
