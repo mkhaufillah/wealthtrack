@@ -205,7 +205,7 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
                   decoration: BoxDecoration(
                     color: parse(preview['light']!),
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.line),
+                    border: Border.all(color: AppColors.divider),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -214,7 +214,7 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
                   decoration: BoxDecoration(
                     color: parse(preview['dark']!),
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.line),
+                    border: Border.all(color: AppColors.divider),
                   ),
                 ),
               ],
