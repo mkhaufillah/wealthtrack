@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.core.redis import get_redis
 from app.core.security import get_current_user
+from app.core.theme_presets import resolve_theme_preset
 from app.database import get_db, CursorWrapper
 from app.services.home_service import HomeService
 from app.services.ui_bootstrap_service import UiBootstrapService, cache_key
@@ -18,11 +19,14 @@ class CopyUpdateIn(BaseModel):
 
 
 class ConfigUpdateIn(BaseModel):
-    value: dict
+    value: dict | None = None
+    preset: str | None = None
 
 
-# Keys admins may edit through the app. Theme tokens stay read-only on purpose.
-EDITABLE_CONFIG_KEYS = {"format", "flags"}
+# Keys admins may edit through the app. Theme tokens are preset-based
+# (audited palettes only — no arbitrary hex input).
+EDITABLE_CONFIG_KEYS = {"format", "flags", "theme.light", "theme.dark"}
+THEME_KEYS = {"theme.light", "theme.dark"}
 
 
 def _require_admin(current_user: dict) -> None:
@@ -122,19 +126,47 @@ async def update_config(
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Upsert one ui_config row (format/flags only) and bust bootstrap cache."""
+    """Upsert one ui_config row and bust bootstrap cache.
+
+    - ``format`` / ``flags``: body ``{"value": {...}}`` (JSON).
+    - ``theme.light`` / ``theme.dark``: body ``{"preset": "..."}`` — resolved
+      from the audited presets (no arbitrary hex input).
+    """
     _require_admin(current_user)
     if key not in EDITABLE_CONFIG_KEYS:
         raise HTTPException(
             status_code=422,
             detail=f"Key config {key} gak dikenal atau gak bisa diubah via app",
         )
+
+    if key in THEME_KEYS:
+        if not data.preset:
+            raise HTTPException(
+                status_code=422,
+                detail='Theme pakai preset. Kirim {"preset": "peach"} misalnya',
+            )
+        mode = "light" if key == "theme.light" else "dark"
+        try:
+            stored = resolve_theme_preset(mode, data.preset)
+        except KeyError:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Preset tema {data.preset} gak dikenal",
+            )
+    else:
+        if data.value is None:
+            raise HTTPException(
+                status_code=422,
+                detail="Body harus berisi value",
+            )
+        stored = data.value
+
     await db.execute(
         """INSERT INTO ui_config (key, value)
            VALUES (?, ?::jsonb)
            ON CONFLICT (key) DO UPDATE SET value = excluded.value""",
-        (key, json.dumps(data.value)),
+        (key, json.dumps(stored)),
     )
     redis = await get_redis()
     await redis.delete(cache_key("id-ID"))
-    return {"key": key, "value": data.value}
+    return {"key": key, "value": stored}

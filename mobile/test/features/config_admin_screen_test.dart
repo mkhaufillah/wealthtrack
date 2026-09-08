@@ -91,4 +91,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
+
+  testWidgets('theme swatch row renders and saving preset PUTs both keys',
+      (tester) async {
+    final api = MockApiClient();
+    api.onGet('/ui/config', {
+      'items': [
+        {'key': 'format', 'value': {'currency': 'IDR', 'currency_prefix': 'Rp', 'group_sep': '.', 'decimal_sep': ','}},
+        {'key': 'flags', 'value': {'home_all_time': true}},
+        {'key': 'theme.light', 'value': {'accent': '#F3A6B8'}},
+        {'key': 'theme.dark', 'value': {'accent': '#E9A0B2'}},
+      ],
+    });
+    api.onPut('/ui/config/theme.light', {'key': 'theme.light', 'value': {}});
+    api.onPut('/ui/config/theme.dark', {'key': 'theme.dark', 'value': {}});
+    await tester.pumpWidget(buildConfigAdmin(api));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Warna tema'), findsOneWidget);
+    for (final name in ['peach', 'ocean', 'forest', 'rose']) {
+      expect(find.text(name), findsOneWidget);
+    }
+
+    // pick ocean, save (third FilledButton = theme save)
+    await tester.tap(find.text('ocean'));
+    await tester.pumpAndSettle();
+    final buttons = find.byType(FilledButton);
+    await tester.ensureVisible(buttons.last);
+    await tester.pumpAndSettle();
+    await tester.tap(buttons.last);
+    await tester.pumpAndSettle();
+
+    expect(api.lastPutPath, '/ui/config/theme.dark');
+    expect((api.lastPutData as Map)['preset'], 'ocean');
+  });
 }

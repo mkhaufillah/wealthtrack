@@ -41,6 +41,14 @@ has an APK editor. Add a guarded admin panel:
   validation and a preview, so it is deliberately not exposed as a raw JSON
   textarea.
 
+## Theme swatches (shipped)
+
+The admin Setelan Config panel gained a safe theme editor: **4 audited
+light/dark presets** (`peach`, `ocean`, `forest`, `rose`) in
+`backend/app/core/theme_presets.py`. The app sends `{"preset": "..."}` to
+`PUT /ui/config/theme.light|dark`; no arbitrary hex input. See
+[28-theme-swatch-picker.md](28-theme-swatch-picker.md).
+
 Every server error remains Bahasa and is passed through by the APK.
 
 ## Verification

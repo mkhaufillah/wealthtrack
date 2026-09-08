@@ -1605,8 +1605,16 @@ without deploy/build.
 { "value": { "currency_prefix": "Rp", "group_sep": ".", "decimal_sep": "," } }
 ```
 
-Only `format` and `flags` are editable through the app; `theme.*` returns 422
-(`Key config theme.light gak dikenal atau gak bisa diubah via app`).
+`format` and `flags` accept `{"value": {...}}`. `theme.light` / `theme.dark`
+are preset-based (audited swatches, no arbitrary hex):
+
+```json
+{ "preset": "peach" }
+```
+
+Presets: `peach`, `ocean`, `forest`, `rose` (defined in
+`backend/app/core/theme_presets.py`). Unknown preset → 422
+(`Preset tema X gak dikenal`). Writes bust the bootstrap cache.
 
 ## Auth Headers
 

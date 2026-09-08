@@ -29,6 +29,15 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
   final _decimalSepCtrl = TextEditingController();
   final _flagHomeAllTimeCtrl = TextEditingController(text: 'true');
 
+  // Theme swatch presets — preview colors only; backend owns full tokens.
+  static const _presetPreviews = {
+    'peach': {'light': '#FFF3EE', 'dark': '#2A2430', 'accent': '#F3A6B8'},
+    'ocean': {'light': '#EFF6FB', 'dark': '#1C2532', 'accent': '#6FA8DC'},
+    'forest': {'light': '#F2F7F1', 'dark': '#1E2A22', 'accent': '#7FBF9F'},
+    'rose': {'light': '#FBF3F4', 'dark': '#2B2126', 'accent': '#D9A0B0'},
+  };
+  String _selectedPreset = 'peach';
+
   @override
   void initState() {
     super.initState();
@@ -142,6 +151,88 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
     }
   }
 
+  Future<void> _saveTheme() async {
+    setState(() => _saving = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.put('/ui/config/theme.light', data: {'preset': _selectedPreset});
+      await api.put('/ui/config/theme.dark', data: {'preset': _selectedPreset});
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t('common.saved_live'))),
+      );
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ref.read(apiClientProvider).handleError(e).toString())),
+      );
+    }
+  }
+
+  Widget _themeSwatch(String preset) {
+    final preview = _presetPreviews[preset]!;
+    Color parse(String hex) => Color(int.parse(hex.substring(1), radix: 16) | 0xFF000000);
+    final selected = _selectedPreset == preset;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => setState(() => _selectedPreset = preset),
+      child: Container(
+        width: 72,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? AppColors.accent : AppColors.divider,
+            width: selected ? 2.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(preset,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 18, height: 18,
+                  decoration: BoxDecoration(
+                    color: parse(preview['light']!),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.line),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Container(
+                  width: 18, height: 18,
+                  decoration: BoxDecoration(
+                    color: parse(preview['dark']!),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.line),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Container(
+              width: 26, height: 5,
+              decoration: BoxDecoration(
+                color: parse(preview['accent']!),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _card(Widget child) {
     return Card(
       elevation: 0,
@@ -237,11 +328,43 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
                         ],
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        t('profile.config_theme_locked'),
-                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    _card(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(t('profile.config_theme'),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 4),
+                          Text(
+                            t('profile.config_theme_hint'),
+                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _presetPreviews.keys
+                                .map((p) => _themeSwatch(p))
+                                .toList(),
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: _saving ? null : _saveTheme,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.accent,
+                                foregroundColor: AppColors.onAccent,
+                              ),
+                              child: _saving
+                                  ? const SizedBox(
+                                      width: 20, height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : Text(t('common.save')),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

@@ -69,16 +69,55 @@ async def test_admin_put_rejects_unknown_key(
     assert "gak dikenal" in resp.json()["detail"].lower()
 
 
-async def test_admin_put_theme_blocked(
+async def test_admin_put_theme_preset_ok(
+    client: httpx.AsyncClient, filla_token: str
+):
+    """Theme now accepts audited presets (was blocked in v1)."""
+    resp = await client.put(
+        "/api/v1/ui/config/theme.light",
+        headers={"Authorization": f"Bearer {filla_token}"},
+        json={"preset": "peach"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["key"] == "theme.light"
+    assert isinstance(body["value"], dict)
+    assert "accent" in body["value"]
+    assert body["value"]["accent"].startswith("#")
+    # bootstrap reflects it + cache busted
+    boot = await client.get("/api/v1/ui/bootstrap")
+    assert boot.json()["theme"]["light"]["accent"] == body["value"]["accent"]
+    # dark pair available too
+    dark_resp = await client.put(
+        "/api/v1/ui/config/theme.dark",
+        headers={"Authorization": f"Bearer {filla_token}"},
+        json={"preset": "peach"},
+    )
+    assert dark_resp.status_code == 200
+    assert "accent" in dark_resp.json()["value"]
+    # restore default-ish values via the initial preset
+    await client.put(
+        "/api/v1/ui/config/theme.light",
+        headers={"Authorization": f"Bearer {filla_token}"},
+        json={"preset": "peach"},
+    )
+    await client.put(
+        "/api/v1/ui/config/theme.dark",
+        headers={"Authorization": f"Bearer {filla_token}"},
+        json={"preset": "peach"},
+    )
+
+
+async def test_admin_put_theme_unknown_preset(
     client: httpx.AsyncClient, filla_token: str
 ):
     resp = await client.put(
         "/api/v1/ui/config/theme.light",
         headers={"Authorization": f"Bearer {filla_token}"},
-        json={"value": {"primary": "#000000"}},
+        json={"preset": "totally_unknown"},
     )
     assert resp.status_code == 422
-    assert "theme" in resp.json()["detail"].lower()
+    assert "preset" in resp.json()["detail"].lower()
 
 
 async def test_admin_put_flags(client: httpx.AsyncClient, filla_token: str):
