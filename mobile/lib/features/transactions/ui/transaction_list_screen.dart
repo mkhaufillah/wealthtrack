@@ -834,7 +834,7 @@ class _PaginationRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            t('tx.page_n').replaceAll('{page}', '$page').replaceAll('{total}', '$totalPages'),,
+            t('tx.page_n').replaceAll('{page}', '$page').replaceAll('{total}', '$totalPages'),
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
           ),
           const SizedBox(width: 8),

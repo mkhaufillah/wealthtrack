@@ -386,7 +386,7 @@ COPY_ID: dict[str, str] = {
     'kpr.due_label': 'Bulan ke-{month} dari {total} · {amount} jatuh tempo',
     'kpr.extra_intro': 'Pembayaran ekstra ngepotong pokok pinjaman langsung. Bisa pilih cicilan lebih kecil atau tenor lebih pendek.',
     'kpr.extra_pick': 'Dua opsi sama-sama ngecilin sisa pinjaman. Pilih yang pas.',
-    'kpr.extra_result': 'Cicilan: {installment}/bulan lebih kecil (Opsi A)\nTenor: {months} bulan lebih cepet (Opsi B)',
+    'kpr.extra_result': 'Cicilan: {installment}/bulan lebih kecil (Opsi A) · Tenor: {months} bulan lebih cepet (Opsi B)',
     'kpr.extra_delete': 'Hapus pembayaran ekstra {amount} di bulan ke-{month}? Jadwalnya dihitung ulang. Gak bisa dibalikin.',
     'kpr.no_extra': 'Belum ada pembayaran ekstra. Tap ikon uang di atas buat nambah.',
     'kpr.extra_applied': 'Hitungan cicilan & tenor baru mulai {start} — {end}',
