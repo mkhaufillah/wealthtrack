@@ -14,4 +14,5 @@ from . import (
     mcp,
     api_keys,
     ui,
+    bank_inbox,
 )

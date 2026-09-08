@@ -1616,6 +1616,29 @@ Presets: `peach`, `ocean`, `forest`, `rose` (defined in
 `backend/app/core/theme_presets.py`). Unknown preset → 422
 (`Preset tema X gak dikenal`). Writes bust the bootstrap cache.
 
+## Bank inbox
+
+Android notification drafts. JWT required. Parser: `app.services.bank_parser`.
+
+### `POST /api/v1/bank-inbox`
+
+```json
+{ "package": "com.bca", "title": "BCA", "text": "Debit Rp50.000 di QRIS GRAB", "posted_at": "2026-09-08T10:00:00Z" }
+```
+
+Unknown package → 422. Duplicate fingerprint → 200 existing row.
+
+### `GET /api/v1/bank-inbox?status=pending`
+
+Returns `{ "items": [...], "pending_count": N }`.
+
+### `POST /api/v1/bank-inbox/{id}/confirm`
+
+Optional `{ "category_id": 1 }`. Unparsed amount → 400. Creates a transaction
+(`source=bank_notif`).
+
+### `POST /api/v1/bank-inbox/{id}/reject`
+
 ## Auth Headers
 
 All endpoints except `/auth/register` and `/auth/login` require:

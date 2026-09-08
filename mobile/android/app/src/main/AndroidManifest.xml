@@ -33,6 +33,14 @@
             android:value="2" />
 
         <!-- WealthTrack Quick Action Widget -->
+        <service
+            android:name=".BankNotificationListener"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
         <receiver
             android:name=".WealthTrackWidget"
             android:exported="true">

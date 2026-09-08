@@ -286,6 +286,27 @@ CREATE TABLE IF NOT EXISTS ocr_jobs (
 
 CREATE INDEX IF NOT EXISTS idx_ocr_jobs_user_status ON ocr_jobs(user_id, status);
 
+CREATE TABLE IF NOT EXISTS bank_inbox (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    package TEXT NOT NULL,
+    bank TEXT,
+    title TEXT NOT NULL DEFAULT '',
+    text TEXT NOT NULL DEFAULT '',
+    posted_at TEXT NOT NULL DEFAULT '',
+    amount INTEGER,
+    txn_type TEXT,
+    merchant TEXT NOT NULL DEFAULT '',
+    parsed INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'confirmed', 'rejected')),
+    fingerprint TEXT NOT NULL,
+    transaction_id INTEGER REFERENCES transactions(id),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"'),
+    UNIQUE(user_id, fingerprint)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_inbox_user_status ON bank_inbox(user_id, status);
+
 CREATE TABLE IF NOT EXISTS ai_messages (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),

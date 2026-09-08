@@ -1,0 +1,62 @@
+from app.services.bank_parser import (
+    bank_for_package,
+    fingerprint,
+    parse_amount,
+    parse_merchant,
+    parse_notification,
+    parse_type,
+)
+
+
+def test_package_allow_list():
+    assert bank_for_package("com.bca") == "bca"
+    assert bank_for_package("id.bmri.livin") == "mandiri"
+    assert bank_for_package("id.co.bri.brimo") == "bri"
+    assert bank_for_package("com.jago.digitalBanking") == "jago"
+    assert bank_for_package("com.whatsapp") is None
+
+
+def test_amount_rp_dotted():
+    assert parse_amount("Debit Rp50.000 di QRIS GRAB") == 50000
+    assert parse_amount("Rp 1.250.000") == 1250000
+    assert parse_amount("IDR 75000") == 75000
+
+
+def test_amount_missing():
+    assert parse_amount("Transaksi berhasil") is None
+
+
+def test_type_debit_vs_kredit():
+    assert parse_type("Debit Rp10.000 QRIS") == "expense"
+    assert parse_type("Kredit Rp2.000.000 gaji") == "income"
+    assert parse_type("Transfer masuk Rp100.000") == "income"
+    assert parse_type("QRIS Superbank Grab") == "expense"
+
+
+def test_merchant_after_di():
+    assert "GRAB" in parse_merchant("Debit Rp50.000 di QRIS GRAB").upper()
+
+
+def test_parse_jago_and_bca():
+    bca = parse_notification(
+        "com.bca", "BCA", "Debit Rp125.000 di ALFAMART"
+    )
+    assert bca["bank"] == "bca"
+    assert bca["amount"] == 125000
+    assert bca["type"] == "expense"
+    assert bca["parsed"] is True
+
+    jago = parse_notification(
+        "com.jago.digitalBanking",
+        "Jago",
+        "Dana masuk Rp500.000 dari NAHDA",
+    )
+    assert jago["bank"] == "jago"
+    assert jago["amount"] == 500000
+    assert jago["type"] == "income"
+
+
+def test_fingerprint_stable():
+    a = fingerprint("com.bca", "2026-09-08T10:00:00Z", 50000, "Debit Rp50.000")
+    b = fingerprint("com.bca", "2026-09-08T11:00:00Z", 50000, "Debit  Rp50.000")
+    assert a == b

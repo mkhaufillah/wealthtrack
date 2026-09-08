@@ -32,6 +32,19 @@ class MainActivity : FlutterActivity() {
         }
 
         handleWidgetIntent(intent)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.filla.wealthtrack/bank_capture")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isEnabled" -> result.success(BankNotificationListener.isEnabled(this))
+                    "openSettings" -> {
+                        startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                        result.success(null)
+                    }
+                    "drain" -> result.success(BankNotificationListener.drain(this))
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     override fun onNewIntent(intent: Intent) {

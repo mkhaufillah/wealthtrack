@@ -436,6 +436,16 @@ COPY_ID: dict[str, str] = {
     'tx.owner_change': 'Ganti pemilik',
     'tx.sort_title': 'Urutin',
     'register.failed': 'Gagal',
+    'bank.inbox_title': 'Dari bank',
+    'bank.inbox_empty': 'Belum ada draf dari notifikasi bank',
+    'bank.enable': 'Nyalain akses notifikasi',
+    'bank.enable_hint': 'WealthTrack cuma baca notif app bank di HP ini. Gak minta sandi bank.',
+    'bank.confirm': 'Catat',
+    'bank.reject': 'Abaikan',
+    'bank.unparsed': 'Nominal belum kebaca. Cek teksnya dulu.',
+    'bank.saved': 'Kesimpen dari notif bank',
+    'bank.rejected': 'Draf diabaikan',
+    'profile.bank_inbox': 'Dari bank',
 }
 
 THEME_LIGHT: dict[str, str] = {

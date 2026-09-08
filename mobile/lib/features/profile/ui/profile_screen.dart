@@ -448,6 +448,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _buildSectionHeader(AppIcons.spark, t('profile.sec_features')),
                 const SizedBox(height: 8),
                 _buildMenuItem(
+                  icon: AppIcons.inbox,
+                  title: t('profile.bank_inbox'),
+                  onTap: () => context.push('/bank-inbox'),
+                ),
+                _buildMenuItem(
                   icon: AppIcons.ai,
                   title: t('home.ai'),
                   onTap: () => context.push('/ai/advise'),

@@ -31,6 +31,9 @@ import 'features/debt/credit_card/ui/credit_card_list_screen.dart';
 import 'features/debt/credit_card/ui/credit_card_form_screen.dart';
 import 'features/debt/credit_card/ui/credit_card_detail_screen.dart';
 import 'features/debt/credit_card/ui/add_installment_screen.dart';
+import 'features/bank_inbox/ui/bank_inbox_screen.dart';
+import 'features/bank_inbox/data/bank_capture.dart';
+import 'shared/providers/app_providers.dart';
 import 'shared/providers/theme_provider.dart';
 import 'shared/widgets/app_scaffold.dart';
 
@@ -139,6 +142,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/profile/config',
         builder: (_, __) => const ConfigAdminScreen(),
       ),
+      GoRoute(
+        path: '/bank-inbox',
+        builder: (_, __) => const BankInboxScreen(),
+      ),
     ],
   );
 });
@@ -163,6 +170,9 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
     ref.read(authProvider.notifier).checkAuth().then((_) {
       if (mounted) setState(() => _initialized = true);
       _checkPendingWidgetAction();
+      if (ref.read(authProvider).isAuthenticated) {
+        unawaited(BankCapture.flushToServer(ref.read(apiClientProvider)));
+      }
     }).catchError((_) {
       // Safety net: if checkAuth throws unexpectedly, still release the loading screen
       if (mounted) setState(() => _initialized = true);
