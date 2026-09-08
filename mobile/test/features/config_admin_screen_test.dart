@@ -72,9 +72,10 @@ void main() {
     await tester.pumpWidget(buildConfigAdmin(api));
     await tester.pumpAndSettle();
 
-    // second FilledButton = "Simpan" under the flags card
+    // second FilledButton = "Simpan" under the flags card (theme btn is
+    // below the fold and not always built until scrolled)
     final saveButtons = find.byType(FilledButton);
-    expect(saveButtons, findsNWidgets(3));
+    expect(saveButtons, findsAtLeastNWidgets(2));
     await tester.ensureVisible(saveButtons.at(1));
     await tester.pumpAndSettle();
     await tester.tap(saveButtons.at(1));
