@@ -77,8 +77,8 @@ void main() {
       expect(formatIdrInput('1000000'), 'Rp 1.000.000');
     });
     test('honors custom prefix and separator', () {
-      MoneyFormat.apply({'currency_prefix': 'US$', 'group_sep': ','});
-      expect(formatIdrInput('1234567'), 'US$ 1,234,567');
+      MoneyFormat.apply({'currency_prefix': 'US\$', 'group_sep': ','});
+      expect(formatIdrInput('1234567'), 'US\$ 1,234,567');
     });
   });
 

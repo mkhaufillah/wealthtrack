@@ -47,6 +47,10 @@ void main() {
     await tester.enterText(amountField(1), '100000000');
     await tester.pumpAndSettle();
 
+    // Hitung button sits below the fold in a lazy ListView — scroll first
+    await tester.scrollUntilVisible(find.text('Hitung'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Hitung'));
     await tester.pumpAndSettle();
 
@@ -70,6 +74,10 @@ void main() {
     await tester.pumpWidget(buildKprApp(api));
     await tester.pumpAndSettle();
 
+    // Hitung button below the fold in a lazy ListView — scroll first
+    await tester.scrollUntilVisible(find.text('Hitung'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Hitung'));
     await tester.pumpAndSettle();
 
