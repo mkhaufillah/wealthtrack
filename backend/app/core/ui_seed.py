@@ -10,7 +10,7 @@ COPY_ID: dict[str, str] = {
     'home.income': 'Pemasukan',
     'home.expense': 'Pengeluaran',
     'home.greeting': 'Hai',
-    'home.subtitle': 'Saldo kamu, sepanjang waktu',
+    'home.greeting_sub': 'Saldo kamu, sepanjang waktu',
     'home.savings': 'Simpanan',
     'home.emergency': 'Dana darurat',
     'home.debt_running': 'Utang berjalan',

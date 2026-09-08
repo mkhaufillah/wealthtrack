@@ -84,6 +84,8 @@ void main() {
       await tester.pumpWidget(buildHomeApp(balance: 1500000));
       await tester.pumpAndSettle();
       expect(find.text('Hai, Filla'), findsNothing); // greeting uses login user (mock has none)
+      // greeting subtitle is server-driven copy, NOT a hardcoded literal
+      expect(find.text('Saldo kamu, sepanjang waktu'), findsOneWidget);
       final card = tester.widget<BalanceCard>(find.byType(BalanceCard));
       expect(card.balance, 1500000);
       expect(card.amountText ?? formatCurrency(card.balance), formatCurrency(1500000));

@@ -177,7 +177,7 @@ class _HiRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hai, $name',
+                '${t('home.greeting')}, $name',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -187,7 +187,7 @@ class _HiRow extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Saldo kamu, sepanjang waktu',
+                t('home.greeting_sub'),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
