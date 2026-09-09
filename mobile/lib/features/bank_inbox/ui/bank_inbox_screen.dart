@@ -83,30 +83,28 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
     }
     if (!mounted || cats.isEmpty) return;
     final suggested = item['suggested_category_id'];
-    final chosen = await showModalBottomSheet<int>(
+    final chosen = await showDialog<int>(
       context: context,
-      backgroundColor: AppColors.surface,
-      builder: (ctx) => SafeArea(
-        child: SizedBox(
-          height: 320,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(t('bank.pick_category')),
+        content: SizedBox(
+          width: 320,
+          height: 280,
           child: ListView(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(t('bank.pick_category'), style: const TextStyle(fontWeight: FontWeight.w800)),
-              ),
-              ...cats.map((c) {
-                final id = c['id'] as int;
-                final selected = suggested == id;
-                return ListTile(
-                  title: Text('${c['name']}'),
-                  selected: selected,
-                  onTap: () => Navigator.pop(ctx, id),
-                );
-              }),
-            ],
+            children: cats.map((c) {
+              final id = c['id'] as int;
+              return ListTile(
+                title: Text('${c['name']}'),
+                selected: suggested == id,
+                onTap: () => Navigator.pop(ctx, id),
+              );
+            }).toList(),
           ),
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('common.cancel'))),
+        ],
       ),
     );
     if (chosen == null) return;
