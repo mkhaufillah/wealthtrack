@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/ui_config.dart';
 import '../../../shared/providers/locale_provider.dart';
 import '../../../shared/providers/onboarding_provider.dart';
 
@@ -58,6 +59,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
+    ref.watch(uiConfigProvider);
     final last = _index == _slides.length - 1;
     return Scaffold(
       backgroundColor: AppColors.background,

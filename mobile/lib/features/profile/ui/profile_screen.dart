@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../core/ui/app_icons.dart';
+import '../../../core/ui/ui_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -406,6 +407,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final state = ref.watch(profileProvider);
     final auth = ref.watch(authProvider);
+    ref.watch(uiConfigProvider);
     final user = auth.user;
 
     return Scaffold(
@@ -1010,6 +1012,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildLanguageSelector() {
     final locale = ref.watch(localeProvider);
+    ref.watch(uiConfigProvider);
     final user = ref.watch(authProvider).user;
     return Card(
       elevation: 0,
@@ -1054,14 +1057,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _setLang(String displayName, String locale) async {
     if (ref.read(localeProvider) == locale) return;
+    await ref.read(localeProvider.notifier).setLocale(locale);
+    if (displayName.isEmpty) return;
     try {
-      if (displayName.isNotEmpty) {
-        await ref.read(authProvider.notifier).updateProfile(displayName, locale: locale);
-      }
-      await ref.read(localeProvider.notifier).setLocale(locale);
-    } catch (_) {
-      await ref.read(localeProvider.notifier).setLocale(locale);
-    }
+      await ref.read(authProvider.notifier).updateProfile(displayName, locale: locale);
+    } catch (_) {}
   }
 
   Widget _buildThemeSelector() {

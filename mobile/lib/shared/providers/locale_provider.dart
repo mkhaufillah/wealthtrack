@@ -26,6 +26,7 @@ class LocaleNotifier extends StateNotifier<String> {
     final saved = await _storage.getSecure(kUiLocaleKey);
     if (saved == 'en-US' || saved == 'id-ID') {
       state = saved!;
+      _ui.applyLocale(saved);
     }
   }
 
@@ -34,7 +35,8 @@ class LocaleNotifier extends StateNotifier<String> {
 
   Future<void> setLocale(String locale) async {
     final next = locale == 'en-US' || locale == 'en' ? 'en-US' : 'id-ID';
-    state = next;
+    _ui.applyLocale(next);
+    if (state != next) state = next;
     await _storage.saveSecure(kUiLocaleKey, next);
     await _ui.load(locale: next);
   }

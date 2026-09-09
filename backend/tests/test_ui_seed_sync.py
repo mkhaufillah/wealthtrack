@@ -14,25 +14,36 @@ FALLBACK = Path(
         str(_REPO_ROOT / "mobile" / "lib" / "core" / "ui" / "copy_fallback.dart"),
     )
 )
+FALLBACK_EN = _REPO_ROOT / "mobile" / "lib" / "core" / "ui" / "copy_fallback_en.dart"
 
 
-def _fallback_keys() -> set[str]:
-    text = FALLBACK.read_text()
-    return {k for k, _ in re.findall(r"'((?:\\'|[^'])*)'\s*:\s*'((?:\\'|[^'])*)'", text) if "." in k}
+def _map_from_dart(path: Path) -> dict[str, str]:
+    text = path.read_text()
+    return {
+        k: v.replace("\\'", "'")
+        for k, v in re.findall(r"'((?:\\'|[^'])*)'\s*:\s*'((?:\\'|[^'])*)'", text)
+        if "." in k
+    }
 
 
 def test_seed_covers_fallback():
-    fb = _fallback_keys()
+    fb = set(_map_from_dart(FALLBACK).keys())
     seed = set(COPY_ID.keys())
     assert seed == fb, f"drift: only-in-seed={sorted(seed - fb)[:10]} only-in-fallback={sorted(fb - seed)[:10]}"
 
 
 def test_seed_values_match():
-    text = FALLBACK.read_text()
-    fb = {k: v.replace("\\'", "'") for k, v in re.findall(r"'((?:\\'|[^'])*)'\s*:\s*'((?:\\'|[^'])*)'", text) if "." in k}
+    fb = _map_from_dart(FALLBACK)
     for k, v in COPY_ID.items():
         assert fb.get(k) == v, f"{k}: seed={v!r} fallback={fb.get(k)!r}"
 
 
 def test_en_keys_match_id():
     assert set(COPY_EN.keys()) == set(COPY_ID.keys())
+
+
+def test_en_fallback_matches_seed():
+    fb = _map_from_dart(FALLBACK_EN)
+    assert set(fb.keys()) == set(COPY_EN.keys())
+    for k, v in COPY_EN.items():
+        assert fb.get(k) == v, f"{k}: seed={v!r} fallback={fb.get(k)!r}"

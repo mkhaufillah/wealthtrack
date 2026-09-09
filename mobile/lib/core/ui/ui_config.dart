@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../network/api_client.dart';
 import '../storage/secure_storage.dart';
@@ -8,29 +7,66 @@ import 'copy_fallback.dart';
 import 'money.dart';
 import '../../shared/providers/app_providers.dart';
 
-const _cacheKey = 'ui_bootstrap';
-
 class UiConfigNotifier extends StateNotifier<Map<String, dynamic>> {
   UiConfigNotifier(this._api, this._storage) : super(const {});
 
   final ApiClient _api;
   final SecureStorage _storage;
+  final Map<String, Map<String, dynamic>> _bootByLocale = {};
+  int _gen = 0;
+
+  String _norm(String? locale) {
+    if (locale == 'en-US' || locale == 'en') return 'en-US';
+    return 'id-ID';
+  }
+
+  String _cacheKey(String loc) => 'ui_bootstrap_$loc';
+
+  /// Instant: in-memory boot or offline fallback. No await.
+  void applyLocale(String locale) {
+    final loc = _norm(locale);
+    activeUiLocale = loc;
+    final boot = _bootByLocale[loc];
+    if (boot != null) {
+      applyMap(boot);
+      return;
+    }
+    applyRemoteCopy(loc == 'en-US' ? copyFallbackEn : copyFallback);
+    state = {...state, 'locale': loc};
+  }
 
   Future<void> load({String? locale}) async {
-    final loc = locale ??
-        await _storage.getSecure('ui_locale') ??
-        'id-ID';
-    final cached = await _storage.getSecure(_cacheKey);
+    final loc = _norm(
+      locale ?? await _storage.getSecure('ui_locale') ?? 'id-ID',
+    );
+    final gen = ++_gen;
+    applyLocale(loc);
+
+    final cached = await _storage.getSecure(_cacheKey(loc));
+    if (gen != _gen) return;
     if (cached != null && cached.isNotEmpty) {
       try {
-        applyMap(jsonDecode(cached) as Map<String, dynamic>);
+        final data = jsonDecode(cached);
+        if (data is Map<String, dynamic> &&
+            data['copy'] is Map &&
+            (data['locale'] == loc || data['locale'] == null)) {
+          data['locale'] = loc;
+          _bootByLocale[loc] = data;
+          applyMap(data);
+        }
       } catch (_) {}
     }
+    if (gen != _gen) return;
+
     try {
       final res = await _api.get('/ui/bootstrap', queryParams: {'locale': loc});
+      if (gen != _gen) return;
       final data = res.data;
       if (data is Map<String, dynamic> && data['copy'] is Map) {
-        await _storage.saveSecure(_cacheKey, jsonEncode(data));
+        data['locale'] = loc;
+        _bootByLocale[loc] = data;
+        await _storage.saveSecure(_cacheKey(loc), jsonEncode(data));
+        if (gen != _gen) return;
         applyMap(data);
       }
     } catch (_) {}

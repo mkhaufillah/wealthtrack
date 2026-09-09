@@ -1,4 +1,7 @@
 /// Copy ID — ramah, santai. Live catalog is GET /ui/bootstrap (DB). This map is offline fallback.
+import 'copy_fallback_en.dart';
+export 'copy_fallback_en.dart';
+
 const Map<String, String> copyFallback = {
   'home.hero_title': 'Uang kamu',
   'home.hero_sub': 'Rekap pribadi, dari awal sampai sekarang',
@@ -497,13 +500,18 @@ const Map<String, String> copyFallback = {
   'onboarding.p2_sub': 'Catat dari notifikasi. Gak minta sandi bank.',
 };
 
-String t(String key) => remoteCopy[key] ?? copyFallback[key] ?? key;
+String t(String key) {
+  final fb = activeUiLocale == 'en-US' ? copyFallbackEn : copyFallback;
+  return remoteCopy[key] ?? fb[key] ?? key;
+}
 
 String catLabel({required String name, String? copyKey}) {
   final k = (copyKey ?? '').trim();
   if (k.isEmpty) return name;
   return t(k);
 }
+
+String activeUiLocale = 'id-ID';
 
 Map<String, String> remoteCopy = <String, String>{};
 
