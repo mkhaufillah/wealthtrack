@@ -71,6 +71,7 @@ DROP TABLE IF EXISTS credit_card_installments CASCADE;
 DROP TABLE IF EXISTS credit_cards CASCADE;
 DROP TABLE IF EXISTS ai_chat_summaries CASCADE;
 DROP TABLE IF EXISTS ai_messages CASCADE;
+DROP TABLE IF EXISTS bank_category_rules CASCADE;
 DROP TABLE IF EXISTS bank_inbox CASCADE;
 DROP TABLE IF EXISTS ocr_jobs CASCADE;
 DROP TABLE IF EXISTS budgets CASCADE;
@@ -174,6 +175,14 @@ CREATE TABLE bank_inbox (
     transaction_id INTEGER REFERENCES transactions(id),
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     UNIQUE(user_id, fingerprint)
+);
+CREATE TABLE bank_category_rules (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    bank TEXT,
+    keyword TEXT NOT NULL,
+    category_id INTEGER NOT NULL REFERENCES categories(id),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 CREATE TABLE ai_messages (
     id SERIAL PRIMARY KEY,

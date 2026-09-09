@@ -311,6 +311,16 @@ ALTER TABLE bank_inbox ADD CONSTRAINT bank_inbox_transaction_id_fkey
 
 CREATE INDEX IF NOT EXISTS idx_bank_inbox_user_status ON bank_inbox(user_id, status);
 
+CREATE TABLE IF NOT EXISTS bank_category_rules (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    bank TEXT,
+    keyword TEXT NOT NULL,
+    category_id INTEGER NOT NULL REFERENCES categories(id),
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+);
+CREATE INDEX IF NOT EXISTS idx_bank_rules_user ON bank_category_rules(user_id);
+
 CREATE TABLE IF NOT EXISTS ai_messages (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),

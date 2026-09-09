@@ -445,6 +445,18 @@ const Map<String, String> copyFallback = {
   'bank.status_skipped': 'Diabaikan',
   'bank.delete_confirm': 'Hapus draf notif ini? Transaksi yang sudah dicatat gak kehapus.',
   'bank.deleted': 'Notif dihapus',
+  'bank.pick_category': 'Pilih kategori',
+  'bank.rules_title': 'Aturan kategori',
+  'bank.rules_empty': 'Belum ada aturan. Contoh: Grab di Superbank = Transport.',
+  'bank.rules_keyword': 'Kata di notif',
+  'bank.rules_bank_any': 'Semua bank',
+  'bank.rules_add': 'Tambah aturan',
+  'bank.internal': 'Transfer sendiri',
+  'bank.internal_hint': 'Nominal sama, beda bank. Gak dihitung belanja.',
+  'bank.paste_title': 'Tempel teks notif',
+  'bank.paste_hint': 'Buat iOS, atau kalau listener kelewat. Pilih bank, tempel teks, kirim.',
+  'bank.paste_send': 'Kirim ke inbox',
+  'bank.ios_hint': 'iOS gak bisa baca notif app lain. Tempel atau share teksnya ke sini.',
 };
 
 String t(String key) => remoteCopy[key] ?? copyFallback[key] ?? key;

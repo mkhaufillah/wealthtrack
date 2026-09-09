@@ -221,3 +221,75 @@ async def test_delete_inbox_item_keeps_transaction(
         headers=auth_headers,
     )
     assert missing.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_rule_suggests_category_on_confirm(client: AsyncClient, auth_headers: dict):
+    rule = await client.post(
+        "/api/v1/bank-inbox/rules",
+        headers=auth_headers,
+        json={"bank": "superbank", "keyword": "grab", "category_id": 2},
+    )
+    assert rule.status_code == 200, rule.text
+    listed_rules = await client.get("/api/v1/bank-inbox/rules", headers=auth_headers)
+    assert listed_rules.status_code == 200
+    assert listed_rules.json()[0]["keyword"] == "grab"
+
+    draft = await client.post(
+        "/api/v1/bank-inbox",
+        headers=auth_headers,
+        json={
+            "package": "id.co.bankfama.android",
+            "title": "Superbank",
+            "text": "Debit Rp20.000 QRIS GRAB",
+            "posted_at": "2026-09-08T10:00:00Z",
+        },
+    )
+    assert draft.json()["suggested_category_id"] == 2
+    confirmed = await client.post(
+        f"/api/v1/bank-inbox/{draft.json()['id']}/confirm",
+        headers=auth_headers,
+        json={},
+    )
+    txn = await client.get(
+        f"/api/v1/transactions/{confirmed.json()['transaction_id']}",
+        headers=auth_headers,
+    )
+    assert txn.json()["category"]["id"] == 2
+
+
+@pytest.mark.asyncio
+async def test_internal_transfer_confirms_pair(client: AsyncClient, auth_headers: dict):
+    out_ = await client.post(
+        "/api/v1/bank-inbox",
+        headers=auth_headers,
+        json={
+            "package": "com.jago.digitalBanking",
+            "title": "Jago",
+            "text": "Debit Rp75.000 transfer ke BCA",
+            "posted_at": "2026-09-08T10:00:00Z",
+        },
+    )
+    inn = await client.post(
+        "/api/v1/bank-inbox",
+        headers=auth_headers,
+        json={
+            "package": "com.bca",
+            "title": "BCA",
+            "text": "Kredit Rp75.000 dari JAGO",
+            "posted_at": "2026-09-08T10:02:00Z",
+        },
+    )
+    listed = await client.get("/api/v1/bank-inbox", headers=auth_headers)
+    by_id = {i["id"]: i for i in listed.json()["items"]}
+    assert by_id[out_.json()["id"]]["internal_suggested"] is True
+    assert by_id[out_.json()["id"]]["pair_id"] == inn.json()["id"]
+    confirmed = await client.post(
+        f"/api/v1/bank-inbox/{out_.json()['id']}/confirm",
+        headers=auth_headers,
+        json={"internal": True, "pair_id": inn.json()["id"]},
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    listed2 = await client.get("/api/v1/bank-inbox", headers=auth_headers)
+    pending = [i for i in listed2.json()["items"] if i["status"] == "pending"]
+    assert pending == []

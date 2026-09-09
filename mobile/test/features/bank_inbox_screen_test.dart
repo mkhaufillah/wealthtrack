@@ -97,11 +97,18 @@ void main() {
       'merchant': 'QRIS GRAB',
       'created_at': '2026-09-08T10:00:01Z',
     });
+    api.onGet('/categories', [
+      {'id': 1, 'name': 'Makanan & Minuman', 'type': 'expense'},
+    ]);
     await tester.pumpWidget(buildInbox(api));
     await tester.pump();
     await tester.pump();
     expect(find.text('QRIS GRAB'), findsOneWidget);
     await tester.tap(find.text('Catat'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Pilih kategori'), findsOneWidget);
+    await tester.tap(find.text('Makanan & Minuman'));
     await tester.pump();
     await tester.pump();
     expect(api.lastPostPath, '/bank-inbox/7/confirm');

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../shared/providers/app_providers.dart';
@@ -18,6 +19,14 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
   bool _accessOn = true;
   String? _error;
   List<Map<String, dynamic>> _items = [];
+  final _pasteCtrl = TextEditingController();
+  String _pastePkg = 'com.bca';
+
+  @override
+  void dispose() {
+    _pasteCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -59,9 +68,49 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
     }
   }
 
-  Future<void> _act(int id, String action) async {
+  Future<void> _pickAndConfirm(Map<String, dynamic> item) async {
+    final type = (item['type'] ?? 'expense').toString();
+    List<Map<String, dynamic>> cats = [];
     try {
-      await ref.read(apiClientProvider).post('/bank-inbox/$id/$action', data: {});
+      final res = await ref.read(apiClientProvider).get('/categories', queryParams: {'type': type});
+      cats = (res.data as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ref.read(apiClientProvider).handleError(e).toString())),
+      );
+      return;
+    }
+    if (!mounted || cats.isEmpty) return;
+    final suggested = item['suggested_category_id'];
+    final chosen = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (ctx) => ListView(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(t('bank.pick_category'), style: const TextStyle(fontWeight: FontWeight.w800)),
+          ),
+          ...cats.map((c) {
+            final id = c['id'] as int;
+            final selected = suggested == id;
+            return ListTile(
+              title: Text('${c['name']}'),
+              trailing: selected ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.pop(ctx, id),
+            );
+          }),
+        ],
+      ),
+    );
+    if (chosen == null) return;
+    await _act(item['id'] as int, 'confirm', data: {'category_id': chosen});
+  }
+
+  Future<void> _act(int id, String action, {Map<String, dynamic>? data}) async {
+    try {
+      await ref.read(apiClientProvider).post('/bank-inbox/$id/$action', data: data ?? {});
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -119,6 +168,12 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
+        actions: [
+          TextButton(
+            onPressed: () => context.push('/bank-inbox/rules'),
+            child: Text(t('bank.rules_title')),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -152,6 +207,34 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
                 ),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: ExpansionTile(
+              title: Text(t('bank.paste_title')),
+              subtitle: Text(t('bank.ios_hint'), style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              children: [
+                TextField(
+                  controller: _pasteCtrl,
+                  maxLines: 3,
+                  decoration: InputDecoration(hintText: t('bank.paste_hint')),
+                ),
+                const SizedBox(height: 8),
+                FilledButton(
+                  onPressed: () async {
+                    await ref.read(apiClientProvider).post('/bank-inbox', data: {
+                      'package': _pastePkg,
+                      'title': '',
+                      'text': _pasteCtrl.text,
+                    });
+                    _pasteCtrl.clear();
+                    await _load();
+                  },
+                  child: Text(t('bank.paste_send')),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
           Expanded(child: _body()),
         ],
       ),
@@ -233,9 +316,20 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
                       runSpacing: 0,
                       children: [
                         FilledButton(
-                          onPressed: parsed ? () => _act(item['id'] as int, 'confirm') : null,
+                          onPressed: parsed ? () => _pickAndConfirm(item) : null,
                           child: Text(t('bank.confirm')),
                         ),
+                        if (item['internal_suggested'] == true) ...[
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                            onPressed: () => _act(
+                              item['id'] as int,
+                              'confirm',
+                              data: {'internal': true, 'pair_id': item['pair_id']},
+                            ),
+                            child: Text(t('bank.internal')),
+                          ),
+                        ],
                         const SizedBox(width: 8),
                         TextButton(
                           onPressed: () => _act(item['id'] as int, 'reject'),

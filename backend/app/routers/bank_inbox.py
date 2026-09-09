@@ -3,7 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.security import get_current_user
 from app.database import get_db
-from app.schemas.bank_inbox import BankInboxConfirmIn, BankInboxIn, BankInboxItem, BankInboxList
+from app.schemas.bank_inbox import (
+    BankInboxConfirmIn,
+    BankInboxIn,
+    BankInboxItem,
+    BankInboxList,
+    BankRuleIn,
+    BankRuleOut,
+)
 from app.services.bank_inbox_service import BankInboxError, BankInboxService
 
 router = APIRouter(prefix="/bank-inbox", tags=["bank-inbox"])
@@ -45,6 +52,42 @@ async def list_inbox(
         _raise(exc)
 
 
+@router.get("/rules", response_model=list[BankRuleOut])
+async def list_rules(
+    db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    svc = BankInboxService(db)
+    return await svc.list_rules(current_user["id"])
+
+
+@router.post("/rules", response_model=BankRuleOut)
+async def add_rule(
+    body: BankRuleIn,
+    db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    svc = BankInboxService(db)
+    try:
+        return await svc.add_rule(current_user["id"], body.bank, body.keyword, body.category_id)
+    except BankInboxError as exc:
+        _raise(exc)
+
+
+@router.delete("/rules/{rule_id}", status_code=204)
+async def delete_rule(
+    rule_id: int,
+    db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    svc = BankInboxService(db)
+    try:
+        await svc.delete_rule(current_user["id"], rule_id)
+        return None
+    except BankInboxError as exc:
+        _raise(exc)
+
+
 @router.post("/{item_id}/confirm", response_model=BankInboxItem)
 async def confirm(
     item_id: int,
@@ -55,7 +98,9 @@ async def confirm(
     svc = BankInboxService(db)
     try:
         category_id = body.category_id if body else None
-        return await svc.confirm(item_id, current_user["id"], category_id)
+        internal = bool(body.internal) if body else False
+        pair_id = body.pair_id if body else None
+        return await svc.confirm(item_id, current_user["id"], category_id, internal, pair_id)
     except BankInboxError as exc:
         _raise(exc)
 

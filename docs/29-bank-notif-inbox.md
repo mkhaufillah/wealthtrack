@@ -33,8 +33,7 @@ the phone.
   (newest) → rejected (newest).
 - Copy is server-driven (`bank.*` keys). Docs/README stay English.
 
-Out of v1: email mutasi, CSV import, iOS, auto-category rules, pairing
-Jago→BCA internal transfers.
+Out of v1 in doc 29 (now in [30](30-bank-rules-internal-ios.md)): email mutasi, CSV.
 
 ## API
 

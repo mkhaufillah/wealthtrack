@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from app.services.bank_parser import fingerprint, parse_notification
+from app.services.bank_match import find_pair, suggest_category_id
 
 
 class BankInboxError(Exception):
@@ -33,6 +34,9 @@ def _item(row: dict) -> dict:
         "status": row["status"],
         "transaction_id": row.get("transaction_id"),
         "created_at": row.get("created_at") or "",
+        "suggested_category_id": row.get("suggested_category_id"),
+        "pair_id": row.get("pair_id"),
+        "internal_suggested": bool(row.get("internal_suggested")),
     }
 
 
@@ -56,6 +60,10 @@ class BankInboxService:
             )
         ).fetchone()
         if existing:
+            listed = await self.list_items(user_id, "pending")
+            for it in listed["items"]:
+                if it["id"] == existing["id"]:
+                    return it
             return _item(dict(existing))
 
         cursor = await self.db.execute(
@@ -82,6 +90,10 @@ class BankInboxService:
         row = await (
             await self.db.execute("SELECT * FROM bank_inbox WHERE id = ?", (new_id,))
         ).fetchone()
+        listed = await self.list_items(user_id, "pending")
+        for it in listed["items"]:
+            if it["id"] == new_id:
+                return it
         return _item(dict(row))
 
     async def list_items(self, user_id: int, status: str = "all") -> dict:
@@ -119,8 +131,21 @@ class BankInboxService:
             )
         ).fetchone()
         pending = int(count_row["cnt"] if count_row else 0)
+        raw_items = [dict(r) for r in rows]
+        rules = await self._rules_rows(user_id)
+        cats = await self._category_rows()
+        items = []
+        for d in raw_items:
+            blob = f"{d.get('title') or ''} {d.get('text') or ''} {d.get('merchant') or ''}"
+            ttype = d.get("txn_type") or "expense"
+            sug = suggest_category_id(rules, cats, d.get("bank"), blob, ttype)
+            pair = find_pair(raw_items, d) if d.get("status") == "pending" else None
+            d["suggested_category_id"] = sug
+            d["pair_id"] = pair
+            d["internal_suggested"] = pair is not None
+            items.append(_item(d))
         return {
-            "items": [_item(dict(r)) for r in rows],
+            "items": items,
             "pending_count": pending,
         }
 
@@ -149,7 +174,16 @@ class BankInboxService:
             raise BankInboxError("Belum ada kategori buat jenis ini")
         return int(row["id"])
 
-    async def confirm(self, item_id: int, user_id: int, category_id: int | None) -> dict:
+    async def confirm(
+        self,
+        item_id: int,
+        user_id: int,
+        category_id: int | None,
+        internal: bool = False,
+        pair_id: int | None = None,
+    ) -> dict:
+        if internal:
+            return await self._confirm_internal(item_id, user_id, pair_id)
         row = await self._get_owned(item_id, user_id)
         if row["status"] != "pending":
             raise BankInboxError("Draf ini sudah diproses")
@@ -158,7 +192,15 @@ class BankInboxService:
         txn_type = row.get("txn_type") or "expense"
         cat_id = category_id
         if cat_id is None:
+            blob = f"{row.get('title') or ''} {row.get('text') or ''} {row.get('merchant') or ''}"
+            rules = await self._rules_rows(user_id)
+            cats = await self._category_rows()
+            cat_id = suggest_category_id(rules, cats, row.get("bank"), blob, txn_type)
+        if cat_id is None:
             cat_id = await self._default_category(txn_type)
+        return await self._write_txn(row, user_id, cat_id, "bank_notif")
+
+    async def _write_txn(self, row: dict, user_id: int, cat_id: int, source: str) -> dict:
         cat = await (
             await self.db.execute(
                 "SELECT id, name FROM categories WHERE id = ?",
@@ -167,13 +209,14 @@ class BankInboxService:
         ).fetchone()
         if not cat:
             raise BankInboxError("Kategori gak ketemu", 404)
+        txn_type = row.get("txn_type") or "expense"
         date = (row.get("posted_at") or _now())[:10]
         desc = (row.get("merchant") or "").strip() or f"Notif {row.get('bank') or 'bank'}"
         note = f"{row.get('title') or ''} {row.get('text') or ''}".strip()[:500]
         cursor = await self.db.execute(
             """INSERT INTO transactions
                (user_id, category_id, category_name, type, amount, description, note, date, source)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'bank_notif')""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 user_id,
                 cat["id"],
@@ -183,6 +226,7 @@ class BankInboxService:
                 desc[:255],
                 note,
                 date,
+                source,
             ),
         )
         txn_id = cursor.lastrowid
@@ -190,10 +234,90 @@ class BankInboxService:
             """UPDATE bank_inbox
                SET status = 'confirmed', transaction_id = ?
                WHERE id = ?""",
-            (txn_id, item_id),
+            (txn_id, row["id"]),
         )
+        fresh = await self._get_owned(row["id"], user_id)
+        return _item(fresh)
+
+    async def _confirm_internal(self, item_id: int, user_id: int, pair_id: int | None) -> dict:
+        if not pair_id:
+            raise BankInboxError("Pasangan transfer gak ada")
+        row = await self._get_owned(item_id, user_id)
+        other = await self._get_owned(pair_id, user_id)
+        if find_pair([row, other], row) != pair_id:
+            raise BankInboxError("Ini bukan transfer antar rekening sendiri")
+        exp_id = await self._transfer_category("expense")
+        inc_id = await self._transfer_category("income")
+        first = row if (row.get("txn_type") or "expense") == "expense" else other
+        second = other if first is row else row
+        await self._write_txn(first, user_id, exp_id if (first.get("txn_type") or "expense") == "expense" else inc_id, "internal_transfer")
+        await self._write_txn(second, user_id, exp_id if (second.get("txn_type") or "expense") == "expense" else inc_id, "internal_transfer")
         fresh = await self._get_owned(item_id, user_id)
         return _item(fresh)
+
+    async def _transfer_category(self, ttype: str) -> int:
+        row = await (
+            await self.db.execute(
+                "SELECT id FROM categories WHERE name = ? AND type = ?",
+                ("Transfer", ttype),
+            )
+        ).fetchone()
+        if row:
+            return int(row["id"])
+        return await self._default_category(ttype)
+
+    async def _rules_rows(self, user_id: int) -> list[dict]:
+        rows = await (
+            await self.db.execute(
+                """SELECT id, bank, keyword, category_id FROM bank_category_rules
+                   WHERE user_id = ? ORDER BY id ASC""",
+                (user_id,),
+            )
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    async def _category_rows(self) -> list[dict]:
+        rows = await (
+            await self.db.execute(
+                "SELECT id, name, type, keywords FROM categories"
+            )
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    async def list_rules(self, user_id: int) -> list[dict]:
+        return await self._rules_rows(user_id)
+
+    async def add_rule(self, user_id: int, bank: str | None, keyword: str, category_id: int) -> dict:
+        cat = await (
+            await self.db.execute("SELECT id FROM categories WHERE id = ?", (category_id,))
+        ).fetchone()
+        if not cat:
+            raise BankInboxError("Kategori gak ketemu", 404)
+        bank_val = (bank or "").strip() or None
+        cursor = await self.db.execute(
+            """INSERT INTO bank_category_rules (user_id, bank, keyword, category_id, created_at)
+               VALUES (?, ?, ?, ?, ?)""",
+            (user_id, bank_val, keyword.strip(), category_id, _now()),
+        )
+        rid = cursor.lastrowid
+        row = await (
+            await self.db.execute(
+                "SELECT id, bank, keyword, category_id FROM bank_category_rules WHERE id = ?",
+                (rid,),
+            )
+        ).fetchone()
+        return dict(row)
+
+    async def delete_rule(self, user_id: int, rule_id: int) -> None:
+        row = await (
+            await self.db.execute(
+                "SELECT id FROM bank_category_rules WHERE id = ? AND user_id = ?",
+                (rule_id, user_id),
+            )
+        ).fetchone()
+        if not row:
+            raise BankInboxError("Aturan gak ketemu", 404)
+        await self.db.execute("DELETE FROM bank_category_rules WHERE id = ?", (rule_id,))
 
     async def reject(self, item_id: int, user_id: int) -> dict:
         row = await self._get_owned(item_id, user_id)
