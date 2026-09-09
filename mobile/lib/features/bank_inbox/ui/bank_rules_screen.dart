@@ -137,25 +137,64 @@ class _BankRulesScreenState extends ConsumerState<BankRulesScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _rules.isEmpty
-              ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(t('bank.rules_empty'))))
-              : ListView(
-                  children: _rules
-                      .map(
-                        (r) => ListTile(
-                          title: Text(r['keyword'].toString()),
-                          subtitle: Text('${r['bank'] ?? t('bank.rules_bank_any')} → ${_catName(r['category_id'] as int)}'),
-                          trailing: IconButton(
-                            icon: const AppIcon(AppIcons.trash),
-                            onPressed: () async {
-                              await ref.read(apiClientProvider).delete('/bank-inbox/rules/${r['id']}');
-                              await _load();
-                            },
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Text(t('bank.rules_yours'), style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                ),
+                if (_rules.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: Text(t('bank.rules_empty'), style: TextStyle(color: AppColors.textSecondary)),
+                  )
+                else
+                  ..._rules.map(
+                    (r) => ListTile(
+                      title: Text(r['keyword'].toString()),
+                      subtitle: Text('${r['bank'] ?? t('bank.rules_bank_any')} → ${_catName(r['category_id'] as int)}'),
+                      trailing: IconButton(
+                        icon: const AppIcon(AppIcons.trash),
+                        onPressed: () async {
+                          await ref.read(apiClientProvider).delete('/bank-inbox/rules/${r['id']}');
+                          await _load();
+                        },
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Text(t('bank.rules_from_cat'), style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                ),
+                ..._cats.where((c) => ((c['keywords'] as List?) ?? const []).isNotEmpty).map((c) {
+                  final kws = (c['keywords'] as List).map((e) => e.toString()).toList();
+                  return ExpansionTile(
+                    title: Text('${c['name']}'),
+                    subtitle: Text('${kws.length} ${t('cat.keywords').toLowerCase()}'),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: kws
+                                .map((k) => Chip(
+                                      label: Text(k, style: const TextStyle(fontSize: 12)),
+                                      backgroundColor: AppColors.surface,
+                                      side: BorderSide(color: AppColors.divider),
+                                    ))
+                                .toList(),
                           ),
                         ),
-                      )
-                      .toList(),
-                ),
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
     );
   }
 }

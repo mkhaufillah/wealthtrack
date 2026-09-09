@@ -456,6 +456,8 @@ COPY_ID: dict[str, str] = {
     'bank.rules_keyword': 'Kata di notif',
     'bank.rules_bank_any': 'Semua bank',
     'bank.rules_add': 'Tambah aturan',
+    'bank.rules_yours': 'Aturan kamu',
+    'bank.rules_from_cat': 'Kata kunci kategori',
     'bank.internal': 'Transfer sendiri',
     'bank.internal_hint': 'Nominal sama, beda bank. Gak dihitung belanja.',
     'bank.paste_title': 'Tempel teks notif',
