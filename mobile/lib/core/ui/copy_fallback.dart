@@ -134,7 +134,7 @@ const Map<String, String> copyFallback = {
   'hh.create_btn': 'Buat',
   'hh.create_new': 'Buat baru',
   'hh.name': 'Nama keluarga',
-  'hh.default_name': 'Keluarga',
+  'hh.default_name': 'Rumah',
   'hh.members': 'Anggota',
   'profile.cycle_pill': 'Tanggal {n}',
   'profile.family_n': '{n} orang',
@@ -625,6 +625,14 @@ String catLabel({required String name, String? copyKey}) {
   final k = (copyKey ?? '').trim();
   if (k.isEmpty) return name;
   return t(k);
+}
+
+/// Built-in household names that were stored in English.
+String householdLabel(String? name) {
+  final n = (name ?? '').trim();
+  const aliases = {'', 'home', 'household', 'keluarga', 'rumah'};
+  if (aliases.contains(n.toLowerCase())) return t('hh.default_name');
+  return n;
 }
 
 String activeUiLocale = 'id-ID';

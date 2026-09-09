@@ -136,7 +136,7 @@ COPY_ID: dict[str, str] = {
     'hh.create_btn': 'Buat',
     'hh.create_new': 'Buat baru',
     'hh.name': 'Nama keluarga',
-    'hh.default_name': 'Keluarga',
+    'hh.default_name': 'Rumah',
     'hh.members': 'Anggota',
     'profile.cycle_pill': 'Tanggal {n}',
     'profile.family_n': '{n} orang',

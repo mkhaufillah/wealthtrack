@@ -677,7 +677,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 AppIcon(AppIcons.home, size: 18, color: AppColors.textPrimary),
                 const SizedBox(width: 8),
                 Text(
-                  hh['name'] as String? ?? t('hh.default_name'),
+                  householdLabel(hh['name'] as String?),
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
                 if (state.isAdmin) ...[

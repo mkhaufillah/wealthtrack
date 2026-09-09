@@ -133,7 +133,7 @@ COPY_EN: dict[str, str] = {
     'hh.create_btn': 'Create',
     'hh.create_new': 'Create new',
     'hh.name': 'Household name',
-    'hh.default_name': 'Household',
+    'hh.default_name': 'Home',
     'hh.members': 'Members',
     'profile.cycle_pill': 'Day {n}',
     'profile.family_n': '{n} people',

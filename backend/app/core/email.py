@@ -39,13 +39,13 @@ def send_email(to_email: str, subject: str, body: str) -> None:
 
 
 def send_otp_email(to_email: str, otp: str) -> None:
-    """Send the OTP verification email."""
-    subject = "WealthTrack — Email Verification Code"
+    """Send the OTP verification email (Indonesian, product default)."""
+    subject = "WealthTrack — Kode verifikasi"
     body = (
-        f"Your WealthTrack verification code is:\n\n"
+        f"Kode verifikasi WealthTrack kamu:\n\n"
         f"    {otp}\n\n"
-        f"This code expires in 10 minutes. If you did not request this, "
-        f"please ignore this email.\n\n"
+        f"Kode ini kadaluarsa dalam 10 menit. "
+        f"Kalau kamu tidak minta kode ini, abaikan email ini.\n\n"
         f"— WealthTrack"
     )
     send_email(to_email, subject, body)
