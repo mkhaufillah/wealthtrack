@@ -64,6 +64,18 @@ class MainActivity : FlutterActivity() {
                         }
                         result.success(null)
                     }
+                    "setSession" -> {
+                        val args = call.arguments as? Map<*, *>
+                        val base = args?.get("base")?.toString() ?: ""
+                        val token = args?.get("token")?.toString() ?: ""
+                        val lainnya = (args?.get("lainnya_id") as? Number)?.toInt() ?: 0
+                        BankNotificationListener.setSession(this, base, token, lainnya)
+                        result.success(null)
+                    }
+                    "clearSession" -> {
+                        BankNotificationListener.clearSession(this)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

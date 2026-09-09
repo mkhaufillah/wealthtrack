@@ -42,6 +42,7 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <receiver android:name=".BankNotifActionReceiver" android:exported="false" />
         <receiver
             android:name=".WealthTrackWidget"
             android:exported="true">

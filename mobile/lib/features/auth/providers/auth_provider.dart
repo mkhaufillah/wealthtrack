@@ -4,6 +4,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exceptions.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../bank_inbox/data/bank_capture.dart';
 import '../data/auth_repository.dart';
 import '../models/user_model.dart';
 
@@ -46,11 +47,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final token = await _storage.getToken();
       if (token == null) {
+        await BankCapture.syncSession(_api, null);
         state =
             const AuthState(status: AuthStatus.unauthenticated);
         return;
       }
       final user = await _repo.getMe();
+      await BankCapture.syncSession(_api, token);
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
@@ -61,6 +64,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final handled = _api.handleError(e);
       if (handled is UnauthorizedException) {
         // Token expired or invalid — clean logout
+        await BankCapture.syncSession(_api, null);
         await _storage.clearToken();
         state = const AuthState(status: AuthStatus.unauthenticated);
       } else {
@@ -78,6 +82,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final token = await _repo.login(username, password);
       await _storage.saveToken(token.accessToken);
+      await BankCapture.syncSession(_api, token.accessToken);
       final user = await _repo.getMe();
       state = AuthState(
         status: AuthStatus.authenticated,
@@ -114,6 +119,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    await BankCapture.syncSession(_api, null);
     await _storage.clearAll();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
@@ -136,6 +142,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> deleteAccount() async {
     await _repo.deleteAccount();
+    await BankCapture.syncSession(_api, null);
     await _storage.clearAll();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }

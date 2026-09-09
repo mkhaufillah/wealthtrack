@@ -86,6 +86,28 @@ class BankNotificationListener : NotificationListenerService() {
                 .edit().putString(LISTEN, arr.toString()).apply()
         }
 
+        fun hasAmount(blob: String): Boolean {
+            return AMOUNT_RE.containsMatchIn(blob)
+        }
+
+        fun setSession(context: Context, base: String, token: String, lainnyaId: Int) {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putString("api_base", base)
+                .putString("api_token", token)
+                .putInt("lainnya_id", lainnyaId)
+                .apply()
+        }
+
+        fun clearSession(context: Context) {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .remove("api_base")
+                .remove("api_token")
+                .remove("lainnya_id")
+                .apply()
+        }
+
+        private val AMOUNT_RE = Regex("(?i)(?:rp|idr)\\s*[0-9]|\\b[0-9]{1,3}(?:\\.[0-9]{3}){1,}\\b")
+
         fun listLauncherApps(context: Context): List<Map<String, Any?>> {
             val pm = context.packageManager
             val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -160,6 +182,7 @@ class BankNotificationListener : NotificationListenerService() {
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
         if (title.isBlank() && text.isBlank()) return
+        if (!hasAmount("$title $text")) return
         val obj = JSONObject()
             .put("package", pkg)
             .put("title", title)
@@ -195,18 +218,18 @@ class BankNotificationListener : NotificationListenerService() {
             val text = obj.optString("text")
             val preview = listOf(title, text).filter { it.isNotBlank() }.joinToString(" · ").take(80)
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            val id = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
             fun actionPi(action: String, code: Int): PendingIntent {
-                val i = Intent(this, MainActivity::class.java).apply {
+                val i = Intent(this, BankNotifActionReceiver::class.java).apply {
                     this.action = action
                     putExtra("package", obj.optString("package"))
                     putExtra("title", title)
                     putExtra("text", text)
                     putExtra("posted_at", obj.optString("posted_at"))
-                    addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra("notif_id", id)
                 }
-                return PendingIntent.getActivity(this, code, i, flags)
+                return PendingIntent.getBroadcast(this, code, i, flags)
             }
-            val id = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
             val icon = if (applicationInfo.icon != 0) applicationInfo.icon else android.R.drawable.stat_notify_chat
             val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 Notification.Builder(this, CHANNEL_ID)
@@ -219,7 +242,6 @@ class BankNotificationListener : NotificationListenerService() {
                 .setContentText(preview.ifBlank { "Ada draf dari notifikasi" })
                 .setStyle(Notification.BigTextStyle().bigText(preview.ifBlank { "Ada draf dari notifikasi" }))
                 .setAutoCancel(true)
-                .setContentIntent(actionPi(ACTION_CONFIRM, id + 1))
             @Suppress("DEPRECATION")
             builder.setPriority(Notification.PRIORITY_HIGH)
             builder.addAction(icon, "Catat", actionPi(ACTION_CONFIRM, id + 2))

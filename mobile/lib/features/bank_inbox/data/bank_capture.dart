@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import '../../../core/constants.dart';
 import '../../../core/network/api_client.dart';
 
 /// Android notification-listener bridge. No-ops on tests / iOS.
@@ -58,6 +59,39 @@ class BankCapture {
       return [];
     } on PlatformException {
       return [];
+    }
+  }
+
+  static Future<void> syncSession(ApiClient api, String? token) async {
+    if (token == null || token.isEmpty) {
+      try {
+        await channel.invokeMethod('clearSession');
+      } on MissingPluginException {
+        return;
+      } on PlatformException {
+        return;
+      }
+      return;
+    }
+    int lainnya = 0;
+    try {
+      final res = await api.get('/categories');
+      for (final c in (res.data as List).whereType<Map>()) {
+        if (c['name'].toString().toLowerCase() != 'lainnya') continue;
+        lainnya = (c['id'] as num?)?.toInt() ?? 0;
+        if (c['type'] == 'expense') break;
+      }
+    } catch (_) {}
+    try {
+      await channel.invokeMethod('setSession', {
+        'base': AppConstants.apiBaseUrl,
+        'token': token,
+        'lainnya_id': lainnya,
+      });
+    } on MissingPluginException {
+      return;
+    } on PlatformException {
+      return;
     }
   }
 

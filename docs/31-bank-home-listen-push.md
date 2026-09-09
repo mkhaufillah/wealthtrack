@@ -37,7 +37,11 @@ Server ingest **accepts any package**. Known Play IDs still map to slugs; unknow
 
 ## Push actions
 
-Notification channel `wt_bank`. Actions start `MainActivity` with extras (`confirm` / `reject` / `delete` + payload). Flutter flushes the queue then applies the action (Catat uses suggested/default category — no picker on a shade notification).
+Notification channel `wt_bank`. Actions are **broadcasts**, not activities: Catat / Abaikan / Hapus dismiss the shade notification and hit the API in the background. The app does not open.
+
+Catat from the shade uses category **Lainnya** (expense). Token + base URL + Lainnya id are written to `bank_capture` prefs on login (`setSession`); cleared on logout.
+
+Notifications with **no amount** (`Rp`/`IDR` or grouped thousands) are dropped — ads.
 
 Android 13+: `POST_NOTIFICATIONS`.
 
