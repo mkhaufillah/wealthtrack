@@ -43,7 +43,9 @@ Catat from the shade confirms **without** `category_id`. Server uses user rules 
 
 Paste without an amount is blocked (`bank.no_amount`).
 
-Notifications with **no amount** (`Rp`/`IDR` or grouped thousands) are dropped — ads.
+HP gate and server use the **same** `parse_amount` rules (Dart `BankCapture.parseAmount`, Kotlin `AmountDetect`, Python `bank_parser.parse_amount`). `has_amount` is just “parse succeeded”.
+
+Accepted: `Rp`/`IDR`/`rupiah`/`$`/`USD`/`US$`, ID thousands (`50.000` / `1.250.000,50`), US thousands (`1,250.00`), `Debit 25000`, `10000 rupiah`. Leading-zero (phone) and `%` ignored. Fractional cents/sen dropped; stored as integer major units (not FX conversion).
 
 Android 13+: `POST_NOTIFICATIONS`.
 

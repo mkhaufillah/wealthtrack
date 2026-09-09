@@ -124,11 +124,50 @@ class BankCapture {
     'com.shopeepay.id': 'shopeepay',
   };
 
-  static bool hasAmount(String blob) {
-    return RegExp(
-      r'(?:rp|idr)\s*[0-9]|\b[0-9]{1,3}(?:\.[0-9]{3}){1,}\b',
-      caseSensitive: false,
-    ).hasMatch(blob);
+  static bool hasAmount(String blob) => parseAmount(blob) != null;
+
+  /// Keep in sync with `bank_parser.parse_amount` and Kotlin `AmountDetect`.
+  static int? parseAmount(String blob) {
+    const patterns = [
+      r'(?:rp\.?|idr|rupiah|usd|us\$|\$)\s*([0-9][0-9.\s,]*)',
+      r'([0-9][0-9.\s,]*)\s*(?:rp\.?|idr|rupiah|usd|us\$|\$)',
+      r'(?:debit|kredit|nominal|sebesar|amount|paid|received|transfer|qris|bayar|pembelian|pembayaran)\s*:?\s*([0-9][0-9.\s,]*)',
+      r'(?<![0-9.])([1-9][0-9]{0,2}(?:[.,\s][0-9]{3}){1,4})(?![0-9])',
+    ];
+    for (final p in patterns) {
+      for (final m in RegExp(p, caseSensitive: false).allMatches(blob)) {
+        if (m.end < blob.length && blob[m.end] == '%') continue;
+        final v = _normalizeNumber(m.group(1) ?? '');
+        if (v != null) return v;
+      }
+    }
+    return null;
+  }
+
+  static int? _normalizeNumber(String raw) {
+    var s = raw.replaceAll('\u00a0', ' ').trim();
+    s = s.replaceFirst(RegExp(r',-+$'), '');
+    s = s.replaceAll(' ', '');
+    if (s.isEmpty || !RegExp(r'\d').hasMatch(s)) return null;
+    if (s.startsWith('0')) return null;
+    if (s.contains(',') && s.contains('.')) {
+      s = s.lastIndexOf(',') > s.lastIndexOf('.')
+          ? s.split(',').first.replaceAll('.', '')
+          : s.split('.').first.replaceAll(',', '');
+    } else if (s.contains(',')) {
+      final parts = s.split(',');
+      s = (parts.length == 2 && parts[1].length >= 1 && parts[1].length <= 2)
+          ? parts[0]
+          : s.replaceAll(',', '');
+    } else if (s.contains('.')) {
+      final parts = s.split('.');
+      s = (parts.length == 2 && parts[1].length >= 1 && parts[1].length <= 2)
+          ? parts[0]
+          : s.replaceAll('.', '');
+    }
+    final value = int.tryParse(s);
+    if (value == null || value <= 0 || value > 10000000000) return null;
+    return value;
   }
 
   static String slugForPackage(String pkg) {

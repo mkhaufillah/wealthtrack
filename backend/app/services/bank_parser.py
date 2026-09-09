@@ -59,11 +59,29 @@ EXPENSE_HINTS = (
     "purchase",
 )
 
-_AMOUNT_RE = re.compile(
-    r"(?:rp|idr)\s*([0-9]{1,3}(?:[.\s][0-9]{3})+(?:,[0-9]+)?|[0-9]+)",
+# Keep in sync with BankCapture.parseAmount (Dart) and AmountDetect (Kotlin).
+# Gate HP = server: has_amount == parse_amount is not None.
+_CURRENCY_BEFORE = re.compile(
+    r"(?:rp\.?|idr|rupiah|usd|us\$|\$)\s*([0-9][0-9.\s,]*)",
     re.IGNORECASE,
 )
-_BARE_GROUPED_RE = re.compile(r"\b([0-9]{1,3}(?:\.[0-9]{3}){1,4})\b")
+_CURRENCY_AFTER = re.compile(
+    r"([0-9][0-9.\s,]*)\s*(?:rp\.?|idr|rupiah|usd|us\$|\$)",
+    re.IGNORECASE,
+)
+_CONTEXT_AMOUNT = re.compile(
+    r"(?:debit|kredit|nominal|sebesar|amount|paid|received|transfer|qris|"
+    r"bayar|pembelian|pembayaran)\s*:?\s*([0-9][0-9.\s,]*)",
+    re.IGNORECASE,
+)
+_BARE_GROUPED_RE = re.compile(
+    r"(?<![0-9.])([1-9][0-9]{0,2}(?:[.,\s][0-9]{3}){1,4})(?![0-9])"
+)
+_AMOUNT_STRIP = re.compile(
+    r"(?:rp\.?|idr|rupiah|usd|us\$|\$)\s*[0-9][0-9.\s,]*|"
+    r"[0-9][0-9.\s,]*\s*(?:rp\.?|idr|rupiah|usd)",
+    re.IGNORECASE,
+)
 
 
 def bank_for_package(package: str) -> Optional[str]:
@@ -78,32 +96,61 @@ def bank_for_package(package: str) -> Optional[str]:
     return slug or "other"
 
 
-def _to_rupiah(raw: str) -> Optional[int]:
-    cleaned = raw.replace(" ", "").replace("\u00a0", "")
-    if "," in cleaned and "." in cleaned:
-        # 1.250.000,50 → drop sen
-        cleaned = cleaned.split(",")[0].replace(".", "")
-    elif "," in cleaned:
-        cleaned = cleaned.split(",")[0]
-    else:
-        cleaned = cleaned.replace(".", "")
-    if not cleaned.isdigit():
+def _normalize_number(raw: str) -> Optional[int]:
+    s = (raw or "").replace("\u00a0", " ").strip()
+    s = re.sub(r",-+$", "", s)
+    s = s.replace(" ", "")
+    if not s or not re.search(r"\d", s):
         return None
-    value = int(cleaned)
+    if s[0] == "0":
+        return None
+    if "," in s and "." in s:
+        if s.rfind(",") > s.rfind("."):
+            s = s.split(",")[0].replace(".", "")
+        else:
+            s = s.split(".")[0].replace(",", "")
+    elif "," in s:
+        parts = s.split(",")
+        if len(parts) == 2 and 1 <= len(parts[1]) <= 2:
+            s = parts[0]
+        else:
+            s = s.replace(",", "")
+    elif "." in s:
+        parts = s.split(".")
+        if len(parts) == 2 and 1 <= len(parts[1]) <= 2:
+            s = parts[0]
+        else:
+            s = s.replace(".", "")
+    if not s.isdigit():
+        return None
+    value = int(s)
     if value <= 0 or value > 10_000_000_000:
         return None
     return value
 
 
+def _first_amount(text: str, pattern: re.Pattern[str]) -> Optional[int]:
+    for match in pattern.finditer(text or ""):
+        end = match.end()
+        if end < len(text) and text[end] == "%":
+            continue
+        value = _normalize_number(match.group(1))
+        if value is not None:
+            return value
+    return None
+
+
 def parse_amount(blob: str) -> Optional[int]:
     text = blob or ""
-    match = _AMOUNT_RE.search(text)
-    if match:
-        return _to_rupiah(match.group(1))
-    match = _BARE_GROUPED_RE.search(text)
-    if match:
-        return _to_rupiah(match.group(1))
+    for pattern in (_CURRENCY_BEFORE, _CURRENCY_AFTER, _CONTEXT_AMOUNT, _BARE_GROUPED_RE):
+        value = _first_amount(text, pattern)
+        if value is not None:
+            return value
     return None
+
+
+def has_amount(blob: str) -> bool:
+    return parse_amount(blob) is not None
 
 
 def parse_type(blob: str) -> str:
@@ -117,8 +164,9 @@ def parse_type(blob: str) -> str:
 
 def parse_merchant(blob: str) -> str:
     text = re.sub(r"\s+", " ", blob or "").strip()
-    text = _AMOUNT_RE.sub(" ", text)
-    text = re.sub(r"\b(?:rp|idr)\b", " ", text, flags=re.IGNORECASE)
+    text = _AMOUNT_STRIP.sub(" ", text)
+    text = re.sub(r"\b(?:rp\.?|idr|rupiah|usd)\b", " ", text, flags=re.IGNORECASE)
+    text = text.replace("$", " ")
     lower = text.lower()
     for marker in (" ke ", " di ", " dari ", " kepada "):
         idx = lower.find(marker)

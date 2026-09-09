@@ -3,6 +3,7 @@ from app.services.bank_parser import (
     bank_for_package,
     fingerprint,
     parse_amount,
+    has_amount,
     parse_merchant,
     parse_notification,
     parse_type,
@@ -52,6 +53,25 @@ def test_amount_rp_dotted():
 
 def test_amount_missing():
     assert parse_amount("Transaksi berhasil") is None
+    assert parse_amount("Diskon 50%") is None
+    assert parse_amount("0812.345.678") is None
+
+
+def test_amount_dollar_and_comma():
+    assert parse_amount("Paid $12.50") == 12
+    assert parse_amount("USD 1,250.00") == 1250
+    assert parse_amount("US$20") == 20
+    assert parse_amount("amount 10,000") == 10000
+
+
+def test_amount_wider_formats():
+    assert parse_amount("Rp10.000,-") == 10000
+    assert parse_amount("10000 rupiah") == 10000
+    assert parse_amount("Debit 25000") == 25000
+    assert parse_amount("IDR 75 000") == 75000
+    assert parse_amount("50,000") == 50000
+    assert has_amount("Debit Rp50.000") is True
+    assert has_amount("Promo tanpa angka") is False
 
 
 def test_type_debit_vs_kredit():

@@ -86,9 +86,7 @@ class BankNotificationListener : NotificationListenerService() {
                 .edit().putString(LISTEN, arr.toString()).apply()
         }
 
-        fun hasAmount(blob: String): Boolean {
-            return AMOUNT_RE.containsMatchIn(blob)
-        }
+        fun hasAmount(blob: String): Boolean = AmountDetect.hasAmount(blob)
 
         fun setSession(context: Context, base: String, token: String, lainnyaId: Int) {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
@@ -105,8 +103,6 @@ class BankNotificationListener : NotificationListenerService() {
                 .remove("lainnya_id")
                 .apply()
         }
-
-        private val AMOUNT_RE = Regex("(?i)(?:rp|idr)\\s*[0-9]|\\b[0-9]{1,3}(?:\\.[0-9]{3}){1,}\\b")
 
         fun listLauncherApps(context: Context): List<Map<String, Any?>> {
             val pm = context.packageManager
