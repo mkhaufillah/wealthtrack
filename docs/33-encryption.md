@@ -64,34 +64,69 @@ SQL aggregates on encrypted amount columns **do not work**. For current volume (
 
 Missing header → `403` with `err.vault_required` (copy via `t()` + `X-Locale`). Do not fall back to plaintext rows after migrate.
 
-## Existing users (Filla / Nahda / current `Home`)
+## Existing users (plain language)
 
-No silent encrypt in the background without a password — we cannot mint `DEK_hh` from JWT.
+Today the ledger is **open text** in Postgres. Nothing is locked until someone types a **password** on the new APK. A leftover JWT is not enough (JWT must not mint the vault).
 
-1. Ship APK + backend. Old rows stay plaintext until step 3.
-2. First member who **logs in with password** after ship (not a leftover JWT alone): phone derives `KEK_user`, generates `DEK_hh`, uploads wrap row, sends `X-Vault-Key`.
-3. Server (once per household, advisory lock): encrypt all that household’s financial rows, then drop plaintext columns. Short dual-read window **only** during this job. After it, requests without `X-Vault-Key` → `403 err.vault_required`.
-4. The other member still has no wrap. They log in (password → `KEK_user`) and wait `err.vault_pending` until the first member’s phone wraps `DEK_hh` for them (same as invite). One session with both logged in, or the first opens Profil → “bagi gembok”.
-5. If both tap login at the same second: only one household creates the DEK; the other attaches a wrap, does not mint a second vault.
+Story for household `Home` (Filla + Nahda):
 
-Old APK after step 3 cannot read money. That is required.
+1. We ship. Old 481 txs stay readable until step 3.
+2. **Whoever logs in with password first** (say Filla): the phone makes **one padlock for the whole house**, keeps the key, sends it once. The server locks every money row for that household. After that, dump = blind.
+3. **Nahda** logs in with her password. She can enter the app but money screens say “waiting for the padlock” until Filla’s phone **shares the same house key** with her (one tap — same as invite wrap). Then both see everything.
+4. Two people must not create two padlocks. First writer wins; the second only receives a wrap.
 
-Forgot-password on an **already vaulted** household does not decrypt history (see above). Users who never log in with password after ship never get a vault; data stays plaintext until they do — do not encrypt “for them” from the server.
+If nobody ever logs in with password, data stays plaintext on purpose. We do **not** encrypt “in the night” from the server.
 
-## What is encrypted vs not
+Old APK after step 2 cannot read money. Required.
 
-**Encrypted (vault):**
+## Field audit (live schema)
 
-- `transactions`: `amount`, `note` (and any money-shaped extra payload)
-- `budgets`: amount / spent snapshots that are money
-- `credit_cards` + installments + card txns: balances, limits, item amounts
-- `kpr_simulations` + rates + schedules + extra payments: principal, house price, instalments, interest totals
-- `ocr_jobs` / stored OCR fields: extracted amounts (not the vendor call in flight)
-- `bank_inbox`: parsed amount if we persist it (notification shade on the phone is still visible)
+**Vault (encrypt)** — anything that is money or a money story:
 
-**Not encrypted:** `users.email`, username, password **hash**, locale, household **name**, category names / `copy_key`, invite code, `ui_copy`, bank package ids, dates used as filters (`transactions.date` stays so lists still query by day).
+| Table | Columns |
+|---|---|
+| `transactions` | `amount`, `description`, `note` |
+| `budgets` | `budget_amount` |
+| `credit_cards` | `credit_limit`, `card_number_last4` |
+| `credit_card_transactions` | `amount`, `description` |
+| `credit_card_installments` | `description`, `total_amount`, `monthly_amount` |
+| `kpr_simulations` | `property_price`, `down_payment`, `total_loan`, `base_interest_rate`, `graduated_increment` |
+| `kpr_rate_periods` | `interest_rate` |
+| `kpr_monthly_schedules` | `payment`, `principal`, `interest`, `remaining_balance`, `interest_rate` |
+| `kpr_extra_payments` | `amount` and all old/new remaining/installment/interest-saved amounts |
+| `bank_inbox` | `title`, `text`, `amount`, `merchant` — **yes, encrypt the stored notif** |
+| `ocr_jobs` | `raw_text`, `error` if it echoes amounts |
+| `ai_messages` | `content` |
+| `ai_chat_summaries` | `summary` |
 
-Bank notification text hits the phone **before** our API. Vaulting our copy does not hide the shade. OCR **images** sent to a vision API are visible to that vendor for that call.
+**Do not vault** (need to query / login / i18n):
+
+| Table | Why |
+|---|---|
+| `users.email`, `username`, `password_hash`, `locale`, `display_name`, `role` | login, OTP, UI |
+| `email_verifications` | OTP delivery; short-lived |
+| `households.name`, `invite_code` | labels / join |
+| `categories.*` | matching + `copy_key` |
+| `ui_copy`, `ui_config` | product copy |
+| dates, ids, `type`, `status`, `month`, billing day, tenor, `package` / `bank` (app id) | filters and routing |
+| `api_keys.key_hash` | already hashed |
+| `transactions.date`, `category_id` | list filters |
+
+Card **display name** (`credit_cards.name`), KPR **label** (`kpr_simulations.name`): not money; leave plaintext unless we later want them in the vault.
+
+`bank_inbox.fingerprint`: keep as a hash computed **on the phone** before upload (not the raw text).
+
+### Bank inbox
+
+The shade on the phone is still visible — we cannot encrypt Android. **The row we store** (`title` / `text` / `amount` / `merchant`) **is vaulted**. Same `DEK_hh`, same header.
+
+### OCR photos — delete, do not vault
+
+Today: file written under `OCR_IMAGE_DIR`, weekly cleanup only. **Wrong for this product.**
+
+Spec: write to a temp path if the vision client needs a file, call the vendor, then **delete the bytes in `finally`** (success or fail). Do not keep `ocr_*.jpg` on the VPS. Do not put receipt images on `transactions.image_path`. `ocr_jobs` stores status + optional `raw_text` (vaulted) + `transaction_id`, not a file.
+
+The vision vendor still sees the photo **during that one call**. That is outside the vault.
 
 ## Household join / leave
 
