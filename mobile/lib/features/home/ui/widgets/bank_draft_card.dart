@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/app_icons.dart';
 import '../../../../core/ui/copy_fallback.dart';
 import '../../../../shared/providers/app_providers.dart';
 import '../../../../shared/utils/currency_formatter.dart';
@@ -73,31 +74,46 @@ class BankDraftCard extends ConsumerWidget {
   }
 
   Future<void> _confirm(BuildContext context, ApiClient api) async {
-    final cats = await api.get('/categories');
+    final type = (item['type'] ?? 'expense').toString();
+    final cats = await api.get('/categories', queryParams: {'type': type});
     final list = (cats.data as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
     if (!context.mounted) return;
-    int? catId = item['suggested_category_id'] as int?;
+    final suggested = item['suggested_category_id'];
+    list.sort((a, b) {
+      final sa = a['id'] == suggested;
+      final sb = b['id'] == suggested;
+      if (sa == sb) return 0;
+      return sa ? -1 : 1;
+    });
     final picked = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
         title: Text(t('bank.pick_category')),
         content: SizedBox(
           width: 320,
           height: 280,
           child: ListView(
-            children: list
-                .map((c) => ListTile(
-                      title: Text('${c['name']}'),
-                      onTap: () => Navigator.pop(ctx, c['id'] as int),
-                    ))
-                .toList(),
+            children: list.map((c) {
+              final id = c['id'] as int;
+              final rec = suggested == id;
+              return ListTile(
+                title: Text('${c['name']}'),
+                subtitle: rec ? Text(t('bank.pick_suggested')) : null,
+                selected: rec,
+                trailing: rec ? AppIcon(AppIcons.check, color: AppColors.accent) : null,
+                onTap: () => Navigator.pop(ctx, id),
+              );
+            }).toList(),
           ),
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('common.cancel'))),
+        ],
       ),
     );
-    if (picked != null) catId = picked;
-    if (catId == null) return;
-    await api.post('/bank-inbox/${item['id']}/confirm', data: {'category_id': catId});
+    if (picked == null) return;
+    await api.post('/bank-inbox/${item['id']}/confirm', data: {'category_id': picked});
     onDone();
   }
 }

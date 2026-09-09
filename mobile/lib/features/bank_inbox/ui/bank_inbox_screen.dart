@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_icons.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/utils/currency_formatter.dart';
@@ -84,6 +85,12 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
     }
     if (!mounted || cats.isEmpty) return;
     final suggested = item['suggested_category_id'];
+    cats.sort((a, b) {
+      final sa = a['id'] == suggested;
+      final sb = b['id'] == suggested;
+      if (sa == sb) return 0;
+      return sa ? -1 : 1;
+    });
     final chosen = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -95,9 +102,12 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
           child: ListView(
             children: cats.map((c) {
               final id = c['id'] as int;
+              final rec = suggested == id;
               return ListTile(
                 title: Text('${c['name']}'),
-                selected: suggested == id,
+                subtitle: rec ? Text(t('bank.pick_suggested')) : null,
+                selected: rec,
+                trailing: rec ? AppIcon(AppIcons.check, color: AppColors.accent) : null,
                 onTap: () => Navigator.pop(ctx, id),
               );
             }).toList(),

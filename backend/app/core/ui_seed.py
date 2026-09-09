@@ -451,6 +451,7 @@ COPY_ID: dict[str, str] = {
     'bank.delete_confirm': 'Hapus draf notif ini? Transaksi yang sudah dicatat gak kehapus.',
     'bank.deleted': 'Notif dihapus',
     'bank.pick_category': 'Pilih kategori',
+    'bank.pick_suggested': 'Saran otomatis',
     'bank.internal': 'Transfer sendiri',
     'bank.internal_hint': 'Nominal sama, beda bank. Gak dihitung belanja.',
     'bank.paste_title': 'Tempel teks notif',
