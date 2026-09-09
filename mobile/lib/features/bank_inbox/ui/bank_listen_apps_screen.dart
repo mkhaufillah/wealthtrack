@@ -67,9 +67,15 @@ class _BankListenAppsScreenState extends ConsumerState<BankListenAppsScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  child: TextField(
-                    decoration: InputDecoration(hintText: t('bank.listen_search')),
-                    onChanged: (v) => setState(() => _q = v),
+                  child: Column(
+                    children: [
+                      Text(t('bank.listen_hint'), style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        decoration: InputDecoration(hintText: t('bank.listen_search')),
+                        onChanged: (v) => setState(() => _q = v),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(
@@ -81,6 +87,13 @@ class _BankListenAppsScreenState extends ConsumerState<BankListenAppsScreen> {
                       final on = _selected.contains(pkg);
                       return CheckboxListTile(
                         value: on,
+                        activeColor: AppColors.accent,
+                        checkColor: AppColors.onAccent,
+                        side: BorderSide(color: AppColors.textPrimary, width: 1.6),
+                        fillColor: WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.selected)) return AppColors.accent;
+                          return AppColors.background;
+                        }),
                         title: Text(app['label'].toString()),
                         subtitle: Text(pkg, style: const TextStyle(fontSize: 11)),
                         onChanged: (v) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_icons.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/utils/currency_formatter.dart';
@@ -37,6 +38,7 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
   Future<void> _boot() async {
     final api = ref.read(apiClientProvider);
     final enabled = await BankCapture.isEnabled();
+    await BankCapture.requestNotify();
     await BankCapture.flushToServer(api);
     if (!mounted) return;
     setState(() => _accessOn = enabled);
@@ -172,13 +174,19 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         actions: [
-          TextButton(
-            onPressed: () => context.push('/bank-inbox/listen'),
-            child: Text(t('bank.listen_apps')),
-          ),
-          TextButton(
-            onPressed: () => context.push('/bank-inbox/rules'),
-            child: Text(t('bank.rules_title')),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: PopupMenuButton<String>(
+              icon: AppIcon(AppIcons.more, color: AppColors.textPrimary),
+              onSelected: (v) {
+                if (v == 'listen') context.push('/bank-inbox/listen');
+                if (v == 'rules') context.push('/bank-inbox/rules');
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'listen', child: Text(t('bank.listen_apps'))),
+                PopupMenuItem(value: 'rules', child: Text(t('bank.rules_title'))),
+              ],
+            ),
           ),
         ],
       ),

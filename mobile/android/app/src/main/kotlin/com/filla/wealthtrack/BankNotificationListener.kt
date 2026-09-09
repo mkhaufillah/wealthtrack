@@ -55,14 +55,28 @@ class BankNotificationListener : NotificationListenerService() {
 
         fun listenSet(context: Context): Set<String> {
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            val raw = prefs.getString(LISTEN, null) ?: return DEFAULT_LISTEN
-            val arr = JSONArray(raw)
-            val out = HashSet<String>()
-            for (i in 0 until arr.length()) {
-                val v = arr.optString(i)
-                if (v.isNotBlank()) out.add(v)
+            val raw = prefs.getString(LISTEN, null)
+            if (raw != null) {
+                val arr = JSONArray(raw)
+                val out = HashSet<String>()
+                for (i in 0 until arr.length()) {
+                    val v = arr.optString(i)
+                    if (v.isNotBlank()) out.add(v)
+                }
+                return out
             }
-            return out
+            val installed = listLauncherApps(context).mapNotNull { it["package"] as? String }.toSet()
+            return DEFAULT_LISTEN.intersect(installed)
+        }
+
+        fun ensureChannel(context: Context) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val ch = NotificationChannel(CHANNEL_ID, "Draf bank", NotificationManager.IMPORTANCE_HIGH)
+            ch.description = "Draf transaksi dari notifikasi app lain"
+            ch.enableVibration(true)
+            ch.setShowBadge(true)
+            nm.createNotificationChannel(ch)
         }
 
         fun setListen(context: Context, packages: List<String>) {
@@ -166,42 +180,53 @@ class BankNotificationListener : NotificationListenerService() {
     }
 
     private fun notifyDraft(obj: JSONObject) {
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Draf bank", NotificationManager.IMPORTANCE_HIGH),
-            )
-        }
-        val title = obj.optString("title")
-        val text = obj.optString("text")
-        val preview = listOf(title, text).filter { it.isNotBlank() }.joinToString(" · ").take(80)
-        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        fun actionPi(action: String, code: Int): PendingIntent {
-            val i = Intent(this, MainActivity::class.java).apply {
-                this.action = action
-                putExtra("package", obj.optString("package"))
-                putExtra("title", title)
-                putExtra("text", text)
-                putExtra("posted_at", obj.optString("posted_at"))
-                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        try {
+            if (Build.VERSION.SDK_INT >= 33) {
+                if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED
+                ) {
+                    return
+                }
             }
-            return PendingIntent.getActivity(this, code, i, flags)
-        }
-        val id = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, CHANNEL_ID)
-        } else {
+            ensureChannel(this)
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !nm.areNotificationsEnabled()) return
+            val title = obj.optString("title")
+            val text = obj.optString("text")
+            val preview = listOf(title, text).filter { it.isNotBlank() }.joinToString(" · ").take(80)
+            val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            fun actionPi(action: String, code: Int): PendingIntent {
+                val i = Intent(this, MainActivity::class.java).apply {
+                    this.action = action
+                    putExtra("package", obj.optString("package"))
+                    putExtra("title", title)
+                    putExtra("text", text)
+                    putExtra("posted_at", obj.optString("posted_at"))
+                    addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+                return PendingIntent.getActivity(this, code, i, flags)
+            }
+            val id = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+            val icon = if (applicationInfo.icon != 0) applicationInfo.icon else android.R.drawable.stat_notify_chat
+            val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Notification.Builder(this, CHANNEL_ID)
+            } else {
+                @Suppress("DEPRECATION")
+                Notification.Builder(this)
+            }
+            builder.setSmallIcon(icon)
+                .setContentTitle("Transaksi baru")
+                .setContentText(preview.ifBlank { "Ada draf dari notifikasi" })
+                .setStyle(Notification.BigTextStyle().bigText(preview.ifBlank { "Ada draf dari notifikasi" }))
+                .setAutoCancel(true)
+                .setContentIntent(actionPi(ACTION_CONFIRM, id + 1))
             @Suppress("DEPRECATION")
-            Notification.Builder(this)
+            builder.setPriority(Notification.PRIORITY_HIGH)
+            builder.addAction(icon, "Catat", actionPi(ACTION_CONFIRM, id + 2))
+            builder.addAction(icon, "Abaikan", actionPi(ACTION_REJECT, id + 3))
+            builder.addAction(icon, "Hapus", actionPi(ACTION_DELETE, id + 4))
+            nm.notify("wt_bank", id, builder.build())
+        } catch (_: Exception) {
         }
-        builder.setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Transaksi baru")
-            .setContentText(preview.ifBlank { "Ada draf dari notifikasi" })
-            .setAutoCancel(true)
-            .setContentIntent(actionPi(ACTION_CONFIRM, id + 1))
-            .addAction(0, "Catat", actionPi(ACTION_CONFIRM, id + 2))
-            .addAction(0, "Abaikan", actionPi(ACTION_REJECT, id + 3))
-            .addAction(0, "Hapus", actionPi(ACTION_DELETE, id + 4))
-        nm.notify(id, builder.build())
     }
 }

@@ -182,6 +182,7 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> with WidgetsBin
       if (mounted) setState(() => _initialized = true);
       _checkPendingWidgetAction();
       if (ref.read(authProvider).isAuthenticated) {
+        unawaited(BankCapture.requestNotify());
         unawaited(BankCapture.applyPendingAction(ref.read(apiClientProvider)));
       }
     }).catchError((_) {

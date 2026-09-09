@@ -61,6 +61,42 @@ class BankCapture {
     }
   }
 
+  static Future<void> requestNotify() async {
+    try {
+      await channel.invokeMethod('requestNotify');
+    } on MissingPluginException {
+      return;
+    } on PlatformException {
+      return;
+    }
+  }
+
+  static const packageSlugs = <String, String>{
+    'com.bca': 'bca',
+    'id.bmri.livin': 'mandiri',
+    'id.co.bri.brimo': 'bri',
+    'com.jago.digitalBanking': 'jago',
+    'id.co.bankfama.android': 'superbank',
+    'com.krom.android': 'krom',
+    'id.co.btn.mobilebanking.android': 'btn',
+    'id.co.bankbkemobile.digitalbank': 'seabank',
+    'com.bibit.bibitid': 'bibit',
+    'com.stockbit.android': 'stockbit',
+    'com.telkom.mwallet': 'linkaja',
+    'id.flip': 'flip',
+    'ovo.id': 'ovo',
+    'com.gojek.gopay': 'gopay',
+    'id.dana': 'dana',
+    'com.shopeepay.id': 'shopeepay',
+  };
+
+  static String slugForPackage(String pkg) {
+    final known = packageSlugs[pkg];
+    if (known != null) return known;
+    final last = pkg.split('.').last.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '').toLowerCase();
+    return last.isEmpty ? 'other' : last;
+  }
+
   static Future<void> setListenPackages(List<String> packages) async {
     try {
       await channel.invokeMethod('setListenPackages', packages);

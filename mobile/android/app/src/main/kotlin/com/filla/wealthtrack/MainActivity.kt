@@ -1,6 +1,9 @@
 package com.filla.wealthtrack
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -50,6 +53,17 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "takePendingAction" -> result.success(BankNotificationListener.takePendingAction(this))
+                    "requestNotify" -> {
+                        BankNotificationListener.ensureChannel(this)
+                        if (Build.VERSION.SDK_INT >= 33) {
+                            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+                                PackageManager.PERMISSION_GRANTED
+                            ) {
+                                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 91)
+                            }
+                        }
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

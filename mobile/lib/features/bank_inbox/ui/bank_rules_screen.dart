@@ -4,26 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/app_icons.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../shared/providers/app_providers.dart';
-
-const _banks = <String, String>{
-  '': '',
-  'bca': 'BCA',
-  'jago': 'Jago',
-  'mandiri': 'Mandiri',
-  'bri': 'BRI',
-  'superbank': 'Superbank',
-  'krom': 'Krom',
-  'btn': 'BTN',
-  'seabank': 'SeaBank',
-  'dana': 'DANA',
-  'gopay': 'GoPay',
-  'ovo': 'OVO',
-  'shopeepay': 'ShopeePay',
-  'linkaja': 'LinkAja',
-  'flip': 'Flip',
-  'bibit': 'Bibit',
-  'stockbit': 'Stockbit',
-};
+import '../data/bank_capture.dart';
 
 class BankRulesScreen extends ConsumerStatefulWidget {
   const BankRulesScreen({super.key});
@@ -35,6 +16,7 @@ class BankRulesScreen extends ConsumerStatefulWidget {
 class _BankRulesScreenState extends ConsumerState<BankRulesScreen> {
   List<Map<String, dynamic>> _rules = [];
   List<Map<String, dynamic>> _cats = [];
+  Map<String, String> _banks = const {'': ''};
   bool _loading = true;
 
   @override
@@ -49,10 +31,22 @@ class _BankRulesScreenState extends ConsumerState<BankRulesScreen> {
       final api = ref.read(apiClientProvider);
       final rules = await api.get('/bank-inbox/rules');
       final cats = await api.get('/categories');
+      final listen = await BankCapture.getListenPackages();
+      final apps = await BankCapture.listApps();
+      final labels = <String, String>{};
+      for (final a in apps) {
+        labels[a['package'].toString()] = a['label'].toString();
+      }
+      final banks = <String, String>{'': ''};
+      for (final pkg in listen) {
+        final slug = BankCapture.slugForPackage(pkg);
+        banks[slug] = labels[pkg] ?? slug;
+      }
       if (!mounted) return;
       setState(() {
         _rules = (rules.data as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
         _cats = (cats.data as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+        _banks = banks;
         _loading = false;
       });
     } catch (e) {
@@ -136,10 +130,10 @@ class _BankRulesScreenState extends ConsumerState<BankRulesScreen> {
         elevation: 0,
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.textPrimary,
-        foregroundColor: AppColors.background,
         onPressed: _cats.isEmpty ? null : _add,
-        child: AppIcon(AppIcons.add, color: AppColors.background),
+        backgroundColor: AppColors.accent,
+        foregroundColor: AppColors.onAccent,
+        child: AppIcon(AppIcons.add, size: 22, color: AppColors.onAccent),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
