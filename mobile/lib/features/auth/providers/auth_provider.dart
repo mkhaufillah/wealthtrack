@@ -124,9 +124,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
-  Future<UserModel?> updateProfile(String displayName, {int? cycleStartDay, String? email}) async {
+  Future<UserModel?> updateProfile(String displayName, {int? cycleStartDay, String? email, String? locale}) async {
     try {
-      final user = await _repo.updateProfile(displayName, cycleStartDay: cycleStartDay, email: email);
+      final user = await _repo.updateProfile(displayName, cycleStartDay: cycleStartDay, email: email, locale: locale);
       state = state.copyWith(user: user);
       return user;
     } catch (e) {

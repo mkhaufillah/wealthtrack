@@ -104,7 +104,7 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
               final id = c['id'] as int;
               final rec = suggested == id;
               return ListTile(
-                title: Text('${c['name']}'),
+                title: Text(catLabel(name: '${c['name']}', copyKey: c['copy_key'] as String?)),
                 subtitle: rec ? Text(t('bank.pick_suggested')) : null,
                 selected: rec,
                 trailing: rec ? AppIcon(AppIcons.check, color: AppColors.accent) : null,

@@ -220,7 +220,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                       shrinkWrap: true,
                       children: cats.map((cat) {
                         final catId = cat['id'] as int;
-                        final label = cat['name'] as String? ?? '';
+                        final label = catLabel(name: cat['name'] as String? ?? '', copyKey: cat['copy_key'] as String?);
                         return CheckboxListTile(
                           dense: false,
                           value: selected.contains(catId),

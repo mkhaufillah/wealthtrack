@@ -1,8 +1,9 @@
 class CategoryBrief {
-  final int id; final String name; final String icon;
-  CategoryBrief({required this.id, required this.name, required this.icon});
+  final int id; final String name; final String icon; final String copyKey;
+  CategoryBrief({required this.id, required this.name, required this.icon, this.copyKey = ''});
   factory CategoryBrief.fromJson(Map<String, dynamic> json) => CategoryBrief(
     id: json['id'] as int, name: json['name'] as String, icon: json['icon'] as String? ?? '',
+    copyKey: json['copy_key'] as String? ?? '',
   );
 }
 

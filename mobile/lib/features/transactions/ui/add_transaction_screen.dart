@@ -68,9 +68,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       setState(() {
         _expenseCategories = (List<Map<String, dynamic>>.from(expenseRes.data)).map((e) => CategoryChip(
           id: e['id'] as int, name: e['name'] as String, icon: e['icon'] as String? ?? kDefaultCategoryIcon,
+          copyKey: e['copy_key'] as String? ?? '',
         )).toList();
         _incomeCategories = (List<Map<String, dynamic>>.from(incomeRes.data)).map((e) => CategoryChip(
           id: e['id'] as int, name: e['name'] as String, icon: e['icon'] as String? ?? kDefaultCategoryIcon,
+          copyKey: e['copy_key'] as String? ?? '',
         )).toList();
         _categories = _isExpense ? _expenseCategories : _incomeCategories;
       });

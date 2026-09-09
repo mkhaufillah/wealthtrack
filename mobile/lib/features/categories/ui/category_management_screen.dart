@@ -42,7 +42,10 @@ class _CategoryManagementScreenState
 
   Future<void> _showAddEditSheet({Map<String, dynamic>? category}) async {
     final isEdit = category != null;
-    _nameCtrl.text = category?['name'] ?? '';
+    _nameCtrl.text = catLabel(
+      name: category?['name'] ?? '',
+      copyKey: category?['copy_key'] as String?,
+    );
     _keywordsCtrl.text =
         (category?['keywords'] as List?)?.join(', ') ?? '';
     String iconKey = (category?['icon'] as String?)?.trim().isNotEmpty == true
@@ -306,7 +309,7 @@ class _CategoryManagementScreenState
     final query = _query.trim().toLowerCase();
     final filtered = state.categories.where((c) {
       if (query.isEmpty) return true;
-      final name = (c['name'] as String? ?? '').toLowerCase();
+      final name = catLabel(name: c['name'] as String? ?? '', copyKey: c['copy_key'] as String?).toLowerCase();
       final keywords = (c['keywords'] as List? ?? const [])
           .join(' ')
           .toLowerCase();
@@ -404,7 +407,7 @@ class _CategoryManagementScreenState
       child: ListTile(
         leading: CategoryGlyph(icon: icon, expense: expense, size: 36),
         title: Text(
-          cat['name'] as String? ?? '',
+          catLabel(name: cat['name'] as String? ?? '', copyKey: cat['copy_key'] as String?),
           style: TextStyle(
             fontWeight: FontWeight.w500,
             color: AppColors.textPrimary,

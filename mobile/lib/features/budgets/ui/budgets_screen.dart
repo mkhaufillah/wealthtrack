@@ -745,7 +745,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
               ),
               items: widget.categories.map((c) => DropdownMenuItem(
                 value: c['id'] as int,
-                child: Text(c['name'] as String? ?? ''),
+                child: Text(catLabel(name: c['name'] as String? ?? '', copyKey: c['copy_key'] as String?)),
               )).toList(),
               onChanged: (v) => setState(() => _selectedCategoryId = v),
             ),

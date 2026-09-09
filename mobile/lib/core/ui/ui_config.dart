@@ -16,7 +16,10 @@ class UiConfigNotifier extends StateNotifier<Map<String, dynamic>> {
   final ApiClient _api;
   final SecureStorage _storage;
 
-  Future<void> load() async {
+  Future<void> load({String? locale}) async {
+    final loc = locale ??
+        await _storage.getSecure('ui_locale') ??
+        'id-ID';
     final cached = await _storage.getSecure(_cacheKey);
     if (cached != null && cached.isNotEmpty) {
       try {
@@ -24,7 +27,7 @@ class UiConfigNotifier extends StateNotifier<Map<String, dynamic>> {
       } catch (_) {}
     }
     try {
-      final res = await _api.get('/ui/bootstrap');
+      final res = await _api.get('/ui/bootstrap', queryParams: {'locale': loc});
       final data = res.data;
       if (data is Map<String, dynamic> && data['copy'] is Map) {
         await _storage.saveSecure(_cacheKey, jsonEncode(data));

@@ -9,7 +9,7 @@ from httpx import AsyncClient
 from app.database import CursorWrapper
 
 
-REDIS_KEY = "ui:bootstrap:id-ID"
+REDIS_KEYS = ("ui:bootstrap:id-ID", "ui:bootstrap:en-US")
 
 
 async def _flush_bootstrap_cache():
@@ -20,7 +20,7 @@ async def _flush_bootstrap_cache():
         decode_responses=True,
     )
     try:
-        await r.delete(REDIS_KEY)
+        await r.delete(*REDIS_KEYS)
     finally:
         await r.aclose()
 
@@ -91,7 +91,7 @@ class TestUiBootstrap:
             decode_responses=True,
         )
         try:
-            ttl = await r.ttl(REDIS_KEY)
+            ttl = await r.ttl("ui:bootstrap:id-ID")
             assert 0 < ttl <= 3600
         finally:
             await r.aclose()
@@ -100,3 +100,11 @@ class TestUiBootstrap:
         resp = await client.get("/api/v1/ui/bootstrap")
         assert resp.status_code == 200
         assert "max-age=300" in (resp.headers.get("cache-control") or "")
+
+    async def test_bootstrap_english(self, client: AsyncClient):
+        resp = await client.get("/api/v1/ui/bootstrap?locale=en-US")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["locale"] == "en-US"
+        assert data["copy"]["home.hero_title"] == "Your money"
+        assert data["copy"]["home.income"] == "Income"

@@ -90,6 +90,7 @@ CREATE TABLE users (
     role TEXT NOT NULL DEFAULT 'user',
     email TEXT DEFAULT '',
     cycle_start_day INTEGER NOT NULL DEFAULT 1,
+    locale TEXT NOT NULL DEFAULT 'id-ID',
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 CREATE TABLE email_verifications (
@@ -107,7 +108,8 @@ CREATE TABLE categories (
     icon TEXT DEFAULT '',
     is_default INTEGER DEFAULT 0,
     sort_order INTEGER DEFAULT 0,
-    keywords TEXT DEFAULT '[]'
+    keywords TEXT DEFAULT '[]',
+    copy_key TEXT DEFAULT ''
 );
 CREATE TABLE households (
     id SERIAL PRIMARY KEY,
@@ -365,7 +367,9 @@ async def _create_test_db():
     for tbl in ["users", "categories", "transactions", "households", "budgets", "email_verifications", "ocr_jobs", "ai_messages", "kpr_simulations", "kpr_rate_periods", "kpr_monthly_schedules", "credit_cards", "credit_card_installments", "credit_card_transactions", "api_keys"]:
         await conn.execute(f"SELECT setval('{tbl}_id_seq', COALESCE((SELECT MAX(id) FROM {tbl}), 0) + 1, false)")
     from app.core.ui_seed import seed_ui
+    from app.database import _assign_category_copy_keys
     await seed_ui(conn)
+    await _assign_category_copy_keys(conn)
     return conn
 
 

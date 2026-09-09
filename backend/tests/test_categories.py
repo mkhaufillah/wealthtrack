@@ -16,6 +16,7 @@ class TestListCategories:
         assert data[0]["name"] is not None
         assert data[0]["type"] in ("expense", "income")
         assert "name_en" not in data[0]
+        assert data[0]["copy_key"]
         assert "keywords" in data[0]
         assert isinstance(data[0]["keywords"], list)
         assert data[0]["icon"].startswith("strokeRounded")
@@ -63,6 +64,7 @@ class TestCreateCategory:
         assert resp.status_code == 201
         data = resp.json()
         assert data["name"] == "Kendaraan"
+        assert data["copy_key"].startswith("cat.n.custom.")
         assert "name_en" not in data
         assert data["type"] == "expense"
         assert data["icon"] == "strokeRoundedCar01"

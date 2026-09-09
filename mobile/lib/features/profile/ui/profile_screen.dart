@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/providers/theme_provider.dart';
+import '../../../shared/providers/locale_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/services/local_chat_storage.dart';
 import '../data/household_repository.dart';
@@ -482,6 +483,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                 const SizedBox(height: 20),
                 _buildSectionHeader(AppIcons.settings, t('profile.sec_look')),
+                const SizedBox(height: 8),
+                _buildLanguageSelector(),
                 const SizedBox(height: 8),
                 _buildThemeSelector(),
                 const SizedBox(height: 20),
@@ -1003,6 +1006,62 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildLanguageSelector() {
+    final locale = ref.watch(localeProvider);
+    final user = ref.watch(authProvider).user;
+    return Card(
+      elevation: 0,
+      child: Column(
+        children: [
+          ListTile(
+            leading: AppIcon(AppIcons.spark, color: AppColors.textSecondary),
+            title: Text(t('profile.language'), style: const TextStyle(fontWeight: FontWeight.w700)),
+          ),
+          Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.divider),
+          _buildLangOption(
+            label: t('profile.lang_id'),
+            value: 'id-ID',
+            current: locale,
+            onTap: () => _setLang(user?.displayName ?? '', 'id-ID'),
+          ),
+          Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.divider),
+          _buildLangOption(
+            label: t('profile.lang_en'),
+            value: 'en-US',
+            current: locale,
+            onTap: () => _setLang(user?.displayName ?? '', 'en-US'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLangOption({
+    required String label,
+    required String value,
+    required String current,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = value == current;
+    return ListTile(
+      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
+      trailing: isSelected ? AppIcon(AppIcons.check, color: AppColors.accent, size: 20) : null,
+      onTap: onTap,
+    );
+  }
+
+  Future<void> _setLang(String displayName, String locale) async {
+    if (ref.read(localeProvider) == locale) return;
+    try {
+      if (displayName.isNotEmpty) {
+        await ref.read(authProvider.notifier).updateProfile(displayName, locale: locale);
+      }
+      await ref.read(localeProvider.notifier).setLocale(locale);
+    } catch (_) {
+      await ref.read(localeProvider.notifier).setLocale(locale);
+    }
   }
 
   Widget _buildThemeSelector() {

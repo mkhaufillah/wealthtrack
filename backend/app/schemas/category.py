@@ -9,6 +9,7 @@ class CategoryOut(BaseModel):
     icon: str
     is_default: bool
     keywords: list[str] = []
+    copy_key: str = ""
 
 
 class CategoryCreate(BaseModel):

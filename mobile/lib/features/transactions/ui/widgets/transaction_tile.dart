@@ -25,7 +25,7 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isExpense = transaction.type == 'expense';
-    final translatedCategory = transaction.category.name;
+    final translatedCategory = catLabel(name: transaction.category.name, copyKey: transaction.category.copyKey);
     final description = transaction.description;
     final ownerName = transaction.user?.displayName ?? '';
 

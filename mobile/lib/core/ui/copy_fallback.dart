@@ -459,9 +459,42 @@ const Map<String, String> copyFallback = {
   'bank.listen_search': 'Cari nama atau package…',
   'bank.listen_hint': 'Cuma app yang terpasang. Default 16 bank/e-wallet yang ada di HP; yang belum diinstall dilewati.',
   'bank.no_amount': 'Teks ini gak ada nominal. Tempel notif yang ada Rp-nya.',
+  'profile.language': 'Bahasa',
+  'profile.lang_id': 'Indonesia',
+  'profile.lang_en': 'English',
+  'cat.n.food': 'Makanan & Minuman',
+  'cat.n.transport': 'Transportasi & Bensin',
+  'cat.n.shopping': 'Belanja Bulanan',
+  'cat.n.entertainment': 'Hiburan',
+  'cat.n.bills': 'Tagihan & Cicilan',
+  'cat.n.health': 'Kesehatan',
+  'cat.n.education': 'Pendidikan',
+  'cat.n.savings': 'Tabungan & Investasi',
+  'cat.n.baby': 'Kebutuhan Bayi/Anak',
+  'cat.n.expense.other': 'Lainnya',
+  'cat.n.expense.transfer': 'Transfer',
+  'cat.n.expense.emergency': 'Dana Darurat',
+  'cat.n.home': 'Kebutuhan Rumah',
+  'cat.n.hobby': 'Hobi & Belajar',
+  'cat.n.protein': 'Protein, Buah, dan Sayuran',
+  'cat.n.personal': 'Kebutuhan Pribadi',
+  'cat.n.salary': 'Gaji',
+  'cat.n.freelance': 'Freelance',
+  'cat.n.bonus': 'Bonus & THR',
+  'cat.n.withdrawal': 'Penarikan Tabungan & Investasi',
+  'cat.n.income.other': 'Lainnya',
+  'cat.n.income.transfer': 'Transfer',
+  'cat.n.income.emergency': 'Dana Darurat',
+  'cat.n.investment': 'Hasil Investasi',
 };
 
 String t(String key) => remoteCopy[key] ?? copyFallback[key] ?? key;
+
+String catLabel({required String name, String? copyKey}) {
+  final k = (copyKey ?? '').trim();
+  if (k.isEmpty) return name;
+  return t(k);
+}
 
 Map<String, String> remoteCopy = <String, String>{};
 

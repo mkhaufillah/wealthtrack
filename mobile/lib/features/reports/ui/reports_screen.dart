@@ -905,7 +905,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 final userName = user['display_name'] as String? ?? '';
                 final category = txn['category'] as Map<String, dynamic>? ?? {};
                 final catIcon = category['icon'] as String? ?? '';
-                final catName = category['name'] as String? ?? '';
+                final catName = catLabel(name: category['name'] as String? ?? '', copyKey: category['copy_key'] as String?);
                 final desc = txn['description'] as String? ?? '';
 
                 return Padding(

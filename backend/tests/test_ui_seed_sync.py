@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 
 from app.core.ui_seed import COPY_ID
+from app.core.ui_copy_en import COPY_EN
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -31,3 +32,7 @@ def test_seed_values_match():
     fb = {k: v.replace("\\'", "'") for k, v in re.findall(r"'((?:\\'|[^'])*)'\s*:\s*'((?:\\'|[^'])*)'", text) if "." in k}
     for k, v in COPY_ID.items():
         assert fb.get(k) == v, f"{k}: seed={v!r} fallback={fb.get(k)!r}"
+
+
+def test_en_keys_match_id():
+    assert set(COPY_EN.keys()) == set(COPY_ID.keys())

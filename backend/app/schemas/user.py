@@ -29,6 +29,7 @@ class UpdateProfileIn(BaseModel):
     display_name: Optional[str] = Field(default=None, min_length=1, max_length=64)
     cycle_start_day: Optional[int] = Field(default=None, ge=1, le=28)
     email: Optional[EmailStr] = Field(default=None)
+    locale: Optional[str] = Field(default=None, max_length=16)
 
 
 class ChangePasswordIn(BaseModel):

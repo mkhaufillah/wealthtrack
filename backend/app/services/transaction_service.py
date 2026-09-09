@@ -95,6 +95,7 @@ def _format_txn(row, cat_name="", cat_icon="", display_name=""):
             "id": r["category_id"],
             "name": cat_name or r.get("category_name", "") or "",
             "icon": cat_icon or "",
+            "copy_key": r.get("cat_copy_key") or "",
         },
         "user": {
             "id": r.get("user_id", 1) or 1,
@@ -111,7 +112,7 @@ def _format_txn(row, cat_name="", cat_icon="", display_name=""):
 _SELECT_TXN = """\
 SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
        t.description, t.note, t.date, t.user_id, t.created_at,
-       c.name AS cat_name, c.icon AS cat_icon,
+       c.name AS cat_name, c.icon AS cat_icon, c.copy_key AS cat_copy_key,
        u.display_name AS user_display_name
 FROM transactions t
 LEFT JOIN categories c ON t.category_id = c.id

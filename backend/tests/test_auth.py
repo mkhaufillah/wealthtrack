@@ -134,6 +134,7 @@ class TestAuthMe:
         assert data["display_name"] == "Filla"
         assert data["role"] == "admin"
         assert data["email"] == "khaufillahmohammad@gmail.com"
+        assert data["locale"] == "id-ID"
         assert "id" in data
 
     async def test_me_nahda(self, client: AsyncClient, nahda_token: str):
@@ -199,6 +200,15 @@ class TestUpdateProfile:
             json={"display_name": ""},
         )
         assert resp.status_code == 422
+
+    async def test_update_locale(self, client: AsyncClient, filla_token: str):
+        resp = await client.put(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"locale": "en"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["locale"] == "en-US"
 
 
 class TestChangePassword:

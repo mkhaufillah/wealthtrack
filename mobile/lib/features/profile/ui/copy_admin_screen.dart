@@ -25,6 +25,7 @@ class _CopyAdminScreenState extends ConsumerState<CopyAdminScreen> {
   bool _saving = false;
   String? _error;
   String _query = '';
+  String _locale = 'id-ID';
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _CopyAdminScreenState extends ConsumerState<CopyAdminScreen> {
     try {
       final api = ref.read(apiClientProvider);
       final res = await api.get('/ui/copy', queryParams: {
+        'locale': _locale,
         if (_query.isNotEmpty) 'search': _query,
       });
       if (!mounted) return;
@@ -102,7 +104,7 @@ class _CopyAdminScreenState extends ConsumerState<CopyAdminScreen> {
     setState(() => _saving = true);
     try {
       final api = ref.read(apiClientProvider);
-      await api.put('/ui/copy/$key', data: {'value': valueCtrl.text});
+      await api.put('/ui/copy/$key', data: {'value': valueCtrl.text}, queryParams: {'locale': _locale});
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -130,6 +132,20 @@ class _CopyAdminScreenState extends ConsumerState<CopyAdminScreen> {
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SegmentedButton<String>(
+              segments: [
+                ButtonSegment(value: 'id-ID', label: Text(t('profile.lang_id'))),
+                ButtonSegment(value: 'en-US', label: Text(t('profile.lang_en'))),
+              ],
+              selected: {_locale},
+              onSelectionChanged: (s) {
+                setState(() => _locale = s.first);
+                _load();
+              },
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: TextField(

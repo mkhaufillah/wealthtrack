@@ -194,6 +194,7 @@ CREATE TABLE IF NOT EXISTS users (
     role TEXT NOT NULL DEFAULT 'user',
     email TEXT DEFAULT '',
     cycle_start_day INTEGER NOT NULL DEFAULT 1,
+    locale TEXT NOT NULL DEFAULT 'id-ID',
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 
@@ -217,7 +218,8 @@ CREATE TABLE IF NOT EXISTS categories (
     icon TEXT DEFAULT '',
     is_default INTEGER DEFAULT 0,
     sort_order INTEGER DEFAULT 0,
-    keywords TEXT DEFAULT '[]'
+    keywords TEXT DEFAULT '[]',
+    copy_key TEXT DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS transactions (
@@ -567,6 +569,40 @@ async def _migrate_category_icons(conn):
         print(f"Schema init warning (non-fatal): {e}")
 
 
+async def _migrate_i18n(conn) -> None:
+    """Add locale + copy_key columns (existing DBs)."""
+    try:
+        await conn.execute(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS locale TEXT NOT NULL DEFAULT 'id-ID'"
+        )
+    except Exception as e:
+        print(f"Schema init warning (non-fatal): {e}")
+    try:
+        await conn.execute(
+            "ALTER TABLE categories ADD COLUMN IF NOT EXISTS copy_key TEXT DEFAULT ''"
+        )
+    except Exception as e:
+        print(f"Schema init warning (non-fatal): {e}")
+
+
+async def _assign_category_copy_keys(conn) -> None:
+    from app.core.i18n import CATEGORY_COPY_KEYS
+
+    for (name, type_), key in CATEGORY_COPY_KEYS.items():
+        await conn.execute(
+            """UPDATE categories SET copy_key = $1
+               WHERE name = $2 AND type = $3
+                 AND (copy_key IS NULL OR copy_key = '')""",
+            key,
+            name,
+            type_,
+        )
+    await conn.execute(
+        """UPDATE categories SET copy_key = 'cat.n.custom.' || id::text
+           WHERE copy_key IS NULL OR copy_key = ''"""
+    )
+
+
 async def _init_schema(conn):
     """Create tables and indexes if they don't exist. Idempotent."""
     # Split by semicolons and execute each statement
@@ -578,9 +614,11 @@ async def _init_schema(conn):
             except Exception as e:
                 print(f"Schema init warning (non-fatal): {e}")
     await _migrate_category_icons(conn)
+    await _migrate_i18n(conn)
     from app.core.ui_seed import seed_ui
     try:
         await seed_ui(conn)
+        await _assign_category_copy_keys(conn)
         await conn.execute("DELETE FROM ui_copy WHERE key LIKE 'bank.rules%'")
     except Exception as e:
         print(f"UI seed warning (non-fatal): {e}")

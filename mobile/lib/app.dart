@@ -36,6 +36,7 @@ import 'features/bank_inbox/ui/bank_listen_apps_screen.dart';
 import 'features/bank_inbox/data/bank_capture.dart';
 import 'shared/providers/app_providers.dart';
 import 'shared/providers/theme_provider.dart';
+import 'shared/providers/locale_provider.dart';
 import 'shared/widgets/app_scaffold.dart';
 
 final _isAuthenticatedProvider = Provider<bool>((ref) {
@@ -231,7 +232,7 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> with WidgetsBin
     if (!_initialized) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
-        locale: const Locale('id'),
+        locale: ref.read(localeProvider.notifier).materialLocale,
         supportedLocales: const [Locale('id'), Locale('en')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
@@ -250,6 +251,7 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> with WidgetsBin
     // rebuilds the whole tree with the fresh values from /ui/bootstrap.
     ref.watch(uiConfigProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final uiLocale = ref.watch(localeProvider);
     final brightness = switch (themeMode) {
       ThemeMode.light => Brightness.light,
       ThemeMode.dark => Brightness.dark,
@@ -258,7 +260,7 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> with WidgetsBin
     AppColors.sync(brightness);
     return MaterialApp.router(
       title: 'WealthTrack',
-      locale: const Locale('id'),
+      locale: uiLocale == 'en-US' ? const Locale('en') : const Locale('id'),
       supportedLocales: const [Locale('id'), Locale('en')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

@@ -4,12 +4,12 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 
-from app.core.redis import get_redis
 from app.core.security import get_current_user
 from app.core.theme_presets import resolve_theme_preset
 from app.database import get_db, CursorWrapper
 from app.services.home_service import HomeService
-from app.services.ui_bootstrap_service import UiBootstrapService, cache_key
+from app.core.i18n import bust_bootstrap_cache, normalize_locale
+from app.services.ui_bootstrap_service import UiBootstrapService
 
 router = APIRouter(tags=["ui"])
 
@@ -37,9 +37,10 @@ def _require_admin(current_user: dict) -> None:
 @router.get("/ui/bootstrap")
 async def ui_bootstrap(
     response: Response,
+    locale: str = "id-ID",
     db: CursorWrapper = Depends(get_db),
 ):
-    payload = await UiBootstrapService(db).get_bootstrap()
+    payload = await UiBootstrapService(db).get_bootstrap(locale)
     response.headers["Cache-Control"] = "public, max-age=300"
     return payload
 
@@ -58,44 +59,51 @@ async def home(
 @router.get("/ui/copy")
 async def list_copy(
     search: str = "",
+    locale: str = "id-ID",
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """List ui_copy rows (id-ID). Admin only."""
+    """List ui_copy rows for a locale. Admin only."""
     _require_admin(current_user)
+    loc = normalize_locale(locale)
     if search:
         like = f"%{search}%"
         cursor = await db.execute(
-            "SELECT key, value FROM ui_copy WHERE locale = 'id-ID' "
+            "SELECT key, value FROM ui_copy WHERE locale = ? "
             "AND (key ILIKE ? OR value ILIKE ?) ORDER BY key",
-            (like, like),
+            (loc, like, like),
         )
     else:
         cursor = await db.execute(
-            "SELECT key, value FROM ui_copy WHERE locale = 'id-ID' ORDER BY key"
+            "SELECT key, value FROM ui_copy WHERE locale = ? ORDER BY key",
+            (loc,),
         )
     rows = await cursor.fetchall()
-    return {"items": [{"key": r["key"], "value": r["value"]} for r in rows]}
+    return {
+        "locale": loc,
+        "items": [{"key": r["key"], "value": r["value"]} for r in rows],
+    }
 
 
 @router.put("/ui/copy/{key}")
 async def update_copy(
     key: str,
     data: CopyUpdateIn,
+    locale: str = "id-ID",
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Upsert one ui_copy row (id-ID) and bust the bootstrap cache. Admin only."""
+    """Upsert one ui_copy row and bust bootstrap caches. Admin only."""
     _require_admin(current_user)
+    loc = normalize_locale(locale)
     await db.execute(
         """INSERT INTO ui_copy (key, value, locale)
-           VALUES (?, ?, 'id-ID')
+           VALUES (?, ?, ?)
            ON CONFLICT (key, locale) DO UPDATE SET value = excluded.value""",
-        (key, data.value),
+        (key, data.value, loc),
     )
-    redis = await get_redis()
-    await redis.delete(cache_key("id-ID"))
-    return {"key": key, "value": data.value}
+    await bust_bootstrap_cache()
+    return {"key": key, "value": data.value, "locale": loc}
 
 
 # ── Admin: ui_config editor ───────────────────────────────────────────
@@ -167,6 +175,5 @@ async def update_config(
            ON CONFLICT (key) DO UPDATE SET value = excluded.value""",
         (key, json.dumps(stored)),
     )
-    redis = await get_redis()
-    await redis.delete(cache_key("id-ID"))
+    await bust_bootstrap_cache()
     return {"key": key, "value": stored}

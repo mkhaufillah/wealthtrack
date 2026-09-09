@@ -7,10 +7,12 @@ class CategoryChip {
   final int id;
   final String name;
   final String icon;
+  final String copyKey;
   const CategoryChip({
     required this.id,
     required this.name,
     required this.icon,
+    this.copyKey = '',
   });
 }
 
@@ -46,7 +48,7 @@ class CategoryPicker extends StatelessWidget {
       children: [
         for (final cat in categories)
           _CatChip(
-            label: cat.name,
+            label: catLabel(name: cat.name, copyKey: cat.copyKey),
             icon: cat.icon,
             selected: cat.id == selectedId,
             selectedTint: selectedTint,

@@ -24,6 +24,7 @@ class CategoryBrief(BaseModel):
     id: int
     name: str
     icon: str
+    copy_key: str = ""
 
 
 class UserBrief(BaseModel):

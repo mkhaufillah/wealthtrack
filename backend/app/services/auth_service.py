@@ -138,7 +138,8 @@ class AuthService:
         """Fetch a user row by id, returning a dict or None."""
         cursor = await self.db.execute(
             "SELECT id, username, display_name, email, role, "
-            "COALESCE(cycle_start_day, 1) as cycle_start_day, created_at "
+            "COALESCE(cycle_start_day, 1) as cycle_start_day, "
+            "COALESCE(locale, 'id-ID') as locale, created_at "
             "FROM users WHERE id = ?",
             (user_id,),
         )
@@ -291,6 +292,10 @@ class AuthService:
             if await cursor.fetchone():
                 raise EmailAlreadyInUseError(data.email)
             updates["email"] = data.email
+        if data.locale is not None:
+            from app.core.i18n import normalize_locale
+
+            updates["locale"] = normalize_locale(data.locale)
 
         if not updates:
             raise NoFieldsToUpdateError()

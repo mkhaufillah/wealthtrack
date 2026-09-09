@@ -81,6 +81,7 @@ wealthtrack/
 │   ├── 06-brave-search-integration.md
 │   ├── 07-deployment.md
 │   ├── 08-p4-plan.md
+│   ├── 32-i18n.md
 │   │   ├── mcp-integration.md
 │   └── ...                    # Feature-specific docs
 ├── deploy/                    # Nginx config, deploy script
