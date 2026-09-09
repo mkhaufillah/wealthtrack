@@ -462,6 +462,10 @@ COPY_ID: dict[str, str] = {
     'bank.paste_hint': 'Buat iOS, atau kalau listener kelewat. Pilih bank, tempel teks, kirim.',
     'bank.paste_send': 'Kirim ke inbox',
     'bank.ios_hint': 'iOS gak bisa baca notif app lain. Tempel atau share teksnya ke sini.',
+    'home.bank_draft': 'Draf dari bank',
+    'bank.listen_apps': 'App yang didengar',
+    'bank.listen_save': 'Simpan',
+    'bank.listen_search': 'Cari nama atau package…',
 }
 
 THEME_LIGHT: dict[str, str] = {

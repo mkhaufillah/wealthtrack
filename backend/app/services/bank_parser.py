@@ -67,7 +67,15 @@ _BARE_GROUPED_RE = re.compile(r"\b([0-9]{1,3}(?:\.[0-9]{3}){1,4})\b")
 
 
 def bank_for_package(package: str) -> Optional[str]:
-    return BANK_PACKAGES.get((package or "").strip())
+    pkg = (package or "").strip()
+    if not pkg:
+        return None
+    known = BANK_PACKAGES.get(pkg)
+    if known:
+        return known
+    slug = pkg.rsplit(".", 1)[-1]
+    slug = re.sub(r"[^a-zA-Z0-9_]+", "", slug).lower()[:40]
+    return slug or "other"
 
 
 def _to_rupiah(raw: str) -> Optional[int]:

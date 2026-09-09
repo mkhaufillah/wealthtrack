@@ -19,7 +19,7 @@ def test_package_allow_list():
     assert bank_for_package("id.dana") == "dana"
     assert bank_for_package("com.gojek.gopay") == "gopay"
     assert bank_for_package("ovo.id") == "ovo"
-    assert bank_for_package("com.whatsapp") is None
+    assert bank_for_package("com.whatsapp") == "whatsapp"
 
 
 def test_required_packages_complete():

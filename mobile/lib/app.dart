@@ -33,6 +33,7 @@ import 'features/debt/credit_card/ui/credit_card_detail_screen.dart';
 import 'features/debt/credit_card/ui/add_installment_screen.dart';
 import 'features/bank_inbox/ui/bank_inbox_screen.dart';
 import 'features/bank_inbox/ui/bank_rules_screen.dart';
+import 'features/bank_inbox/ui/bank_listen_apps_screen.dart';
 import 'features/bank_inbox/data/bank_capture.dart';
 import 'shared/providers/app_providers.dart';
 import 'shared/providers/theme_provider.dart';
@@ -151,6 +152,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/bank-inbox/rules',
         builder: (_, __) => const BankRulesScreen(),
       ),
+      GoRoute(
+        path: '/bank-inbox/listen',
+        builder: (_, __) => const BankListenAppsScreen(),
+      ),
     ],
   );
 });
@@ -162,13 +167,14 @@ class WealthTrackApp extends ConsumerStatefulWidget {
   ConsumerState<WealthTrackApp> createState() => _WealthTrackAppState();
 }
 
-class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
+class _WealthTrackAppState extends ConsumerState<WealthTrackApp> with WidgetsBindingObserver {
   bool _initialized = false;
   static const _widgetChannel = MethodChannel('com.filla.wealthtrack/widget');
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _widgetChannel.setMethodCallHandler(_handleWidgetNavigation);
     // Load live copy/theme/format from GET /ui/bootstrap (DB via Redis).
     unawaited(ref.read(uiConfigProvider.notifier).load());
@@ -176,7 +182,7 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
       if (mounted) setState(() => _initialized = true);
       _checkPendingWidgetAction();
       if (ref.read(authProvider).isAuthenticated) {
-        unawaited(BankCapture.flushToServer(ref.read(apiClientProvider)));
+        unawaited(BankCapture.applyPendingAction(ref.read(apiClientProvider)));
       }
     }).catchError((_) {
       // Safety net: if checkAuth throws unexpectedly, still release the loading screen
@@ -186,8 +192,16 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _widgetChannel.setMethodCallHandler(null);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && ref.read(authProvider).isAuthenticated) {
+      unawaited(BankCapture.applyPendingAction(ref.read(apiClientProvider)));
+    }
   }
 
   Future<void> _handleWidgetNavigation(MethodCall call) async {

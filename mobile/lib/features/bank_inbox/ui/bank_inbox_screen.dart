@@ -173,6 +173,10 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
         elevation: 0,
         actions: [
           TextButton(
+            onPressed: () => context.push('/bank-inbox/listen'),
+            child: Text(t('bank.listen_apps')),
+          ),
+          TextButton(
             onPressed: () => context.push('/bank-inbox/rules'),
             child: Text(t('bank.rules_title')),
           ),
@@ -211,11 +215,12 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: ExpansionTile(
               title: Text(t('bank.paste_title')),
               subtitle: Text(t('bank.ios_hint'), style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               children: [
+                const SizedBox(height: 8),
                 TextField(
                   controller: _pasteCtrl,
                   maxLines: 3,

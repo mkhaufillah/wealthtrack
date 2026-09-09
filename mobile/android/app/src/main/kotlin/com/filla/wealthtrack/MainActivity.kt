@@ -42,15 +42,36 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "drain" -> result.success(BankNotificationListener.drain(this))
+                    "listApps" -> result.success(BankNotificationListener.listLauncherApps(this))
+                    "getListenPackages" -> result.success(BankNotificationListener.listenSet(this).toList())
+                    "setListenPackages" -> {
+                        val pkgs = (call.arguments as? List<*>)?.map { it.toString() } ?: emptyList()
+                        BankNotificationListener.setListen(this, pkgs)
+                        result.success(null)
+                    }
+                    "takePendingAction" -> result.success(BankNotificationListener.takePendingAction(this))
                     else -> result.notImplemented()
                 }
             }
+        handleBankIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleWidgetIntent(intent)
+        handleBankIntent(intent)
+    }
+
+    private fun handleBankIntent(intent: Intent?) {
+        if (intent == null) return
+        val action = when (intent.action) {
+            BankNotificationListener.ACTION_CONFIRM -> "confirm"
+            BankNotificationListener.ACTION_REJECT -> "reject"
+            BankNotificationListener.ACTION_DELETE -> "delete"
+            else -> null
+        } ?: return
+        BankNotificationListener.storePendingAction(this, action, intent.extras)
     }
 
     private fun handleWidgetIntent(intent: Intent?) {

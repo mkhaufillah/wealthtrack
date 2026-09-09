@@ -12,7 +12,9 @@ import '../../auth/providers/auth_provider.dart';
 import '../../ocr/providers/ocr_provider.dart';
 import '../../transactions/models/transaction_model.dart';
 import '../../transactions/ui/widgets/transaction_tile.dart';
+import '../../../shared/providers/app_providers.dart';
 import 'widgets/balance_card.dart';
+import 'widgets/bank_draft_card.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -21,11 +23,29 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Map<String, dynamic>? _draft;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(dashboardProvider.notifier).load());
     Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());
+    Future.microtask(_loadDraft);
+  }
+
+  Future<void> _loadDraft() async {
+    try {
+      final res = await ref.read(apiClientProvider).get('/bank-inbox');
+      final items = ((res.data as Map)['items'] as List? ?? [])
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .where((e) => e['status'] == 'pending')
+          .toList();
+      if (!mounted) return;
+      setState(() => _draft = items.isEmpty ? null : items.first);
+    } catch (_) {
+      if (mounted) setState(() => _draft = null);
+    }
   }
 
   @override
@@ -62,6 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 : RefreshIndicator(
                     onRefresh: () async {
                       await ref.read(dashboardProvider.notifier).load(force: true);
+                      await _loadDraft();
                     },
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(18, 12, 18, 96),
@@ -78,6 +99,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           cycleLabel: t('home.hero_title'),
                           amountText: state.balanceDisplay,
                         ),
+                        if (_draft != null) ...[
+                          const SizedBox(height: 10),
+                          BankDraftCard(
+                            item: _draft!,
+                            onDone: () {
+                              _loadDraft();
+                              ref.read(dashboardProvider.notifier).load(force: true);
+                            },
+                          ),
+                        ],
                         if (ocrState.pendingCount > 0) ...[
                           const SizedBox(height: 10),
                           _ocrBanner(ocrState.pendingCount),

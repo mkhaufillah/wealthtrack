@@ -136,8 +136,10 @@ class _BankRulesScreenState extends ConsumerState<BankRulesScreen> {
         elevation: 0,
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.textPrimary,
+        foregroundColor: AppColors.background,
         onPressed: _cats.isEmpty ? null : _add,
-        child: const AppIcon(AppIcons.add),
+        child: AppIcon(AppIcons.add, color: AppColors.background),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

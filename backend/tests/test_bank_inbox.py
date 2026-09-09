@@ -10,8 +10,8 @@ async def test_ingest_unknown_package(client: AsyncClient, auth_headers: dict):
         headers=auth_headers,
         json={"package": "com.whatsapp", "title": "Hi", "text": "Rp10.000"},
     )
-    assert res.status_code == 422
-    assert "bukan app bank" in res.json()["detail"]
+    assert res.status_code == 200
+    assert res.json()["bank"] == "whatsapp"
 
 
 @pytest.mark.asyncio

@@ -33,6 +33,10 @@ Widget buildHomeApp({bool isLoading = false, String? error, int balance = 0}) {
     'savings_investment': {'total_expense': 0, 'total_income': 0, 'balance': 0},
     'emergency_funds': {'total_expense': 0, 'total_income': 0, 'balance': 0},
   });
+  mockApi.onGet('/bank-inbox', {
+    'items': <Map<String, dynamic>>[],
+    'pending_count': 0,
+  });
   return ProviderScope(
     overrides: [
       dashboardProvider.overrideWithProvider(
@@ -95,6 +99,72 @@ void main() {
       await tester.pumpWidget(buildHomeApp(balance: 1000000));
       await tester.pumpAndSettle();
       expect(find.text('Uang kamu'), findsOneWidget);
+    });
+
+    testWidgets('shows top pending bank draft with actions', (tester) async {
+      final mockApi = MockApiClient();
+      mockApi.onGet('/home', {
+        'hero': {
+          'amount': 0,
+          'amount_display': formatCurrency(0),
+          'income': 0,
+          'income_display': formatCurrency(0),
+          'expense': 0,
+          'expense_display': formatCurrency(0),
+        },
+        'pots': {'savings': 0, 'savings_display': 'Rp0', 'emergency': 0, 'emergency_display': 'Rp0'},
+        'debt_summary': {'visible': false, 'total': 0, 'total_display': 'Rp0', 'title_key': 'home.debt_running'},
+        'recent': <List<dynamic>>[],
+      });
+      mockApi.onGet('/transactions', {
+        'data': <List<dynamic>>[],
+        'meta': {'total': 0, 'page': 1, 'per_page': 5, 'total_pages': 0},
+      });
+      mockApi.onGet('/summaries/all-time-category-balance', {
+        'savings_investment': {'total_expense': 0, 'total_income': 0, 'balance': 0},
+        'emergency_funds': {'total_expense': 0, 'total_income': 0, 'balance': 0},
+      });
+      mockApi.onGet('/bank-inbox', {
+        'items': [
+          {
+            'id': 9,
+            'status': 'pending',
+            'bank': 'superbank',
+            'title': 'Debit',
+            'merchant': 'QRIS Kopi',
+            'amount': 25000,
+          }
+        ],
+        'pending_count': 1,
+      });
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            dashboardProvider.overrideWithProvider(
+              StateNotifierProvider<DashboardNotifier, DashboardState>((ref) {
+                final notifier = DashboardNotifier(mockApi);
+                notifier.state = const DashboardState(
+                  isLoading: false,
+                  balance: 0,
+                  totalIncome: 0,
+                  totalExpense: 0,
+                  balanceDisplay: 'Rp0',
+                  recentTransactions: [],
+                  totalTransactions: 0,
+                );
+                return notifier;
+              }),
+            ),
+            apiClientProvider.overrideWithProvider(Provider<ApiClient>((ref) => mockApi)),
+          ],
+          child: MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Draf dari bank'), findsOneWidget);
+      expect(find.text('Catat'), findsOneWidget);
+      expect(find.text('Abaikan'), findsOneWidget);
+      expect(find.text('Hapus'), findsOneWidget);
     });
   });
 }
