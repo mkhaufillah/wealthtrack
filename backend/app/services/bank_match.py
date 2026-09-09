@@ -17,26 +17,13 @@ def _parse_ts(raw: str) -> Optional[datetime]:
 
 
 def suggest_category_id(
-    rules: list[dict],
     categories: list[dict],
-    bank: Optional[str],
     blob: str,
     txn_type: str,
 ) -> Optional[int]:
     hay = (blob or "").lower()
     if not hay:
         return None
-    for rule in rules:
-        kw = (rule.get("keyword") or "").strip().lower()
-        if len(kw) < 2 or kw not in hay:
-            continue
-        rb = (rule.get("bank") or "").strip() or None
-        if rb and rb != bank:
-            continue
-        cat_id = int(rule["category_id"])
-        cat = next((c for c in categories if int(c["id"]) == cat_id), None)
-        if cat and cat.get("type") == txn_type:
-            return cat_id
     for cat in categories:
         if cat.get("type") != txn_type:
             continue

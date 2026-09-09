@@ -224,16 +224,13 @@ async def test_delete_inbox_item_keeps_transaction(
 
 
 @pytest.mark.asyncio
-async def test_rule_suggests_category_on_confirm(client: AsyncClient, auth_headers: dict):
-    rule = await client.post(
-        "/api/v1/bank-inbox/rules",
+async def test_keyword_suggests_category_on_confirm(client: AsyncClient, auth_headers: dict):
+    patched = await client.put(
+        "/api/v1/categories/2",
         headers=auth_headers,
-        json={"bank": "superbank", "keyword": "grab", "category_id": 2},
+        json={"keywords": ["grab"]},
     )
-    assert rule.status_code == 200, rule.text
-    listed_rules = await client.get("/api/v1/bank-inbox/rules", headers=auth_headers)
-    assert listed_rules.status_code == 200
-    assert listed_rules.json()[0]["keyword"] == "grab"
+    assert patched.status_code == 200, patched.text
 
     draft = await client.post(
         "/api/v1/bank-inbox",

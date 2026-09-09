@@ -23,14 +23,6 @@ Also: paste-block top spacing; rules FAB contrast (ink on pastel).
 
 Android 13+: inbox boot requests `POST_NOTIFICATIONS`. Channel `wt_bank` uses the app icon (not a system info glyph). Action icons must be a real drawable — `0` failed silently.
 
-## Rules
-
-Bank dropdown = listened packages (labels from launcher), plus “any”.
-
-Dari bank overflow (three-dot, 12px horizontal padding): App yang didengar, Aturan kategori.
-
-Rules FAB matches Home/Transaksi (`AppColors.accent` + `onAccent`).
-
 Listen checkboxes: accent fill + onAccent check + ink border.
 
 Server ingest **accepts any package**. Known Play IDs still map to slugs; unknown → last dotted segment as slug.
@@ -39,7 +31,7 @@ Server ingest **accepts any package**. Known Play IDs still map to slugs; unknow
 
 Notification channel `wt_bank`. Actions are **broadcasts**, not activities: Catat / Abaikan / Hapus dismiss the shade notification and hit the API in the background. The app does not open.
 
-Catat from the shade confirms **without** `category_id`. Server uses user rules then category keywords; if none match, **Lainnya**.
+Catat from the shade confirms **without** `category_id`. Server uses `categories.keywords`; if none match, **Lainnya**.
 
 Paste without an amount is blocked (`bank.no_amount`).
 

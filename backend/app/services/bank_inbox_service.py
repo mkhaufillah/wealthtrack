@@ -132,13 +132,12 @@ class BankInboxService:
         ).fetchone()
         pending = int(count_row["cnt"] if count_row else 0)
         raw_items = [dict(r) for r in rows]
-        rules = await self._rules_rows(user_id)
         cats = await self._category_rows()
         items = []
         for d in raw_items:
             blob = f"{d.get('title') or ''} {d.get('text') or ''} {d.get('merchant') or ''}"
             ttype = d.get("txn_type") or "expense"
-            sug = suggest_category_id(rules, cats, d.get("bank"), blob, ttype)
+            sug = suggest_category_id(cats, blob, ttype)
             pair = find_pair(raw_items, d) if d.get("status") == "pending" else None
             d["suggested_category_id"] = sug
             d["pair_id"] = pair
@@ -193,9 +192,8 @@ class BankInboxService:
         cat_id = category_id
         if cat_id is None:
             blob = f"{row.get('title') or ''} {row.get('text') or ''} {row.get('merchant') or ''}"
-            rules = await self._rules_rows(user_id)
             cats = await self._category_rows()
-            cat_id = suggest_category_id(rules, cats, row.get("bank"), blob, txn_type)
+            cat_id = suggest_category_id(cats, blob, txn_type)
         if cat_id is None:
             cat_id = await self._lainnya_category(txn_type)
         return await self._write_txn(row, user_id, cat_id, "bank_notif")
@@ -277,16 +275,6 @@ class BankInboxService:
             return int(row["id"])
         return await self._default_category(ttype)
 
-    async def _rules_rows(self, user_id: int) -> list[dict]:
-        rows = await (
-            await self.db.execute(
-                """SELECT id, bank, keyword, category_id FROM bank_category_rules
-                   WHERE user_id = ? ORDER BY id ASC""",
-                (user_id,),
-            )
-        ).fetchall()
-        return [dict(r) for r in rows]
-
     async def _category_rows(self) -> list[dict]:
         rows = await (
             await self.db.execute(
@@ -294,41 +282,6 @@ class BankInboxService:
             )
         ).fetchall()
         return [dict(r) for r in rows]
-
-    async def list_rules(self, user_id: int) -> list[dict]:
-        return await self._rules_rows(user_id)
-
-    async def add_rule(self, user_id: int, bank: str | None, keyword: str, category_id: int) -> dict:
-        cat = await (
-            await self.db.execute("SELECT id FROM categories WHERE id = ?", (category_id,))
-        ).fetchone()
-        if not cat:
-            raise BankInboxError("Kategori gak ketemu", 404)
-        bank_val = (bank or "").strip() or None
-        cursor = await self.db.execute(
-            """INSERT INTO bank_category_rules (user_id, bank, keyword, category_id, created_at)
-               VALUES (?, ?, ?, ?, ?)""",
-            (user_id, bank_val, keyword.strip(), category_id, _now()),
-        )
-        rid = cursor.lastrowid
-        row = await (
-            await self.db.execute(
-                "SELECT id, bank, keyword, category_id FROM bank_category_rules WHERE id = ?",
-                (rid,),
-            )
-        ).fetchone()
-        return dict(row)
-
-    async def delete_rule(self, user_id: int, rule_id: int) -> None:
-        row = await (
-            await self.db.execute(
-                "SELECT id FROM bank_category_rules WHERE id = ? AND user_id = ?",
-                (rule_id, user_id),
-            )
-        ).fetchone()
-        if not row:
-            raise BankInboxError("Aturan gak ketemu", 404)
-        await self.db.execute("DELETE FROM bank_category_rules WHERE id = ?", (rule_id,))
 
     async def reject(self, item_id: int, user_id: int) -> dict:
         row = await self._get_owned(item_id, user_id)

@@ -10,7 +10,7 @@ Docs and README stay English. On-screen copy is Bahasa via `t()` / `ui_copy`.
 
 Make bank-draft confirm useful, not noisy:
 
-1. **Auto-category rules** — “QRIS Superbank + Grab → Transport” without typing.
+1. **Auto-category** — `categories.keywords` (Kelola kategori). No second rules table/screen.
 2. **Own-account transfer detection** — Jago→BCA (same person) must not look like spending.
 3. **Category picker on Catat** — user picks a category before the row becomes a transaction.
 4. **iOS** — same inbox API; **no silent notification listener** (Apple does not allow it).
@@ -26,62 +26,13 @@ No bank passwords. No IB scrape. Drafts still require confirm except where this 
 
 ---
 
-## 1. Auto-category rules
+## 1. Auto-category
 
-### Behavior
+**Source of truth:** `categories.keywords` (Kelola kategori). No second editor. No `bank_category_rules` table, no `/bank-inbox/rules` API, no Aturan kategori screen.
 
-On ingest and on GET inbox, each draft gets `suggested_category_id` (nullable).
+On GET inbox / shade Catat without `category_id`: first case-insensitive substring hit in `"{title} {text} {merchant}"` against keywords of the same txn type. Else **Lainnya**.
 
-**Source of truth for auto-category is `categories.keywords`** (Kelola kategori). The mobile **Aturan kategori** screen was removed as redundant.
-
-Match **first hit**, case-insensitive substring against `"{title} {text} {merchant}"`:
-
-1. `categories.keywords` for a category of the **same type** as the draft.
-2. Else **Lainnya** of that type (shade Catat / confirm without `category_id`).
-
-In-app Catat still opens a picker; suggestion is pre-highlighted when present.
-
-Server still has `bank_category_rules` (optional override, no UI). Do not add a second keyword editor.
-
-A rule may pin a **bank slug** (`superbank`, `jago`, …) or leave `bank` null (any bank).
-
-Example: bank=`superbank`, keyword=`grab`, category=Transportasi.
-
-Rules are **per user**, not household. Confirm still writes a normal transaction.
-
-### Schema
-
-```sql
-CREATE TABLE IF NOT EXISTS bank_category_rules (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    bank TEXT,
-    keyword TEXT NOT NULL,
-    category_id INTEGER NOT NULL REFERENCES categories(id),
-    created_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_bank_rules_user ON bank_category_rules(user_id);
-```
-
-Empty `bank` stored as NULL = all banks.
-
-### API
-
-- `GET /api/v1/bank-inbox/rules` — list current user’s rules.
-- `POST /api/v1/bank-inbox/rules` — `{ "bank": "superbank"|null, "keyword": "grab", "category_id": 2 }`
-- `DELETE /api/v1/bank-inbox/rules/{id}` — 204.
-
-Inbox item JSON gains `suggested_category_id`.
-
-`POST .../confirm` uses: body `category_id` → else `suggested_category_id` → else default category.
-
-### UI (ID copy)
-
-Profil → Dari bank → **Aturan kategori** (or a button on the inbox app bar).
-
-List rules. Add: bank dropdown (Semua / Jago / BCA / …) + keyword + category. Delete with confirm.
-
-Copy keys: `bank.rules_title`, `bank.rules_empty`, `bank.rules_keyword`, `bank.rules_bank_any`, `bank.rules_add`.
+In-app Catat still uses a picker; `suggested_category_id` is pre-highlighted.
 
 ---
 
@@ -194,16 +145,15 @@ iOS project: enable `ios` via `flutter create --platforms ios` only when buildin
 ## Implementation order
 
 1. Category picker (confirm already accepts `category_id`).
-2. `suggested_category_id` from `categories.keywords` + `bank_category_rules`.
-3. Rules CRUD + inbox rules screen.
-4. Internal pair fields + `internal` confirm + UI button.
-5. Paste-text ingest UI (Android + future iOS).
+2. `suggested_category_id` from `categories.keywords`.
+3. Internal pair fields + `internal` confirm + UI button.
+4. Paste-text ingest UI (Android + future iOS).
 
 ## Tests
 
-- `tests/test_bank_rules.py` — match bank+keyword, keywords fallback, priority.
+- `tests/test_bank_match.py` — keyword match, type filter, pair.
 - `tests/test_bank_inbox.py` — confirm with category_id; internal pair; paste/manual package.
-- Widget: Catat opens sheet; Transfer sendiri posts `internal: true`.
+- Widget: Catat opens dialog; Transfer sendiri posts `internal: true`.
 
 ## Copy guardrail
 

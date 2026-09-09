@@ -8,8 +8,6 @@ from app.schemas.bank_inbox import (
     BankInboxIn,
     BankInboxItem,
     BankInboxList,
-    BankRuleIn,
-    BankRuleOut,
 )
 from app.services.bank_inbox_service import BankInboxError, BankInboxService
 
@@ -48,42 +46,6 @@ async def list_inbox(
     svc = BankInboxService(db)
     try:
         return await svc.list_items(current_user["id"], status)
-    except BankInboxError as exc:
-        _raise(exc)
-
-
-@router.get("/rules", response_model=list[BankRuleOut])
-async def list_rules(
-    db=Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    svc = BankInboxService(db)
-    return await svc.list_rules(current_user["id"])
-
-
-@router.post("/rules", response_model=BankRuleOut)
-async def add_rule(
-    body: BankRuleIn,
-    db=Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    svc = BankInboxService(db)
-    try:
-        return await svc.add_rule(current_user["id"], body.bank, body.keyword, body.category_id)
-    except BankInboxError as exc:
-        _raise(exc)
-
-
-@router.delete("/rules/{rule_id}", status_code=204)
-async def delete_rule(
-    rule_id: int,
-    db=Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    svc = BankInboxService(db)
-    try:
-        await svc.delete_rule(current_user["id"], rule_id)
-        return None
     except BankInboxError as exc:
         _raise(exc)
 

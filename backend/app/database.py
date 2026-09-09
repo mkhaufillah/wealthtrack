@@ -311,15 +311,7 @@ ALTER TABLE bank_inbox ADD CONSTRAINT bank_inbox_transaction_id_fkey
 
 CREATE INDEX IF NOT EXISTS idx_bank_inbox_user_status ON bank_inbox(user_id, status);
 
-CREATE TABLE IF NOT EXISTS bank_category_rules (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    bank TEXT,
-    keyword TEXT NOT NULL,
-    category_id INTEGER NOT NULL REFERENCES categories(id),
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
-);
-CREATE INDEX IF NOT EXISTS idx_bank_rules_user ON bank_category_rules(user_id);
+DROP TABLE IF EXISTS bank_category_rules CASCADE;
 
 CREATE TABLE IF NOT EXISTS ai_messages (
     id SERIAL PRIMARY KEY,
@@ -589,6 +581,7 @@ async def _init_schema(conn):
     from app.core.ui_seed import seed_ui
     try:
         await seed_ui(conn)
+        await conn.execute("DELETE FROM ui_copy WHERE key LIKE 'bank.rules%'")
     except Exception as e:
         print(f"UI seed warning (non-fatal): {e}")
 

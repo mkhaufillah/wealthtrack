@@ -176,14 +176,6 @@ CREATE TABLE bank_inbox (
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     UNIQUE(user_id, fingerprint)
 );
-CREATE TABLE bank_category_rules (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    bank TEXT,
-    keyword TEXT NOT NULL,
-    category_id INTEGER NOT NULL REFERENCES categories(id),
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
-);
 CREATE TABLE ai_messages (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),

@@ -38,16 +38,3 @@ class BankInboxItem(BaseModel):
 class BankInboxList(BaseModel):
     items: list[BankInboxItem]
     pending_count: int
-
-
-class BankRuleIn(BaseModel):
-    bank: Optional[str] = Field(default=None, max_length=40)
-    keyword: str = Field(min_length=2, max_length=80)
-    category_id: int = Field(gt=0)
-
-
-class BankRuleOut(BaseModel):
-    id: int
-    bank: Optional[str]
-    keyword: str
-    category_id: int
