@@ -210,7 +210,7 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
 
   Future<bool> delete(int id) async {
     try { await _repo.delete(id); await load(); return true; }
-    catch (e) { state = state.copyWith(error: _api.handleError(e).toString()); return false; }
+    catch (_) { return false; }
   }
 
   Future<bool> transferOwner(int txnId, int userId) async {

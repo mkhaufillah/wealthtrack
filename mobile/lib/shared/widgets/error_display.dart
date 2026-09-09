@@ -22,8 +22,11 @@ class ErrorDisplay extends StatelessWidget {
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
-              ElevatedButton.icon(
+              FilledButton.icon(
                 onPressed: onRetry,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
                 icon: AppIcon(AppIcons.refresh, size: 18),
                 label: Text(t('common.retry')),
               ),

@@ -300,10 +300,14 @@ CREATE TABLE IF NOT EXISTS bank_inbox (
     parsed INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'confirmed', 'rejected')),
     fingerprint TEXT NOT NULL,
-    transaction_id INTEGER REFERENCES transactions(id),
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"'),
+    transaction_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     UNIQUE(user_id, fingerprint)
 );
+
+ALTER TABLE bank_inbox DROP CONSTRAINT IF EXISTS bank_inbox_transaction_id_fkey;
+ALTER TABLE bank_inbox ADD CONSTRAINT bank_inbox_transaction_id_fkey
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_bank_inbox_user_status ON bank_inbox(user_id, status);
 

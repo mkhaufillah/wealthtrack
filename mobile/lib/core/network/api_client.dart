@@ -17,6 +17,10 @@ String _rawDetail(DioException error) {
     if (d is List) {
       return d.isNotEmpty ? (d[0]['msg']?.toString() ?? '') : '';
     }
+    if (d is Map) {
+      final nested = d['message'] ?? d['detail'];
+      if (nested != null) return nested.toString();
+    }
     return d.toString();
   }
   if (detail is String && detail.isNotEmpty) {

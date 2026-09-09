@@ -56,6 +56,14 @@ async def test_ingest_list_confirm_creates_transaction(client: AsyncClient, auth
     assert txn.json()["amount"] == 50000
     assert txn.json()["type"] == "expense"
 
+    deleted = await client.delete(
+        f"/api/v1/transactions/{txn_id}",
+        headers=auth_headers,
+    )
+    assert deleted.status_code == 204, deleted.text
+    gone = await client.get(f"/api/v1/transactions/{txn_id}", headers=auth_headers)
+    assert gone.status_code == 404
+
 
 @pytest.mark.asyncio
 async def test_ingest_dedup(client: AsyncClient, auth_headers: dict):

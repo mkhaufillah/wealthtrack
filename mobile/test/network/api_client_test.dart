@@ -119,7 +119,26 @@ void main() {
         expect(apiExc.message, 'Data gak valid. Cek isian kamu ya.');
       });
 
-      test('returns generic message for 500', () {
+      test('passes through nested 500 detail.message', () {
+        final dioError = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          response: Response(
+            statusCode: 500,
+            data: {
+              'detail': {
+                'code': 'INTERNAL_ERROR',
+                'message': 'Ada yang gak beres. Coba lagi ya.',
+              }
+            },
+            requestOptions: RequestOptions(path: '/test'),
+          ),
+        );
+        final result = client.handleError(dioError);
+        expect(result, isA<ApiException>());
+        expect((result as ApiException).message, 'Ada yang gak beres. Coba lagi ya.');
+      });
+
+      test('returns generic message for 500 without detail', () {
         final dioError = DioException(
           requestOptions: RequestOptions(path: '/test'),
           response: Response(

@@ -860,6 +860,11 @@ class TransactionService:
             )
 
         await self.db.execute(
+            "UPDATE bank_inbox SET transaction_id = NULL WHERE transaction_id = ?",
+            (txn_id,),
+        )
+
+        await self.db.execute(
             "DELETE FROM transactions WHERE id = ?", (txn_id,)
         )
 

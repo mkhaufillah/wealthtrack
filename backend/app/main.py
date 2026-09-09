@@ -70,12 +70,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     # this only catches truly unexpected errors (DB crashes, type errors, etc.)
     return JSONResponse(
         status_code=500,
-        content={
-            "detail": {
-                "code": "INTERNAL_ERROR",
-                "message": "Ada yang gak beres. Coba lagi ya.",
-            }
-        },
+        content={"detail": "Ada yang gak beres. Coba lagi ya."},
     )
 
 
