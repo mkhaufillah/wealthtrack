@@ -32,12 +32,16 @@ No bank passwords. No IB scrape. Drafts still require confirm except where this 
 
 On ingest and on GET inbox, each draft gets `suggested_category_id` (nullable).
 
-Match **first hit**, case-insensitive substring against
-`"{title} {text} {merchant}"`:
+**Source of truth for auto-category is `categories.keywords`** (Kelola kategori). The mobile **Aturan kategori** screen was removed as redundant.
 
-1. User rules in `bank_category_rules` (lower `id` = higher priority).
-2. Else `categories.keywords` (existing JSON list) for a category of the **same type** as the draft.
-3. Else no suggestion — confirm uses the type’s default category unless the picker sends `category_id`.
+Match **first hit**, case-insensitive substring against `"{title} {text} {merchant}"`:
+
+1. `categories.keywords` for a category of the **same type** as the draft.
+2. Else **Lainnya** of that type (shade Catat / confirm without `category_id`).
+
+In-app Catat still opens a picker; suggestion is pre-highlighted when present.
+
+Server still has `bank_category_rules` (optional override, no UI). Do not add a second keyword editor.
 
 A rule may pin a **bank slug** (`superbank`, `jago`, …) or leave `bank` null (any bank).
 

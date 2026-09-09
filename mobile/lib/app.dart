@@ -32,7 +32,6 @@ import 'features/debt/credit_card/ui/credit_card_form_screen.dart';
 import 'features/debt/credit_card/ui/credit_card_detail_screen.dart';
 import 'features/debt/credit_card/ui/add_installment_screen.dart';
 import 'features/bank_inbox/ui/bank_inbox_screen.dart';
-import 'features/bank_inbox/ui/bank_rules_screen.dart';
 import 'features/bank_inbox/ui/bank_listen_apps_screen.dart';
 import 'features/bank_inbox/data/bank_capture.dart';
 import 'shared/providers/app_providers.dart';
@@ -147,10 +146,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/bank-inbox',
         builder: (_, __) => const BankInboxScreen(),
-      ),
-      GoRoute(
-        path: '/bank-inbox/rules',
-        builder: (_, __) => const BankRulesScreen(),
       ),
       GoRoute(
         path: '/bank-inbox/listen',
