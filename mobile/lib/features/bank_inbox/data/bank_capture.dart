@@ -124,6 +124,13 @@ class BankCapture {
     'com.shopeepay.id': 'shopeepay',
   };
 
+  static bool hasAmount(String blob) {
+    return RegExp(
+      r'(?:rp|idr)\s*[0-9]|\b[0-9]{1,3}(?:\.[0-9]{3}){1,}\b',
+      caseSensitive: false,
+    ).hasMatch(blob);
+  }
+
   static String slugForPackage(String pkg) {
     final known = packageSlugs[pkg];
     if (known != null) return known;

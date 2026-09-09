@@ -197,8 +197,19 @@ class BankInboxService:
             cats = await self._category_rows()
             cat_id = suggest_category_id(rules, cats, row.get("bank"), blob, txn_type)
         if cat_id is None:
-            cat_id = await self._default_category(txn_type)
+            cat_id = await self._lainnya_category(txn_type)
         return await self._write_txn(row, user_id, cat_id, "bank_notif")
+
+    async def _lainnya_category(self, txn_type: str) -> int:
+        row = await (
+            await self.db.execute(
+                "SELECT id FROM categories WHERE name = 'Lainnya' AND type = ? LIMIT 1",
+                (txn_type,),
+            )
+        ).fetchone()
+        if row:
+            return int(row["id"])
+        return await self._default_category(txn_type)
 
     async def _write_txn(self, row: dict, user_id: int, cat_id: int, source: str) -> dict:
         cat = await (

@@ -60,29 +60,12 @@ class BankNotifActionReceiver : BroadcastReceiver() {
         if (id <= 0) return
         when (action) {
             "confirm" -> {
-                var cat = prefs.getInt("lainnya_id", 0)
-                if (cat <= 0) cat = lookupLainnya(base, token)
-                val payload = JSONObject()
-                if (cat > 0) payload.put("category_id", cat)
-                http(base.trimEnd('/') + "/bank-inbox/$id/confirm", "POST", token, payload)
+                http(base.trimEnd('/') + "/bank-inbox/$id/confirm", "POST", token, JSONObject())
             }
             "reject" -> http(base.trimEnd('/') + "/bank-inbox/$id/reject", "POST", token, JSONObject())
             "delete" -> http(base.trimEnd('/') + "/bank-inbox/$id", "DELETE", token, null)
         }
         dropQueue(context, pkg, posted)
-    }
-
-    private fun lookupLainnya(base: String, token: String): Int {
-        val arr = httpArray(base.trimEnd('/') + "/categories", token) ?: return 0
-        var fallback = 0
-        for (i in 0 until arr.length()) {
-            val o = arr.optJSONObject(i) ?: continue
-            if (!o.optString("name").equals("Lainnya", ignoreCase = true)) continue
-            val id = o.optInt("id", 0)
-            if (o.optString("type") == "expense") return id
-            if (fallback == 0) fallback = id
-        }
-        return fallback
     }
 
     private fun dropQueue(context: Context, pkg: String, posted: String) {
@@ -116,20 +99,5 @@ class BankNotifActionReceiver : BroadcastReceiver() {
         if (code !in 200..299) return null
         if (text.isBlank()) return JSONObject()
         return JSONObject(text)
-    }
-
-    private fun httpArray(url: String, token: String): JSONArray? {
-        val conn = URL(url).openConnection() as HttpURLConnection
-        conn.connectTimeout = 15000
-        conn.readTimeout = 20000
-        conn.requestMethod = "GET"
-        conn.setRequestProperty("Authorization", "Bearer $token")
-        conn.setRequestProperty("Accept", "application/json")
-        val code = conn.responseCode
-        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-        val text = stream?.bufferedReader()?.readText() ?: ""
-        conn.disconnect()
-        if (code !in 200..299 || text.isBlank()) return null
-        return JSONArray(text)
     }
 }

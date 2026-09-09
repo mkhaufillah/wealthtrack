@@ -293,3 +293,35 @@ async def test_internal_transfer_confirms_pair(client: AsyncClient, auth_headers
     listed2 = await client.get("/api/v1/bank-inbox", headers=auth_headers)
     pending = [i for i in listed2.json()["items"] if i["status"] == "pending"]
     assert pending == []
+
+
+@pytest.mark.asyncio
+async def test_confirm_without_match_uses_lainnya(client: AsyncClient, auth_headers: dict):
+    cats = await client.get("/api/v1/categories", headers=auth_headers)
+    lainnya = next(
+        c["id"]
+        for c in cats.json()
+        if c["name"] == "Lainnya" and c["type"] == "expense"
+    )
+    draft = await client.post(
+        "/api/v1/bank-inbox",
+        headers=auth_headers,
+        json={
+            "package": "com.bca",
+            "title": "BCA",
+            "text": "Debit Rp12.345 XYZQNOMATCH",
+            "posted_at": "2026-09-09T11:00:00Z",
+        },
+    )
+    assert draft.status_code == 200, draft.text
+    confirmed = await client.post(
+        f"/api/v1/bank-inbox/{draft.json()['id']}/confirm",
+        headers=auth_headers,
+        json={},
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    txn = await client.get(
+        f"/api/v1/transactions/{confirmed.json()['transaction_id']}",
+        headers=auth_headers,
+    )
+    assert txn.json()["category"]["id"] == lainnya

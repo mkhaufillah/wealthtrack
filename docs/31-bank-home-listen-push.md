@@ -39,7 +39,9 @@ Server ingest **accepts any package**. Known Play IDs still map to slugs; unknow
 
 Notification channel `wt_bank`. Actions are **broadcasts**, not activities: Catat / Abaikan / Hapus dismiss the shade notification and hit the API in the background. The app does not open.
 
-Catat from the shade uses category **Lainnya** (expense). Token + base URL + Lainnya id are written to `bank_capture` prefs on login (`setSession`); cleared on logout.
+Catat from the shade confirms **without** `category_id`. Server uses user rules then category keywords; if none match, **Lainnya**.
+
+Paste without an amount is blocked (`bank.no_amount`).
 
 Notifications with **no amount** (`Rp`/`IDR` or grouped thousands) are dropped — ads.
 

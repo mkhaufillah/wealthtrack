@@ -150,4 +150,20 @@ void main() {
     await tester.pump();
     expect(api.lastDeletePath, '/bank-inbox/7');
   });
+
+  testWidgets('paste without amount shows warning and does not POST', (tester) async {
+    final api = MockApiClient();
+    api.onGet('/bank-inbox', {'items': [], 'pending_count': 0});
+    await tester.pumpWidget(buildInbox(api));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Tempel teks notif'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Promo tanpa angka');
+    await tester.tap(find.text('Kirim ke inbox'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Teks ini gak ada nominal. Tempel notif yang ada Rp-nya.'), findsOneWidget);
+    expect(api.lastPostPath, isNull);
+  });
 }

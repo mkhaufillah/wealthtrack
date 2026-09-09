@@ -237,6 +237,12 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
                 const SizedBox(height: 8),
                 FilledButton(
                   onPressed: () async {
+                    if (!BankCapture.hasAmount(_pasteCtrl.text)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(t('bank.no_amount'))),
+                      );
+                      return;
+                    }
                     await ref.read(apiClientProvider).post('/bank-inbox', data: {
                       'package': _pastePkg,
                       'title': '',

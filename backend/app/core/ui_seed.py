@@ -467,6 +467,7 @@ COPY_ID: dict[str, str] = {
     'bank.listen_save': 'Simpan',
     'bank.listen_search': 'Cari nama atau package…',
     'bank.listen_hint': 'Cuma app yang terpasang. Default 16 bank/e-wallet yang ada di HP; yang belum diinstall dilewati.',
+    'bank.no_amount': 'Teks ini gak ada nominal. Tempel notif yang ada Rp-nya.',
 }
 
 THEME_LIGHT: dict[str, str] = {
