@@ -64,11 +64,32 @@ SQL aggregates on encrypted amount columns **do not work**. For current volume (
 
 Missing header → `403` with `err.vault_required` (copy via `t()` + `X-Locale`). Do not fall back to plaintext rows after migrate.
 
+## Existing users (Filla / Nahda / current `Home`)
+
+No silent encrypt in the background without a password — we cannot mint `DEK_hh` from JWT.
+
+1. Ship APK + backend. Old rows stay plaintext until step 3.
+2. First member who **logs in with password** after ship (not a leftover JWT alone): phone derives `KEK_user`, generates `DEK_hh`, uploads wrap row, sends `X-Vault-Key`.
+3. Server (once per household, advisory lock): encrypt all that household’s financial rows, then drop plaintext columns. Short dual-read window **only** during this job. After it, requests without `X-Vault-Key` → `403 err.vault_required`.
+4. The other member still has no wrap. They log in (password → `KEK_user`) and wait `err.vault_pending` until the first member’s phone wraps `DEK_hh` for them (same as invite). One session with both logged in, or the first opens Profil → “bagi gembok”.
+5. If both tap login at the same second: only one household creates the DEK; the other attaches a wrap, does not mint a second vault.
+
+Old APK after step 3 cannot read money. That is required.
+
+Forgot-password on an **already vaulted** household does not decrypt history (see above). Users who never log in with password after ship never get a vault; data stays plaintext until they do — do not encrypt “for them” from the server.
+
 ## What is encrypted vs not
 
-**Encrypted (vault):** transaction amount, type payload that reveals money, notes, transfer amounts, budget amounts, KPR principal/rates/schedules that reveal money, credit-card balances and item amounts, OCR extracted amounts once stored as a record.
+**Encrypted (vault):**
 
-**Not encrypted:** `users.email`, username, password **hash**, locale, household **name** (label, not money), category names/`copy_key`, invite code, `ui_copy`, bank package ids.
+- `transactions`: `amount`, `note` (and any money-shaped extra payload)
+- `budgets`: amount / spent snapshots that are money
+- `credit_cards` + installments + card txns: balances, limits, item amounts
+- `kpr_simulations` + rates + schedules + extra payments: principal, house price, instalments, interest totals
+- `ocr_jobs` / stored OCR fields: extracted amounts (not the vendor call in flight)
+- `bank_inbox`: parsed amount if we persist it (notification shade on the phone is still visible)
+
+**Not encrypted:** `users.email`, username, password **hash**, locale, household **name**, category names / `copy_key`, invite code, `ui_copy`, bank package ids, dates used as filters (`transactions.date` stays so lists still query by day).
 
 Bank notification text hits the phone **before** our API. Vaulting our copy does not hide the shade. OCR **images** sent to a vision API are visible to that vendor for that call.
 
