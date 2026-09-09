@@ -286,6 +286,14 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> with WidgetsBin
       themeMode: themeMode,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        // t() is not Flutter l10n — force the navigator subtree to rebuild
+        // when locale/copy changes, otherwise GoRouter keeps stale widgets.
+        return KeyedSubtree(
+          key: ValueKey('ui-$uiLocale'),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

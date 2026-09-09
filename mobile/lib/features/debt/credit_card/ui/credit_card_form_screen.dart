@@ -158,7 +158,7 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
     } else {
       final err = ref.read(creditCardProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err ?? 'Gagal nambah kartu kredit')),
+        SnackBar(content: Text(err ?? t('cc.card_add_fail'))),
       );
     }
   }

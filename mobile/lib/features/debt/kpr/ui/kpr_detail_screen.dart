@@ -105,8 +105,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           SnackBar(
             content: Text(
               success
-                  ? 'Pembayaran ekstra kehapus'
-                  : 'Gagal hapus pembayaran ekstra',
+                  ? t('kpr.extra_deleted')
+                  : t('kpr.extra_delete_fail'),
             ),
           ),
         );

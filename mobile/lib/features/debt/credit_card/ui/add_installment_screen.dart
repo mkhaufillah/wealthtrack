@@ -190,7 +190,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
     } else {
       final err = ref.read(creditCardProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err ?? 'Gagal nambah cicilan')),
+        SnackBar(content: Text(err ?? t('cc.inst_add_fail'))),
       );
     }
   }

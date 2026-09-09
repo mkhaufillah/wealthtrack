@@ -158,6 +158,23 @@ class AppTheme {
   // (server-driven presets).  AppColors.sync() must run before the
   // MaterialApp build so _dark resolves the correct palette.
 
+  static ButtonStyle get segmentedButtonStyle => ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.accent;
+          return AppColors.card;
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.onAccent;
+          return AppColors.textPrimary;
+        }),
+        overlayColor: WidgetStateProperty.all(AppColors.accent.withOpacity(0.16)),
+        side: WidgetStateProperty.all(BorderSide(color: AppColors.divider)),
+        iconColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.onAccent;
+          return AppColors.textPrimary;
+        }),
+      );
+
   static ThemeData get light => ThemeData(
         brightness: Brightness.light,
         fontFamily: fontFamily,
@@ -248,6 +265,7 @@ class AppTheme {
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         ),
+        segmentedButtonTheme: SegmentedButtonThemeData(style: segmentedButtonStyle),
       );
 
   // Dark theme. AppColors getters resolve the dark remote tokens when
@@ -350,5 +368,6 @@ class AppTheme {
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         ),
+        segmentedButtonTheme: SegmentedButtonThemeData(style: segmentedButtonStyle),
       );
 }

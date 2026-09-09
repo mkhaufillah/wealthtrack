@@ -142,7 +142,7 @@ Widget buildTrendChartSection(List<MonthlyTrend> trend) {
 
   final labels = trend.map((t) {
     final parts = t.month.split('-');
-    const months = ['', ...idMonthShort];
+    final months = ['', ...localizedMonthShort];
     return months[int.parse(parts[1])];
   }).toList();
 

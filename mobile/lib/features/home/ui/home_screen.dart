@@ -180,7 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              ocrState.error ?? 'OCR gagal diproses',
+              ocrState.error ?? t('ocr.fail'),
               style: TextStyle(fontSize: 13, color: AppColors.highlight),
             ),
           ),

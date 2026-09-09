@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/transactions/providers/transaction_provider.dart';
 import '../../core/ui/copy_fallback.dart';
+import '../../core/ui/ui_config.dart';
 import '../../core/ui/app_icons.dart';
 import '../../core/theme/app_theme.dart';
 import '../providers/theme_provider.dart';
+import '../providers/locale_provider.dart';
 
 class MainShell extends ConsumerWidget {
   final Widget child;
@@ -23,6 +25,8 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(themeModeProvider);
+    ref.watch(localeProvider);
+    ref.watch(uiConfigProvider);
     final index = _currentIndex(context);
     return Scaffold(
       body: child,

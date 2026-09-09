@@ -56,7 +56,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(success ? 'Kartu kredit kehapus' : 'Gagal hapus kartu kredit'),
+            content: Text(success ? t('cc.card_deleted') : t('cc.card_delete_fail')),
           ),
         );
       }

@@ -506,6 +506,22 @@ COPY_ID: dict[str, str] = {
     'err.session': 'Sesi habis. Masuk lagi ya.',
     'err.rate_limit': 'Kebanyakan request. Tunggu sebentar ya.',
     'err.credentials': 'Username atau password salah',
+    'date.today': 'Hari ini',
+    'date.yesterday': 'Kemarin',
+    'date.days_ago': '{n} hari lalu',
+    'hh.role_admin': 'Admin',
+    'hh.role_member': 'Anggota',
+    'tx.owner_fail': 'Gagal ganti pemilik',
+    'ocr.fail': 'Gagal proses struk',
+    'cc.txn_saved': 'Transaksi kesimpen',
+    'cc.txn_save_fail': 'Gagal catat transaksi',
+    'cc.card_deleted': 'Kartu kredit kehapus',
+    'cc.card_delete_fail': 'Gagal hapus kartu kredit',
+    'cc.card_add_fail': 'Gagal nambah kartu kredit',
+    'cc.inst_add_fail': 'Gagal nambah cicilan',
+    'kpr.save_fail': 'Gagal simpan simulasi',
+    'kpr.extra_delete_fail': 'Gagal hapus pembayaran ekstra',
+    'profile.copy_locale_hint': 'Ini edit teks per bahasa, bukan ganti bahasa app. Bahasa app di Profil.',
 }
 
 THEME_LIGHT: dict[str, str] = {

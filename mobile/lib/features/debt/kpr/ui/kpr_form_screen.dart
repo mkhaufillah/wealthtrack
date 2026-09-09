@@ -373,7 +373,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
     } else {
       final err = ref.read(kprProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err ?? 'Gagal simpan simulasi')),
+        SnackBar(content: Text(err ?? t('kpr.save_fail'))),
       );
     }
   }
@@ -487,7 +487,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                       prefixIcon: AppFieldIcon(AppIcons.calendar),
                     ),
                     items: List.generate(12, (i) => i + 1).map((m) {
-                      final months = idMonthShort;
+                      final months = localizedMonthShort;
                       return DropdownMenuItem(
                         value: m,
                         child: Text(months[m - 1]),

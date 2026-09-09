@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/utils/date_formatter.dart';
 import '../../../core/ui/category_icons.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../home/providers/dashboard_provider.dart';
@@ -436,8 +437,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     );
   }
 
-  String _monthName(int m) =>
-      ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][m - 1];
+  String _monthName(int m) => localizedMonthShort[m - 1];
 }
 
 class _TypeSeg extends StatelessWidget {

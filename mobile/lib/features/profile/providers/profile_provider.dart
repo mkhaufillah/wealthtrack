@@ -88,7 +88,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         savingProfile: false,
-        error: 'Gagal: $e',
+        error: '${t('common.failed')}: $e',
       );
     }
   }
@@ -105,7 +105,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
     } catch (e) {
       state = state.copyWith(
-        error: 'Gagal: $e',
+        error: '${t('common.failed')}: $e',
       );
     }
   }
@@ -116,13 +116,13 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       await authNotifier.changePassword(current, newPw);
       state = state.copyWith(
         changingPassword: false,
-        message: 'Sandi berhasil diganti',
+        message: t('profile.pass_ok'),
       );
       return true;
     } catch (e) {
       state = state.copyWith(
         changingPassword: false,
-        error: 'Gagal: $e',
+        error: '${t('common.failed')}: $e',
       );
       return false;
     }
@@ -136,7 +136,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         deleting: false,
-        error: 'Gagal: $e',
+        error: '${t('common.failed')}: $e',
       );
     }
   }

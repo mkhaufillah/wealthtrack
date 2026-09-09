@@ -1,8 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wealthtrack/core/ui/copy_fallback.dart';
 import 'package:wealthtrack/shared/utils/currency_formatter.dart';
 import 'package:wealthtrack/shared/utils/date_formatter.dart';
 
 void main() {
+  setUp(() {
+    activeUiLocale = 'id-ID';
+  });
   group('formatCurrency', () {
     test('formats thousand', () => expect(formatCurrency(1000), 'Rp1.000'));
     test('formats million', () => expect(formatCurrency(1500000), 'Rp1.500.000'));
@@ -55,6 +59,13 @@ void main() {
 
     test('returns original string for invalid input', () {
       expect(formatDateRelative('not-a-date'), 'not-a-date');
+    });
+
+    test('uses English copy when locale is en-US', () {
+      activeUiLocale = 'en-US';
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      expect(formatDateRelative(today), 'Today');
+      expect(formatDate('2026-05-27'), '27 May 2026');
     });
   });
 }

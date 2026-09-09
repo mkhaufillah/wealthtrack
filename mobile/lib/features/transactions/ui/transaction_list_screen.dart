@@ -94,12 +94,12 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       ),
       builder: (ctx) {
         final options = [
-          {'value': '-date', 'label': 'Paling baru'},
-          {'value': 'date', 'label': 'Paling lama'},
-          {'value': '-amount', 'label': 'Paling gede'},
-          {'value': 'amount', 'label': 'Paling kecil'},
-          {'value': 'name', 'label': 'Nama A–Z'},
-          {'value': '-name', 'label': 'Nama Z–A'},
+          {'value': '-date', 'label': t('sort.newest')},
+          {'value': 'date', 'label': t('sort.oldest')},
+          {'value': '-amount', 'label': t('sort.highest')},
+          {'value': 'amount', 'label': t('sort.lowest')},
+          {'value': 'name', 'label': t('sort.name_az')},
+          {'value': '-name', 'label': t('sort.name_za')},
         ];
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -416,7 +416,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     ),
                   ),
                   title: Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                  subtitle: Text(role == 'admin' ? 'Admin' : 'Anggota',
+                  subtitle: Text(role == 'admin' ? t('hh.role_admin') : t('hh.role_member'),
                     style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   onTap: () async {
                     Navigator.pop(ctx);
@@ -429,7 +429,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                     } else {
                       final s = ref.read(transactionListProvider);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(s.transferError ?? 'Gagal ganti pemilik')),
+                        SnackBar(content: Text(s.transferError ?? t('tx.owner_fail'))),
                       );
                     }
                   },
@@ -544,7 +544,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      ocrState.error ?? 'Gagal proses struk',
+                      ocrState.error ?? t('ocr.fail'),
                       style: TextStyle(fontSize: 13, color: AppColors.highlight),
                     ),
                   ),

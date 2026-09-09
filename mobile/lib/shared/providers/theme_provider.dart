@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/storage/secure_storage.dart';
+import '../../core/ui/copy_fallback.dart';
 import 'app_providers.dart';
 
 /// Persisted theme preference: 'system', 'light', or 'dark'.
@@ -35,9 +36,9 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
   String get label {
     switch (state) {
-      case ThemeMode.system: return 'Ikuti sistem';
-      case ThemeMode.light: return 'Terang';
-      case ThemeMode.dark: return 'Gelap';
+      case ThemeMode.system: return t('profile.theme_system');
+      case ThemeMode.light: return t('profile.theme_light');
+      case ThemeMode.dark: return t('profile.theme_dark');
     }
   }
 }

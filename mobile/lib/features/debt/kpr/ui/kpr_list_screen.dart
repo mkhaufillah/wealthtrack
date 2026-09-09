@@ -58,7 +58,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(success ? 'Simulasi kehapus' : 'Gagal hapus simulasi'),
+            content: Text(success ? t('kpr.sim_deleted') : t('kpr.sim_delete_fail')),
           ),
         );
       }
@@ -201,7 +201,7 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            sim.name.isNotEmpty ? sim.name : 'Simulasi KPR',
+                            sim.name.isNotEmpty ? sim.name : t('kpr.title'),
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,

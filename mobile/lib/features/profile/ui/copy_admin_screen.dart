@@ -10,7 +10,7 @@ import '../../../../shared/providers/app_providers.dart';
 import '../../../../core/network/api_client.dart';
 
 /// Admin panel: browse + edit ui_copy via /ui/copy (server-driven copy).
-/// Visible only for role=admin; errors come straight from the backend (ID).
+/// Visible only for role=admin. Catalog locale is independent of app language.
 class CopyAdminScreen extends ConsumerStatefulWidget {
   const CopyAdminScreen({super.key});
 
@@ -25,7 +25,7 @@ class _CopyAdminScreenState extends ConsumerState<CopyAdminScreen> {
   bool _saving = false;
   String? _error;
   String _query = '';
-  String _locale = 'id-ID';
+  String _catalogLocale = 'id-ID';
 
   @override
   void initState() {
@@ -47,7 +47,7 @@ class _CopyAdminScreenState extends ConsumerState<CopyAdminScreen> {
     try {
       final api = ref.read(apiClientProvider);
       final res = await api.get('/ui/copy', queryParams: {
-        'locale': _locale,
+        'locale': _catalogLocale,
         if (_query.isNotEmpty) 'search': _query,
       });
       if (!mounted) return;
@@ -104,7 +104,7 @@ class _CopyAdminScreenState extends ConsumerState<CopyAdminScreen> {
     setState(() => _saving = true);
     try {
       final api = ref.read(apiClientProvider);
-      await api.put('/ui/copy/$key', data: {'value': valueCtrl.text}, queryParams: {'locale': _locale});
+      await api.put('/ui/copy/$key', data: {'value': valueCtrl.text}, queryParams: {'locale': _catalogLocale});
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -134,16 +134,27 @@ class _CopyAdminScreenState extends ConsumerState<CopyAdminScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: SegmentedButton<String>(
-              segments: [
-                ButtonSegment(value: 'id-ID', label: Text(t('profile.lang_id'))),
-                ButtonSegment(value: 'en-US', label: Text(t('profile.lang_en'))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SegmentedButton<String>(
+                  style: AppTheme.segmentedButtonStyle,
+                  segments: [
+                    ButtonSegment(value: 'id-ID', label: Text(t('profile.lang_id'))),
+                    ButtonSegment(value: 'en-US', label: Text(t('profile.lang_en'))),
+                  ],
+                  selected: {_catalogLocale},
+                  onSelectionChanged: (s) {
+                    setState(() => _catalogLocale = s.first);
+                    _load();
+                  },
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  t('profile.copy_locale_hint'),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
               ],
-              selected: {_locale},
-              onSelectionChanged: (s) {
-                setState(() => _locale = s.first);
-                _load();
-              },
             ),
           ),
           Padding(
