@@ -78,25 +78,29 @@ class _BankRulesScreenState extends ConsumerState<BankRulesScreen> {
         builder: (ctx, setLocal) => AlertDialog(
           backgroundColor: AppColors.surface,
           title: Text(t('bank.rules_add')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                value: bank,
-                items: _banks.entries
-                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value.isEmpty ? t('bank.rules_bank_any') : e.value)))
-                    .toList(),
-                onChanged: (v) => setLocal(() => bank = v ?? ''),
-              ),
-              TextField(controller: kw, decoration: InputDecoration(labelText: t('bank.rules_keyword'))),
-              DropdownButtonFormField<int>(
-                value: catId,
-                items: _cats
-                    .map((c) => DropdownMenuItem(value: c['id'] as int, child: Text('${c['name']}')))
-                    .toList(),
-                onChanged: (v) => setLocal(() => catId = v),
-              ),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: bank,
+                  items: _banks.entries
+                      .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value.isEmpty ? t('bank.rules_bank_any') : e.value)))
+                      .toList(),
+                  onChanged: (v) => setLocal(() => bank = v ?? ''),
+                ),
+                const SizedBox(height: 16),
+                TextField(controller: kw, decoration: InputDecoration(labelText: t('bank.rules_keyword'))),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<int>(
+                  value: catId,
+                  items: _cats
+                      .map((c) => DropdownMenuItem(value: c['id'] as int, child: Text('${c['name']}')))
+                      .toList(),
+                  onChanged: (v) => setLocal(() => catId = v),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('common.cancel'))),
@@ -105,14 +109,20 @@ class _BankRulesScreenState extends ConsumerState<BankRulesScreen> {
         ),
       ),
     );
-    if (saved != true || catId == null) return;
-    await ref.read(apiClientProvider).post('/bank-inbox/rules', data: {
-      'bank': bank.isEmpty ? null : bank,
-      'keyword': kw.text.trim(),
-      'category_id': catId,
-    });
-    kw.dispose();
-    await _load();
+    if (saved != true || catId == null) {
+      kw.dispose();
+      return;
+    }
+    try {
+      await ref.read(apiClientProvider).post('/bank-inbox/rules', data: {
+        'bank': bank.isEmpty ? null : bank,
+        'keyword': kw.text.trim(),
+        'category_id': catId,
+      });
+      await _load();
+    } finally {
+      kw.dispose();
+    }
   }
 
   @override
