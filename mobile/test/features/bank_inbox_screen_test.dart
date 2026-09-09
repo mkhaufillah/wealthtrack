@@ -108,6 +108,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text('Pilih kategori'), findsOneWidget);
+    await tester.ensureVisible(find.text('Makanan & Minuman'));
     await tester.tap(find.text('Makanan & Minuman'));
     await tester.pump();
     await tester.pump();

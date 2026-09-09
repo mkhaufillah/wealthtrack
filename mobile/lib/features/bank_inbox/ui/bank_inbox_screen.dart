@@ -86,22 +86,27 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
     final chosen = await showModalBottomSheet<int>(
       context: context,
       backgroundColor: AppColors.surface,
-      builder: (ctx) => ListView(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(t('bank.pick_category'), style: const TextStyle(fontWeight: FontWeight.w800)),
+      builder: (ctx) => SafeArea(
+        child: SizedBox(
+          height: 320,
+          child: ListView(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(t('bank.pick_category'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+              ...cats.map((c) {
+                final id = c['id'] as int;
+                final selected = suggested == id;
+                return ListTile(
+                  title: Text('${c['name']}'),
+                  selected: selected,
+                  onTap: () => Navigator.pop(ctx, id),
+                );
+              }),
+            ],
           ),
-          ...cats.map((c) {
-            final id = c['id'] as int;
-            final selected = suggested == id;
-            return ListTile(
-              title: Text('${c['name']}'),
-              trailing: selected ? const Icon(Icons.check) : null,
-              onTap: () => Navigator.pop(ctx, id),
-            );
-          }),
-        ],
+        ),
       ),
     );
     if (chosen == null) return;
