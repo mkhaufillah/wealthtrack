@@ -28,6 +28,7 @@ Current version: **v0.7.2** — Dockerized Backend & GitHub-hosted Runners Migra
 - [Date Filter & All-Time Balance](19-date-filter-alltime-balance-debt-entry.md) — transaction date filter + home all-time saldo
 - [UI Revamp & Server-Driven Copy](20-ui-revamp-server-driven.md) — Saffron Ink palette, GET /home, copy/config/calc on server
 - [Extra Payment KPR & Household Debt](plans/2026-06-09-extra-payment-household-debt.md) — implemented in v0.7.0
+- [Household vault (encryption)](33-encryption.md) — dump-blind financial records; household DEK; specified, not built
 
 ## Architecture
 
