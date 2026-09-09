@@ -191,6 +191,38 @@ Existing slides 0–2 stay. **Mulai** still writes `onboarding_done=1`.
 
 Forgot-password confirm (when vault exists), id-ID: `Sandi baru buat masuk. Catatan uang lama tetap terkunci. Itu wajar.` Key `auth.reset_vault_warn`.
 
+## Flow impact audit
+
+Not audited endpoint-by-endpoint in the first drafts. This table is the check so we do not ship a vault that 403s half the app.
+
+**JWT only — no vault header (must keep working):**
+
+`POST /auth/login|register|send-otp`, `GET/PUT /auth/me` (profile, locale, cycle), `PUT /auth/password`, `DELETE /auth/me`, `GET /ui/bootstrap`, `GET /health`, `GET /categories`, copy/config admin, `GET /households/me` (names/codes only).
+
+**Need `X-Vault-Key` + decrypt-then-compute (same JSON as today):**
+
+`GET /home`, `GET /summaries/*`, `CRUD /transactions` (+ transfer), `GET/POST /budgets`, reports, `CRUD /credit-cards` + installments + card txns, `CRUD /kpr` + extra + schedule, `GET/POST /exports`, `GET/POST /ai`, `POST /ocr` (see below), `CRUD /bank-inbox` + confirm/reject.
+
+**Would break if we forget — spec so they do not:**
+
+| Flow today | After vault | Required so it does not break |
+|---|---|---|
+| Cold start, JWT still in storage, no password typed | Cannot derive `KEK_user` | Persist `DEK_hh` in Android Keystore after password login. Re-open app attaches `X-Vault-Key` from Keystore. No Keystore → ask password, not a spinner. |
+| `BankCapture.flushToServer` in background | POST body has notif text; no UI | Interceptor reads Keystore DEK. If missing, queue locally, do not drop the notif. |
+| OCR `_process()` after HTTP returns | No request, no header | Pass `DEK_hh` into the **in-memory** task only. Never Redis. Encrypt the inserted txn there. Delete photo in `finally`. |
+| Tx search (Meilisearch `description` + sort `amount`) | Meili is a **second plaintext dump** | Stop indexing `amount` / `description`, or search on-device after decrypt. Do not leave money in Meili. |
+| Home widget / `getPendingAction` | Same as other API calls | Same interceptor + Keystore. |
+| Second member before wrap | Home/tx 403 | Dedicated `err.vault_pending` empty state, not generic error / infinite load. |
+| Forgot password | Login works, money locked | Copy `auth.reset_vault_warn`; money screens stay locked on purpose. |
+| Old APK after household vaulted | No header | 403. Users must update. Do not dual-read forever. |
+| MCP `wt_mcp_*` on the VPS | No DEK | Amounts unavailable. Do not put DEK in Hermes `.env`. |
+| Confirm bank draft → txn | Server writes `transactions.amount` | That POST must carry vault key (foreground: yes). |
+| Change password | New `KEK_user` | Rewrap only; session keeps `DEK_hh` in Keystore. |
+| Same user, second phone | Wrap is per `user_id` | Password on phone 2 unwraps DB wrap. No “bagi gembok”. |
+| Logout | | Wipe Keystore DEK (product: lock). Next login password again. |
+
+Register / first household create: phone generates `DEK_hh` **before** first money write.
+
 ## Play listing (honest)
 
 - Data processed on servers when you use the app.
@@ -206,4 +238,4 @@ Forgot-password confirm (when vault exists), id-ID: `Sandi baru buat masuk. Cata
 
 ## Open before code
 
-None for the model. First implementation PR is wrap table + header + encrypt `transactions.amount` / `note` only; other money tables follow. Join-wrap UX is in the same milestone or money stays members-only for the creator until wrap exists — do not ship encrypt-without-join.
+Model is chosen. Do not start code until join-wrap UX + Keystore session + Meili (no money in the index) + OCR in-memory DEK are in the same milestone as the first encrypt. Encrypt-without-those **breaks** inbox, search, OCR, and the second member.
