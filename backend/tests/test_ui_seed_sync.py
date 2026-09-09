@@ -20,7 +20,7 @@ FALLBACK_EN = _REPO_ROOT / "mobile" / "lib" / "core" / "ui" / "copy_fallback_en.
 def _map_from_dart(path: Path) -> dict[str, str]:
     text = path.read_text()
     return {
-        k: v.replace("\\'", "'")
+        k: v.replace("\\'", "'").replace("\\n", "\n")
         for k, v in re.findall(r"'((?:\\'|[^'])*)'\s*:\s*'((?:\\'|[^'])*)'", text)
         if "." in k
     }

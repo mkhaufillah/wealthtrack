@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.database import get_db, CursorWrapper
 from app.core.security import get_current_user
+from app.core.i18n import locale_from_request
 from app.core.limiter import limiter
 from app.schemas.user import (
     UserRegister,
@@ -50,7 +51,7 @@ async def send_otp(
     """Send an OTP code to the given email for registration."""
     svc = AuthService(db)
     try:
-        return await svc.send_otp(data.email)
+        return await svc.send_otp(data.email, locale=locale_from_request(request.headers))
     except EmailSendError as e:
         raise HTTPException(status_code=500, detail=f"Gagal kirim email: {e}")
 

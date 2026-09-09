@@ -148,7 +148,7 @@ class AuthService:
 
     # ── Send OTP ────────────────────────────────────────────────────
 
-    async def send_otp(self, email: str) -> dict:
+    async def send_otp(self, email: str, locale: str | None = None) -> dict:
         """Generate, persist, and send an OTP code to the given email.
 
         Returns a confirmation message dict.
@@ -165,7 +165,7 @@ class AuthService:
         )
 
         try:
-            send_otp_email(email, otp)
+            send_otp_email(email, otp, locale=locale)
         except Exception as e:
             raise EmailSendError(str(e))
 

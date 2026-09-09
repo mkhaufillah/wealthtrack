@@ -512,6 +512,8 @@ COPY_ID: dict[str, str] = {
     'err.session': 'Sesi habis. Masuk lagi ya.',
     'err.rate_limit': 'Kebanyakan request. Tunggu sebentar ya.',
     'err.credentials': 'Username atau password salah',
+    'mail.otp.subject': 'WealthTrack — Kode verifikasi',
+    'mail.otp.body': 'Kode verifikasi WealthTrack kamu:\n\n    {otp}\n\nKode ini kadaluarsa dalam 10 menit. Kalau kamu tidak minta kode ini, abaikan email ini.\n\n— WealthTrack',
     'date.today': 'Hari ini',
     'date.yesterday': 'Kemarin',
     'date.days_ago': '{n} hari lalu',

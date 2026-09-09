@@ -10,6 +10,7 @@ import string
 from email.mime.text import MIMEText
 
 from app.core.config import settings
+from app.core.i18n import DEFAULT_LOCALE, copy_catalog, normalize_locale
 
 
 def generate_otp(length: int = 6) -> str:
@@ -38,14 +39,15 @@ def send_email(to_email: str, subject: str, body: str) -> None:
         server.send_message(msg)
 
 
-def send_otp_email(to_email: str, otp: str) -> None:
-    """Send the OTP verification email (Indonesian, product default)."""
-    subject = "WealthTrack — Kode verifikasi"
-    body = (
-        f"Kode verifikasi WealthTrack kamu:\n\n"
-        f"    {otp}\n\n"
-        f"Kode ini kadaluarsa dalam 10 menit. "
-        f"Kalau kamu tidak minta kode ini, abaikan email ini.\n\n"
-        f"— WealthTrack"
-    )
+def otp_email_copy(otp: str, locale: str | None = None) -> tuple[str, str]:
+    """Subject + body for the OTP mail, from the i18n catalog."""
+    cat = copy_catalog(normalize_locale(locale))
+    subject = cat.get("mail.otp.subject") or "WealthTrack"
+    body = (cat.get("mail.otp.body") or "{otp}").replace("{otp}", otp)
+    return subject, body
+
+
+def send_otp_email(to_email: str, otp: str, locale: str | None = None) -> None:
+    """Send the OTP verification email in the requested locale."""
+    subject, body = otp_email_copy(otp, locale or DEFAULT_LOCALE)
     send_email(to_email, subject, body)

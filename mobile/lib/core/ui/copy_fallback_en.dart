@@ -507,6 +507,14 @@ const Map<String, String> copyFallbackEn = {
   'err.session': 'Session expired. Log in again.',
   'err.rate_limit': 'Too many requests. Wait a bit.',
   'err.credentials': 'Wrong username or password',
+  'mail.otp.subject': 'WealthTrack — Verification code',
+  'mail.otp.body': 'Your WealthTrack verification code is:
+
+    {otp}
+
+This code expires in 10 minutes. If you did not request this, ignore this email.
+
+— WealthTrack',
   'date.today': 'Today',
   'date.yesterday': 'Yesterday',
   'date.days_ago': '{n} days ago',
