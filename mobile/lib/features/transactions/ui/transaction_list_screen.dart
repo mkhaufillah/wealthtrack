@@ -469,7 +469,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       final success = await ref.read(transactionListProvider.notifier).delete(txnId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(success ? t('tx.deleted') : t('tx.delete_fail'))),
+          SnackBar(content: Text(success ? t('tx.deleted') : t('tx.del_fail'))),
         );
       }
     }

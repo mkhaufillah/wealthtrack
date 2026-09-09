@@ -431,8 +431,6 @@ const Map<String, String> copyFallback = {
   'tx.owner_change': 'Ganti pemilik',
   'tx.sort_title': 'Urutin',
   'register.failed': 'Gagal',
-  'tx.deleted': 'Catatan kehapus',
-  'tx.delete_fail': 'Gagal hapus catatan',
   'bank.inbox_title': 'Dari bank',
   'bank.inbox_empty': 'Belum ada draf dari notifikasi bank',
   'bank.enable': 'Nyalain akses notifikasi',
