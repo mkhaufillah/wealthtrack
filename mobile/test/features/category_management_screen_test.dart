@@ -73,7 +73,7 @@ void main() {
     await tester.tap(find.text('Kendaraan'));
     await tester.pumpAndSettle();
 
-    // tap Hapus in the sheet
+    await tester.ensureVisible(find.text('Hapus'));
     await tester.tap(find.text('Hapus'));
     await tester.pumpAndSettle();
 
