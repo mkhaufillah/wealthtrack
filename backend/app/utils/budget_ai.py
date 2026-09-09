@@ -42,6 +42,7 @@ async def get_historical_spending(
         f"""SELECT t.category_id,
                    c.name AS category_name,
                    c.icon AS category_icon,
+                   c.copy_key AS copy_key,
                    CAST(COALESCE(AVG(t.amount), 0) AS INTEGER) AS avg_amount,
                    CAST(COALESCE(MAX(t.amount), 0) AS INTEGER) AS max_amount,
                    COUNT(DISTINCT LEFT(COALESCE(t.date, LEFT(t.created_at::text, 10)), 7))
@@ -51,7 +52,7 @@ async def get_historical_spending(
             WHERE t.user_id = ?
               AND t.type = 'expense'
               AND ({or_conditions})
-            GROUP BY t.category_id, c.name, c.icon
+            GROUP BY t.category_id, c.name, c.icon, c.copy_key
             ORDER BY avg_amount DESC""",
         (user_id, *params),
     )
@@ -61,6 +62,7 @@ async def get_historical_spending(
             "category_id": r["category_id"],
             "category_name": r["category_name"] or f"Cat#{r['category_id']}",
             "category_icon": r["category_icon"] or "📦",
+            "copy_key": r["copy_key"] or "",
             "avg_amount": r["avg_amount"],
             "max_amount": r["max_amount"],
             "months_analyzed": r["months_with_data"],

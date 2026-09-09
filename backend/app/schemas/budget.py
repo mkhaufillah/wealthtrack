@@ -15,6 +15,7 @@ class BudgetResponse(BaseModel):
     category_id: int
     category_name: str
     category_icon: str
+    copy_key: str = ""
     amount: int
 
 
@@ -23,6 +24,7 @@ class BudgetSummaryItem(BaseModel):
     category_id: int
     category_name: str
     category_icon: str
+    copy_key: str = ""
     budget_amount: int
     actual_spent: int
     percentage: float
@@ -34,6 +36,7 @@ class UnbudgetedExpense(BaseModel):
     category_id: int
     category_name: str
     category_icon: str
+    copy_key: str = ""
     total: int
 
 
@@ -46,6 +49,7 @@ class BudgetSuggestion(BaseModel):
     category_id: int
     category_name: str
     category_icon: str
+    copy_key: str = ""
     suggested_amount: int
     historical_avg: int
     historical_max: int

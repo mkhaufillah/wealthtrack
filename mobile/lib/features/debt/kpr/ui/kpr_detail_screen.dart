@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../providers/kpr_provider.dart';
 import '../../models/kpr_model.dart';
 import '../../../../shared/utils/currency_formatter.dart';
+import '../../../../shared/utils/date_formatter.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -122,7 +123,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(sim?.name.isNotEmpty == true ? sim!.name : 'Detail KPR'),
+        title: Text(sim?.name.isNotEmpty == true ? sim!.name : t('kpr.detail')),
         actions: [
           if (sim != null)
             IconButton(
@@ -134,7 +135,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           if (sim != null)
             IconButton(
               icon: AppIcon(AppIcons.trash),
-              tooltip: 'Hapus',
+              tooltip: t('common.delete'),
               onPressed: () => _confirmDelete(sim),
             ),
         ],
@@ -306,11 +307,11 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     final remMonths = sim.tenorMonths % 12;
     String tenorLabel;
     if (years > 0 && remMonths > 0) {
-      tenorLabel = '$years tahun $remMonths bulan';
+      tenorLabel = t('kpr.years_months').replaceAll('{y}', '$years').replaceAll('{m}', '$remMonths');
     } else if (years > 0) {
-      tenorLabel = '$years tahun';
+      tenorLabel = t('common.year_n').replaceAll('{n}', '$years');
     } else {
-      tenorLabel = '${sim.tenorMonths} bulan';
+      tenorLabel = t('kpr.month_n').replaceAll('{n}', '${sim.tenorMonths}');
     }
 
     return Container(
@@ -324,7 +325,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
           AppIcon(AppIcons.calendar, size: 16, color: AppColors.textSecondary),
           const SizedBox(width: 8),
           Text(
-            tenorLabel,
+            '${t('kpr.tenor_label')} · $tenorLabel',
             style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const Spacer(),
@@ -451,10 +452,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
     final totalMonths = startMonth + ep.applyMonth - 1;
     final applyYear = startYear + (totalMonths - 1) ~/ 12;
     final applyMonthDate = ((totalMonths - 1) % 12) + 1;
-    final monthNames = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
-    ];
+    final monthNames = ['', ...localizedMonthShort];
     final startDateStr = '${monthNames[applyMonthDate]} $applyYear';
     // Convert "2040-12" → "Dec 2040"
     String _fmtEndDate(String yyyyMm) {
@@ -510,8 +508,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                   children: [
                     Text(
                       isTenor
-                          ? 'Tenor lebih pendek'
-                          : 'Cicilan lebih kecil',
+                          ? t('kpr.option_tenor_short')
+                          : t('kpr.option_inst_short'),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -563,7 +561,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
               children: [
                 Expanded(
                   child: _statItem(
-                      'Cicilan',
+                      t('kpr.col_pmt'),
                       '${formatCurrency(ep.oldInstallment)} → ${formatCurrency(ep.newInstallment)}'),
                 ),
                 Expanded(
@@ -627,8 +625,8 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 ),
                 child: Text(
                   isTenor
-                      ? 'Lunas $monthsSaved bulan lebih cepet 🎯'
-                      : 'Cicilan turun ${formatCurrency(paymentDiff)}/bulan 💰',
+                      ? t('kpr.paid_faster').replaceAll('{n}', '$monthsSaved')
+                      : t('kpr.installment_cut').replaceAll('{n}', formatCurrency(paymentDiff)),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -852,11 +850,11 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
               ),
               child: Row(
                 children: [
-                  _tableHeader('Bln', flex: 1),
-                  _tableHeader('Cicilan', flex: 2),
-                  _tableHeader('Pokok', flex: 2),
-                  _tableHeader('Bunga', flex: 2),
-                  _tableHeader('Sisa', flex: 2),
+                  _tableHeader(t('kpr.col_mo'), flex: 1),
+                  _tableHeader(t('kpr.col_pmt'), flex: 2),
+                  _tableHeader(t('kpr.col_principal'), flex: 2),
+                  _tableHeader(t('kpr.col_interest'), flex: 2),
+                  _tableHeader(t('kpr.col_remain'), flex: 2),
                 ],
               ),
             ),
@@ -947,8 +945,6 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
   }
 
   String _shortMonthName(int m) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-                    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    return months[m - 1];
+    return localizedMonthShort[m - 1];
   }
 }

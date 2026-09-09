@@ -82,6 +82,7 @@ class BudgetService:
             "category_id": row["category_id"],
             "category_name": row["category_name"],
             "category_icon": row.get("category_icon") or "📦",
+            "copy_key": row.get("copy_key") or "",
             "amount": row["budget_amount"]
             if "budget_amount" in row
             else row["amount"],
@@ -97,6 +98,7 @@ class BudgetService:
             "category_id": row["category_id"],
             "category_name": row["category_name"],
             "category_icon": row.get("category_icon") or "📦",
+            "copy_key": row.get("copy_key") or "",
             "budget_amount": budget_amount,
             "actual_spent": actual_spent,
             "percentage": round(percentage, 1),
@@ -110,7 +112,7 @@ class BudgetService:
         """Return all budgets for *user_id* in *month* (ordered by amount desc)."""
         cursor = await self.db.execute(
             """SELECT b.id, b.month, b.category_id, b.category_name, b.budget_amount,
-                      c.icon AS category_icon
+                      c.icon AS category_icon, c.copy_key AS copy_key
                FROM budgets b
                LEFT JOIN categories c ON b.category_id = c.id
                WHERE b.month = ? AND b.user_id = ?
@@ -217,7 +219,7 @@ class BudgetService:
         # Get all budgets for this month
         cursor = await self.db.execute(
             """SELECT b.id, b.category_id, b.category_name, b.budget_amount, b.cycle_on,
-                      c.icon AS category_icon
+                      c.icon AS category_icon, c.copy_key AS copy_key
                FROM budgets b
                LEFT JOIN categories c ON b.category_id = c.id
                WHERE b.month = ? AND b.user_id = ?
@@ -323,6 +325,7 @@ class BudgetService:
             placeholders = ",".join("?" * len(budgeted_cat_ids))
             ucur = await self.db.execute(
                 f"""SELECT t.category_id, c.name AS category_name, c.icon AS category_icon,
+                                   c.copy_key AS copy_key,
                                    CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) AS total
                     FROM transactions t
                     LEFT JOIN categories c ON t.category_id = c.id
@@ -331,7 +334,7 @@ class BudgetService:
                       AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
                       AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
                       AND t.category_id NOT IN ({placeholders})
-                    GROUP BY t.category_id, c.name, c.icon
+                    GROUP BY t.category_id, c.name, c.icon, c.copy_key
                     ORDER BY total DESC""",
                 (user_id, uncat_d_from, uncat_d_to, *budgeted_cat_ids),
             )
@@ -341,6 +344,7 @@ class BudgetService:
                         "category_id": urow["category_id"],
                         "category_name": urow["category_name"] or "Unknown",
                         "category_icon": urow["category_icon"] or "📦",
+                        "copy_key": urow["copy_key"] or "",
                         "total": urow["total"],
                     }
                 )
@@ -348,6 +352,7 @@ class BudgetService:
             # No budgets at all — all expense categories are unbudgeted
             ucur = await self.db.execute(
                 """SELECT t.category_id, c.name AS category_name, c.icon AS category_icon,
+                                 c.copy_key AS copy_key,
                                  CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) AS total
                    FROM transactions t
                    LEFT JOIN categories c ON t.category_id = c.id
@@ -355,7 +360,7 @@ class BudgetService:
                      AND t.type = 'expense'
                      AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
                      AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
-                   GROUP BY t.category_id, c.name, c.icon
+                   GROUP BY t.category_id, c.name, c.icon, c.copy_key
                    ORDER BY total DESC""",
                 (user_id, uncat_d_from, uncat_d_to),
             )
@@ -365,6 +370,7 @@ class BudgetService:
                         "category_id": urow["category_id"],
                         "category_name": urow["category_name"] or "Unknown",
                         "category_icon": urow["category_icon"] or "📦",
+                        "copy_key": urow["copy_key"] or "",
                         "total": urow["total"],
                     }
                 )
@@ -422,6 +428,7 @@ class BudgetService:
                     "category_id": cat_id,
                     "category_name": h["category_name"],
                     "category_icon": h["category_icon"],
+                    "copy_key": h.get("copy_key") or "",
                     "suggested_amount": suggested,
                     "historical_avg": h["avg_amount"],
                     "historical_max": h["max_amount"],

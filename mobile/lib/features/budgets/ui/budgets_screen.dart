@@ -426,7 +426,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               CategoryGlyph(icon: item.categoryIcon, size: 32),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(item.categoryName,
+                child: Text(catLabel(name: item.categoryName, copyKey: item.copyKey),
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ),
               Text(formatCurrency(item.total),
@@ -471,7 +471,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 CategoryGlyph(icon: item.categoryIcon, size: 32),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(item.categoryName,
+                  child: Text(catLabel(name: item.categoryName, copyKey: item.copyKey),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
                 // Cycle date range badge
@@ -619,7 +619,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(t('budget.delete')),
-        content: Text(t('budget.remove_q').replaceAll('{c}', item.categoryName)),
+        content: Text(t('budget.remove_q').replaceAll('{c}', catLabel(name: item.categoryName, copyKey: item.copyKey))),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(t('common.cancel'))),
           FilledButton(
@@ -729,7 +729,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
                   CategoryGlyph(icon: widget.existingItem!.categoryIcon, size: 28),
                   const SizedBox(width: 10),
                   Text(
-                    widget.existingItem!.categoryName,
+                    catLabel(name: widget.existingItem!.categoryName, copyKey: widget.existingItem!.copyKey),
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ],

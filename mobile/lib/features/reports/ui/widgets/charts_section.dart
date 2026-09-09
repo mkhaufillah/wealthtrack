@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/copy_fallback.dart';
 import '../../../../core/ui/category_glyph.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/utils/date_formatter.dart';
@@ -61,7 +62,7 @@ Widget buildPieChartSection(List<CategoryBreakdown> categories) {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        cat.categoryName,
+                        catLabel(name: cat.categoryName, copyKey: cat.copyKey),
                         style: const TextStyle(fontSize: 11),
                         overflow: TextOverflow.ellipsis,
                       ),

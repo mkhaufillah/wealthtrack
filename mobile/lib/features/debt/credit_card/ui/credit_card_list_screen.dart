@@ -218,7 +218,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
         ? '**** **** **** ${card.cardNumberLast4}'
         : t('cc.no_number');
     final dueDateLabel = '${t('cc.due_label')} ${_ordinalSuffix(card.dueDate)}';
-    final billingDateLabel = 'Tagihan ${_ordinalSuffix(card.billingDate)}';
+    final billingDateLabel = t('cc.bill_on').replaceAll('{n}', '${card.billingDate}');
 
     // Owner badge check
     final currentUser = ref.read(authProvider).user;
@@ -273,7 +273,7 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  card.name.isNotEmpty ? card.name : 'Kartu kredit',
+                                  card.name.isNotEmpty ? card.name : t('cc.title'),
                                   style: const TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
@@ -372,6 +372,6 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
   }
 
   String _ordinalSuffix(int day) {
-    return 'tgl $day';
+    return t('cc.day_n').replaceAll('{n}', '$day');
   }
 }

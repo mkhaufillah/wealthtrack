@@ -1,3 +1,5 @@
+import '../../../core/ui/copy_fallback.dart';
+
 class KPRScheduleItem {
   final int monthNumber;
   final int payment;
@@ -268,13 +270,13 @@ class ExtraPaymentRecord {
 String kprInterestLabel(String type) {
   switch (type.toLowerCase()) {
     case 'fixed':
-      return 'Tetap';
+      return t('common.fixed');
     case 'floating':
-      return 'Mengambang';
+      return t('common.floating');
     case 'graduated':
-      return 'Bertahap';
+      return t('common.graduated');
     case 'mix':
-      return 'Campur';
+      return t('common.mix');
     default:
       return type;
   }

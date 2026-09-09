@@ -434,7 +434,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 Expanded(
                   flex: 3,
                   child: Text(
-                    item.categoryName,
+                    catLabel(name: item.categoryName, copyKey: item.copyKey),
                     style: TextStyle(fontSize: 13),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -561,7 +561,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  cat.categoryName,
+                  catLabel(name: cat.categoryName, copyKey: cat.copyKey),
                   style: TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -659,7 +659,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'I: ' + formatCurrency(u.totalIncome) + ' / E: ' + formatCurrency(u.totalExpense),
+                        t('report.abbr_income') + ': ' + formatCurrency(u.totalIncome) + ' / ' + t('report.abbr_expense') + ': ' + formatCurrency(u.totalExpense),
                         style: TextStyle(
                           fontSize: 10,
                           color: AppColors.textSecondary,
@@ -779,7 +779,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  cat.categoryName,
+                  catLabel(name: cat.categoryName, copyKey: cat.copyKey),
                   style: TextStyle(fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -877,7 +877,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                     const Spacer(),
                     Text(
-                      'E: ' + formatCurrency(totalExpense),
+                      t('report.abbr_expense') + ': ' + formatCurrency(totalExpense),
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.highlight,
@@ -886,7 +886,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     if (totalIncome > 0) ...[
                       const SizedBox(width: 8),
                       Text(
-                        'I: ' + formatCurrency(totalIncome),
+                        t('report.abbr_income') + ': ' + formatCurrency(totalIncome),
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.success,

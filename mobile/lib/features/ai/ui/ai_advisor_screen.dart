@@ -277,7 +277,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        _useAdvancedModel ? 'Advanced' : 'Flash',
+                        _useAdvancedModel ? t('ai.model_advanced') : t('ai.model_flash'),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -293,7 +293,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
             IconButton(
               icon: AppIcon(AppIcons.trash, size: 20),
               onPressed: _clearChat,
-              tooltip: 'Bersihin chat',
+              tooltip: t('ai.clear'),
             ),
         ],
       ),

@@ -114,7 +114,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
   }
 
   Future<bool> _confirmDeleteInst(CCInstallment inst) async {
-    final label = inst.description.isNotEmpty ? inst.description : 'Cicilan';
+    final label = inst.description.isNotEmpty ? inst.description : t('cc.tab_inst');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -162,7 +162,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(card?.name ?? 'Kartu kredit'),
+        title: Text(card?.name ?? t('cc.title')),
         scrolledUnderElevation: 0,
         actions: [
           if (card != null)
@@ -279,10 +279,10 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           Row(
             children: [
               Expanded(
-                child: _headerInfoItem('Tanggal tagihan', _ordinalSuffix(card.billingDate), AppIcons.calendar),
+                child: _headerInfoItem(t('cc.bill_label'), _ordinalSuffix(card.billingDate), AppIcons.calendar),
               ),
               Expanded(
-                child: _headerInfoItem('Jatuh tempo', _ordinalSuffix(card.dueDate), AppIcons.clock),
+                child: _headerInfoItem(t('cc.due_label'), _ordinalSuffix(card.dueDate), AppIcons.clock),
               ),
             ],
           ),
@@ -290,7 +290,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
           Row(
             children: [
               Expanded(
-                child: _headerInfoItem('Limit', formatCurrency(card.creditLimit), AppIcons.card),
+                child: _headerInfoItem(t('cc.limit_label'), formatCurrency(card.creditLimit), AppIcons.card),
               ),
               const Expanded(child: SizedBox()),
             ],
@@ -563,7 +563,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
             children: [
               Expanded(
                 child: Text(
-                  inst.description.isNotEmpty ? inst.description : 'Cicilan',
+                  inst.description.isNotEmpty ? inst.description : t('cc.tab_inst'),
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -634,7 +634,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
   }
 
   String _ordinalSuffix(int day) {
-    return 'tgl $day';
+    return t('cc.day_n').replaceAll('{n}', '$day');
   }
 
   String _formatDate(String dateStr) {

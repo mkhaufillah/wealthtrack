@@ -106,9 +106,9 @@ class _CreditCardFormScreenState extends ConsumerState<CreditCardFormScreen> {
 
   String? _validateLast4(String? value) {
     if (value == null || value.isEmpty) return null; // optional
-    if (value.length > 4) return 'Max 4 digits';
+    if (value.length > 4) return t('cc.last4_max');
     if (RegExp(r'^\d*$').hasMatch(value)) return null;
-    return 'Digits only';
+    return t('cc.digits_only');
   }
 
   Future<void> _checkHousehold() async {

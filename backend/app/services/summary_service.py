@@ -93,7 +93,7 @@ class SummaryService:
 
         # Expense category breakdown
         cursor = await self.db.execute(
-            f"""SELECT c.id, c.name, c.icon,
+            f"""SELECT c.id, c.name, c.icon, c.copy_key,
                       SUM(t.amount) as total, COUNT(*) as count
                FROM transactions t
                JOIN categories c ON t.category_id = c.id
@@ -110,6 +110,7 @@ class SummaryService:
                 {
                     "category_id": r["id"],
                     "category_name": r["name"],
+                    "copy_key": r["copy_key"] or "",
                             "icon": r["icon"] or "",
                     "total": int(r["total"]),
                     "count": r["count"],
@@ -241,7 +242,7 @@ class SummaryService:
                 expense = r["total"]
 
         cursor = await self.db.execute(
-            """SELECT c.id, c.name, c.icon,
+            """SELECT c.id, c.name, c.icon, c.copy_key,
                       SUM(t.amount) as total, COUNT(*) as count
                FROM transactions t
                JOIN categories c ON t.category_id = c.id
@@ -260,6 +261,7 @@ class SummaryService:
                 {
                     "category_id": r["id"],
                     "category_name": r["name"],
+                    "copy_key": r["copy_key"] or "",
                             "icon": r["icon"] or "",
                     "total": int(r["total"]),
                     "count": r["count"],
@@ -383,7 +385,7 @@ class SummaryService:
                 expense = r["total"]
 
         cursor = await self.db.execute(
-            """SELECT c.id, c.name, c.icon,
+            """SELECT c.id, c.name, c.icon, c.copy_key,
                       SUM(t.amount) as total, COUNT(*) as count
                FROM transactions t JOIN categories c ON t.category_id = c.id
                WHERE t.user_id = ?
@@ -398,13 +400,14 @@ class SummaryService:
             pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
             categories.append({
                 "category_id": r["id"], "category_name": r["name"],
+                "copy_key": r["copy_key"] or "",
                     "icon": r["icon"] or "", "total": int(r["total"]),
                 "count": r["count"], "percentage": pct,
             })
 
         # Income category breakdown
         cursor = await self.db.execute(
-            """SELECT c.id, c.name, c.icon,
+            """SELECT c.id, c.name, c.icon, c.copy_key,
                       SUM(t.amount) as total, COUNT(*) as count
                FROM transactions t JOIN categories c ON t.category_id = c.id
                WHERE t.user_id = ?
@@ -420,6 +423,7 @@ class SummaryService:
             pct = round((income_total / income * 100), 1) if income > 0 else 0
             income_categories.append({
                 "category_id": r["id"], "category_name": r["name"],
+                "copy_key": r["copy_key"] or "",
                     "icon": r["icon"] or "", "total": income_total,
                 "count": r["count"], "percentage": pct,
             })
@@ -441,11 +445,11 @@ class SummaryService:
         # Adjusted: (income - expense) + (savings expense - savings withdrawal)
         savings_expense = sum(
             c["total"] for c in categories
-            if c["category_name"] == "Tabungan & Investasi"
+            if c.get("copy_key") == "cat.n.savings"
         )
         savings_income = sum(
             c["total"] for c in income_categories
-            if c["category_name"] == "Penarikan Tabungan & Investasi"
+            if c.get("copy_key") == "cat.n.withdrawal"
         )
         adjusted = (income - expense) + (savings_expense - savings_income)
         savings_rate = round(adjusted / income * 100, 1) if income > 0 else 0

@@ -228,9 +228,9 @@ class _KPRExtraPaymentScreenState
               fillColor: AppColors.surface,
             ),
             validator: (v) {
-              if (v == null || v.isEmpty) return 'Isi jumlahnya';
+              if (v == null || v.isEmpty) return t('kpr.amount_required');
               final n = _parseAmount(v);
-              if (n == 0 || n < 1000) return 'Minimum Rp1,000';
+              if (n == 0 || n < 1000) return t('kpr.min_amount').replaceAll('{n}', formatCurrency(1000));
               return null;
             },
           ),
@@ -250,14 +250,14 @@ class _KPRExtraPaymentScreenState
               fillColor: AppColors.surface,
             ),
             validator: (v) {
-              if (v == null || v.isEmpty) return 'Isi nomor bulan';
+              if (v == null || v.isEmpty) return t('kpr.month_required');
               final n = int.tryParse(v);
               if (n == null || n < _minMonth) {
                 return _minMonth == 1
-                    ? 'Minimal 1'
-                    : 'Minimal $_minMonth (setelah pembayaran ekstra yang ada)';
+                    ? t('kpr.min_n').replaceAll('{n}', '1')
+                    : t('kpr.min_after_extra').replaceAll('{n}', '$_minMonth');
               }
-              if (n > _maxMonth) return 'Maksimal $_maxMonth (akhir tenor)';
+              if (n > _maxMonth) return t('kpr.max_tenor_n').replaceAll('{n}', '$_maxMonth');
               return null;
             },
           ),
@@ -292,7 +292,7 @@ class _KPRExtraPaymentScreenState
     if (preview == null) {
       return Center(
         child: Text(
-          state.error ?? 'Pratinjau belum tersedia',
+          state.error ?? t('kpr.preview_empty'),
           style: TextStyle(color: AppColors.highlight),
         ),
       );
@@ -334,7 +334,7 @@ class _KPRExtraPaymentScreenState
           isSelected: _selectedOption == 0,
           fields: {
             t('kpr.installment'): formatCurrency(optA.newInstallment),
-            t('kpr.period_label'): '${optA.newTenor} bln',
+            t('kpr.period_label'): '${optA.newTenor} ${t('kpr.unit_bln')}',
             t('kpr.total_interest'): formatCurrency(optA.totalInterestPaid),
             t('kpr.interest_saved'): formatCurrency(optA.interestSaved),
             t('kpr.paid_off'): optA.endDate,
@@ -349,7 +349,7 @@ class _KPRExtraPaymentScreenState
           isSelected: _selectedOption == 1,
           fields: {
             t('kpr.installment'): formatCurrency(optB.newInstallment),
-            t('kpr.period_label'): '${optB.newTenor} bln',
+            t('kpr.period_label'): '${optB.newTenor} ${t('kpr.unit_bln')}',
             t('kpr.total_interest'): formatCurrency(optB.totalInterestPaid),
             t('kpr.interest_saved'): formatCurrency(optB.interestSaved),
             t('kpr.paid_off'): optB.endDate,
@@ -420,8 +420,8 @@ class _KPRExtraPaymentScreenState
             ),
             child: Text(
               _selectedOption != null
-                  ? 'Pasang pembayaran ekstra'
-                  : 'Pilih opsi di atas dulu',
+                  ? t('kpr.apply_extra')
+                  : t('kpr.pick_option_first'),
               style:
                   const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),

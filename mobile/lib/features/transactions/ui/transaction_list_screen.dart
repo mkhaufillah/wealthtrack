@@ -403,7 +403,7 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               ),
               const SizedBox(height: 16),
               ...available.map((member) {
-                final name = member['display_name'] as String? ?? 'User #${member['user_id']}';
+                final name = member['display_name'] as String? ?? t('common.user_n').replaceAll('{n}', '${member['user_id']}');
                 final role = member['role'] as String? ?? 'member';
                 
                 return ListTile(
@@ -525,8 +525,8 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                   const SizedBox(width: 8),
                   Text(
                     ocrState.pendingCount == 1
-                        ? '⏳ 1 struk lagi diproses…'
-                        : '⏳ ${ocrState.pendingCount} struk lagi diproses…',
+                        ? t('home.ocr_processing').replaceAll('{count}', '1')
+                        : t('home.ocr_processing').replaceAll('{count}', '${ocrState.pendingCount}'),
                     style: TextStyle(fontSize: 13, color: AppColors.warning),
                   ),
                 ],
@@ -765,8 +765,8 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       case 'date': return t('tx.sort_oldest');
       case '-amount': return t('tx.sort_high');
       case 'amount': return t('tx.sort_low');
-      case 'name': return 'A–Z';
-      case '-name': return 'Z–A';
+      case 'name': return t('sort.name_az');
+      case '-name': return t('sort.name_za');
       default: return t('tx.sort');
     }
   }

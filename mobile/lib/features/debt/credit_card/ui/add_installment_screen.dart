@@ -122,7 +122,7 @@ class _AddInstallmentScreenState extends ConsumerState<AddInstallmentScreen> {
       firstDate: DateTime(2020, 1, 1),
       lastDate: DateTime(2035, 12, 31),
       initialDatePickerMode: DatePickerMode.year,
-      helpText: 'Pilih bulan mulai',
+      helpText: t('cc.pick_start_month'),
     );
     if (picked != null) {
       final formatted = '${picked.year}-${picked.month.toString().padLeft(2, '0')}';

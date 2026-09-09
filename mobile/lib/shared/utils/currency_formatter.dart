@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import '../../core/ui/copy_fallback.dart';
 import '../../core/ui/money.dart';
 
 String formatCurrency(int amount) {
@@ -40,13 +41,13 @@ String formatCurrencyCompact(int amount) {
   final abs = amount.abs();
   final sign = amount < 0 ? '-' : '';
   if (abs >= 1000000000) {
-    return '${sign}${MoneyFormat.prefix}${_trimNum(abs / 1000000000)}M';
+    return '${sign}${MoneyFormat.prefix}${_trimNum(abs / 1000000000)}${t('money.billion')}';
   }
   if (abs >= 1000000) {
-    return '${sign}${MoneyFormat.prefix}${_trimNum(abs / 1000000)}jt';
+    return '${sign}${MoneyFormat.prefix}${_trimNum(abs / 1000000)}${t('money.million')}';
   }
   if (abs >= 10000) {
-    return '${sign}${MoneyFormat.prefix}${_trimNum(abs / 1000)}rb';
+    return '${sign}${MoneyFormat.prefix}${_trimNum(abs / 1000)}${t('money.thousand')}';
   }
   return formatCurrency(amount);
 }

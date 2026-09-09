@@ -283,7 +283,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               if (ctx.mounted) {
                                 setSheetState(() => joining = false);
                                 ScaffoldMessenger.of(ctx).showSnackBar(
-                                  SnackBar(content: Text('❌ $e')),
+                                  SnackBar(content: Text(ref.read(apiClientProvider).handleError(e).toString())),
                                 );
                               }
                             }
@@ -365,7 +365,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               if (ctx.mounted) {
                                 setSheetState(() => creating = false);
                                 ScaffoldMessenger.of(ctx).showSnackBar(
-                                  SnackBar(content: Text('❌ $e')),
+                                  SnackBar(content: Text(ref.read(apiClientProvider).handleError(e).toString())),
                                 );
                               }
                             }

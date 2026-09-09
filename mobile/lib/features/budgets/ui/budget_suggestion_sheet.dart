@@ -120,7 +120,7 @@ class _BudgetSuggestionSheetState
               )
             else ...[
               // Warning if over income
-              if (resp.warning.isNotEmpty)
+              if (resp.totalIncome > 0 && resp.totalSuggested > resp.totalIncome)
                 Container(
                   margin: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 8),
@@ -135,7 +135,10 @@ class _BudgetSuggestionSheetState
                           size: 18, color: AppColors.warning),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(resp.warning,
+                        child: Text(
+                            t('suggest.over_income')
+                                .replaceAll('{s}', formatCurrency(resp.totalSuggested))
+                                .replaceAll('{i}', formatCurrency(resp.totalIncome)),
                             style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.warning)),
@@ -264,13 +267,13 @@ class _BudgetSuggestionSheetState
                           CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.categoryName,
+                          catLabel(name: item.categoryName, copyKey: item.copyKey),
                           style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600),
                         ),
                         Text(
-                          '${t('suggest.avg')} ${formatCurrency(item.historicalAvg)}/bln',
+                          '${t('suggest.avg')} ${formatCurrency(item.historicalAvg)}/${t('kpr.unit_bln')}',
                           style: TextStyle(
                               fontSize: 11,
                               color: AppColors.textSecondary),

@@ -277,18 +277,18 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _resultRow('Harga rumah', formatCurrency(loanAmount + _getDownPayment())),
-            _resultRow('Uang muka', formatCurrency(_getDownPayment())),
-            _resultRow('Pinjaman', formatCurrency(loanAmount)),
+            _resultRow(t('kpr.house_price'), formatCurrency(loanAmount + _getDownPayment())),
+            _resultRow(t('kpr.dp_short'), formatCurrency(_getDownPayment())),
+            _resultRow(t('kpr.loan'), formatCurrency(loanAmount)),
             Divider(height: 24, color: AppColors.divider),
-            _resultRow('Cicilan / bulan', formatCurrency(monthlyPayment.round()),
+            _resultRow(t('kpr.installment'), formatCurrency(monthlyPayment.round()),
                 valueColor: AppColors.accent),
-            _resultRow('Total bayar', formatCurrency(totalPayment.round())),
-            _resultRow('Total bunga', formatCurrency(totalInterest.round()),
+            _resultRow(t('kpr.total_payment'), formatCurrency(totalPayment.round())),
+            _resultRow(t('kpr.total_interest'), formatCurrency(totalInterest.round()),
                 valueColor: AppColors.highlight),
             Divider(height: 24, color: AppColors.divider),
-            _resultRow('Tenor', '$_tenorYears tahun ($tenorMonths bulan)'),
-            _resultRow('Tipe bunga', kprInterestLabel(_interestType)),
+            _resultRow(t('kpr.tenor_label'), t('kpr.tenor_ym').replaceAll('{y}', '$_tenorYears').replaceAll('{m}', '$tenorMonths')),
+            _resultRow(t('kpr.type_label'), kprInterestLabel(_interestType)),
           ],
         ),
         actions: [
@@ -540,10 +540,10 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
             const SizedBox(height: 6),
             SegmentedButton<String>(
               segments: [
-                ButtonSegment(value: 'fixed', label: Text(t('kpr.interest_fixed'), style: TextStyle(fontSize: 12))),
-                ButtonSegment(value: 'floating', label: Text(t('kpr.interest_floating'), style: TextStyle(fontSize: 11))),
-                ButtonSegment(value: 'graduated', label: Text(t('kpr.interest_graduated'), style: TextStyle(fontSize: 12))),
-                ButtonSegment(value: 'mix', label: Text(t('kpr.interest_mix'), style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: 'fixed', label: Text(t('common.fixed'), style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: 'floating', label: Text(t('common.floating'), style: TextStyle(fontSize: 11))),
+                ButtonSegment(value: 'graduated', label: Text(t('common.graduated'), style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: 'mix', label: Text(t('common.mix'), style: TextStyle(fontSize: 12))),
               ],
               selected: {_interestType},
               onSelectionChanged: (v) => setState(() => _interestType = v.first),
@@ -689,7 +689,7 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
           hintText: t('kpr.months_hint'),
-          suffixText: 'bulan',
+          suffixText: t('common.month_unit'),
           prefixIcon: AppFieldIcon(AppIcons.calendar),
         ),
       ),
@@ -817,8 +817,8 @@ class _KPRFormScreenState extends ConsumerState<KPRFormScreen> {
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
                   items: [
-                    DropdownMenuItem(value: 'fixed', child: Text(t('kpr.interest_fixed'), style: TextStyle(fontSize: 13))),
-                    DropdownMenuItem(value: 'floating', child: Text(t('kpr.interest_floating'), style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: 'fixed', child: Text(t('common.fixed'), style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: 'floating', child: Text(t('common.floating'), style: TextStyle(fontSize: 13))),
                   ],
                   onChanged: (v) {
                     if (v != null) setState(() => rp.rateType = v);

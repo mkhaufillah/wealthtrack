@@ -240,13 +240,13 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                   children: [
                     Expanded(
                       child: _infoColumn(
-                        'Harga rumah',
+                        t('kpr.house_price'),
                         formatCurrency(sim.propertyPrice),
                       ),
                     ),
                     Expanded(
                       child: _infoColumn(
-                        'Pinjaman',
+                        t('kpr.loan'),
                         formatCurrency(sim.totalLoan),
                       ),
                     ),
@@ -257,13 +257,13 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
                   children: [
                     Expanded(
                       child: _infoColumn(
-                        'Cicilan / bulan',
+                        t('kpr.installment'),
                         monthlyPaymentStr,
                       ),
                     ),
                     Expanded(
                       child: _infoColumn(
-                        'Total bunga',
+                        t('kpr.total_interest'),
                         totalInterestStr,
                       ),
                     ),
@@ -368,11 +368,11 @@ class _KPRListScreenState extends ConsumerState<KPRListScreen> {
   }
 
   String _tenorLabel(int months) {
-    if (months < 12) return '$months bulan';
+    if (months < 12) return t('kpr.month_n').replaceAll('{n}', '$months');
     final years = months ~/ 12;
-    final rem = months % 12;
-    if (rem == 0) return '$years tahun';
-    return '$years tahun $rem bulan';
+    final remaining = months % 12;
+    if (remaining == 0) return t('common.year_n').replaceAll('{n}', '$years');
+    return t('kpr.years_months').replaceAll('{y}', '$years').replaceAll('{m}', '$remaining');
   }
 
   int _monthsBetween(int startMonth, int startYear) {
