@@ -79,6 +79,10 @@ def test_type_debit_vs_kredit():
     assert parse_type("Kredit Rp2.000.000 gaji") == "income"
     assert parse_type("Transfer masuk Rp100.000") == "income"
     assert parse_type("QRIS Superbank Grab") == "expense"
+    assert parse_type("Kamu berhasil pindahin Rp100,00 ke Food and Drinks") == "expense"
+    assert parse_type("Transfer ke BCA Rp50.000") == "expense"
+    assert parse_type("Dana masuk Rp75.000 dari Jago") == "income"
+    assert parse_type("Kartu kredit tagihan") == "expense"
 
 
 def test_merchant_after_di():

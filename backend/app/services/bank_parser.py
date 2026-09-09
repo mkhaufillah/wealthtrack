@@ -29,19 +29,22 @@ BANK_PACKAGES: dict[str, str] = {
 }
 
 INCOME_HINTS = (
-    "kredit",
-    "masuk",
-    "diterima",
-    "terima",
     "transfer masuk",
     "dana masuk",
     "uang masuk",
+    "diterima",
+    "terima dari",
+    "masuk dari",
+    "kredit rp",
+    "kredit idr",
     "top up",
     "topup",
     "top-up",
     "gaji",
     "refund",
     "pengembalian",
+    "kamu terima",
+    "dapat transfer",
 )
 EXPENSE_HINTS = (
     "debit",
@@ -49,8 +52,10 @@ EXPENSE_HINTS = (
     "dibayar",
     "transfer ke",
     "transfer keluar",
+    "pindahin ke",
+    "pemindahan uang",
+    "bayar ke",
     "qris",
-    "bayar",
     "pembelian",
     "pembayaran",
     "belanja",
@@ -153,11 +158,22 @@ def has_amount(blob: str) -> bool:
     return parse_amount(blob) is not None
 
 
+def _hint_hit(hay: str, phrase: str) -> bool:
+    if len(phrase) < 2:
+        return False
+    pat = r"(?<![a-z0-9])" + re.escape(phrase) + r"(?![a-z0-9])"
+    return re.search(pat, hay) is not None
+
+
 def parse_type(blob: str) -> str:
     lower = (blob or "").lower()
-    income_hit = any(h in lower for h in INCOME_HINTS)
-    expense_hit = any(h in lower for h in EXPENSE_HINTS)
-    if income_hit and not expense_hit:
+    expense_hit = any(_hint_hit(lower, h) for h in EXPENSE_HINTS)
+    if expense_hit:
+        return "expense"
+    if re.search(r"(?<![a-z0-9])kredit\s*(rp|idr)", lower) and "kartu kredit" not in lower:
+        return "income"
+    income_hit = any(_hint_hit(lower, h) for h in INCOME_HINTS)
+    if income_hit:
         return "income"
     return "expense"
 
