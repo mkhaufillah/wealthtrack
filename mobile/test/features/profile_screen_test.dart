@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/features/profile/ui/profile_screen.dart';
+import 'package:wealthtrack/features/profile/providers/profile_provider.dart';
 import 'package:wealthtrack/features/auth/providers/auth_provider.dart';
 import 'package:wealthtrack/features/auth/data/auth_repository.dart';
 import 'package:wealthtrack/features/auth/models/user_model.dart';
@@ -169,6 +170,51 @@ void main() {
       expect(find.text('Keluarga'), findsOneWidget);
       expect(find.text('Gabung keluarga'), findsOneWidget);
       expect(find.text('Buat baru'), findsOneWidget);
+    });
+
+    testWidgets('leftover deleting flag does not keep a full-page spinner',
+        (tester) async {
+      final stuck = ProfileNotifier()
+        ..state = const ProfileState(deleting: true);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authProvider.overrideWithProvider(
+              StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+                return AuthNotifier(
+                    _MockAuthRepo(), MockSecureStorage(), MockApiClient())
+                  ..state = AuthState(
+                    status: AuthStatus.authenticated,
+                    user: UserModel(
+                      id: 1,
+                      username: 'testuser',
+                      displayName: 'Test User',
+                      role: 'user',
+                    ),
+                    isAuthenticated: true,
+                  );
+              }),
+            ),
+            apiClientProvider.overrideWithProvider(
+              Provider<ApiClient>((ref) => MockApiClient()),
+            ),
+            secureStorageProvider.overrideWithProvider(
+              Provider<SecureStorage>((ref) => MockSecureStorage()),
+            ),
+            profileProvider.overrideWithProvider(
+              StateNotifierProvider<ProfileNotifier, ProfileState>(
+                (ref) => stuck,
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const ProfileScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.text('Ubah profil'), findsOneWidget);
     });
 
     testWidgets('shows app version at bottom', (tester) async {

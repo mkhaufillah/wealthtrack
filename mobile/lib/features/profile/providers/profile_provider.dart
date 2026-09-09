@@ -128,11 +128,15 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     }
   }
 
+  void reset() {
+    state = const ProfileState();
+  }
+
   Future<void> deleteAccount(ApiClient api, AuthNotifier authNotifier) async {
     state = state.copyWith(deleting: true, clearError: true, clearMessage: true);
     try {
       await authNotifier.deleteAccount();
-      // authProvider state change → GoRouter redirects to /login automatically
+      reset();
     } catch (e) {
       state = state.copyWith(
         deleting: false,
@@ -142,7 +146,11 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   }
 
   Future<void> loadHousehold(ApiClient api) async {
-    state = state.copyWith(loadingHousehold: true, clearError: true);
+    state = state.copyWith(
+      loadingHousehold: true,
+      deleting: false,
+      clearError: true,
+    );
     try {
       final repo = HouseholdRepository(api);
       final data = await repo.getMyHousehold();
@@ -174,5 +182,9 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 }
 
 final profileProvider = StateNotifierProvider<ProfileNotifier, ProfileState>((ref) {
-  return ProfileNotifier();
+  final notifier = ProfileNotifier();
+  ref.listen<AuthState>(authProvider, (prev, next) {
+    if (!next.isAuthenticated) notifier.reset();
+  });
+  return notifier;
 });
