@@ -155,6 +155,8 @@ class _CategoryManagementScreenState
                     const SizedBox(height: 12),
                     TextField(
                       controller: _keywordsCtrl,
+                      readOnly: isDefault,
+                      maxLines: isDefault ? 8 : 3,
                       decoration: InputDecoration(
                         labelText: t('cat.keywords'),
                         hintText: t('cat.keywords_hint'),
@@ -228,10 +230,11 @@ class _CategoryManagementScreenState
                       ),
                     ],
                     const SizedBox(height: 20),
+                    if (!isDefault)
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: saving || isDefault
+                        onPressed: saving
                             ? null
                             : () async {
                                 if (_nameCtrl.text.trim().isEmpty) return;
@@ -407,11 +410,17 @@ class _CategoryManagementScreenState
             color: AppColors.textPrimary,
           ),
         ),
+        subtitle: (cat['keywords'] as List? ?? const []).isEmpty
+            ? null
+            : Text(
+                '${(cat['keywords'] as List).length} ${t('cat.keywords').toLowerCase()}',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
         trailing: isDefault
             ? AppIcon(AppIcons.shield,
                 size: 16, color: AppColors.textSecondary.withOpacity(0.4))
             : AppIcon(AppIcons.next, color: AppColors.textSecondary),
-        onTap: isDefault ? null : () => _showAddEditSheet(category: cat),
+        onTap: () => _showAddEditSheet(category: cat),
       ),
     );
   }

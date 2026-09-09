@@ -99,5 +99,6 @@ void main() {
     await tester.tap(find.text('Gaji'));
     await tester.pumpAndSettle();
     expect(find.text('Simpan'), findsNothing);
+    expect(find.text('Kata kunci'), findsOneWidget);
   });
 }
