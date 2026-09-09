@@ -84,18 +84,29 @@ class BankInboxService:
         ).fetchone()
         return _item(dict(row))
 
-    async def list_items(self, user_id: int, status: str = "pending") -> dict:
-        allowed = {"pending", "confirmed", "rejected"}
+    async def list_items(self, user_id: int, status: str = "all") -> dict:
+        allowed = {"pending", "confirmed", "rejected", "all"}
         if status not in allowed:
             raise BankInboxError("Status gak dikenal")
-        rows = await (
-            await self.db.execute(
-                """SELECT * FROM bank_inbox
-                   WHERE user_id = ? AND status = ?
-                   ORDER BY posted_at DESC, id DESC""",
-                (user_id, status),
-            )
-        ).fetchall()
+        if status == "all":
+            rows = await (
+                await self.db.execute(
+                    """SELECT * FROM bank_inbox
+                       WHERE user_id = ?
+                       ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END,
+                                posted_at DESC, id DESC""",
+                    (user_id,),
+                )
+            ).fetchall()
+        else:
+            rows = await (
+                await self.db.execute(
+                    """SELECT * FROM bank_inbox
+                       WHERE user_id = ? AND status = ?
+                       ORDER BY posted_at DESC, id DESC""",
+                    (user_id, status),
+                )
+            ).fetchall()
         count_row = await (
             await self.db.execute(
                 """SELECT COUNT(*) AS cnt FROM bank_inbox

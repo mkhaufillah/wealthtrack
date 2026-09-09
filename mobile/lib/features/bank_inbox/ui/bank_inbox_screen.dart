@@ -153,10 +153,13 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
         itemCount: _items.length,
         itemBuilder: (ctx, i) {
           final item = _items[i];
-          final parsed = item['parsed'] == true;
+          final parsed = item['parsed'] == true || item['parsed'] == 1;
           final amount = item['amount'];
+          final amountInt = amount is int ? amount : (amount is num ? amount.toInt() : null);
           final bank = (item['bank'] ?? '').toString();
           final merchant = (item['merchant'] ?? '').toString();
+          final status = (item['status'] ?? '').toString();
+          final pending = status == 'pending' || status.isEmpty;
           final raw = '${item['title'] ?? ''} ${item['text'] ?? ''}'.trim();
           return Card(
             elevation: 0,
@@ -176,10 +179,14 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
                       color: AppColors.textSecondary,
                     ),
                   ),
+                  if (status == 'confirmed')
+                    Text(t('bank.status_saved'), style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  if (status == 'rejected')
+                    Text(t('bank.status_skipped'), style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   const SizedBox(height: 4),
                   Text(
-                    parsed && amount is int
-                        ? formatCurrency(amount)
+                    parsed && amountInt != null
+                        ? formatCurrency(amountInt)
                         : t('bank.unparsed'),
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
@@ -188,20 +195,22 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
                     merchant.isNotEmpty ? merchant : raw,
                     style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      FilledButton(
-                        onPressed: parsed ? () => _act(item['id'] as int, 'confirm') : null,
-                        child: Text(t('bank.confirm')),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton(
-                        onPressed: () => _act(item['id'] as int, 'reject'),
-                        child: Text(t('bank.reject')),
-                      ),
-                    ],
-                  ),
+                  if (pending) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        FilledButton(
+                          onPressed: parsed ? () => _act(item['id'] as int, 'confirm') : null,
+                          child: Text(t('bank.confirm')),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: () => _act(item['id'] as int, 'reject'),
+                          child: Text(t('bank.reject')),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

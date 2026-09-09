@@ -96,7 +96,9 @@ async def test_reject(client: AsyncClient, auth_headers: dict):
     assert rejected.json()["status"] == "rejected"
 
     listed = await client.get("/api/v1/bank-inbox", headers=auth_headers)
+    assert listed.status_code == 200
     assert listed.json()["pending_count"] == 0
+    assert listed.json()["items"][0]["status"] == "rejected"
 
 
 @pytest.mark.asyncio

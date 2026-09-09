@@ -448,6 +448,8 @@ COPY_ID: dict[str, str] = {
     'bank.saved': 'Kesimpen dari notif bank',
     'bank.rejected': 'Draf diabaikan',
     'profile.bank_inbox': 'Dari bank',
+    'bank.status_saved': 'Sudah dicatat',
+    'bank.status_skipped': 'Diabaikan',
 }
 
 THEME_LIGHT: dict[str, str] = {

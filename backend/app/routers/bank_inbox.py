@@ -34,7 +34,7 @@ async def ingest(
 
 @router.get("", response_model=BankInboxList)
 async def list_inbox(
-    status: str = Query(default="pending"),
+    status: str = Query(default="all"),
     db=Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
