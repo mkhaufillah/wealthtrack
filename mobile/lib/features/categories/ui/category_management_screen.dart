@@ -19,6 +19,8 @@ class _CategoryManagementScreenState
     extends ConsumerState<CategoryManagementScreen> {
   final _searchCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
+  final _nameEnCtrl = TextEditingController();
+  final _keyCtrl = TextEditingController();
   final _keywordsCtrl = TextEditingController();
   final _iconScrollCtrl = ScrollController();
   String _query = '';
@@ -35,6 +37,8 @@ class _CategoryManagementScreenState
   void dispose() {
     _searchCtrl.dispose();
     _nameCtrl.dispose();
+    _nameEnCtrl.dispose();
+    _keyCtrl.dispose();
     _keywordsCtrl.dispose();
     _iconScrollCtrl.dispose();
     super.dispose();
@@ -42,10 +46,16 @@ class _CategoryManagementScreenState
 
   Future<void> _showAddEditSheet({Map<String, dynamic>? category}) async {
     final isEdit = category != null;
-    _nameCtrl.text = catLabel(
-      name: category?['name'] ?? '',
-      copyKey: category?['copy_key'] as String?,
-    );
+    _nameCtrl.text = (category?['name_id'] as String?)?.trim().isNotEmpty == true
+        ? category!['name_id'] as String
+        : catLabel(
+            name: category?['name'] ?? '',
+            copyKey: category?['copy_key'] as String?,
+          );
+    _nameEnCtrl.text = (category?['name_en'] as String?) ?? '';
+    _keyCtrl.text = isEdit
+        ? (category?['copy_key'] as String? ?? '')
+        : t('cat.key_auto');
     _keywordsCtrl.text =
         (category?['keywords'] as List?)?.join(', ') ?? '';
     String iconKey = (category?['icon'] as String?)?.trim().isNotEmpty == true
@@ -96,8 +106,24 @@ class _CategoryManagementScreenState
                     ),
                     const SizedBox(height: 16),
                     TextField(
+                      readOnly: true,
+                      controller: _keyCtrl,
+                      decoration: InputDecoration(
+                        labelText: t('cat.key'),
+                        helperText: t('cat.key_hint'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
                       controller: _nameCtrl,
-                      decoration: InputDecoration(labelText: t('cat.name')),
+                      readOnly: isDefault,
+                      decoration: InputDecoration(labelText: t('cat.name_id')),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _nameEnCtrl,
+                      readOnly: isDefault,
+                      decoration: InputDecoration(labelText: t('cat.name_en')),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -127,10 +153,7 @@ class _CategoryManagementScreenState
                           shrinkWrap: true,
                           children: [
                             for (final item in kCategoryIconCatalog.where((i) {
-                              final q = iconQuery.trim().toLowerCase();
-                              if (q.isEmpty) return true;
-                              return i.key.toLowerCase().contains(q) ||
-                                  i.label.toLowerCase().contains(q);
+                              return i.matchesQuery(iconQuery);
                             }))
                               Material(
                                 color: iconKey == item.key
@@ -244,6 +267,9 @@ class _CategoryManagementScreenState
                                 setSheetState(() => saving = true);
                                 final data = <String, dynamic>{
                                   'name': _nameCtrl.text.trim(),
+                                  'name_en': _nameEnCtrl.text.trim().isEmpty
+                                      ? _nameCtrl.text.trim()
+                                      : _nameEnCtrl.text.trim(),
                                   'icon': iconKey,
                                 };
                                 if (_keywordsCtrl.text.trim().isNotEmpty) {

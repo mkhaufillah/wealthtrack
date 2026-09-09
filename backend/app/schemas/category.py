@@ -10,6 +10,8 @@ class CategoryOut(BaseModel):
     is_default: bool
     keywords: list[str] = []
     copy_key: str = ""
+    name_id: str = ""
+    name_en: str = ""
 
 
 class CategoryCreate(BaseModel):
@@ -18,6 +20,7 @@ class CategoryCreate(BaseModel):
     icon: str = "strokeRoundedInvoice01"
     keywords: list[str] = []
     sort_order: int = 0
+    name_en: Optional[str] = None
 
 
 class CategoryUpdate(BaseModel):
@@ -25,3 +28,4 @@ class CategoryUpdate(BaseModel):
     icon: Optional[str] = None
     keywords: Optional[list[str]] = None
     sort_order: Optional[int] = None
+    name_en: Optional[str] = None

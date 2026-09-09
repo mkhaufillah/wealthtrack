@@ -15,8 +15,9 @@ class TestListCategories:
         assert len(data) >= 6
         assert data[0]["name"] is not None
         assert data[0]["type"] in ("expense", "income")
-        assert "name_en" not in data[0]
         assert data[0]["copy_key"]
+        assert data[0]["name_id"]
+        assert data[0]["name_en"]
         assert "keywords" in data[0]
         assert isinstance(data[0]["keywords"], list)
         assert data[0]["icon"].startswith("strokeRounded")
@@ -56,7 +57,7 @@ class TestCreateCategory:
             "/api/v1/categories",
             headers={"Authorization": f"Bearer {filla_token}"},
             json={
-                "name": "Kendaraan", "type": "expense",
+                "name": "Kendaraan", "name_en": "Vehicles", "type": "expense",
                 "icon": "strokeRoundedCar01",
                 "keywords": ["mobil", "motor", "kendaraan"], "sort_order": 20,
             },
@@ -64,8 +65,9 @@ class TestCreateCategory:
         assert resp.status_code == 201
         data = resp.json()
         assert data["name"] == "Kendaraan"
+        assert data["name_id"] == "Kendaraan"
+        assert data["name_en"] == "Vehicles"
         assert data["copy_key"].startswith("cat.n.custom.")
-        assert "name_en" not in data
         assert data["type"] == "expense"
         assert data["icon"] == "strokeRoundedCar01"
         assert "mobil" in data["keywords"]
@@ -106,7 +108,6 @@ class TestUpdateCategory:
         data = resp.json()
         assert data["icon"] == "strokeRoundedLaptop"
         assert "side job" in data["keywords"]
-        assert "name_en" not in data
 
     async def test_non_admin_cannot_update(self, client: AsyncClient, nahda_token: str):
         assert (await client.put(

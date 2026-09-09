@@ -84,8 +84,17 @@ class CategoryService:
         kw = row["keywords"]
         result["keywords"] = json.loads(kw) if kw else []
         result["copy_key"] = (row.get("copy_key") if hasattr(row, "get") else result.get("copy_key")) or ""
-        result.pop("name_en", None)
+        name = result.get("name") or ""
+        result["name_id"] = (result.get("name_id") or "").strip() or name
+        result["name_en"] = (result.get("name_en") or "").strip() or result["name_id"]
         return result
+
+    _LIST_SQL = (
+        "SELECT id, name, type, icon, is_default, keywords, copy_key, "
+        "COALESCE((SELECT value FROM ui_copy WHERE key = categories.copy_key AND locale = 'id-ID'), name) AS name_id, "
+        "COALESCE((SELECT value FROM ui_copy WHERE key = categories.copy_key AND locale = 'en-US'), name) AS name_en "
+        "FROM categories"
+    )
 
     async def list_categories(
         self,
@@ -97,14 +106,12 @@ class CategoryService:
         """
         if type_filter:
             cursor = await self.db.execute(
-                "SELECT id, name, type, icon, is_default, keywords, copy_key "
-                "FROM categories WHERE type = ? ORDER BY sort_order",
+                self._LIST_SQL + " WHERE type = ? ORDER BY sort_order",
                 (type_filter,),
             )
         else:
             cursor = await self.db.execute(
-                "SELECT id, name, type, icon, is_default, keywords, copy_key "
-                "FROM categories ORDER BY type, sort_order"
+                self._LIST_SQL + " ORDER BY type, sort_order"
             )
         rows = await cursor.fetchall()
         return [self._format_category(r) for r in rows]
@@ -117,6 +124,7 @@ class CategoryService:
         icon: str,
         keywords: list[str],
         sort_order: int,
+        name_en: Optional[str] = None,
     ) -> dict:
         """Create a new category.
 
@@ -148,9 +156,10 @@ class CategoryService:
             "UPDATE categories SET copy_key = ? WHERE id = ?",
             (copy_key, new_id),
         )
-        await self._upsert_copy(copy_key, name)
+        await self._upsert_copy(copy_key, name, locale="id-ID")
+        await self._upsert_copy(copy_key, (name_en or name).strip() or name, locale="en-US")
         cursor = await self.db.execute(
-            "SELECT id, name, type, icon, is_default, keywords, copy_key FROM categories WHERE id = ?",
+            self._LIST_SQL + " WHERE id = ?",
             (new_id,),
         )
         return self._format_category(await cursor.fetchone())
@@ -163,6 +172,7 @@ class CategoryService:
         icon: Optional[str] = None,
         keywords: Optional[list[str]] = None,
         sort_order: Optional[int] = None,
+        name_en: Optional[str] = None,
     ) -> dict:
         """Update an existing category.
 
@@ -197,14 +207,14 @@ class CategoryService:
                 raise CategoryNameConflictError(name, existing["type"])
 
         updates = {}
+        copy_key = existing.get("copy_key") or f"cat.n.custom.{category_id}"
+        if not existing.get("copy_key"):
+            updates["copy_key"] = copy_key
         if name is not None:
-            loc = await self._user_locale(current_user)
-            copy_key = existing.get("copy_key") or f"cat.n.custom.{category_id}"
-            if not existing.get("copy_key"):
-                updates["copy_key"] = copy_key
-            if loc == "id-ID":
-                updates["name"] = name
-            await self._upsert_copy(copy_key, name, locale=loc)
+            updates["name"] = name
+            await self._upsert_copy(copy_key, name, locale="id-ID")
+        if name_en is not None:
+            await self._upsert_copy(copy_key, name_en, locale="en-US")
         if icon is not None:
             updates["icon"] = normalize_icon(icon)
         if keywords is not None:
@@ -212,10 +222,9 @@ class CategoryService:
         if sort_order is not None:
             updates["sort_order"] = sort_order
 
-        if not updates:
-            if name is None:
-                raise ValueError("Gak ada yang diubah")
-        else:
+        if not updates and name is None and name_en is None:
+            raise ValueError("Gak ada yang diubah")
+        if updates:
             set_clause = ", ".join(f"{k} = ?" for k in updates)
             await self.db.execute(
                 f"UPDATE categories SET {set_clause} WHERE id = ?",
@@ -223,7 +232,7 @@ class CategoryService:
             )
 
         cursor = await self.db.execute(
-            "SELECT id, name, type, icon, is_default, keywords, copy_key FROM categories WHERE id = ?",
+            self._LIST_SQL + " WHERE id = ?",
             (category_id,),
         )
         return self._format_category(await cursor.fetchone())

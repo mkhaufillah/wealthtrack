@@ -61,6 +61,7 @@ async def create_category(
             icon=data.icon,
             keywords=data.keywords,
             sort_order=data.sort_order,
+            name_en=data.name_en,
         )
     except (NotAuthorizedError, CategoryNameConflictError) as exc:
         _handle_service_error(exc)
@@ -84,6 +85,7 @@ async def update_category(
             icon=data.icon,
             keywords=data.keywords,
             sort_order=data.sort_order,
+            name_en=data.name_en,
         )
     except (
         NotAuthorizedError,
