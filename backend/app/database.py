@@ -570,19 +570,19 @@ async def _migrate_category_icons(conn):
 
 
 async def _migrate_i18n(conn) -> None:
-    """Add locale + copy_key columns (existing DBs)."""
+    """Add locale + copy_key columns (existing DBs). Needs table owner."""
     try:
         await conn.execute(
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS locale TEXT NOT NULL DEFAULT 'id-ID'"
         )
     except Exception as e:
-        print(f"Schema init warning (non-fatal): {e}")
+        print(f"CRITICAL: cannot add users.locale ({e}). GET /auth/me will 500.")
     try:
         await conn.execute(
             "ALTER TABLE categories ADD COLUMN IF NOT EXISTS copy_key TEXT DEFAULT ''"
         )
     except Exception as e:
-        print(f"Schema init warning (non-fatal): {e}")
+        print(f"CRITICAL: cannot add categories.copy_key ({e}).")
 
 
 async def _assign_category_copy_keys(conn) -> None:

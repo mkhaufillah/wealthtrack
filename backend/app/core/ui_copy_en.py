@@ -497,4 +497,10 @@ COPY_EN: dict[str, str] = {
     'onboarding.p1_sub': 'Income and spend in one place. Easy.',
     'onboarding.p2_title': 'Bank alerts become notes',
     'onboarding.p2_sub': 'Log from notifications. No bank password.',
+    'err.generic': 'Something went wrong. Try again.',
+    'err.validation': 'That data isn’t valid. Check what you entered.',
+    'err.network': 'No internet. Check the connection and try again.',
+    'err.session': 'Session expired. Log in again.',
+    'err.rate_limit': 'Too many requests. Wait a bit.',
+    'err.credentials': 'Wrong username or password',
 }

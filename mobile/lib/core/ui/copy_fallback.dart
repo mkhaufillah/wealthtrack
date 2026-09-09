@@ -498,6 +498,12 @@ const Map<String, String> copyFallback = {
   'onboarding.p1_sub': 'Pengeluaran dan pemasukan ke satu tempat. Santai aja.',
   'onboarding.p2_title': 'Notif bank jadi catatan',
   'onboarding.p2_sub': 'Catat dari notifikasi. Gak minta sandi bank.',
+  'err.generic': 'Ada yang gak beres. Coba lagi ya.',
+  'err.validation': 'Data gak valid. Cek isian kamu ya.',
+  'err.network': 'Gak ada internet. Cek koneksi, coba lagi.',
+  'err.session': 'Sesi habis. Masuk lagi ya.',
+  'err.rate_limit': 'Kebanyakan request. Tunggu sebentar ya.',
+  'err.credentials': 'Username atau password salah',
 };
 
 String t(String key) {

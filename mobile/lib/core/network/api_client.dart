@@ -4,11 +4,20 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import '../constants.dart';
 import '../storage/secure_storage.dart';
+import '../ui/copy_fallback.dart';
 import 'api_exceptions.dart';
 
 /// Server-driven error copy: the backend owns user-facing messages in Bahasa.
 /// This client only handles transport-level failures (no network, expired
 /// session). Any `detail` the server sends is passed through as-is.
+
+String _rawCode(DioException error) {
+  final data = error.response?.data;
+  if (data is Map && data['code'] is String) {
+    return data['code'] as String;
+  }
+  return '';
+}
 
 String _rawDetail(DioException error) {
   final detail = error.response?.data;
@@ -49,6 +58,7 @@ class ApiClient {
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+        options.headers['X-Locale'] = activeUiLocale;
         handler.next(options);
       },
       onError: (error, handler) async {
@@ -164,6 +174,7 @@ class ApiClient {
       }
 
       final rawMsg = _rawDetail(error);
+      final code = _rawCode(error);
       final isLogin = error.requestOptions.path.contains('/auth/login');
 
       // 401 on non-login = expired/revoked JWT (client-side decision).
@@ -171,18 +182,21 @@ class ApiClient {
         return UnauthorizedException();
       }
 
-      // Server owns the message text (Bahasa). Pass it through as-is.
+      if (code.isNotEmpty) {
+        return ApiException(t(code), statusCode: error.response?.statusCode);
+      }
+
+      // Server-localized detail (or legacy ID string).
       if (rawMsg.isNotEmpty) {
         return ApiException(rawMsg, statusCode: error.response?.statusCode);
       }
 
-      // No detail from server: use transport-level fallbacks.
       if (error.response?.statusCode == 429) {
-        return ApiException('Kebanyakan request. Tunggu sebentar ya.');
+        return ApiException(t('err.rate_limit'));
       }
-      return ApiException('Ada yang gak beres. Coba lagi ya.');
+      return ApiException(t('err.generic'));
     }
 
-    return ApiException('Ada yang gak beres. Coba lagi ya.');
+    return ApiException(t('err.generic'));
   }
 }

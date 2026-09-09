@@ -13,6 +13,7 @@ void main() {
       expect(user.username, 'filla');
       expect(user.displayName, 'Filla');
       expect(user.role, 'user');
+      expect(user.locale, 'id-ID');
     });
 
     test('toJson produces correct map', () {

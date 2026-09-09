@@ -48,6 +48,48 @@ def normalize_locale(raw: str | None) -> str:
     return DEFAULT_LOCALE
 
 
+def copy_catalog(locale: str) -> dict[str, str]:
+    from app.core.ui_copy_en import COPY_EN
+    from app.core.ui_seed import COPY_ID
+
+    loc = normalize_locale(locale)
+    if loc == "en-US":
+        return {**COPY_ID, **COPY_EN}
+    return dict(COPY_ID)
+
+
+def locale_from_request(headers) -> str:
+    raw = headers.get("x-locale") or ""
+    if not raw:
+        accept = headers.get("accept-language") or headers.get("Accept-Language") or ""
+        raw = accept.split(",")[0].split(";")[0]
+    return normalize_locale(raw)
+
+
+# Indonesian live details → copy key (old APKs still send no X-Locale)
+DETAIL_TO_KEY: dict[str, str] = {
+    "Ada yang gak beres. Coba lagi ya.": "err.generic",
+    "Data gak valid. Cek isian kamu ya.": "err.validation",
+    "Gak ada internet. Cek koneksi, coba lagi.": "err.network",
+    "Sesi habis. Masuk lagi ya.": "err.session",
+    "Kebanyakan request. Tunggu sebentar ya.": "err.rate_limit",
+    "Kebanyakan request. Tunggu sebentar, coba lagi.": "err.rate_limit",
+    "Username atau password salah": "err.credentials",
+}
+
+
+def error_body(locale: str, detail: str) -> dict:
+    if not isinstance(detail, str):
+        return {"detail": str(detail)}
+    key = DETAIL_TO_KEY.get(detail, "")
+    if not key and "." in detail and detail in copy_catalog("id-ID"):
+        key = detail
+    if not key:
+        return {"detail": detail}
+    text = copy_catalog(locale).get(key, detail)
+    return {"detail": text, "code": key}
+
+
 def cache_key(locale: str) -> str:
     return f"ui:bootstrap:{normalize_locale(locale)}"
 

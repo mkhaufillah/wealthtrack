@@ -46,6 +46,26 @@ class TestAuthLogin:
         resp = await client.post("/api/v1/auth/login", json={})
         assert resp.status_code == 422
 
+    async def test_login_wrong_password_english(self, client: AsyncClient):
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={"username": "filla", "password": "wrongpassword"},
+            headers={"X-Locale": "en-US"},
+        )
+        assert resp.status_code == 401
+        data = resp.json()
+        assert data["code"] == "err.credentials"
+        assert data["detail"] == "Wrong username or password"
+
+    async def test_login_empty_body_english(self, client: AsyncClient):
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={},
+            headers={"X-Locale": "en-US"},
+        )
+        assert resp.status_code == 422
+        assert resp.json()["code"] == "err.validation"
+
 
 class TestSendOtp:
     async def test_send_otp_success(self, client: AsyncClient):

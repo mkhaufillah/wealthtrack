@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
 import 'package:wealthtrack/core/network/api_exceptions.dart';
+import 'package:wealthtrack/core/ui/copy_fallback.dart';
 import 'package:wealthtrack/core/storage/secure_storage.dart';
 import '../helpers/mocks.dart';
 
@@ -192,6 +193,24 @@ void main() {
         final result = client.handleError(dioError);
         expect(result, isA<ApiException>());
         expect((result as ApiException).message, 'Ada yang gak beres. Coba lagi ya.');
+      });
+
+      test('uses copy key when server sends code', () {
+        activeUiLocale = 'en-US';
+        final dioError = DioException(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          response: Response(
+            statusCode: 401,
+            data: {
+              'detail': 'Wrong username or password',
+              'code': 'err.credentials',
+            },
+            requestOptions: RequestOptions(path: '/auth/login'),
+          ),
+        );
+        final result = client.handleError(dioError);
+        expect((result as ApiException).message, 'Wrong username or password');
+        activeUiLocale = 'id-ID';
       });
     });
 

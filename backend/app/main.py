@@ -1,8 +1,8 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 import asyncio
 
 from app.core.config import settings
+from app.core.i18n import error_body, locale_from_request
 from app.core.limiter import limiter
 from app.database import init_pool, close_pool, background_tasks
 from app.core.redis import init_redis, close_redis
@@ -50,28 +51,27 @@ app.add_middleware(
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Locale"],
 )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    loc = locale_from_request(request.headers)
+    detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+    return JSONResponse(status_code=exc.status_code, content=error_body(loc, detail))
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """422: validation errors are user-facing — send Bahasa, not Pydantic English."""
-    return JSONResponse(
-        status_code=422,
-        content={"detail": "Data gak valid. Cek isian kamu ya."},
-    )
+    loc = locale_from_request(request.headers)
+    return JSONResponse(status_code=422, content=error_body(loc, "err.validation"))
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Catch unhandled exceptions & return consistent JSON."""
-    # FastAPI / Starlette HTTPException subclasses are handled natively;
-    # this only catches truly unexpected errors (DB crashes, type errors, etc.)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Ada yang gak beres. Coba lagi ya."},
-    )
+    loc = locale_from_request(request.headers)
+    return JSONResponse(status_code=500, content=error_body(loc, "err.generic"))
 
 
 app.include_router(auth.router, prefix="/api/v1")
