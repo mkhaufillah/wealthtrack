@@ -59,17 +59,17 @@ void main() {
     await tester.pumpWidget(buildOnboardingApp(storage: storage));
     await tester.pump();
 
-    await tester.tap(find.text('Lanjut'));
-    await tester.pump(const Duration(milliseconds: 350));
+    await tester.ensureVisible(find.byKey(const Key('onboarding-next')));
+    await tester.tap(find.byKey(const Key('onboarding-next')));
+    await tester.pumpAndSettle();
     expect(find.text('Catat duit, tanpa drama'), findsOneWidget);
 
-    await tester.tap(find.text('Lanjut'));
-    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.byKey(const Key('onboarding-next')));
+    await tester.pumpAndSettle();
     expect(find.text('Yuk mulai'), findsOneWidget);
 
-    await tester.tap(find.text('Yuk mulai'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.byKey(const Key('onboarding-next')));
+    await tester.pumpAndSettle();
     expect(await storage.getSecure(kOnboardingDoneKey), '1');
   });
 }

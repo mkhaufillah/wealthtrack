@@ -71,11 +71,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 onPageChanged: (i) => setState(() => _index = i),
                 itemBuilder: (ctx, i) {
                   final s = _slides[i];
-                  return Padding(
+                  final imgH = (MediaQuery.sizeOf(ctx).height * 0.32).clamp(140.0, 240.0);
+                  return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
                     child: Column(
                       children: [
-                        Flexible(
+                        SizedBox(
+                          height: imgH,
+                          width: double.infinity,
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(24),
                             child: Image.asset(
@@ -177,6 +180,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
+                      key: const Key('onboarding-next'),
                       onPressed: _next,
                       child: Text(last ? t('onboarding.start') : t('onboarding.next')),
                     ),
