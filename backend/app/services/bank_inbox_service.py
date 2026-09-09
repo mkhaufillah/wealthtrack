@@ -93,8 +93,12 @@ class BankInboxService:
                 await self.db.execute(
                     """SELECT * FROM bank_inbox
                        WHERE user_id = ?
-                       ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END,
-                                posted_at DESC, id DESC""",
+                       ORDER BY CASE status
+                            WHEN 'pending' THEN 0
+                            WHEN 'confirmed' THEN 1
+                            ELSE 2
+                       END,
+                       posted_at DESC, id DESC""",
                     (user_id,),
                 )
             ).fetchall()
@@ -201,3 +205,10 @@ class BankInboxService:
         )
         fresh = await self._get_owned(item_id, user_id)
         return _item(fresh)
+
+    async def delete_item(self, item_id: int, user_id: int) -> None:
+        row = await self._get_owned(item_id, user_id)
+        await self.db.execute(
+            "DELETE FROM bank_inbox WHERE id = ?",
+            (row["id"],),
+        )

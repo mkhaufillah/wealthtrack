@@ -71,3 +71,17 @@ async def reject(
         return await svc.reject(item_id, current_user["id"])
     except BankInboxError as exc:
         _raise(exc)
+
+
+@router.delete("/{item_id}", status_code=204)
+async def delete_item(
+    item_id: int,
+    db=Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    svc = BankInboxService(db)
+    try:
+        await svc.delete_item(item_id, current_user["id"])
+        return None
+    except BankInboxError as exc:
+        _raise(exc)

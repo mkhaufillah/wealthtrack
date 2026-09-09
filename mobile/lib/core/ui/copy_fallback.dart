@@ -445,6 +445,8 @@ const Map<String, String> copyFallback = {
   'profile.bank_inbox': 'Dari bank',
   'bank.status_saved': 'Sudah dicatat',
   'bank.status_skipped': 'Diabaikan',
+  'bank.delete_confirm': 'Hapus draf notif ini? Transaksi yang sudah dicatat gak kehapus.',
+  'bank.deleted': 'Notif dihapus',
 };
 
 String t(String key) => remoteCopy[key] ?? copyFallback[key] ?? key;

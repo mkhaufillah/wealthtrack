@@ -106,4 +106,40 @@ void main() {
     await tester.pump();
     expect(api.lastPostPath, '/bank-inbox/7/confirm');
   });
+
+  testWidgets('Hapus confirms then DELETE', (tester) async {
+    final api = MockApiClient();
+    api.onGet('/bank-inbox', {
+      'items': [
+        {
+          'id': 7,
+          'bank': 'bca',
+          'package': 'com.bca',
+          'title': 'BCA',
+          'text': 'Debit Rp50.000',
+          'posted_at': '2026-09-08T10:00:00Z',
+          'amount': 50000,
+          'type': 'expense',
+          'merchant': 'QRIS GRAB',
+          'parsed': true,
+          'status': 'pending',
+          'transaction_id': null,
+          'created_at': '2026-09-08T10:00:01Z',
+        }
+      ],
+      'pending_count': 1,
+    });
+    api.onDelete('/bank-inbox/7');
+    await tester.pumpWidget(buildInbox(api));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Hapus'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Hapus draf notif ini? Transaksi yang sudah dicatat gak kehapus.'), findsOneWidget);
+    await tester.tap(find.text('Hapus').last);
+    await tester.pump();
+    await tester.pump();
+    expect(api.lastDeletePath, '/bank-inbox/7');
+  });
 }

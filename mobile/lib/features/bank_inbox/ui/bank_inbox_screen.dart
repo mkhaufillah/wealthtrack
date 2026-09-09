@@ -79,6 +79,37 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
     }
   }
 
+  Future<void> _delete(int id) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        content: Text(t('bank.delete_confirm')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('common.cancel'))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('common.delete'), style: TextStyle(color: AppColors.highlight)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await ref.read(apiClientProvider).delete('/bank-inbox/$id');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t('bank.deleted'))),
+      );
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ref.read(apiClientProvider).handleError(e).toString())),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -197,7 +228,9 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
                   ),
                   if (pending) ...[
                     const SizedBox(height: 12),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 0,
                       children: [
                         FilledButton(
                           onPressed: parsed ? () => _act(item['id'] as int, 'confirm') : null,
@@ -208,9 +241,21 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
                           onPressed: () => _act(item['id'] as int, 'reject'),
                           child: Text(t('bank.reject')),
                         ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: () => _delete(item['id'] as int),
+                          child: Text(t('common.delete')),
+                        ),
                       ],
                     ),
-                  ],
+                  ] else
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () => _delete(item['id'] as int),
+                        child: Text(t('common.delete')),
+                      ),
+                    ),
                 ],
               ),
             ),

@@ -123,3 +123,101 @@ async def test_unparsed_cannot_confirm(client: AsyncClient, auth_headers: dict):
 async def test_requires_auth(client: AsyncClient):
     res = await client.get("/api/v1/bank-inbox")
     assert res.status_code in (401, 403)
+
+
+@pytest.mark.asyncio
+async def test_list_sorts_pending_then_confirmed_then_rejected(
+    client: AsyncClient, auth_headers: dict
+):
+    older_pending = await client.post(
+        "/api/v1/bank-inbox",
+        headers=auth_headers,
+        json={
+            "package": "com.bca",
+            "title": "BCA",
+            "text": "Debit Rp11.000",
+            "posted_at": "2026-09-01T10:00:00Z",
+        },
+    )
+    newer_pending = await client.post(
+        "/api/v1/bank-inbox",
+        headers=auth_headers,
+        json={
+            "package": "com.jago.digitalBanking",
+            "title": "Jago",
+            "text": "Debit Rp22.000",
+            "posted_at": "2026-09-08T10:00:00Z",
+        },
+    )
+    confirmed = await client.post(
+        "/api/v1/bank-inbox",
+        headers=auth_headers,
+        json={
+            "package": "id.co.bri.brimo",
+            "title": "BRImo",
+            "text": "Debit Rp33.000",
+            "posted_at": "2026-09-09T10:00:00Z",
+        },
+    )
+    rejected = await client.post(
+        "/api/v1/bank-inbox",
+        headers=auth_headers,
+        json={
+            "package": "id.dana",
+            "title": "DANA",
+            "text": "Debit Rp44.000",
+            "posted_at": "2026-09-10T10:00:00Z",
+        },
+    )
+    await client.post(
+        f"/api/v1/bank-inbox/{confirmed.json()['id']}/confirm",
+        headers=auth_headers,
+        json={},
+    )
+    await client.post(
+        f"/api/v1/bank-inbox/{rejected.json()['id']}/reject",
+        headers=auth_headers,
+    )
+    listed = await client.get("/api/v1/bank-inbox", headers=auth_headers)
+    statuses = [i["status"] for i in listed.json()["items"]]
+    ids = [i["id"] for i in listed.json()["items"]]
+    assert statuses == ["pending", "pending", "confirmed", "rejected"]
+    assert ids[0] == newer_pending.json()["id"]
+    assert ids[1] == older_pending.json()["id"]
+
+
+@pytest.mark.asyncio
+async def test_delete_inbox_item_keeps_transaction(
+    client: AsyncClient, auth_headers: dict
+):
+    res = await client.post(
+        "/api/v1/bank-inbox",
+        headers=auth_headers,
+        json={
+            "package": "com.krom.android",
+            "title": "Krom",
+            "text": "Debit Rp15.000",
+            "posted_at": "2026-09-08T10:00:00Z",
+        },
+    )
+    item_id = res.json()["id"]
+    confirmed = await client.post(
+        f"/api/v1/bank-inbox/{item_id}/confirm",
+        headers=auth_headers,
+        json={},
+    )
+    txn_id = confirmed.json()["transaction_id"]
+    deleted = await client.delete(
+        f"/api/v1/bank-inbox/{item_id}",
+        headers=auth_headers,
+    )
+    assert deleted.status_code == 204, deleted.text
+    listed = await client.get("/api/v1/bank-inbox", headers=auth_headers)
+    assert all(i["id"] != item_id for i in listed.json()["items"])
+    txn = await client.get(f"/api/v1/transactions/{txn_id}", headers=auth_headers)
+    assert txn.status_code == 200
+    missing = await client.delete(
+        f"/api/v1/bank-inbox/{item_id}",
+        headers=auth_headers,
+    )
+    assert missing.status_code == 404

@@ -28,8 +28,9 @@ the phone.
 - Queue on device if the app is dead; drain on next launch.
 - `POST /bank-inbox` with raw `{package, title, text, posted_at}`.
   Server parses amount / type / merchant / bank, dedupes by fingerprint.
-- Inbox UI: pending drafts → **Catat** (creates a transaction) or
-  **Abaikan**. Unparsed drafts stay visible with raw text.
+- Inbox UI: pending drafts → **Catat** / **Abaikan** / **Hapus**. Unparsed
+  drafts stay visible with raw text. Sort: pending (newest) → confirmed
+  (newest) → rejected (newest).
 - Copy is server-driven (`bank.*` keys). Docs/README stay English.
 
 Out of v1: email mutasi, CSV import, iOS, auto-category rules, pairing
@@ -38,9 +39,12 @@ Jago→BCA internal transfers.
 ## API
 
 - `POST /api/v1/bank-inbox` JWT — ingest one notification.
-- `GET /api/v1/bank-inbox?status=pending` — list + `pending_count`.
+- `GET /api/v1/bank-inbox?status=all` — pending first, then confirmed, then
+  rejected; newest `posted_at` inside each group. Also `pending_count`.
 - `POST /api/v1/bank-inbox/{id}/confirm` — `{category_id?}` → transaction.
 - `POST /api/v1/bank-inbox/{id}/reject` — mark rejected.
+- `DELETE /api/v1/bank-inbox/{id}` — drop the draft; does not delete a
+  linked transaction.
 
 Parser SoT: `backend/app/services/bank_parser.py` (pytest, no Flutter).
 
