@@ -488,4 +488,13 @@ COPY_EN: dict[str, str] = {
     'cat.n.income.transfer': 'Transfer',
     'cat.n.income.emergency': 'Emergency fund',
     'cat.n.investment': 'Investment returns',
+    'onboarding.choose': 'Choose a language',
+    'onboarding.choose_en': 'Pilih bahasa',
+    'onboarding.hint': 'You can change this later in Profile.',
+    'onboarding.next': 'Next',
+    'onboarding.start': "Let's go",
+    'onboarding.p1_title': 'Log money, skip the drama',
+    'onboarding.p1_sub': 'Income and spend in one place. Easy.',
+    'onboarding.p2_title': 'Bank alerts become notes',
+    'onboarding.p2_sub': 'Log from notifications. No bank password.',
 }

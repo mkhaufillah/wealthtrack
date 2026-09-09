@@ -37,6 +37,7 @@ flutter:
     - assets/logo_mark.png
     - assets/logo_login_light.jpg
     - assets/logo_login_dark.jpg
+    - assets/onboarding/
   fonts:
     - family: Nunito
       fonts:

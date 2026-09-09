@@ -10,6 +10,7 @@ import 'core/ui/ui_config.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/ui/login_screen.dart';
 import 'features/auth/ui/register_screen.dart';
+import 'features/auth/ui/onboarding_screen.dart';
 import 'features/home/ui/home_screen.dart';
 import 'features/transactions/ui/transaction_list_screen.dart';
 import 'features/transactions/ui/add_transaction_screen.dart';
@@ -37,6 +38,7 @@ import 'features/bank_inbox/data/bank_capture.dart';
 import 'shared/providers/app_providers.dart';
 import 'shared/providers/theme_provider.dart';
 import 'shared/providers/locale_provider.dart';
+import 'shared/providers/onboarding_provider.dart';
 import 'shared/widgets/app_scaffold.dart';
 
 final _isAuthenticatedProvider = Provider<bool>((ref) {
@@ -45,19 +47,31 @@ final _isAuthenticatedProvider = Provider<bool>((ref) {
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final loggedIn = ref.watch(_isAuthenticatedProvider);
+  final onboarded = ref.watch(onboardingProvider);
   return GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
-      final loggingIn = state.matchedLocation == '/login';
-      final registering = state.matchedLocation == '/register';
+      final loc = state.matchedLocation;
+      final loggingIn = loc == '/login';
+      final registering = loc == '/register';
+      final onboarding = loc == '/onboarding';
 
-      if (!loggedIn && !loggingIn && !registering) return '/login';
-      if (loggedIn && (loggingIn || registering)) return '/home';
+      if (onboarded == null) return null;
+
+      if (loggedIn) {
+        if (loggingIn || registering || onboarding) return '/home';
+        return null;
+      }
+
+      if (onboarded != true && !onboarding) return '/onboarding';
+      if (onboarded == true && onboarding) return '/login';
+      if (!loggingIn && !registering && !onboarding) return '/login';
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
       ShellRoute(
         builder: (_, __, child) => MainShell(child: child),
         routes: [
@@ -229,7 +243,7 @@ class _WealthTrackAppState extends ConsumerState<WealthTrackApp> with WidgetsBin
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized) {
+    if (!_initialized || ref.watch(onboardingProvider) == null) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         locale: ref.read(localeProvider.notifier).materialLocale,

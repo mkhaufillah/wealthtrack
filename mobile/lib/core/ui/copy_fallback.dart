@@ -486,6 +486,15 @@ const Map<String, String> copyFallback = {
   'cat.n.income.transfer': 'Transfer',
   'cat.n.income.emergency': 'Dana Darurat',
   'cat.n.investment': 'Hasil Investasi',
+  'onboarding.choose': 'Pilih bahasa',
+  'onboarding.choose_en': 'Choose a language',
+  'onboarding.hint': 'Bisa diganti lagi di Profil.',
+  'onboarding.next': 'Lanjut',
+  'onboarding.start': 'Yuk mulai',
+  'onboarding.p1_title': 'Catat duit, tanpa drama',
+  'onboarding.p1_sub': 'Pengeluaran dan pemasukan ke satu tempat. Santai aja.',
+  'onboarding.p2_title': 'Notif bank jadi catatan',
+  'onboarding.p2_sub': 'Catat dari notifikasi. Gak minta sandi bank.',
 };
 
 String t(String key) => remoteCopy[key] ?? copyFallback[key] ?? key;
