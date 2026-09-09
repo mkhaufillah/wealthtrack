@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wealthtrack/core/ui/copy_fallback.dart';
 import 'package:wealthtrack/shared/providers/theme_provider.dart';
 import 'package:wealthtrack/core/storage/secure_storage.dart';
 import '../helpers/mocks.dart';
@@ -22,6 +23,7 @@ void main() {
     late ThemeModeNotifier notifier;
 
     setUp(() {
+      activeUiLocale = 'id-ID';
       storage = _MockSecureStorageForTheme();
       notifier = ThemeModeNotifier(storage);
     });
@@ -31,13 +33,13 @@ void main() {
     });
 
     test('label returns System for initial state', () {
-      expect(notifier.label, 'Ikuti sistem');
+      expect(notifier.label, t('profile.theme_system'));
     });
 
     test('setTheme changes to light mode and persists', () async {
       await notifier.setTheme(ThemeMode.light);
       expect(notifier.state, ThemeMode.light);
-      expect(notifier.label, 'Terang');
+      expect(notifier.label, t('profile.theme_light'));
       final saved = await storage.getSecure('theme_mode');
       expect(saved, 'light');
     });
@@ -45,7 +47,7 @@ void main() {
     test('setTheme changes to dark mode and persists', () async {
       await notifier.setTheme(ThemeMode.dark);
       expect(notifier.state, ThemeMode.dark);
-      expect(notifier.label, 'Gelap');
+      expect(notifier.label, t('profile.theme_dark'));
       final saved = await storage.getSecure('theme_mode');
       expect(saved, 'dark');
     });
@@ -55,7 +57,7 @@ void main() {
       // Now switch back to system
       await notifier.setTheme(ThemeMode.system);
       expect(notifier.state, ThemeMode.system);
-      expect(notifier.label, 'Ikuti sistem');
+      expect(notifier.label, t('profile.theme_system'));
       final saved = await storage.getSecure('theme_mode');
       expect(saved, 'system');
     });
@@ -90,13 +92,13 @@ void main() {
     });
 
     test('label cycles correctly', () async {
-      expect(notifier.label, 'Ikuti sistem');
+      expect(notifier.label, t('profile.theme_system'));
       await notifier.setTheme(ThemeMode.light);
-      expect(notifier.label, 'Terang');
+      expect(notifier.label, t('profile.theme_light'));
       await notifier.setTheme(ThemeMode.dark);
-      expect(notifier.label, 'Gelap');
+      expect(notifier.label, t('profile.theme_dark'));
       await notifier.setTheme(ThemeMode.system);
-      expect(notifier.label, 'Ikuti sistem');
+      expect(notifier.label, t('profile.theme_system'));
     });
   });
 }
