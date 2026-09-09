@@ -83,7 +83,8 @@ class MockApiClient extends ApiClient {
   }
 
   @override
-  Future<Response> put(String path, {dynamic data}) async {
+  Future<Response> put(String path,
+      {dynamic data, Map<String, dynamic>? queryParams}) async {
     lastPutPath = path;
     lastPutData = data;
     return _putResponses[path] ?? MockResponse(<String, dynamic>{});

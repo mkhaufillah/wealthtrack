@@ -75,7 +75,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
                     child: Column(
                       children: [
-                        Expanded(
+                        Flexible(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(24),
                             child: Image.asset(
