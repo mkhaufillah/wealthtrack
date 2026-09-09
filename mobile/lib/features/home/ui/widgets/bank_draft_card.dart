@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../core/ui/copy_fallback.dart';
-import '../../../shared/providers/app_providers.dart';
-import '../../../shared/utils/currency_formatter.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/copy_fallback.dart';
+import '../../../../shared/providers/app_providers.dart';
+import '../../../../shared/utils/currency_formatter.dart';
 
 class BankDraftCard extends ConsumerWidget {
   const BankDraftCard({super.key, required this.item, required this.onDone});
