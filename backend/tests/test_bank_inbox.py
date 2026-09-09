@@ -297,12 +297,13 @@ async def test_internal_transfer_confirms_pair(client: AsyncClient, auth_headers
 
 @pytest.mark.asyncio
 async def test_confirm_without_match_uses_lainnya(client: AsyncClient, auth_headers: dict):
-    cats = await client.get("/api/v1/categories", headers=auth_headers)
-    lainnya = next(
-        c["id"]
-        for c in cats.json()
-        if c["name"] == "Lainnya" and c["type"] == "expense"
+    created = await client.post(
+        "/api/v1/categories",
+        headers=auth_headers,
+        json={"name": "Lainnya", "type": "expense", "icon": "strokeRoundedSparkles"},
     )
+    assert created.status_code == 201, created.text
+    lainnya = created.json()["id"]
     draft = await client.post(
         "/api/v1/bank-inbox",
         headers=auth_headers,
