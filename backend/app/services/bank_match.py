@@ -2,8 +2,17 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from typing import Optional
+
+
+def _keyword_hit(hay: str, token: str) -> bool:
+    """Whole-token match so 'erha' does not hit 'berhasil'."""
+    if len(token) < 2:
+        return False
+    pat = r"(?<![a-z0-9])" + re.escape(token) + r"(?![a-z0-9])"
+    return re.search(pat, hay) is not None
 
 
 def _parse_ts(raw: str) -> Optional[datetime]:
@@ -37,7 +46,7 @@ def suggest_category_id(
             kws = raw_kw
         for kw in kws:
             token = str(kw).strip().lower()
-            if len(token) >= 2 and token in hay:
+            if _keyword_hit(hay, token):
                 return int(cat["id"])
     return None
 

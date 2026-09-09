@@ -19,6 +19,15 @@ def test_wrong_type_ignored():
     assert suggest_category_id(cats, "gaji masuk", "expense") is None
 
 
+def test_keyword_uses_word_boundary():
+    cats = [{"id": 11, "type": "expense", "keywords": '["erha"]'}]
+    assert suggest_category_id(cats, "pemindahan uang berhasil ke Food", "expense") is None
+    assert suggest_category_id(cats, "Bayar ke ERHA Senayan", "expense") == 11
+    assert suggest_category_id(cats, "QRIS grabfood", "expense") is None
+    cats2 = [{"id": 6, "type": "expense", "keywords": '["grabfood"]'}]
+    assert suggest_category_id(cats2, "QRIS grabfood", "expense") == 6
+
+
 def test_pair_opposite_bank_same_amount():
     a = {
         "id": 1,

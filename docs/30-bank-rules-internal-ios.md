@@ -30,7 +30,7 @@ No bank passwords. No IB scrape. Drafts still require confirm except where this 
 
 **Source of truth:** `categories.keywords` (Kelola kategori). No second editor. No `bank_category_rules` table, no `/bank-inbox/rules` API, no Aturan kategori screen.
 
-On GET inbox / shade Catat without `category_id`: first case-insensitive substring hit in `"{title} {text} {merchant}"` against keywords of the same txn type. Else **Lainnya**.
+On GET inbox / shade Catat without `category_id`: first case-insensitive **word-boundary** hit in `"{title} {text} {merchant}"` against keywords of the same txn type. Else **Lainnya**. (`erha` matches `Bayar ke ERHA`, not `berhasil`.)
 
 In-app Catat still uses a picker; `suggested_category_id` is pre-highlighted.
 
