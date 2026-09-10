@@ -227,7 +227,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
     # Income / Expense summary for household
     cursor = await db.execute(
-        f"""SELECT type, COALESCE(SUM(amount), 0) as total
+        f"""SELECT type, COALESCE(SUM(amount_ord), 0) as total
            FROM transactions WHERE user_id IN ({placeholders})
              AND COALESCE(date, LEFT(created_at::text, 10)) BETWEEN ? AND ?
            GROUP BY type""",
@@ -341,7 +341,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
         cycle_range_str = f"{c_from.strftime('%d/%m')}-{c_to.strftime('%d/%m')}"
 
         cursor = await db.execute(
-            f"""SELECT type, COALESCE(SUM(amount), 0) as total
+            f"""SELECT type, COALESCE(SUM(amount_ord), 0) as total
                FROM transactions WHERE user_id IN ({placeholders})
                  AND COALESCE(date, LEFT(created_at::text, 10)) BETWEEN ? AND ?
                GROUP BY type""",
@@ -422,19 +422,19 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
     # ── All-time category balances (S&I, Dana Darurat) ──
     cursor = await db.execute(
-        f"""SELECT category_name, type, SUM(amount) as total
-           FROM transactions
-           WHERE user_id IN ({placeholders})
-             AND category_name IN ('Tabungan & Investasi', 'Penarikan Tabungan & Investasi', 'Hasil Investasi', 'Dana Darurat')
-           GROUP BY category_name, type""",
+        f"""SELECT vault_blob, type FROM transactions
+           WHERE user_id IN ({placeholders})""",
         (*member_ids,),
     )
+    from app.core.vault_row import open_row
+
     si_saved = 0
     si_withdrawn = 0
     si_returns = 0
     emergency_bal = 0
-    async for r in cursor:
-        cat, typ, total = r["category_name"], r["type"], (r["total"] or 0)
+    for r in await cursor.fetchall():
+        d = open_row(dict(r))
+        cat, typ, total = d.get("category_name") or "", d.get("type"), int(d.get("amount") or 0)
         if cat == "Tabungan & Investasi" and typ == "expense":
             si_saved += total
         elif cat == "Penarikan Tabungan & Investasi" and typ == "income":

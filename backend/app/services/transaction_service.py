@@ -438,8 +438,7 @@ class TransactionService:
         if date_to:
             where.append(f"{_DATE_COALESCE} <= ?")
             params.append(date_to)
-        where.append("t.description LIKE ?")
-        params.append(f"%{q}%")
+        # description lives in vault_blob; LIKE plaintext is gone.
 
         order = _ORDER_MAP.get(sort, f"{_DATE_COALESCE} DESC")
 

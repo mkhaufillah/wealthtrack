@@ -40,7 +40,7 @@ class HomeService:
 
         cursor = await self.db.execute(
             """
-            SELECT id, description, amount, type, vault_blob,
+            SELECT id, type, vault_blob,
                    COALESCE(date, LEFT(created_at::text, 10)) AS txn_date
             FROM transactions
             WHERE user_id = ?

@@ -621,7 +621,7 @@ class BudgetService:
             ) if row else 0
         else:
             cursor = await self.db.execute(
-                """SELECT COALESCE(SUM(amount), 0) FROM transactions
+                """SELECT COALESCE(SUM(amount_ord), 0) FROM transactions
                    WHERE user_id = ? AND type = 'income'
                      AND COALESCE(date, LEFT(created_at::text, 10)) BETWEEN ? AND ?""",
                 (user_id, d_from.isoformat(), d_to.isoformat()),
