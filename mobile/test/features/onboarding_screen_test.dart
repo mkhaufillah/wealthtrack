@@ -66,6 +66,11 @@ void main() {
 
     await tester.tap(find.byKey(const Key('onboarding-next')));
     await tester.pumpAndSettle();
+    expect(find.text('Notif bank jadi catatan'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('onboarding-next')));
+    await tester.pumpAndSettle();
+    expect(find.text('Uang kamu dikunci'), findsOneWidget);
     expect(find.text('Yuk mulai'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('onboarding-next')));

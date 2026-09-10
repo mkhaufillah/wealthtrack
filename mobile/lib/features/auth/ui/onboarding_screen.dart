@@ -35,6 +35,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       titleKey: 'onboarding.p2_title',
       subKey: 'onboarding.p2_sub',
     ),
+    _Slide(
+      image: 'assets/onboarding/money.jpg',
+      titleKey: 'onboarding.p3_title',
+      subKey: 'onboarding.p3_sub',
+      hintKey: 'onboarding.p3_hint',
+    ),
   ];
 
   @override
@@ -125,6 +131,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             height: 1.35,
                           ),
                         ),
+                        if (s.hintKey != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            t(s.hintKey!),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
                         if (s.lang) ...[
                           const SizedBox(height: 16),
                           Row(
@@ -201,11 +220,13 @@ class _Slide {
   final String image;
   final String titleKey;
   final String subKey;
+  final String? hintKey;
   final bool lang;
   const _Slide({
     required this.image,
     required this.titleKey,
     required this.subKey,
+    this.hintKey,
     this.lang = false,
   });
 }

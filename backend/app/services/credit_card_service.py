@@ -74,6 +74,9 @@ class CreditCardService:
         if not card:
             raise CreditCardNotFoundError(card_id)
         card = dict(card)
+        from app.core.vault_row import open_row
+
+        card = open_row(card)
         if card["user_id"] == user_id:
             return card
         # Allow household members if card has household_id
@@ -115,7 +118,7 @@ class CreditCardService:
         cursor = await self.db.execute(
             """SELECT
                    cc.id, cc.user_id, cc.name, cc.card_number_last4,
-                   cc.billing_date, cc.due_date, cc.credit_limit,
+                   cc.billing_date, cc.due_date, cc.credit_limit, cc.vault_blob,
                    cc.created_at, cc.household_id, cc.display_order,
                    COALESCE(active_inst.cnt, 0) AS active_installments
                FROM credit_cards cc
@@ -132,8 +135,9 @@ class CreditCardService:
                ORDER BY cc.display_order ASC, cc.created_at DESC""",
             (user_id, user_id),
         )
-        rows = await cursor.fetchall()
-        return [dict(r) for r in rows]
+        from app.core.vault_row import open_row
+
+        return [open_row(dict(r)) for r in await cursor.fetchall()]
 
     async def get_credit_card(self, card_id: int, user_id: int) -> dict:
         """Get a single credit card with its transactions and installments."""
@@ -142,13 +146,15 @@ class CreditCardService:
         # Fetch transactions
         txn_cursor = await self.db.execute(
             """SELECT id, card_id, description, amount, category_id,
-                      transaction_date, is_installment, installment_id, created_at
+                      transaction_date, is_installment, installment_id, created_at, vault_blob
                FROM credit_card_transactions
                WHERE card_id = ?
                ORDER BY transaction_date DESC""",
             (card_id,),
         )
-        transactions = [dict(r) for r in await txn_cursor.fetchall()]
+        from app.core.vault_row import open_row
+
+        transactions = [open_row(dict(r)) for r in await txn_cursor.fetchall()]
 
         # Fetch installments
         inst_cursor = await self.db.execute(
@@ -160,13 +166,13 @@ class CreditCardService:
                           - (CAST(SUBSTR(start_month, 1, 4) AS integer) * 12
                              + CAST(SUBSTR(start_month, 6, 2) AS integer))
                       )) AS remaining_months,
-                      start_month, created_at
+                      start_month, created_at, vault_blob
                FROM credit_card_installments
                WHERE card_id = ?
                ORDER BY start_month DESC""",
             (card_id,),
         )
-        installments = [dict(r) for r in await inst_cursor.fetchall()]
+        installments = [open_row(dict(r)) for r in await inst_cursor.fetchall()]
 
         return {
             **card,

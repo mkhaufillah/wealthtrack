@@ -74,6 +74,9 @@ class KPRService:
     @staticmethod
     def convert_sim_row(row: dict) -> KPRSimulationOut:
         """Map a DB row dict to KPRSimulationOut with default handling."""
+        from app.core.vault_row import open_row
+
+        row = open_row(dict(row))
         cmn = row.get("current_month_number", 1)
         crb = row.get("current_remaining_balance", 0)
         # If month 1, remaining balance = total_loan (no payment made yet)

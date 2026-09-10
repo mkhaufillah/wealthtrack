@@ -64,3 +64,18 @@ def test_parse_dek_rejects_short():
     except ValueError:
         return
     raise AssertionError("expected ValueError")
+
+
+def test_pack_extra_roundtrip():
+    from app.core.vault_row import pack_money, unpack_money
+
+    dek = generate_dek()
+    packed = pack_money(
+        dek,
+        amount=12_000_000,
+        extra={"name": "KPR rumah", "property_price": 12_000_000},
+    )
+    row = unpack_money(dek, packed)
+    assert row["amount"] == 12_000_000
+    assert row["name"] == "KPR rumah"
+    assert row["property_price"] == 12_000_000

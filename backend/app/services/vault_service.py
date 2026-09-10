@@ -118,11 +118,127 @@ class VaultService:
                            amount=0, title='', text='', merchant='' WHERE id=?""",
                     (packed["vault_blob"], packed["amount_ord"], d["id"]),
                 )
+            await self._seal_named(
+                dek,
+                f"SELECT * FROM kpr_simulations WHERE user_id IN ({placeholders})",
+                tuple(uids),
+                amount_key="total_loan",
+                extra_keys=("name", "property_price", "down_payment", "total_loan"),
+                wipe="""UPDATE kpr_simulations SET vault_blob=?, amount_ord=?,
+                    name='', property_price=0, down_payment=0, total_loan=0 WHERE id=?""",
+            )
+            await self._seal_named(
+                dek,
+                f"""SELECT kep.* FROM kpr_extra_payments kep
+                    JOIN kpr_simulations ks ON ks.id = kep.simulation_id
+                    WHERE ks.user_id IN ({placeholders})""",
+                tuple(uids),
+                amount_key="amount",
+                extra_keys=(
+                    "amount",
+                    "old_remaining_balance",
+                    "new_remaining_balance",
+                    "old_installment",
+                    "new_installment",
+                    "total_interest_saved",
+                ),
+                wipe="UPDATE kpr_extra_payments SET vault_blob=?, amount_ord=?, amount=0 WHERE id=?",
+            )
+            await self._seal_named(
+                dek,
+                f"""SELECT kms.* FROM kpr_monthly_schedules kms
+                    JOIN kpr_simulations ks ON ks.id = kms.simulation_id
+                    WHERE ks.user_id IN ({placeholders})""",
+                tuple(uids),
+                amount_key="remaining_balance",
+                extra_keys=("payment", "principal", "interest", "remaining_balance"),
+                wipe="""UPDATE kpr_monthly_schedules SET vault_blob=?, amount_ord=?,
+                    payment=0, principal=0, interest=0, remaining_balance=0 WHERE id=?""",
+            )
+            await self._seal_named(
+                dek,
+                f"SELECT * FROM credit_cards WHERE user_id IN ({placeholders})",
+                tuple(uids),
+                amount_key="credit_limit",
+                extra_keys=("name", "credit_limit"),
+                wipe="UPDATE credit_cards SET vault_blob=?, amount_ord=?, name='', credit_limit=0 WHERE id=?",
+            )
+            await self._seal_named(
+                dek,
+                f"""SELECT cct.* FROM credit_card_transactions cct
+                    JOIN credit_cards cc ON cc.id = cct.card_id
+                    WHERE cc.user_id IN ({placeholders})""",
+                tuple(uids),
+                amount_key="amount",
+                extra_keys=("amount", "description"),
+                wipe="UPDATE credit_card_transactions SET vault_blob=?, amount_ord=?, amount=0, description='' WHERE id=?",
+            )
+            await self._seal_named(
+                dek,
+                f"""SELECT cci.* FROM credit_card_installments cci
+                    JOIN credit_cards cc ON cc.id = cci.card_id
+                    WHERE cc.user_id IN ({placeholders})""",
+                tuple(uids),
+                amount_key="monthly_amount",
+                extra_keys=("monthly_amount", "total_amount", "description"),
+                wipe="""UPDATE credit_card_installments SET vault_blob=?, amount_ord=?,
+                    monthly_amount=0, total_amount=0, description='' WHERE id=?""",
+            )
+            await self._seal_named(
+                dek,
+                f"SELECT * FROM ai_messages WHERE user_id IN ({placeholders})",
+                tuple(uids),
+                amount_key="amount",
+                extra_keys=("content",),
+                wipe="UPDATE ai_messages SET vault_blob=?, content='' WHERE id=?",
+                skip_ord=True,
+            )
+            await self._seal_named(
+                dek,
+                f"SELECT * FROM ai_chat_summaries WHERE user_id IN ({placeholders})",
+                tuple(uids),
+                amount_key="amount",
+                extra_keys=("summary",),
+                wipe="UPDATE ai_chat_summaries SET vault_blob=?, summary='' WHERE user_id=?",
+                skip_ord=True,
+                id_key="user_id",
+            )
         await self.db.execute(
             "UPDATE households SET vault_sealed = 1 WHERE id = ?",
             (hh_id,),
         )
         return {"sealed": True, "already": False, "transactions": n}
+
+    async def _seal_named(
+        self,
+        dek: bytes,
+        select_sql: str,
+        params: tuple,
+        *,
+        amount_key: str,
+        extra_keys: tuple[str, ...],
+        wipe: str,
+        skip_ord: bool = False,
+        id_key: str = "id",
+    ) -> None:
+        cur = await self.db.execute(select_sql, params)
+        for r in await cur.fetchall():
+            d = dict(r)
+            if d.get("vault_blob"):
+                continue
+            extra = {k: d.get(k) for k in extra_keys}
+            packed = pack_money(
+                dek,
+                amount=int(d.get(amount_key) or 0),
+                extra=extra,
+            )
+            if skip_ord:
+                await self.db.execute(wipe, (packed["vault_blob"], d[id_key]))
+            else:
+                await self.db.execute(
+                    wipe,
+                    (packed["vault_blob"], packed["amount_ord"], d[id_key]),
+                )
 
     async def put_wrap(
         self, user_id: int, wrapped_dek: str, kdf_salt: str, kdf_params: str
@@ -192,7 +308,22 @@ class VaultService:
                ON CONFLICT (household_id, user_id) DO UPDATE SET
                  wrapped_dek = EXCLUDED.wrapped_dek,
                  kdf_salt = EXCLUDED.kdf_salt,
-                 kdf_params = EXCLUDED.kdf_params""",
+                 kdf_params = EXCLUDED.kdf_params
+               WHERE household_key_wraps.kdf_params = 'share'""",
             (hh_id, target_user_id, boxed_dek),
         )
         return {"ok": True}
+
+    async def get_share(self, user_id: int) -> dict | None:
+        hh_id = current_household_id()
+        if hh_id is None:
+            return None
+        cur = await self.db.execute(
+            """SELECT wrapped_dek AS boxed_dek, kdf_salt, kdf_params
+               FROM household_key_wraps
+               WHERE household_id = ? AND user_id = ?
+                 AND kdf_params = 'share'""",
+            (hh_id, user_id),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else None

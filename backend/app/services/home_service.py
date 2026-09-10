@@ -40,7 +40,7 @@ class HomeService:
 
         cursor = await self.db.execute(
             """
-            SELECT id, description, amount, type,
+            SELECT id, description, amount, type, vault_blob,
                    COALESCE(date, LEFT(created_at::text, 10)) AS txn_date
             FROM transactions
             WHERE user_id = ?
@@ -49,10 +49,13 @@ class HomeService:
             """,
             (user_id,),
         )
+        from app.core.vault_row import open_row
+
         rows = await cursor.fetchall()
         recent = []
         for row in rows:
-            amt = int(row["amount"])
+            row = open_row(dict(row))
+            amt = int(row["amount"] or 0)
             is_exp = row["type"] == "expense"
             disp = money(amt)
             if is_exp:

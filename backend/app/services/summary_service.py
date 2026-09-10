@@ -44,6 +44,100 @@ class SummaryService:
         row = await cursor.fetchone()
         return row["cycle_start_day"] if row else 1
 
+    def _vault(self):
+        from app.core.vault_ctx import VaultRequiredError, current_dek, current_sealed
+
+        sealed = current_sealed()
+        dek = current_dek()
+        if sealed and dek is None:
+            raise VaultRequiredError()
+        return sealed, dek
+
+    def _plain(self, sealed, dek, total, count) -> int:
+        if not sealed:
+            return int(total or 0)
+        from app.core.vault_row import ope_sum_to_plain
+
+        return ope_sum_to_plain(dek or b"\x00" * 32, int(total or 0), int(count or 0))
+
+    async def _expense_categories(self, where_sql: str, params: tuple, expense: int) -> list:
+        from app.core.vault_row import unpack_money
+
+        sealed, dek = self._vault()
+        if sealed:
+            cursor = await self.db.execute(
+                f"SELECT * FROM transactions t WHERE 1=1 {where_sql} AND t.type = 'expense'",
+                params,
+            )
+            buckets: dict = {}
+            for raw in await cursor.fetchall():
+                d = unpack_money(dek, dict(raw))
+                cid = d.get("category_id")
+                name = d.get("category_name") or ""
+                key = int(cid) if cid is not None else name or 0
+                b = buckets.setdefault(
+                    key,
+                    {
+                        "category_id": cid,
+                        "category_name": name,
+                        "total": 0,
+                        "count": 0,
+                    },
+                )
+                b["total"] += int(d.get("amount") or 0)
+                b["count"] += 1
+            ids = [b["category_id"] for b in buckets.values() if b.get("category_id")]
+            meta = {}
+            if ids:
+                ph = ",".join("?" * len(ids))
+                cur = await self.db.execute(
+                    f"SELECT id, icon, copy_key, name FROM categories WHERE id IN ({ph})",
+                    tuple(ids),
+                )
+                meta = {r["id"]: dict(r) for r in await cur.fetchall()}
+            out = []
+            for b in sorted(buckets.values(), key=lambda x: -x["total"]):
+                m = meta.get(b["category_id"]) or {}
+                pct = round((b["total"] / expense * 100), 1) if expense > 0 else 0
+                out.append(
+                    {
+                        "category_id": b["category_id"],
+                        "category_name": b["category_name"] or m.get("name") or "",
+                        "copy_key": m.get("copy_key") or "",
+                        "icon": m.get("icon") or "",
+                        "total": int(b["total"]),
+                        "count": b["count"],
+                        "percentage": pct,
+                    }
+                )
+            return out
+        cursor = await self.db.execute(
+            f"""SELECT c.id, c.name, c.icon, c.copy_key,
+                      SUM(t.amount) as total, COUNT(*) as count
+               FROM transactions t
+               JOIN categories c ON t.category_id = c.id
+               WHERE 1=1 {where_sql}
+                 AND t.type = 'expense'
+               GROUP BY c.id ORDER BY total DESC""",
+            params,
+        )
+        by_cat = await cursor.fetchall()
+        categories = []
+        for r in by_cat:
+            pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
+            categories.append(
+                {
+                    "category_id": r["id"],
+                    "category_name": r["name"],
+                    "copy_key": r["copy_key"] or "",
+                    "icon": r["icon"] or "",
+                    "total": int(r["total"]),
+                    "count": r["count"],
+                    "percentage": pct,
+                }
+            )
+        return categories
+
     # ── Daily Summary ────────────────────────────────────────────────────
 
     async def get_daily_summary(
@@ -103,32 +197,11 @@ class SummaryService:
             else:
                 expense = total
 
-        # Expense category breakdown
-        cursor = await self.db.execute(
-            f"""SELECT c.id, c.name, c.icon, c.copy_key,
-                      SUM(t.amount) as total, COUNT(*) as count
-               FROM transactions t
-               JOIN categories c ON t.category_id = c.id
-               WHERE t.user_id = ?{date_sql}
-                 AND t.type = 'expense'
-               GROUP BY c.id ORDER BY total DESC""",
+        categories = await self._expense_categories(
+            f" AND t.user_id = ?{date_sql}",
             (user_id, *date_params),
+            expense,
         )
-        by_cat = await cursor.fetchall()
-        categories = []
-        for r in by_cat:
-            pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
-            categories.append(
-                {
-                    "category_id": r["id"],
-                    "category_name": r["name"],
-                    "copy_key": r["copy_key"] or "",
-                            "icon": r["icon"] or "",
-                    "total": int(r["total"]),
-                    "count": r["count"],
-                    "percentage": pct,
-                }
-            )
 
         # By user (current user breakdown)
         cursor = await self.db.execute(
@@ -595,6 +668,27 @@ class SummaryService:
         async def _query_balance(cat_ids: list[int]) -> dict:
             if not cat_ids:
                 return {"total_expense": 0, "total_income": 0, "balance": 0}
+            sealed, dek = self._vault()
+            if sealed:
+                from app.core.vault import category_trace
+
+                traces = [category_trace(dek or b"\x00" * 32, int(i)) for i in cat_ids]
+                ph = ",".join("?" for _ in traces)
+                cursor = await self.db.execute(
+                    f"""SELECT t.type, COALESCE(SUM(t.amount_ord), 0) as total, COUNT(*) as count
+                        FROM transactions t
+                        WHERE t.user_id = ? AND t.category_trace IN ({ph})
+                        GROUP BY t.type""",
+                    (user_id, *traces),
+                )
+                exp = inc = 0
+                for r in await cursor.fetchall():
+                    total = self._plain(True, dek, r["total"], r["count"])
+                    if r["type"] == "expense":
+                        exp = total
+                    else:
+                        inc = total
+                return {"total_expense": exp, "total_income": inc, "balance": exp - inc}
             placeholders = ",".join("?" for _ in cat_ids)
             cursor = await self.db.execute(
                 f"""SELECT
@@ -619,6 +713,67 @@ class SummaryService:
 
     async def get_debt_summary(self, user_id: int) -> dict:
         """Total remaining debt: KPR remaining principal + CC transactions + CC installment remaining."""
+        sealed, dek = self._vault()
+        if sealed:
+            from app.core.vault_row import unpack_money
+
+            cur = await self.db.execute(
+                "SELECT id FROM kpr_simulations WHERE user_id = ?", (user_id,)
+            )
+            sims = await cur.fetchall()
+            kpr_count = len(sims)
+            total_kpr = 0
+            for sim in sims:
+                cur = await self.db.execute(
+                    """SELECT vault_blob, remaining_balance FROM kpr_monthly_schedules
+                       WHERE simulation_id = ? ORDER BY month_number DESC LIMIT 1""",
+                    (sim["id"],),
+                )
+                row = await cur.fetchone()
+                if row:
+                    d = unpack_money(dek, dict(row))
+                    total_kpr += int(d.get("remaining_balance") or 0)
+                else:
+                    cur = await self.db.execute(
+                        "SELECT vault_blob, total_loan FROM kpr_simulations WHERE id = ?",
+                        (sim["id"],),
+                    )
+                    ks = await cur.fetchone()
+                    d = unpack_money(dek, dict(ks or {}))
+                    total_kpr += int(d.get("total_loan") or 0)
+            cur = await self.db.execute(
+                """SELECT cct.vault_blob, cct.amount FROM credit_card_transactions cct
+                   JOIN credit_cards cc ON cc.id = cct.card_id
+                   WHERE cc.user_id = ? AND cct.is_installment = 0""",
+                (user_id,),
+            )
+            total_cc_txns = 0
+            for r in await cur.fetchall():
+                d = unpack_money(dek, dict(r))
+                total_cc_txns += int(d.get("amount") or 0)
+            cur = await self.db.execute(
+                """SELECT cci.vault_blob, cci.monthly_amount, cci.remaining_months
+                   FROM credit_card_installments cci
+                   JOIN credit_cards cc ON cc.id = cci.card_id
+                   WHERE cc.user_id = ?""",
+                (user_id,),
+            )
+            total_cc_installments = 0
+            cc_count = 0
+            for r in await cur.fetchall():
+                d = unpack_money(dek, dict(r))
+                months = int(d.get("remaining_months") or r["remaining_months"] or 0)
+                if months > 0:
+                    cc_count += 1
+                    total_cc_installments += int(d.get("monthly_amount") or 0) * months
+            total_cc = total_cc_txns + total_cc_installments
+            return {
+                "total_kpr": total_kpr,
+                "kpr_count": kpr_count,
+                "total_cc": total_cc,
+                "cc_count": cc_count,
+                "total_debt": total_kpr + total_cc,
+            }
         # Total KPR remaining with due_date awareness
         cursor = await self.db.execute(
             """SELECT COALESCE(SUM(

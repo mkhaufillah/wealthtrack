@@ -128,6 +128,19 @@ CREATE TABLE household_members (
     joined_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     PRIMARY KEY (user_id, household_id)
 );
+CREATE TABLE household_key_wraps (
+    household_id INTEGER NOT NULL REFERENCES households(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    wrapped_dek TEXT NOT NULL DEFAULT '',
+    kdf_salt TEXT NOT NULL DEFAULT '',
+    kdf_params TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (household_id, user_id)
+);
+CREATE TABLE household_vault_pubkeys (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id),
+    household_id INTEGER NOT NULL REFERENCES households(id),
+    public_key TEXT NOT NULL DEFAULT ''
+);
 CREATE TABLE transactions (
     id SERIAL PRIMARY KEY,
     type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
@@ -153,6 +166,9 @@ CREATE TABLE budgets (
     category_name TEXT NOT NULL,
     budget_amount INTEGER NOT NULL,
     cycle_on INTEGER NOT NULL DEFAULT 1,
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT,
+    category_trace TEXT DEFAULT '',
     UNIQUE(user_id, month, category_id)
 );
 CREATE TABLE ocr_jobs (
@@ -192,13 +208,15 @@ CREATE TABLE ai_messages (
     status TEXT NOT NULL DEFAULT 'processing' CHECK(status IN ('processing', 'complete', 'error', 'error:hidden')),
     model TEXT NOT NULL DEFAULT 'flash',
     parent_message_id INTEGER REFERENCES ai_messages(id),
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    vault_blob TEXT DEFAULT ''
 );
 CREATE TABLE ai_chat_summaries (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     summary TEXT NOT NULL DEFAULT '',
     covered_through_id INTEGER NOT NULL DEFAULT 0,
-    updated_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+    updated_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    vault_blob TEXT DEFAULT ''
 );
 CREATE TABLE kpr_simulations (
     id SERIAL PRIMARY KEY,
@@ -217,7 +235,9 @@ CREATE TABLE kpr_simulations (
     due_date INTEGER DEFAULT NULL,
     household_id INTEGER DEFAULT NULL,
     display_order INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT
 );
 CREATE TABLE kpr_rate_periods (
     id SERIAL PRIMARY KEY,
@@ -238,6 +258,8 @@ CREATE TABLE kpr_monthly_schedules (
     remaining_balance INTEGER NOT NULL,
     rate_type TEXT NOT NULL,
     interest_rate NUMERIC(6,4) NOT NULL,
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT,
     UNIQUE(simulation_id, month_number)
 );
 
@@ -256,7 +278,9 @@ CREATE TABLE IF NOT EXISTS kpr_extra_payments (
     total_interest_saved INTEGER NOT NULL DEFAULT 0,
     original_end_date TEXT DEFAULT '',
     new_end_date TEXT DEFAULT '',
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT
 );
 
 CREATE TABLE IF NOT EXISTS credit_cards (
@@ -269,7 +293,9 @@ CREATE TABLE IF NOT EXISTS credit_cards (
     credit_limit INTEGER DEFAULT 0,
     household_id INTEGER DEFAULT NULL,
     display_order INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT
 );
 
 CREATE TABLE IF NOT EXISTS credit_card_installments (
@@ -281,7 +307,9 @@ CREATE TABLE IF NOT EXISTS credit_card_installments (
     total_months INTEGER NOT NULL,
     remaining_months INTEGER NOT NULL,
     start_month TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT
 );
 
 CREATE TABLE IF NOT EXISTS credit_card_transactions (
@@ -293,7 +321,9 @@ CREATE TABLE IF NOT EXISTS credit_card_transactions (
     transaction_date TEXT NOT NULL,
     is_installment INTEGER NOT NULL DEFAULT 0,
     installment_id INTEGER REFERENCES credit_card_installments(id),
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT
 );
 
 CREATE TABLE IF NOT EXISTS api_keys (

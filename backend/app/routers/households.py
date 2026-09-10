@@ -164,6 +164,17 @@ async def vault_pubkey(
         raise HTTPException(status_code=403, detail="err.vault_required")
 
 
+@router.get("/vault/share-inbox")
+async def vault_share_inbox(
+    db: CursorWrapper = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    row = await VaultService(db).get_share(current_user["id"])
+    if not row:
+        raise HTTPException(status_code=404, detail="err.vault_pending")
+    return row
+
+
 @router.get("/vault/pubkeys")
 async def vault_pubkeys(
     db: CursorWrapper = Depends(get_db),

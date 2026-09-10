@@ -219,8 +219,17 @@ class HouseholdService:
             ],
             is_admin=user_id == hh["created_by"],
             vault_sealed=int(hh.get("vault_sealed") or 0) == 1,
-            vault_ready=False,
+            vault_ready=await self._vault_ready(hh["id"], user_id),
         )
+
+    async def _vault_ready(self, household_id: int, user_id: int) -> bool:
+        cursor = await self.db.execute(
+            """SELECT 1 FROM household_key_wraps
+               WHERE household_id = ? AND user_id = ?
+                 AND COALESCE(kdf_params, '') <> 'share'""",
+            (household_id, user_id),
+        )
+        return await cursor.fetchone() is not None
 
     # ── Get invite code ────────────────────────────────────────────
 

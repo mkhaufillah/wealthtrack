@@ -886,14 +886,16 @@ async def _prepare_chat_memory(
         return (summary or "Belum ada ringkasan percakapan."), recent
 
     cursor = await db.execute(
-        """SELECT id, role, content FROM ai_messages
+        """SELECT id, role, content, vault_blob FROM ai_messages
            WHERE user_id = ? AND status = 'complete' AND id < ?
            ORDER BY id ASC""",
         (user_id, before_id),
     )
     rows = await cursor.fetchall()
+    from app.core.vault_row import open_row
+
     msgs = [
-        {"id": r["id"], "role": r["role"], "content": r["content"]}
+        {"id": r["id"], "role": r["role"], "content": open_row(dict(r)).get("content") or r["content"]}
         for r in rows
         if r["role"] in ("user", "assistant")
         and (r["content"] or "").strip() not in skip

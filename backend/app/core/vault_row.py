@@ -48,6 +48,12 @@ def pack_money(
     return out
 
 
+def open_row(row: dict) -> dict:
+    from app.core.vault_ctx import current_dek
+
+    return unpack_money(current_dek(), dict(row))
+
+
 def unpack_money(dek: bytes | None, row: dict) -> dict:
     data = dict(row)
     blob = data.get("vault_blob") or ""

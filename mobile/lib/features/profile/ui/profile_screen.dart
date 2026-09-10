@@ -718,6 +718,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ],
             ),
+            if (hh['vault_sealed'] == true) ...[
+              const SizedBox(height: 10),
+              Text(
+                hh['vault_ready'] == true
+                    ? t('hh.share_vault')
+                    : t('hh.vault_pending'),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              if (hh['vault_ready'] == true)
+                TextButton(
+                  onPressed: () async {
+                    await ref.read(authProvider.notifier).shareVault();
+                    if (!mounted) return;
+                    await _loadHousehold();
+                  },
+                  child: Text(t('hh.share_vault')),
+                ),
+            ],
             if (state.members.length > 1) ...[
               const SizedBox(height: 10),
               Divider(height: 1, color: AppColors.divider),

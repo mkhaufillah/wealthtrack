@@ -76,6 +76,10 @@ class BudgetService:
     @staticmethod
     def _build_budget_response(row: dict) -> dict:
         """Build a standard budget response dict from a DB row."""
+        from app.core.vault_row import open_row
+
+        row = open_row(dict(row))
+        amt = row.get("budget_amount") or row.get("amount") or 0
         return {
             "id": row["id"],
             "month": row["month"],
@@ -83,9 +87,7 @@ class BudgetService:
             "category_name": row["category_name"],
             "category_icon": row.get("category_icon") or "📦",
             "copy_key": row.get("copy_key") or "",
-            "amount": row["budget_amount"]
-            if "budget_amount" in row
-            else row["amount"],
+            "amount": amt,
         }
 
     @staticmethod
@@ -112,7 +114,7 @@ class BudgetService:
         """Return all budgets for *user_id* in *month* (ordered by amount desc)."""
         cursor = await self.db.execute(
             """SELECT b.id, b.month, b.category_id, b.category_name, b.budget_amount,
-                      c.icon AS category_icon, c.copy_key AS copy_key
+                      b.vault_blob, c.icon AS category_icon, c.copy_key AS copy_key
                FROM budgets b
                LEFT JOIN categories c ON b.category_id = c.id
                WHERE b.month = ? AND b.user_id = ?
@@ -172,6 +174,31 @@ class BudgetService:
             budget_id = cursor.lastrowid
             if budget_id is None:
                 raise RuntimeError("Failed to create budget")
+
+        from app.core.vault_ctx import VaultRequiredError, current_dek, current_sealed
+        from app.core.vault_row import pack_money
+
+        if current_sealed():
+            dek = current_dek()
+            if dek is None:
+                raise VaultRequiredError()
+            packed = pack_money(
+                dek,
+                amount=int(amount),
+                category_id=category_id,
+                category_name=cat["name"],
+            )
+            await self.db.execute(
+                """UPDATE budgets SET vault_blob=?, amount_ord=?, category_trace=?,
+                   budget_amount=0, category_name=?, category_id=NULL WHERE id=?""",
+                (
+                    packed["vault_blob"],
+                    packed["amount_ord"],
+                    packed.get("category_trace") or "",
+                    packed.get("category_name") or "",
+                    budget_id,
+                ),
+            )
 
         return {
             "id": budget_id,
