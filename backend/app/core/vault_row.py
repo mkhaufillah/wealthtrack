@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 
 from app.core.vault import (
     aes_decrypt,
@@ -33,6 +34,12 @@ def pack_money(
     }
     if extra:
         payload.update(extra)
+    def _jsonable(v):
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
+
+    payload = {k: _jsonable(v) for k, v in payload.items()}
     blob = aes_encrypt(dek, json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
     ope_amt = int(amount)
     if ope_amt < 0:

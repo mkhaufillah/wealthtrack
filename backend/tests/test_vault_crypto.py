@@ -90,3 +90,13 @@ def test_pack_negative_amount_still_encrypts():
     row = unpack_money(dek, packed)
     assert row["amount"] == -1
     assert row["remaining_balance"] == -1
+
+
+def test_pack_decimal_extra():
+    from decimal import Decimal
+    from app.core.vault_row import pack_money, unpack_money
+
+    dek = generate_dek()
+    packed = pack_money(dek, amount=0, extra={"interest_rate": Decimal("0.0899")})
+    row = unpack_money(dek, packed)
+    assert abs(float(row["interest_rate"]) - 0.0899) < 1e-9
