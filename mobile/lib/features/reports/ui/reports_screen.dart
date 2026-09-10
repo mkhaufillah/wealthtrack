@@ -493,10 +493,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 const SizedBox(width: 6),
                 SizedBox(
                   width: 28,
-                  child: Text(
-                    isOver ? '🔴' : pct >= 70 ? '⚠️' : '✅',
-                    style: TextStyle(fontSize: 14),
-                    textAlign: TextAlign.center,
+                  child: AppIcon(
+                    isOver
+                        ? AppIcons.alert
+                        : pct >= 70
+                            ? AppIcons.alert
+                            : AppIcons.check,
+                    size: 16,
+                    color: isOver
+                        ? AppColors.highlight
+                        : pct >= 70
+                            ? AppColors.warning
+                            : AppColors.success,
                   ),
                 ),
               ],
