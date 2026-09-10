@@ -93,7 +93,7 @@ class BudgetService:
     @staticmethod
     def _build_summary_item(row: dict, actual_spent: int) -> dict:
         """Build a single ``BudgetSummaryItem``-compatible dict."""
-        budget_amount = row["budget_amount"]
+        budget_amount = int(row.get("budget_amount") or row.get("amount") or 0)
         percentage = (actual_spent / budget_amount * 100) if budget_amount > 0 else 0
         return {
             "id": row["id"],
@@ -246,14 +246,16 @@ class BudgetService:
         # Get all budgets for this month
         cursor = await self.db.execute(
             """SELECT b.id, b.category_id, b.category_name, b.budget_amount, b.cycle_on,
-                      c.icon AS category_icon, c.copy_key AS copy_key
+                      b.vault_blob, c.icon AS category_icon, c.copy_key AS copy_key
                FROM budgets b
                LEFT JOIN categories c ON b.category_id = c.id
                WHERE b.month = ? AND b.user_id = ?
                ORDER BY b.budget_amount DESC""",
             (month, user_id),
         )
-        rows = await cursor.fetchall()
+        from app.core.vault_row import open_row
+
+        rows = [open_row(dict(r)) for r in await cursor.fetchall()]
 
         results = []
 
@@ -265,46 +267,97 @@ class BudgetService:
             d_to_str = f"{month}-{last_day:02d}"
 
             budget_ids = [r["id"] for r in rows]
-            cat_ids = [r["category_id"] for r in rows]
+            cat_ids = [r["category_id"] for r in rows if r.get("category_id") is not None]
 
             actual_map: dict[int, int] = {}
-            if budget_ids:
-                cat_placeholders = ",".join("?" for _ in cat_ids)
-                cur = await self.db.execute(
-                    f"""SELECT t.category_id,
-                               CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS INTEGER) AS actual_spent
-                        FROM transactions t
-                        WHERE t.user_id = ?
-                          AND t.category_id IN ({cat_placeholders})
-                          AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                          AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
-                        GROUP BY t.category_id""",
-                    (user_id, *cat_ids, d_from_str, d_to_str),
-                )
-                for r in await cur.fetchall():
-                    actual_map[r["category_id"]] = r["actual_spent"]
+            if cat_ids:
+                from app.core.vault_ctx import current_dek, current_sealed
+                from app.core.vault import category_trace
+                from app.core.vault_row import ope_sum_to_plain
+
+                if current_sealed() and current_dek():
+                    dek = current_dek()
+                    assert dek is not None
+                    traces = [category_trace(dek, int(i)) for i in cat_ids]
+                    ph = ",".join("?" for _ in traces)
+                    cur = await self.db.execute(
+                        f"""SELECT t.category_trace,
+                                   COALESCE(SUM(t.amount_ord), 0) AS total, COUNT(*) AS count
+                            FROM transactions t
+                            WHERE t.user_id = ? AND t.type = 'expense'
+                              AND t.category_trace IN ({ph})
+                              AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                              AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
+                            GROUP BY t.category_trace""",
+                        (user_id, *traces, d_from_str, d_to_str),
+                    )
+                    inv = {category_trace(dek, int(i)): int(i) for i in cat_ids}
+                    for r in await cur.fetchall():
+                        cid = inv.get(r["category_trace"])
+                        if cid is not None:
+                            actual_map[cid] = ope_sum_to_plain(
+                                dek, int(r["total"] or 0), int(r["count"] or 0)
+                            )
+                else:
+                    cat_placeholders = ",".join("?" for _ in cat_ids)
+                    cur = await self.db.execute(
+                        f"""SELECT t.category_id,
+                                   CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS INTEGER) AS actual_spent
+                            FROM transactions t
+                            WHERE t.user_id = ?
+                              AND t.category_id IN ({cat_placeholders})
+                              AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                              AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
+                            GROUP BY t.category_id""",
+                        (user_id, *cat_ids, d_from_str, d_to_str),
+                    )
+                    for r in await cur.fetchall():
+                        actual_map[r["category_id"]] = r["actual_spent"]
 
             for r in rows:
                 actual_spent = actual_map.get(r["category_id"], 0)
                 results.append(self._build_summary_item(r, actual_spent))
         else:
             # ── Cycle-aware path — per-budget query ──
+            from app.core.vault_ctx import current_dek, current_sealed
+            from app.core.vault import category_trace
+            from app.core.vault_row import ope_sum_to_plain
+
+            sealed = current_sealed()
+            dek = current_dek()
             for r in rows:
                 cycle_on = r["cycle_on"]
                 d_from, d_to = get_cycle_range_for_month(month, cycle_on)
                 d_from_str = d_from.isoformat()
                 d_to_str = d_to.isoformat()
-
-                cur = await self.db.execute(
-                    """SELECT COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual_spent
-                       FROM transactions t
-                       WHERE t.category_id = ? AND t.user_id = ?
-                         AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                         AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?""",
-                    (r["category_id"], user_id, d_from_str, d_to_str),
-                )
-                row = await cur.fetchone()
-                actual_spent = row[0] if row is not None else 0
+                cid = r.get("category_id")
+                if sealed and dek is not None and cid is not None:
+                    tr = category_trace(dek, int(cid))
+                    cur = await self.db.execute(
+                        """SELECT COALESCE(SUM(t.amount_ord), 0) AS total, COUNT(*) AS count
+                           FROM transactions t
+                           WHERE t.category_trace = ? AND t.user_id = ? AND t.type = 'expense'
+                             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?""",
+                        (tr, user_id, d_from_str, d_to_str),
+                    )
+                    row = await cur.fetchone()
+                    actual_spent = ope_sum_to_plain(
+                        dek, int(row["total"] or 0), int(row["count"] or 0)
+                    ) if row else 0
+                elif cid is None:
+                    actual_spent = 0
+                else:
+                    cur = await self.db.execute(
+                        """SELECT COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual_spent
+                           FROM transactions t
+                           WHERE t.category_id = ? AND t.user_id = ?
+                             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?""",
+                        (cid, user_id, d_from_str, d_to_str),
+                    )
+                    row = await cur.fetchone()
+                    actual_spent = row[0] if row is not None else 0
                 results.append(self._build_summary_item(r, actual_spent))
 
         # ── Unbudgeted expenses ──
@@ -345,7 +398,7 @@ class BudgetService:
             last_day = _cal.monthrange(y, mo)[1]
             uncat_d_to = f"{month}-{last_day:02d}"
 
-        budgeted_cat_ids = tuple(r["category_id"] for r in budget_rows)
+        budgeted_cat_ids = tuple(r["category_id"] for r in budget_rows if r.get("category_id") is not None)
         uncategorized = []
 
         if budgeted_cat_ids:

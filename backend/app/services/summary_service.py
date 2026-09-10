@@ -60,14 +60,14 @@ class SummaryService:
 
         return ope_sum_to_plain(dek or b"\x00" * 32, int(total or 0), int(count or 0))
 
-    async def _expense_categories(self, where_sql: str, params: tuple, expense: int) -> list:
+    async def _expense_categories(self, where_sql: str, params: tuple, expense: int, typ: str = "expense") -> list:
         from app.core.vault_row import unpack_money
 
         sealed, dek = self._vault()
         if sealed:
             cursor = await self.db.execute(
-                f"SELECT * FROM transactions t WHERE 1=1 {where_sql} AND t.type = 'expense'",
-                params,
+                f"SELECT * FROM transactions t WHERE 1=1 {where_sql} AND t.type = ?",
+                (*params, typ),
             )
             buckets: dict = {}
             for raw in await cursor.fetchall():
@@ -117,9 +117,9 @@ class SummaryService:
                FROM transactions t
                JOIN categories c ON t.category_id = c.id
                WHERE 1=1 {where_sql}
-                 AND t.type = 'expense'
+                 AND t.type = ?
                GROUP BY c.id ORDER BY total DESC""",
-            params,
+            (*params, typ),
         )
         by_cat = await cursor.fetchall()
         categories = []
@@ -451,8 +451,10 @@ class SummaryService:
                 y, mo = map(int, month.split("-"))
                 d_to = f"{month}-{calendar.monthrange(y, mo)[1]}"
 
+        sealed, dek = self._vault()
+        amt = "t.amount_ord" if sealed else "t.amount"
         cursor = await self.db.execute(
-            """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
+            f"""SELECT t.type, COALESCE(SUM({amt}), 0) as total, COUNT(*) as count
                FROM transactions t
                WHERE t.user_id = ?
                  AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
@@ -464,54 +466,26 @@ class SummaryService:
         income = 0
         expense = 0
         for r in rows:
+            total = self._plain(sealed, dek, r["total"], r["count"])
             if r["type"] == "income":
-                income = r["total"]
+                income = total
             else:
-                expense = r["total"]
+                expense = total
 
-        cursor = await self.db.execute(
-            """SELECT c.id, c.name, c.icon, c.copy_key,
-                      SUM(t.amount) as total, COUNT(*) as count
-               FROM transactions t JOIN categories c ON t.category_id = c.id
-               WHERE t.user_id = ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
-                 AND t.type = 'expense'
-               GROUP BY c.id ORDER BY total DESC""",
+        date_where = """ AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?"""
+        categories = await self._expense_categories(
+            f" AND t.user_id = ?{date_where}",
             (user_id, d_from, d_to),
+            expense,
+            typ="expense",
         )
-        categories = []
-        for r in await cursor.fetchall():
-            pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
-            categories.append({
-                "category_id": r["id"], "category_name": r["name"],
-                "copy_key": r["copy_key"] or "",
-                    "icon": r["icon"] or "", "total": int(r["total"]),
-                "count": r["count"], "percentage": pct,
-            })
-
-        # Income category breakdown
-        cursor = await self.db.execute(
-            """SELECT c.id, c.name, c.icon, c.copy_key,
-                      SUM(t.amount) as total, COUNT(*) as count
-               FROM transactions t JOIN categories c ON t.category_id = c.id
-               WHERE t.user_id = ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
-                 AND t.type = 'income'
-               GROUP BY c.id ORDER BY total DESC""",
+        income_categories = await self._expense_categories(
+            f" AND t.user_id = ?{date_where}",
             (user_id, d_from, d_to),
+            income,
+            typ="income",
         )
-        income_categories = []
-        for r in await cursor.fetchall():
-            income_total = int(r["total"])
-            pct = round((income_total / income * 100), 1) if income > 0 else 0
-            income_categories.append({
-                "category_id": r["id"], "category_name": r["name"],
-                "copy_key": r["copy_key"] or "",
-                    "icon": r["icon"] or "", "total": income_total,
-                "count": r["count"], "percentage": pct,
-            })
 
         cursor = await self.db.execute(
             """SELECT COALESCE(t.date, LEFT(t.created_at::text, 10)) as date,
