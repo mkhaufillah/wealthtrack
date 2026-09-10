@@ -10,6 +10,7 @@ import logging
 from typing import Optional
 
 from app.database import CursorWrapper
+from app.core.vault_query import append_category_filter
 from app.core.meilisearch import (
     index_document,
     delete_document,
@@ -266,6 +267,13 @@ class TransactionService:
         """List user's transactions with optional search (Meilisearch + SQL fallback)."""
         # ── If search query provided, use Meilisearch ──
         if q and q.strip():
+            from app.core.vault_ctx import current_sealed
+
+            if current_sealed():
+                return await self._search_vault(
+                    user_id, q.strip(), page, per_page,
+                    type, category_id, date_from, date_to, sort, category_ids,
+                )
             return await self._search_with_meili(
                 user_id, q.strip(), page, per_page,
                 type, category_id, date_from, date_to, sort, category_ids,
@@ -275,6 +283,48 @@ class TransactionService:
         return await self._list_with_sql(
             user_id, page, per_page,
             type, category_id, date_from, date_to, sort, category_ids,
+        )
+
+    async def _search_vault(
+        self,
+        user_id: int,
+        q: str,
+        page: int,
+        per_page: int,
+        type: str | None,
+        category_id: int | None,
+        date_from: str | None,
+        date_to: str | None,
+        sort: str,
+        category_ids: str | None,
+    ) -> PaginatedTransactions:
+        """Decrypt-then-filter. Meili has no description after seal."""
+        batch = await self._list_with_sql(
+            user_id, 1, 5000,
+            type, category_id, date_from, date_to, sort, category_ids,
+        )
+        needle = q.lower()
+
+        def _hay(row) -> str:
+            if isinstance(row, dict):
+                cat = row.get("category") or {}
+                return f"{row.get('description') or ''} {row.get('note') or ''} {cat.get('name') or ''}"
+            cat = getattr(row, "category", None)
+            name = getattr(cat, "name", "") if cat is not None else ""
+            return f"{getattr(row, 'description', '')} {getattr(row, 'note', '')} {name}"
+
+        matched = [row for row in batch.data if needle in _hay(row).lower()]
+        total = len(matched)
+        start = (page - 1) * per_page
+        page_rows = matched[start:start + per_page]
+        return PaginatedTransactions(
+            data=page_rows,
+            meta=PaginationMeta(
+                page=page,
+                per_page=per_page,
+                total=total,
+                total_pages=max(1, (total + per_page - 1) // per_page) if total else 0,
+            ),
         )
 
     async def _search_with_meili(
@@ -388,15 +438,7 @@ class TransactionService:
         if type:
             where.append("t.type = ?")
             params.append(type)
-        if category_ids:
-            ids = [int(x.strip()) for x in category_ids.split(",") if x.strip().isdigit()]
-            if ids:
-                placeholders = ",".join("?" for _ in ids)
-                where.append(f"t.category_id IN ({placeholders})")
-                params.extend(ids)
-        elif category_id:
-            where.append("t.category_id = ?")
-            params.append(category_id)
+        append_category_filter(where, params, category_id, category_ids)
         if date_from:
             where.append(f"{_DATE_COALESCE} >= ?")
             params.append(date_from)
@@ -457,21 +499,13 @@ class TransactionService:
         if type:
             where.append("t.type = ?")
             params.append(type)
-        if category_id:
-            where.append("t.category_id = ?")
-            params.append(category_id)
+        append_category_filter(where, params, category_id, category_ids)
         if date_from:
             where.append(f"{_DATE_COALESCE} >= ?")
             params.append(date_from)
         if date_to:
             where.append(f"{_DATE_COALESCE} <= ?")
             params.append(date_to)
-        if category_ids:
-            ids = [int(x.strip()) for x in category_ids.split(",") if x.strip().isdigit()]
-            if ids:
-                placeholders = ",".join("?" for _ in ids)
-                where.append(f"t.category_id IN ({placeholders})")
-                params.extend(ids)
 
         order = _ORDER_MAP.get(sort, f"{_DATE_COALESCE} DESC")
 

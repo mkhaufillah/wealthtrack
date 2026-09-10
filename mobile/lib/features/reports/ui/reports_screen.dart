@@ -429,7 +429,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             padding: const EdgeInsets.only(bottom: 10),
             child: Row(
               children: [
-                CategoryGlyph(icon: item.categoryIcon, size: 28),
+                CategoryGlyph(icon: item.categoryIcon, size: 32),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 3,

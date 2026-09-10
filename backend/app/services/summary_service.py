@@ -550,13 +550,15 @@ class SummaryService:
                 y += 1
 
         results = []
+        sealed, dek = self._vault()
+        amt = "t.amount_ord" if sealed else "t.amount"
         for m in months:
             d_from = f"{m}-01"
             _, days = calendar.monthrange(*map(int, m.split("-")))
             d_to = f"{m}-{days}"
 
             cursor = await self.db.execute(
-                """SELECT t.type, COALESCE(SUM(t.amount), 0) as total
+                f"""SELECT t.type, COALESCE(SUM({amt}), 0) as total, COUNT(*) as count
                    FROM transactions t
                    WHERE t.user_id = ?
                      AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
@@ -568,10 +570,11 @@ class SummaryService:
             income = 0
             expense = 0
             for r in rows:
+                total = self._plain(sealed, dek, r["total"], r.get("count") or 1)
                 if r["type"] == "income":
-                    income = r["total"]
+                    income = total
                 else:
-                    expense = r["total"]
+                    expense = total
 
             results.append({
                 "month": m,

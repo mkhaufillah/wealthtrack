@@ -38,6 +38,56 @@ async def get_historical_spending(
     for d_from, d_to in cycles:
         params.extend([d_from, d_to])
 
+    from app.core.vault_ctx import current_dek, current_sealed
+    from app.core.vault_row import unpack_money
+
+    if current_sealed() and current_dek():
+        dek = current_dek()
+        cursor = await db.execute(
+            f"""SELECT * FROM transactions t
+                WHERE t.user_id = ? AND t.type = 'expense' AND ({or_conditions})""",
+            (user_id, *params),
+        )
+        buckets: dict = {}
+        for raw in await cursor.fetchall():
+            d = unpack_money(dek, dict(raw))
+            cid = d.get("category_id")
+            if cid is None:
+                continue
+            b = buckets.setdefault(
+                int(cid),
+                {"category_id": int(cid), "amounts": [], "name": d.get("category_name") or ""},
+            )
+            b["amounts"].append(int(d.get("amount") or 0))
+            if d.get("category_name"):
+                b["name"] = d["category_name"]
+        ids = list(buckets.keys())
+        meta = {}
+        if ids:
+            ph = ",".join("?" * len(ids))
+            cur = await db.execute(
+                f"SELECT id, name, icon, copy_key FROM categories WHERE id IN ({ph})",
+                tuple(ids),
+            )
+            meta = {r["id"]: dict(r) for r in await cur.fetchall()}
+        out = []
+        for cid, b in buckets.items():
+            amts = b["amounts"]
+            m = meta.get(cid) or {}
+            out.append(
+                {
+                    "category_id": cid,
+                    "category_name": b["name"] or m.get("name") or f"Cat#{cid}",
+                    "category_icon": m.get("icon") or "strokeRoundedInvoice01",
+                    "copy_key": m.get("copy_key") or "",
+                    "avg_amount": int(sum(amts) / len(amts)) if amts else 0,
+                    "max_amount": max(amts) if amts else 0,
+                    "months_analyzed": min(3, max(1, len(amts))),
+                }
+            )
+        out.sort(key=lambda x: -x["avg_amount"])
+        return out
+
     cursor = await db.execute(
         f"""SELECT t.category_id,
                    c.name AS category_name,

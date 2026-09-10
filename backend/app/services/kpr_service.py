@@ -239,7 +239,7 @@ class KPRService:
                    ks.id, ks.user_id, ks.name, ks.property_price, ks.down_payment,
                    ks.total_loan, ks.tenor_months, ks.interest_type, ks.created_at,
                    ks.start_month, ks.start_year, ks.due_date,
-                   ks.household_id, ks.display_order,
+                   ks.household_id, ks.display_order, ks.vault_blob,
                    COALESCE(agg.total_interest, 0) AS total_interest,
                    COALESCE(agg.monthly_payment, 0) AS monthly_payment,
                    COALESCE(agg.current_month_number, 1) AS current_month_number,
@@ -291,7 +291,30 @@ class KPRService:
             (user_id, user_id),
         )
         rows = await cursor.fetchall()
-        return [dict(r) for r in rows]
+        from app.core.vault_row import open_row
+
+        out = []
+        for r in rows:
+            d = open_row(dict(r))
+            cur2 = await db.execute(
+                """SELECT vault_blob, remaining_balance, payment, month_number
+                   FROM kpr_monthly_schedules WHERE simulation_id = ?
+                   ORDER BY month_number""",
+                (d["id"],),
+            )
+            sched = [open_row(dict(x)) for x in await cur2.fetchall()]
+            if sched:
+                cmn = int(d.get("current_month_number") or 1)
+                pick = next((s for s in sched if int(s.get("month_number") or 0) == cmn), sched[-1])
+                prev_n = max(1, cmn - 1)
+                prev = next((s for s in sched if int(s.get("month_number") or 0) == prev_n), pick)
+                d["current_remaining_balance"] = int(
+                    prev.get("remaining_balance") or d.get("total_loan") or 0
+                )
+                d["current_month_payment"] = int(pick.get("payment") or 0)
+                d["monthly_payment"] = int(sched[0].get("payment") or 0)
+            out.append(d)
+        return out
 
     @staticmethod
     async def get_simulation_detail(
@@ -304,14 +327,16 @@ class KPRService:
 
         cursor = await db.execute(
             """SELECT month_number, payment, principal, interest,
-                      remaining_balance, rate_type, interest_rate
+                      remaining_balance, rate_type, interest_rate, vault_blob
                FROM kpr_monthly_schedules
                WHERE simulation_id = ?
                ORDER BY month_number""",
             (sim_id,),
         )
         rows = await cursor.fetchall()
-        schedule_data = [dict(r) for r in rows]
+        from app.core.vault_row import open_row
+
+        schedule_data = [open_row(dict(r)) for r in rows]
 
         # Build summary from the stored schedule
         engine_items = [

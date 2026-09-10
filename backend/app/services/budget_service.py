@@ -364,11 +364,30 @@ class BudgetService:
         uncategorized = await self._get_unbudgeted_expenses(
             user_id, month, use_cycle, d_from_override, d_to_override, rows
         )
+        await self._attach_cat_meta(results)
+        await self._attach_cat_meta(uncategorized)
 
         return {
             "items": results,
             "uncategorized_expenses": uncategorized,
         }
+
+    async def _attach_cat_meta(self, items: list[dict]) -> None:
+        ids = [i.get("category_id") for i in items if i.get("category_id") is not None]
+        if not ids:
+            return
+        ph = ",".join("?" * len(ids))
+        cur = await self.db.execute(
+            f"SELECT id, icon, copy_key, name FROM categories WHERE id IN ({ph})",
+            tuple(ids),
+        )
+        meta = {r["id"]: dict(r) for r in await cur.fetchall()}
+        for i in items:
+            m = meta.get(i.get("category_id")) or {}
+            if m.get("icon"):
+                i["category_icon"] = m["icon"]
+            if m.get("copy_key"):
+                i["copy_key"] = m["copy_key"]
 
     async def _get_unbudgeted_expenses(
         self,
@@ -397,6 +416,59 @@ class BudgetService:
             y, mo = map(int, month.split("-"))
             last_day = _cal.monthrange(y, mo)[1]
             uncat_d_to = f"{month}-{last_day:02d}"
+
+        from app.core.vault_ctx import current_dek, current_sealed
+        from app.core.vault_row import unpack_money
+
+        if current_sealed() and current_dek():
+            dek = current_dek()
+            budgeted = {
+                int(r["category_id"])
+                for r in budget_rows
+                if r.get("category_id") is not None
+            }
+            cur = await self.db.execute(
+                """SELECT * FROM transactions t
+                   WHERE t.user_id = ? AND t.type = 'expense'
+                     AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                     AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?""",
+                (user_id, uncat_d_from, uncat_d_to),
+            )
+            buckets: dict = {}
+            for raw in await cur.fetchall():
+                d = unpack_money(dek, dict(raw))
+                cid = d.get("category_id")
+                if cid is None or int(cid) in budgeted:
+                    continue
+                b = buckets.setdefault(
+                    int(cid),
+                    {"category_id": int(cid), "total": 0, "name": d.get("category_name") or ""},
+                )
+                b["total"] += int(d.get("amount") or 0)
+                if d.get("category_name"):
+                    b["name"] = d["category_name"]
+            ids = list(buckets.keys())
+            meta = {}
+            if ids:
+                ph = ",".join("?" * len(ids))
+                mc = await self.db.execute(
+                    f"SELECT id, name, icon, copy_key FROM categories WHERE id IN ({ph})",
+                    tuple(ids),
+                )
+                meta = {r["id"]: dict(r) for r in await mc.fetchall()}
+            uncategorized = []
+            for cid, b in sorted(buckets.items(), key=lambda x: -x[1]["total"]):
+                m = meta.get(cid) or {}
+                uncategorized.append(
+                    {
+                        "category_id": cid,
+                        "category_name": b["name"] or m.get("name") or "Unknown",
+                        "category_icon": m.get("icon") or "strokeRoundedInvoice01",
+                        "copy_key": m.get("copy_key") or "",
+                        "total": b["total"],
+                    }
+                )
+            return uncategorized
 
         budgeted_cat_ids = tuple(r["category_id"] for r in budget_rows if r.get("category_id") is not None)
         uncategorized = []
@@ -486,17 +558,25 @@ class BudgetService:
 
         # Get existing budgets for this month
         cursor = await self.db.execute(
-            "SELECT category_id, budget_amount FROM budgets WHERE month = ? AND user_id = ?",
+            "SELECT category_id, budget_amount, vault_blob FROM budgets WHERE month = ? AND user_id = ?",
             (month, user_id),
         )
+        from app.core.vault_row import open_row
+
         existing: dict[int, int] = {}
-        async for r in cursor:
-            existing[r["category_id"]] = r["budget_amount"]
+        for r in await cursor.fetchall():
+            d = open_row(dict(r))
+            cid = d.get("category_id")
+            if cid is None:
+                continue
+            existing[int(cid)] = int(d.get("budget_amount") or d.get("amount") or 0)
 
         # Build suggestions
         items = []
         for h in history:
             cat_id = h["category_id"]
+            if cat_id is None:
+                continue
             raw = h["avg_amount"]
             # Round up to nearest 10k, min Rp10k
             suggested = ((raw + 9999) // 10000) * 10000
@@ -522,14 +602,32 @@ class BudgetService:
 
         # Fetch total income for the period
         d_from, d_to = get_cycle_range_for_month(month, cycle_start_day)
-        cursor = await self.db.execute(
-            """SELECT COALESCE(SUM(amount), 0) FROM transactions
-               WHERE user_id = ? AND type = 'income'
-                 AND COALESCE(date, LEFT(created_at::text, 10)) BETWEEN ? AND ?""",
-            (user_id, d_from.isoformat(), d_to.isoformat()),
-        )
-        row = await cursor.fetchone()
-        total_income = row[0] if row else 0
+        from app.core.vault_ctx import current_dek, current_sealed
+        from app.core.vault_row import ope_sum_to_plain
+
+        if current_sealed() and current_dek():
+            dek = current_dek()
+            assert dek is not None
+            cursor = await self.db.execute(
+                """SELECT COALESCE(SUM(amount_ord), 0) AS total, COUNT(*) AS count
+                   FROM transactions
+                   WHERE user_id = ? AND type = 'income'
+                     AND COALESCE(date, LEFT(created_at::text, 10)) BETWEEN ? AND ?""",
+                (user_id, d_from.isoformat(), d_to.isoformat()),
+            )
+            row = await cursor.fetchone()
+            total_income = ope_sum_to_plain(
+                dek, int(row["total"] or 0), int(row["count"] or 0)
+            ) if row else 0
+        else:
+            cursor = await self.db.execute(
+                """SELECT COALESCE(SUM(amount), 0) FROM transactions
+                   WHERE user_id = ? AND type = 'income'
+                     AND COALESCE(date, LEFT(created_at::text, 10)) BETWEEN ? AND ?""",
+                (user_id, d_from.isoformat(), d_to.isoformat()),
+            )
+            row = await cursor.fetchone()
+            total_income = row[0] if row else 0
 
         warning = ""
         if total_income > 0 and total_suggested > total_income:

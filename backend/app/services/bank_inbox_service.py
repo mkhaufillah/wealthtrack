@@ -19,6 +19,9 @@ def _now() -> str:
 
 
 def _item(row: dict) -> dict:
+    from app.core.vault_row import open_row
+
+    row = open_row(dict(row))
     amount = row.get("amount")
     return {
         "id": row["id"],
