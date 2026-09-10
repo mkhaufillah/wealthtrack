@@ -59,6 +59,9 @@ class KPRService:
         if not sim:
             raise KPRServiceError("Simulasi gak ketemu", 404)
         sim = dict(sim)
+        from app.core.vault_row import open_row
+
+        sim = open_row(sim)
         if sim["user_id"] == user_id:
             return sim
         # Allow household members if simulation has household_id

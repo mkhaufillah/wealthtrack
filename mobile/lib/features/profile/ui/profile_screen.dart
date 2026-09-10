@@ -718,24 +718,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ],
             ),
-            if (hh['vault_sealed'] == true) ...[
-              const SizedBox(height: 10),
-              Text(
-                hh['vault_ready'] == true
-                    ? t('hh.share_vault')
-                    : t('hh.vault_pending'),
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
-              if (hh['vault_ready'] == true)
-                TextButton(
-                  onPressed: () async {
-                    await ref.read(authProvider.notifier).shareVault();
-                    if (!mounted) return;
-                    await _loadHousehold();
-                  },
-                  child: Text(t('hh.share_vault')),
-                ),
-            ],
             if (state.members.length > 1) ...[
               const SizedBox(height: 10),
               Divider(height: 1, color: AppColors.divider),
@@ -776,6 +758,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   );
                   }),
             ],
+            if (hh['vault_sealed'] == true) ...[
+              const SizedBox(height: 12),
+              _buildVaultShareCard(hh),
+            ],
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
@@ -790,6 +776,68 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildVaultShareCard(Map hh) {
+    final ready = hh['vault_ready'] == true;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.mint.withOpacity(0.22),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              AppIcon(AppIcons.shield, size: 20, color: AppColors.textPrimary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  ready ? t('hh.share_vault_title') : t('hh.vault_pending'),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            ready ? t('hh.share_vault_body') : t('hh.vault_pending_body'),
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          if (ready) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).shareVault();
+                  if (!mounted) return;
+                  await _loadHousehold();
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(t('hh.share_vault_ok'))),
+                  );
+                },
+                child: Text(t('hh.share_vault')),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

@@ -175,6 +175,47 @@ class AppTheme {
         }),
       );
 
+  static DatePickerThemeData get datePicker => DatePickerThemeData(
+        backgroundColor: AppColors.surface,
+        headerBackgroundColor: AppColors.accent,
+        headerForegroundColor: AppColors.onAccent,
+        surfaceTintColor: Colors.transparent,
+        dayForegroundColor: WidgetStateProperty.resolveWith((s) {
+          if (s.contains(WidgetState.selected)) return AppColors.onAccent;
+          if (s.contains(WidgetState.disabled)) {
+            return AppColors.textSecondary.withOpacity(0.35);
+          }
+          return AppColors.textPrimary;
+        }),
+        dayBackgroundColor: WidgetStateProperty.resolveWith((s) {
+          if (s.contains(WidgetState.selected)) return AppColors.accent;
+          return Colors.transparent;
+        }),
+        todayForegroundColor: WidgetStateProperty.resolveWith((s) {
+          if (s.contains(WidgetState.selected)) return AppColors.onAccent;
+          return AppColors.accent;
+        }),
+        todayBackgroundColor: WidgetStateProperty.resolveWith((s) {
+          if (s.contains(WidgetState.selected)) return AppColors.accent;
+          return Colors.transparent;
+        }),
+        yearForegroundColor: WidgetStateProperty.resolveWith((s) {
+          if (s.contains(WidgetState.selected)) return AppColors.onAccent;
+          return AppColors.textPrimary;
+        }),
+        yearBackgroundColor: WidgetStateProperty.resolveWith((s) {
+          if (s.contains(WidgetState.selected)) return AppColors.accent;
+          return Colors.transparent;
+        }),
+        weekdayStyle: TextStyle(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w700,
+        ),
+        dayOverlayColor: WidgetStateProperty.all(AppColors.accent.withOpacity(0.14)),
+        cancelButtonStyle: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+        confirmButtonStyle: TextButton.styleFrom(foregroundColor: AppColors.textPrimary),
+      );
+
   static ThemeData get light => ThemeData(
         brightness: Brightness.light,
         fontFamily: fontFamily,
@@ -260,6 +301,7 @@ class AppTheme {
         dialogTheme: DialogThemeData(
           backgroundColor: AppColors.surface,
         ),
+        datePickerTheme: datePicker,
         cardTheme: CardThemeData(
           color: AppColors.surface,
           elevation: 0,
@@ -363,6 +405,7 @@ class AppTheme {
         dialogTheme: DialogThemeData(
           backgroundColor: AppColors.surface,
         ),
+        datePickerTheme: datePicker,
         cardTheme: CardThemeData(
           color: AppColors.surface,
           elevation: 0,
