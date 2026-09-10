@@ -27,7 +27,7 @@ Password length / breach checks are a **separate** Play-readiness task, not this
 
 | Event | Outcome |
 |---|---|
-| `pg_dump` / Redis snapshot without the vault key | Ciphertext only. Blind. |
+| `pg_dump` / Redis snapshot without the vault key | Ciphertext. Amounts still **ordered** (OPE). Dates and types plaintext. Names/notes/category-on-row not readable. |
 | Attacker has DB **and** a live request (JWT + vault key) | Can read, same as today’s operator. |
 | Nginx/app logs of bodies or `X-Vault-Key` | Leak. Logging those is a **bug**. |
 | Unlocked phone | Vault key is on the device. Expected. |
@@ -41,7 +41,7 @@ Play Data safety: data is processed on our servers when the app is open. Do not 
 ```
 password  --Argon2id on device-->  KEK_user   (never stored, never sent)
 KEK_user  wraps                    DEK_hh     (one random 256-bit key per household)
-DEK_hh    encrypts                 financial rows  (AES-256-GCM)
+DEK_hh    encrypts                 text/ids (AES-256-GCM) and amounts (OPE, v1)
 ```
 
 - **KEK_user:** derived on the phone from the password + per-user salt. Not the JWT. Not username-as-secret (username may salt the KDF only).
@@ -81,7 +81,7 @@ Old APK after step 2 cannot read money. Required.
 
 ## Field audit (live schema)
 
-**Vault (encrypt)** — anything that is money or a money story:
+**Vault** — money **story** (AES-256-GCM) vs money **number** (OPE, v1):
 
 | Table | Columns |
 |---|---|
@@ -130,9 +130,11 @@ The vision vendor still sees the photo **during that one call**. That is outside
 
 ## Search, filter, sort
 
-**v1 amounts:** AES-256-GCM. All-time sort by amount = decrypt amounts (with `X-Vault-Key`) then sort in process, then paginate. Do not store plaintext or OPE amounts in Meili/Postgres for v1.
+**Amounts (v1): OPE keyed with `DEK_hh`.** Filla accepts dump leak: which rows are larger, plus plaintext **date** and **type**. Different households are not comparable (OPE uses the household key). All-time sort / “lebih dari X” can run **on ciphertext** — no decrypt-all. Display of the number still decrypts for the page.
 
-**v2 amounts (optional):** OPE on **nominal only**. Filla accepts that a dump shows which rows are larger, plus plaintext **date** and **type**. Description/note stay AES. Do not ship OPE until all-time decrypt-sort is actually slow (hundreds of thousands+). Easy to add; hard to take back.
+Do **not** put OPE values in Meili. Postgres is enough to `ORDER BY amount_ope`.
+
+**Not OPE:** description, note, category-on-row, inbox text — AES-256-GCM.
 
 **Category on a row** (`transactions.category_id` / `category_name`, same on `budgets`) is vaulted. The global `categories` table stays plaintext (picker UI, icons, bank keywords).
 
@@ -140,7 +142,7 @@ The vision vendor still sees the photo **during that one call**. That is outside
 
 **Description FTS:** v1 decrypt-then-filter (current volume). Later: word traces `HMAC(DEK_hh, token)` as already described. Meili must not hold plaintext description/amount.
 
-**Drop A–Z / Z–A name sort** (`sort.name_az` / `sort.name_za`, `sort=name|-name`). Description is ciphertext; lexicographic sort needs decrypt-all and the product does not need it. Keep: newest/oldest (date, plaintext) and largest/smallest (amount, decrypt-then-sort).
+**Drop A–Z / Z–A name sort** (`sort.name_az` / `sort.name_za`, `sort=name|-name`). Description is ciphertext; lexicographic sort needs decrypt-all and the product does not need it. Keep: newest/oldest (date) and largest/smallest (OPE amount).
 
 ## Household join / leave
 
