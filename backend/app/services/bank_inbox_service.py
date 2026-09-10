@@ -225,58 +225,31 @@ class BankInboxService:
         date = (row.get("posted_at") or _now())[:10]
         desc = (row.get("merchant") or "").strip() or f"Notif {row.get('bank') or 'bank'}"
         note = f"{row.get('title') or ''} {row.get('text') or ''}".strip()[:500]
-        from app.core.vault_ctx import VaultRequiredError, current_dek, current_sealed
-        from app.core.vault_row import pack_money
+        from app.core.vault_write import pack_txn
 
-        if current_sealed():
-            dek = current_dek()
-            if dek is None:
-                raise VaultRequiredError()
-            packed = pack_money(
-                dek,
-                amount=int(row["amount"] or 0),
-                description=desc[:255],
-                note=note,
-                category_id=cat["id"],
-                category_name=cat["name"],
-            )
-            cursor = await self.db.execute(
-                """INSERT INTO transactions
-                   (user_id, category_id, category_name, type, amount, description, note, date, source,
-                    vault_blob, amount_ord, category_trace)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    user_id,
-                    packed.get("category_id"),
-                    packed.get("category_name") or "",
-                    txn_type,
-                    packed["amount"],
-                    packed.get("description") or "",
-                    packed.get("note") or "",
-                    date,
-                    source,
-                    packed["vault_blob"],
-                    packed["amount_ord"],
-                    packed.get("category_trace") or "",
-                ),
-            )
-        else:
-            cursor = await self.db.execute(
-                """INSERT INTO transactions
-                   (user_id, category_id, category_name, type, amount, description, note, date, source)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    user_id,
-                    cat["id"],
-                    cat["name"],
-                    txn_type,
-                    int(row["amount"]),
-                    desc[:255],
-                    note,
-                    date,
-                    source,
-                ),
-            )
+        packed = pack_txn(
+            amount=int(row["amount"] or 0),
+            description=desc[:255],
+            note=note,
+            category_id=cat["id"],
+            category_name=cat["name"],
+        )
+        cursor = await self.db.execute(
+            """INSERT INTO transactions
+               (user_id, category_id, type, date, source,
+                vault_blob, amount_ord, category_trace)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                user_id,
+                packed.get("category_id"),
+                txn_type,
+                date,
+                source,
+                packed["vault_blob"],
+                packed["amount_ord"],
+                packed.get("category_trace") or "",
+            ),
+        )
         txn_id = cursor.lastrowid
         await self.db.execute(
             """UPDATE bank_inbox

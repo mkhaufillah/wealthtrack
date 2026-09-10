@@ -545,24 +545,21 @@ class TestAllTimeCategoryBalance:
             "VALUES (101, 'Dana Darurat', 'expense', 'strokeRoundedInvoice01', 0, 11, '[]')",
         )
 
-        # Savings: two expense transactions + one income transaction
-        await db.execute(
-            "INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, date) "
-            "VALUES (1, 'expense', 100, 'Tabungan & Investasi', 500000, 'Monthly investment', CURRENT_DATE)",
-        )
-        await db.execute(
-            "INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, date) "
-            "VALUES (1, 'expense', 100, 'Tabungan & Investasi', 200000, 'Extra investment', CURRENT_DATE)",
-        )
-        await db.execute(
-            "INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, date) "
-            "VALUES (1, 'income', 100, 'Tabungan & Investasi', 50000, 'Dividend', CURRENT_DATE)",
-        )
-        # Emergency fund: one expense transaction
-        await db.execute(
-            "INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, date) "
-            "VALUES (1, 'expense', 101, 'Dana Darurat', 1000000, 'Emergency fund top-up', CURRENT_DATE)",
-        )
+        from tests.conftest import TEST_DEK
+        from app.core.vault_row import pack_money
+
+        async def _tx(typ, cat, amount, desc):
+            p = pack_money(TEST_DEK, amount=amount, description=desc, category_id=cat, category_name="")
+            await db.execute(
+                "INSERT INTO transactions (user_id, type, category_id, date, vault_blob, amount_ord, category_trace) "
+                "VALUES (1, ?, ?, CURRENT_DATE, ?, ?, ?)",
+                typ, cat, p["vault_blob"], p["amount_ord"], p.get("category_trace") or "",
+            )
+
+        await _tx("expense", 100, 500000, "Monthly investment")
+        await _tx("expense", 100, 200000, "Extra investment")
+        await _tx("income", 100, 50000, "Dividend")
+        await _tx("expense", 101, 1000000, "Emergency fund top-up")
 
         resp = await client.get(
             "/api/v1/summaries/all-time-category-balance",
@@ -588,9 +585,14 @@ class TestAllTimeCategoryBalance:
             "VALUES (110, 'Tabungan & Investasi', 'expense', 'strokeRoundedMoneyBag01', 0, 10, '[]')",
         )
         # Only user 1 has a transaction; nahda (user 2) should see zeros
+        from tests.conftest import TEST_DEK
+        from app.core.vault_row import pack_money
+
+        p = pack_money(TEST_DEK, amount=500000, description="Filla investment", category_id=110)
         await db.execute(
-            "INSERT INTO transactions (user_id, type, category_id, category_name, amount, description, date) "
-            "VALUES (1, 'expense', 110, 'Tabungan & Investasi', 500000, 'Filla investment', CURRENT_DATE)",
+            "INSERT INTO transactions (user_id, type, category_id, date, vault_blob, amount_ord, category_trace) "
+            "VALUES (1, 'expense', 110, CURRENT_DATE, ?, ?, ?)",
+            p["vault_blob"], p["amount_ord"], p.get("category_trace") or "",
         )
 
         resp = await client.get(

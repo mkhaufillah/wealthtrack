@@ -30,8 +30,8 @@ class ExportService:
     async def _year_transactions(self, year: int, user_id: int) -> dict[int, list]:
         """Fetch all transactions for a given year, grouped by month."""
         cursor = await self.db.execute(
-            """SELECT t.id, t.type, t.amount, t.category_name, t.description, t.note,
-                      t.date, t.user_id, t.created_at, u.display_name AS owner_name
+            """SELECT t.id, t.type, t.vault_blob, t.date, t.user_id, t.created_at,
+                      u.display_name AS owner_name
                FROM transactions t
                LEFT JOIN users u ON t.user_id = u.id
                WHERE t.user_id = ?
@@ -41,9 +41,11 @@ class ExportService:
             (user_id, f"{year}-01-01", f"{year}-12-31"),
         )
         rows = await cursor.fetchall()
+        from app.core.vault_row import open_row
+
         grouped: dict[int, list] = {m: [] for m in range(1, 13)}
         for r in rows:
-            d = dict(r)
+            d = open_row(dict(r))
             raw_date = d["date"] or d["created_at"][:10]
             mo = int(raw_date[5:7])
             grouped[mo].append(d)

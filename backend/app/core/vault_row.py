@@ -68,7 +68,10 @@ def unpack_money(dek: bytes | None, row: dict) -> dict:
     data = dict(row)
     blob = data.get("vault_blob") or ""
     if dek and blob and is_aes_token(str(blob)):
-        inner = json.loads(aes_decrypt(dek, str(blob)))
+        try:
+            inner = json.loads(aes_decrypt(dek, str(blob)))
+        except Exception:
+            return data
         for k, v in inner.items():
             if k == "vault_blob":
                 continue

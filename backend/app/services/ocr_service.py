@@ -224,12 +224,16 @@ class OcrService:
             (user_id, img_filename),
         )
         job_id = cursor.lastrowid
+        from app.core.vault_ctx import current_dek, set_dek
+
+        captured_dek = current_dek()
 
         # ── Background: process and save transaction ──
         async def _process() -> None:
             try:
                 from app.database import get_db_bg
 
+                set_dek(captured_dek)
                 bg_db = await get_db_bg()
                 try:
                     raw_bytes = open(img_path, "rb").read()
@@ -267,19 +271,28 @@ class OcrService:
                     )
 
                     if amount > 0 and category_id:
+                        from app.core.vault_write import pack_txn
+
+                        packed = pack_txn(
+                            amount=amount,
+                            description=description,
+                            note=note,
+                            category_id=category_id,
+                            category_name=category_name,
+                        )
                         cursor = await bg_db.execute(
                             """INSERT INTO transactions
-                               (user_id, type, category_id, category_name, amount, description, note, date)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                               (user_id, type, category_id, date,
+                                vault_blob, amount_ord, category_trace)
+                               VALUES (?, ?, ?, ?, ?, ?, ?)""",
                             (
                                 user_id,
                                 txn_type,
-                                category_id,
-                                category_name,
-                                amount,
-                                description,
-                                note,
+                                packed.get("category_id"),
                                 txn_date,
+                                packed["vault_blob"],
+                                packed["amount_ord"],
+                                packed.get("category_trace") or "",
                             ),
                         )
                         txn_id = cursor.lastrowid

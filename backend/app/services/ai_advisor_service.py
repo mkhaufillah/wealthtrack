@@ -249,8 +249,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
     # ── Per-category breakdown (household, with owner info) ──
     cursor = await db.execute(
-        f"""SELECT t.category_name, t.type, t.amount, u.display_name as owner,
-                  t.date, t.description
+        f"""SELECT t.vault_blob, t.type, t.date, u.display_name as owner
            FROM transactions t
            JOIN users u ON t.user_id = u.id
            WHERE t.user_id IN ({placeholders})
@@ -259,6 +258,9 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
         (*member_ids, d_from, d_to),
     )
     all_txns = await cursor.fetchall()
+    from app.core.vault_row import open_row
+
+    all_txns = [open_row(dict(t)) for t in all_txns]
 
     # Category summary
     cat_map = {}
@@ -358,7 +360,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
     # ── Budgets vs actuals (user's own budgets, cycle-aware) ──
     cursor = await db.execute(
         """SELECT b.category_name, b.budget_amount,
-                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual
+                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) AS actual
            FROM budgets b
            LEFT JOIN transactions t ON t.category_id = b.category_id
                AND t.user_id = b.user_id
@@ -539,7 +541,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
     cc_hh_params = (user_id, user_id)
 
     cursor = await db.execute(
-        f"""SELECT COALESCE(SUM(cct.amount), 0) AS total_txns
+        f"""SELECT COALESCE(SUM(cct.amount_ord), 0) AS total_txns
            FROM credit_card_transactions cct
            JOIN credit_cards cc ON cc.id = cct.card_id
            WHERE ({cc_hh_where}) AND cct.is_installment = 0
@@ -598,7 +600,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
     spend_by_card: dict[int, int] = {}
     cursor = await db.execute(
-        f"""SELECT cct.card_id, COALESCE(SUM(cct.amount), 0) AS spent
+        f"""SELECT cct.card_id, COALESCE(SUM(cct.amount_ord), 0) AS spent
            FROM credit_card_transactions cct
            JOIN credit_cards cc ON cc.id = cct.card_id
            WHERE ({cc_hh_where}) AND cct.is_installment = 0

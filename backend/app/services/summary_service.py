@@ -113,7 +113,7 @@ class SummaryService:
             return out
         cursor = await self.db.execute(
             f"""SELECT c.id, c.name, c.icon, c.copy_key,
-                      SUM(t.amount) as total, COUNT(*) as count
+                      SUM(t.amount_ord) as total, COUNT(*) as count
                FROM transactions t
                JOIN categories c ON t.category_id = c.id
                WHERE 1=1 {where_sql}
@@ -175,7 +175,7 @@ class SummaryService:
         sealed = current_sealed()
         if sealed and current_dek() is None:
             raise VaultRequiredError()
-        amount_expr = "t.amount_ord" if sealed else "t.amount"
+        amount_expr = "t.amount_ord"
 
         cursor = await self.db.execute(
             f"""SELECT t.type, COALESCE(SUM({amount_expr}), 0) as total, COUNT(*) as count
@@ -206,8 +206,8 @@ class SummaryService:
         # By user (current user breakdown)
         cursor = await self.db.execute(
             f"""SELECT t.user_id, u.display_name,
-                      COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense,
-                      COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income
+                      COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) as total_expense,
+                      COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_ord ELSE 0 END), 0) as total_income
                FROM transactions t
                JOIN users u ON t.user_id = u.id
                WHERE t.user_id = ?{date_sql}
@@ -257,7 +257,7 @@ class SummaryService:
         if not hm:
             # User not in a household — return personal-only summary
             cursor = await self.db.execute(
-                """SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
+                """SELECT t.type, COALESCE(SUM(t.amount_ord), 0) as total, COUNT(*) as count
                    FROM transactions t
                    WHERE t.user_id = ?
                      AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
@@ -308,7 +308,7 @@ class SummaryService:
             d_to = today
 
         cursor = await self.db.execute(
-            """SELECT t.type, CAST(COALESCE(SUM(t.amount), 0) AS INTEGER) as total,
+            """SELECT t.type, CAST(COALESCE(SUM(t.amount_ord), 0) AS INTEGER) as total,
                       COUNT(*) as count
                FROM transactions t
                JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
@@ -328,7 +328,7 @@ class SummaryService:
 
         cursor = await self.db.execute(
             """SELECT c.id, c.name, c.icon, c.copy_key,
-                      SUM(t.amount) as total, COUNT(*) as count
+                      SUM(t.amount_ord) as total, COUNT(*) as count
                FROM transactions t
                JOIN categories c ON t.category_id = c.id
                JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
@@ -357,8 +357,8 @@ class SummaryService:
         # By user — LEFT JOIN from household_members so users with 0 transactions still appear
         cursor = await self.db.execute(
             """SELECT hm.user_id, u.display_name,
-                      CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS INTEGER) as total_expense,
-                      CAST(COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) AS INTEGER) as total_income
+                      CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) AS INTEGER) as total_expense,
+                      CAST(COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_ord ELSE 0 END), 0) AS INTEGER) as total_income
                FROM household_members hm
                JOIN users u ON hm.user_id = u.id
                LEFT JOIN transactions t ON t.user_id = hm.user_id
@@ -452,7 +452,7 @@ class SummaryService:
                 d_to = f"{month}-{calendar.monthrange(y, mo)[1]}"
 
         sealed, dek = self._vault()
-        amt = "t.amount_ord" if sealed else "t.amount"
+        amt = "t.amount_ord"
         cursor = await self.db.execute(
             f"""SELECT t.type, COALESCE(SUM({amt}), 0) as total, COUNT(*) as count
                FROM transactions t
@@ -489,8 +489,8 @@ class SummaryService:
 
         cursor = await self.db.execute(
             """SELECT COALESCE(t.date, LEFT(t.created_at::text, 10)) as date,
-                      CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS INTEGER) as expense,
-                      CAST(COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) AS INTEGER) as income
+                      CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) AS INTEGER) as expense,
+                      CAST(COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_ord ELSE 0 END), 0) AS INTEGER) as income
                FROM transactions t
                WHERE t.user_id = ?
                  AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
@@ -551,7 +551,7 @@ class SummaryService:
 
         results = []
         sealed, dek = self._vault()
-        amt = "t.amount_ord" if sealed else "t.amount"
+        amt = "t.amount_ord"
         for m in months:
             d_from = f"{m}-01"
             _, days = calendar.monthrange(*map(int, m.split("-")))
@@ -669,8 +669,8 @@ class SummaryService:
             placeholders = ",".join("?" for _ in cat_ids)
             cursor = await self.db.execute(
                 f"""SELECT
-                       COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense,
-                       COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income
+                       COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) as total_expense,
+                       COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_ord ELSE 0 END), 0) as total_income
                    FROM transactions t
                    WHERE t.user_id = ?
                      AND t.category_id IN ({placeholders})""",
@@ -796,7 +796,7 @@ class SummaryService:
 
         # Total CC: this month's transactions (non-installment) + installment remaining amounts
         cursor = await self.db.execute(
-            """SELECT COALESCE(SUM(cct.amount), 0) AS total_txns
+            """SELECT COALESCE(SUM(cct.amount_ord), 0) AS total_txns
                FROM credit_card_transactions cct
                JOIN credit_cards cc ON cc.id = cct.card_id
                WHERE cc.user_id = ? AND cct.is_installment = 0

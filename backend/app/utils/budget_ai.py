@@ -93,8 +93,8 @@ async def get_historical_spending(
                    c.name AS category_name,
                    c.icon AS category_icon,
                    c.copy_key AS copy_key,
-                   CAST(COALESCE(AVG(t.amount), 0) AS INTEGER) AS avg_amount,
-                   CAST(COALESCE(MAX(t.amount), 0) AS INTEGER) AS max_amount,
+                   CAST(COALESCE(AVG(t.amount_ord), 0) AS INTEGER) AS avg_amount,
+                   CAST(COALESCE(MAX(t.amount_ord), 0) AS INTEGER) AS max_amount,
                    COUNT(DISTINCT LEFT(COALESCE(t.date, LEFT(t.created_at::text, 10)), 7))
                        AS months_with_data
             FROM transactions t
@@ -147,7 +147,7 @@ async def get_projection(
     cursor = await db.execute(
         """SELECT b.category_id, b.category_name, b.budget_amount,
                   c.icon AS category_icon,
-                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) AS actual
+                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) AS actual
            FROM budgets b
            LEFT JOIN categories c ON b.category_id = c.id
            LEFT JOIN transactions t ON t.category_id = b.category_id

@@ -90,7 +90,7 @@ def _format_txn(row, cat_name="", cat_icon="", display_name=""):
     r = unpack_money(current_dek(), dict(row))
     return {
         "id": r["id"],
-        "amount": int(r["amount"]),
+        "amount": int(r.get("amount") or 0),
         "type": r["type"],
         "description": r.get("description", "") or "",
         "note": r.get("note", "") or "",
@@ -114,8 +114,8 @@ def _format_txn(row, cat_name="", cat_icon="", display_name=""):
 
 
 _SELECT_TXN = """\
-SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
-       t.description, t.note, t.date, t.user_id, t.created_at,
+SELECT t.id, t.type, t.category_id,
+       t.date, t.user_id, t.created_at, t.source,
        t.vault_blob, t.amount_ord, t.category_trace,
        c.name AS cat_name, c.icon AS cat_icon, c.copy_key AS cat_copy_key,
        u.display_name AS user_display_name
@@ -126,8 +126,8 @@ LEFT JOIN users u ON t.user_id = u.id"""
 _ORDER_MAP = {
     "date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) ASC",
     "-date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC",
-    "amount": "COALESCE(t.amount_ord, t.amount) ASC",
-    "-amount": "COALESCE(t.amount_ord, t.amount) DESC",
+    "amount": "t.amount_ord ASC NULLS LAST",
+    "-amount": "t.amount_ord DESC NULLS LAST",
 }
 
 _DATE_COALESCE = "COALESCE(t.date, LEFT(t.created_at::text, 10))"
@@ -267,14 +267,7 @@ class TransactionService:
         """List user's transactions with optional search (Meilisearch + SQL fallback)."""
         # ── If search query provided, use Meilisearch ──
         if q and q.strip():
-            from app.core.vault_ctx import current_sealed
-
-            if current_sealed():
-                return await self._search_vault(
-                    user_id, q.strip(), page, per_page,
-                    type, category_id, date_from, date_to, sort, category_ids,
-                )
-            return await self._search_with_meili(
+            return await self._search_vault(
                 user_id, q.strip(), page, per_page,
                 type, category_id, date_from, date_to, sort, category_ids,
             )
@@ -552,56 +545,30 @@ class TransactionService:
         if not cat:
             raise CategoryNotFoundError(data.category_id)
 
-        from app.core.vault_ctx import VaultRequiredError, current_dek, current_sealed
-        from app.core.vault_row import pack_money
+        from app.core.vault_write import pack_txn
 
-        dek = current_dek()
-        if current_sealed():
-            if dek is None:
-                raise VaultRequiredError()
-            packed = pack_money(
-                dek,
-                amount=int(data.amount),
-                description=data.description or "",
-                note=data.note or "",
-                category_id=data.category_id,
-                category_name=cat["name"],
-            )
-            cursor = await self.db.execute(
-                """INSERT INTO transactions
-                   (user_id, category_id, category_name, type, amount, description, note, date,
-                    vault_blob, amount_ord, category_trace)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    user_id,
-                    packed.get("category_id"),
-                    packed.get("category_name") or "",
-                    data.type,
-                    packed["amount"],
-                    packed.get("description") or "",
-                    packed.get("note") or "",
-                    data.date,
-                    packed["vault_blob"],
-                    packed["amount_ord"],
-                    packed.get("category_trace") or "",
-                ),
-            )
-        else:
-            cursor = await self.db.execute(
-                """INSERT INTO transactions
-                   (user_id, category_id, category_name, type, amount, description, note, date)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    user_id,
-                    data.category_id,
-                    cat["name"],
-                    data.type,
-                    data.amount,
-                    data.description,
-                    data.note,
-                    data.date,
-                ),
-            )
+        packed = pack_txn(
+            amount=int(data.amount),
+            description=data.description or "",
+            note=data.note or "",
+            category_id=data.category_id,
+            category_name=cat["name"],
+        )
+        cursor = await self.db.execute(
+            """INSERT INTO transactions
+               (user_id, category_id, type, date, source,
+                vault_blob, amount_ord, category_trace)
+               VALUES (?, ?, ?, ?, 'manual', ?, ?, ?)""",
+            (
+                user_id,
+                packed.get("category_id"),
+                data.type,
+                data.date,
+                packed["vault_blob"],
+                packed["amount_ord"],
+                packed.get("category_trace") or "",
+            ),
+        )
         new_id = cursor.lastrowid
 
         cursor = await self.db.execute(
@@ -659,12 +626,11 @@ class TransactionService:
         if not await cursor.fetchone():
             raise TransactionNotFoundError(txn_id)
 
-        from app.core.vault_ctx import VaultRequiredError, current_dek, current_sealed
-        from app.core.vault_row import pack_money, open_row
+        from app.core.vault_row import open_row
+        from app.core.vault_write import pack_txn
 
         cur = await self.db.execute("SELECT * FROM transactions WHERE id = ?", (txn_id,))
-        current = dict(await cur.fetchone() or {})
-        current = open_row(current)
+        current = open_row(dict(await cur.fetchone() or {}))
 
         updates: dict[str, object] = {}
         for field in ["type", "amount", "description", "note", "category_id", "date"]:
@@ -683,46 +649,34 @@ class TransactionService:
             raise NoFieldsToUpdateError()
 
         merged = {**current, **updates}
-        if current_sealed():
-            dek = current_dek()
-            if dek is None:
-                raise VaultRequiredError()
-            cat_id = merged.get("category_id")
-            cat_name = merged.get("category_name") or ""
-            if cat_id and not cat_name:
-                c = await self._get_category(int(cat_id))
-                cat_name = c["name"] if c else ""
-            packed = pack_money(
-                dek,
-                amount=int(merged.get("amount") or 0),
-                description=merged.get("description") or "",
-                note=merged.get("note") or "",
-                category_id=int(cat_id) if cat_id is not None else None,
-                category_name=cat_name,
-            )
-            await self.db.execute(
-                """UPDATE transactions SET
-                     type=?, date=?,
-                     vault_blob=?, amount_ord=?, category_trace=?,
-                     amount=0, description='', note='', category_name='',
-                     category_id=?
-                   WHERE id=?""",
-                (
-                    merged.get("type"),
-                    merged.get("date"),
-                    packed["vault_blob"],
-                    packed["amount_ord"],
-                    packed.get("category_trace") or "",
-                    packed.get("category_id"),
-                    txn_id,
-                ),
-            )
-        else:
-            set_clause = ", ".join(f"{k} = ?" for k in updates)
-            await self.db.execute(
-                f"UPDATE transactions SET {set_clause} WHERE id = ?",
-                list(updates.values()) + [txn_id],
-            )
+        cat_id = merged.get("category_id")
+        cat_name = merged.get("category_name") or ""
+        if cat_id and not cat_name:
+            c = await self._get_category(int(cat_id))
+            cat_name = c["name"] if c else ""
+        packed = pack_txn(
+            amount=int(merged.get("amount") or 0),
+            description=merged.get("description") or "",
+            note=merged.get("note") or "",
+            category_id=int(cat_id) if cat_id is not None else None,
+            category_name=cat_name,
+        )
+        await self.db.execute(
+            """UPDATE transactions SET
+                 type=?, date=?,
+                 vault_blob=?, amount_ord=?, category_trace=?,
+                 category_id=?
+               WHERE id=?""",
+            (
+                merged.get("type"),
+                merged.get("date"),
+                packed["vault_blob"],
+                packed["amount_ord"],
+                packed.get("category_trace") or "",
+                packed.get("category_id"),
+                txn_id,
+            ),
+        )
 
         cursor = await self.db.execute(
             f"""{_SELECT_TXN}
@@ -857,36 +811,48 @@ class TransactionService:
                 recipient_row["display_name"] if recipient_row else f"User {t.user_id}"
             )
 
-            # Sender expense
+            from app.core.vault_write import pack_txn
+
+            packed_exp = pack_txn(
+                amount=int(t.amount),
+                description=f"Transfer ke {recipient_name}",
+                category_id=expense_cat_id,
+                category_name=expense_cat_name,
+            )
             cursor = await self.db.execute(
                 """INSERT INTO transactions
-                   (type, amount, category_id, category_name, description, date, user_id)
+                   (type, category_id, date, user_id, vault_blob, amount_ord, category_trace)
                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "expense",
-                    t.amount,
-                    expense_cat_id,
-                    expense_cat_name,
-                    f"Transfer ke {recipient_name}",
+                    packed_exp.get("category_id"),
                     req.date,
                     user_id,
+                    packed_exp["vault_blob"],
+                    packed_exp["amount_ord"],
+                    packed_exp.get("category_trace") or "",
                 ),
             )
             expense_id = cursor.lastrowid
 
-            # Recipient income
+            packed_inc = pack_txn(
+                amount=int(t.amount),
+                description=f"Transfer dari {sender_name}",
+                category_id=income_cat_id,
+                category_name=income_cat_name,
+            )
             cursor = await self.db.execute(
                 """INSERT INTO transactions
-                   (type, amount, category_id, category_name, description, date, user_id)
+                   (type, category_id, date, user_id, vault_blob, amount_ord, category_trace)
                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "income",
-                    t.amount,
-                    income_cat_id,
-                    income_cat_name,
-                    f"Transfer dari {sender_name}",
+                    packed_inc.get("category_id"),
                     req.date,
                     t.user_id,
+                    packed_inc["vault_blob"],
+                    packed_inc["amount_ord"],
+                    packed_inc.get("category_trace") or "",
                 ),
             )
             income_id = cursor.lastrowid

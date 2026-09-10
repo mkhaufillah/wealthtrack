@@ -35,6 +35,10 @@ def current_household_id() -> int | None:
     return _hh.get()
 
 
+def set_dek(dek: bytes | None) -> None:
+    _dek.set(dek)
+
+
 def require_dek() -> bytes:
     if current_sealed() and current_dek() is None:
         raise VaultRequiredError()
@@ -49,6 +53,12 @@ async def bind_vault_from_request(request: Request, user: dict, db) -> None:
     _sealed.set(False)
     _hh.set(None)
     uid = user.get("id")
+    raw = request.headers.get("x-vault-key") or request.headers.get("X-Vault-Key")
+    if raw:
+        try:
+            _dek.set(parse_dek(raw))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="err.vault_required") from None
     if not uid:
         return
     try:
@@ -65,11 +75,4 @@ async def bind_vault_from_request(request: Request, user: dict, db) -> None:
     if not row:
         return
     _hh.set(int(row["id"]))
-    sealed = int(row["vault_sealed"] or 0) == 1
-    _sealed.set(sealed)
-    raw = request.headers.get("x-vault-key") or request.headers.get("X-Vault-Key")
-    if raw:
-        try:
-            _dek.set(parse_dek(raw))
-        except ValueError:
-            raise HTTPException(status_code=400, detail="err.vault_required") from None
+    _sealed.set(int(row["vault_sealed"] or 0) == 1)

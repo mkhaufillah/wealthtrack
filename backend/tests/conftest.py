@@ -26,6 +26,11 @@ from passlib.context import CryptContext
 from app.database import get_db, CursorWrapper
 from app.main import app
 from app.core.security import create_access_token
+from app.core.vault import encode_dek, generate_dek
+from app.core.vault_row import pack_money
+
+TEST_DEK = generate_dek()
+TEST_DEK_B64 = encode_dek(TEST_DEK)
 
 TEST_DB_URL = os.getenv(
     "WEALTHTRACK_TEST_DATABASE_URL",
@@ -144,15 +149,11 @@ CREATE TABLE household_vault_pubkeys (
 CREATE TABLE transactions (
     id SERIAL PRIMARY KEY,
     type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
-    amount INTEGER NOT NULL,
     category_id INTEGER REFERENCES categories(id),
-    category_name TEXT DEFAULT '',
-    description TEXT DEFAULT '',
     source TEXT DEFAULT 'manual',
     created_at TEXT DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     user_id INTEGER REFERENCES users(id),
     date TEXT,
-    note TEXT DEFAULT '',
     vault_blob TEXT DEFAULT '',
     amount_ord BIGINT,
     category_trace TEXT DEFAULT ''
@@ -385,13 +386,22 @@ async def _create_test_db():
         )
     for i, t in enumerate(DEFAULT_TRANSACTIONS):
         day_offset = len(DEFAULT_TRANSACTIONS) - i
+        packed = pack_money(
+            TEST_DEK,
+            amount=int(t[2]),
+            description=t[5],
+            note=t[6],
+            category_id=int(t[3]),
+            category_name=t[4],
+        )
         await conn.execute(
-            "INSERT INTO transactions (id, type, amount, category_id, category_name, description, note, date, user_id, created_at) "
-            "VALUES ($1, $2, $3, $4, $5, $6, $7, (CURRENT_DATE - MAKE_INTERVAL(days => $8))::date, 1, NOW())",
-            t[0], t[1], t[2], t[3], t[4], t[5], t[6], day_offset,
+            "INSERT INTO transactions (id, type, category_id, date, user_id, created_at, vault_blob, amount_ord, category_trace) "
+            "VALUES ($1, $2, $3, (CURRENT_DATE - MAKE_INTERVAL(days => $4))::date, 1, NOW(), $5, $6, $7)",
+            t[0], t[1], packed.get("category_id"), day_offset,
+            packed["vault_blob"], packed["amount_ord"], packed.get("category_trace") or "",
         )
     await conn.execute(
-        "INSERT INTO households (id, name, invite_code, created_by) VALUES (1, 'Home', 'TESTCODE1', 1)"
+        "INSERT INTO households (id, name, invite_code, created_by, vault_sealed) VALUES (1, 'Home', 'TESTCODE1', 1, 1)"
     )
     for uid in [1, 2]:
         role = 'admin' if uid == 1 else 'member'
@@ -426,11 +436,15 @@ async def db() -> AsyncGenerator[CursorWrapper, None]:
 async def client(db: CursorWrapper) -> AsyncGenerator[AsyncClient, None]:
     """FastAPI test client with overridden DB dependency."""
     async def override_get_db():
+        from app.core.vault_ctx import set_dek
+
+        set_dek(TEST_DEK)
         yield db
 
     app.dependency_overrides[get_db] = override_get_db
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        ac.headers["X-Vault-Key"] = TEST_DEK_B64
         yield ac
     app.dependency_overrides.clear()
 
