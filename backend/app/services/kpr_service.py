@@ -41,6 +41,29 @@ class KPRService:
     # ── Shared helpers ─────────────────────────────────────────
 
     @staticmethod
+    async def _load_rate_periods(db: CursorWrapper, sim_id: int) -> list[RatePeriod]:
+        from app.core.vault_row import open_row
+
+        cursor = await db.execute(
+            """SELECT period_start, period_end, interest_rate, rate_type, vault_blob
+               FROM kpr_rate_periods WHERE simulation_id = ?
+               ORDER BY period_start""",
+            (sim_id,),
+        )
+        out: list[RatePeriod] = []
+        for r in await cursor.fetchall():
+            d = open_row(dict(r))
+            out.append(
+                RatePeriod(
+                    period_start=int(d["period_start"]),
+                    period_end=int(d["period_end"]),
+                    interest_rate=float(d.get("interest_rate") or 0),
+                    rate_type=d.get("rate_type") or "fixed",
+                )
+            )
+        return out
+
+    @staticmethod
     async def get_simulation_for_user(
         db: CursorWrapper, sim_id: int, user_id: int,
     ) -> dict:
@@ -464,14 +487,16 @@ class KPRService:
         else:
             cursor = await db.execute(
                 """SELECT month_number, payment, principal, interest,
-                          remaining_balance, rate_type, interest_rate
+                          remaining_balance, rate_type, interest_rate, vault_blob
                    FROM kpr_monthly_schedules
                    WHERE simulation_id = ?
                    ORDER BY month_number""",
                 (sim_id,),
             )
             rows = await cursor.fetchall()
-            return [dict(r) for r in rows]
+            from app.core.vault_row import open_row
+
+            return [open_row(dict(r)) for r in rows]
 
     # ── Extra Payments ─────────────────────────────────────────
 
@@ -560,11 +585,7 @@ class KPRService:
         # Load rate periods if mix type
         rate_periods: list[RatePeriod] = []
         if interest_type == "mix":
-            cursor = await db.execute(
-                "SELECT period_start, period_end, interest_rate, rate_type FROM kpr_rate_periods WHERE simulation_id = ? ORDER BY period_start",
-                (sim_id,),
-            )
-            rate_periods = [RatePeriod(**dict(r)) for r in await cursor.fetchall()]
+            rate_periods = await KPRService._load_rate_periods(db, sim_id)
 
         original_schedule = calculate_kpr(
             total_loan=total_loan,
@@ -581,7 +602,9 @@ class KPRService:
             "SELECT * FROM kpr_extra_payments WHERE simulation_id = ? ORDER BY apply_month, id",
             (sim_id,),
         )
-        existing_extras = [dict(r) for r in await cursor.fetchall()]
+        from app.core.vault_row import open_row
+
+        existing_extras = [open_row(dict(r)) for r in await cursor.fetchall()]
 
         # Validate apply_month range
         min_month = 1
@@ -713,7 +736,7 @@ class KPRService:
         await KPRService.get_simulation_for_user(db, sim_id, user_id)
 
         cursor = await db.execute(
-            """SELECT id, simulation_id, amount,
+            """SELECT id, simulation_id, amount, vault_blob,
                       apply_month, reduction_type,
                       old_remaining_balance, new_remaining_balance,
                       old_remaining_months, new_remaining_months,
@@ -725,8 +748,10 @@ class KPRService:
                ORDER BY created_at DESC""",
             (sim_id,),
         )
+        from app.core.vault_row import open_row
+
         rows = await cursor.fetchall()
-        return [dict(r) for r in rows]
+        return [open_row(dict(r)) for r in rows]
 
     @staticmethod
     async def delete_extra_payment(
@@ -762,17 +787,7 @@ class KPRService:
             remaining_count = count_row["cnt"] if count_row else 0
 
             # Load rate periods
-            rate_periods_cursor = await db.execute(
-                """SELECT period_start, period_end, interest_rate, rate_type
-                   FROM kpr_rate_periods WHERE simulation_id = ?
-                   ORDER BY period_start""",
-                (sim_id,),
-            )
-            rate_periods_rows = await rate_periods_cursor.fetchall()
-            rate_periods = [
-                RatePeriod(**dict(r))
-                for r in rate_periods_rows
-            ]
+            rate_periods = await KPRService._load_rate_periods(db, sim_id)
 
             base_schedule = calculate_kpr(
                 total_loan=sim["total_loan"],

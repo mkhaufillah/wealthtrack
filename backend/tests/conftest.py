@@ -149,7 +149,6 @@ CREATE TABLE transactions (
     category_name TEXT DEFAULT '',
     description TEXT DEFAULT '',
     source TEXT DEFAULT 'manual',
-    image_path TEXT DEFAULT '',
     created_at TEXT DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     user_id INTEGER REFERENCES users(id),
     date TEXT,

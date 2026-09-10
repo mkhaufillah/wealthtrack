@@ -33,8 +33,7 @@ class VaultService:
             (hh_id,),
         )
         row = await cur.fetchone()
-        if row and int(row["s"] or 0) == 1:
-            return {"sealed": True, "already": True}
+        already = bool(row and int(row["s"] or 0) == 1)
         uids = await self._member_ids(hh_id)
         if user_id not in uids:
             raise VaultRequiredError()
@@ -142,7 +141,8 @@ class VaultService:
                     "new_installment",
                     "total_interest_saved",
                 ),
-                wipe="UPDATE kpr_extra_payments SET vault_blob=?, amount_ord=?, amount=0 WHERE id=?",
+                wipe="UPDATE kpr_extra_payments SET vault_blob=?, amount_ord=?, amount=0, old_remaining_balance=0, new_remaining_balance=0, old_installment=0, new_installment=0, total_interest_saved=0 WHERE id=?",
+                force=True,
             )
             await self._seal_named(
                 dek,
@@ -160,8 +160,8 @@ class VaultService:
                 f"SELECT * FROM credit_cards WHERE user_id IN ({placeholders})",
                 tuple(uids),
                 amount_key="credit_limit",
-                extra_keys=("name", "credit_limit"),
-                wipe="UPDATE credit_cards SET vault_blob=?, amount_ord=?, name='', credit_limit=0 WHERE id=?",
+                extra_keys=("name", "credit_limit", "card_number_last4"),
+                wipe="UPDATE credit_cards SET vault_blob=?, amount_ord=?, name='', credit_limit=0, card_number_last4='' WHERE id=?",
             )
             await self._seal_named(
                 dek,
@@ -203,11 +203,26 @@ class VaultService:
                 skip_ord=True,
                 id_key="user_id",
             )
+            await self._seal_named(
+                dek,
+                f"""SELECT krp.* FROM kpr_rate_periods krp
+                    JOIN kpr_simulations ks ON ks.id = krp.simulation_id
+                    WHERE ks.user_id IN ({placeholders})""",
+                tuple(uids),
+                amount_key="amount",
+                extra_keys=("interest_rate", "rate_type", "period_start", "period_end"),
+                wipe="UPDATE kpr_rate_periods SET vault_blob=?, interest_rate=0 WHERE id=?",
+                skip_ord=True,
+            )
+            await self.db.execute(
+                f"UPDATE ocr_jobs SET image_filename=NULL WHERE user_id IN ({placeholders})",
+                tuple(uids),
+            )
         await self.db.execute(
             "UPDATE households SET vault_sealed = 1 WHERE id = ?",
             (hh_id,),
         )
-        return {"sealed": True, "already": False, "transactions": n}
+        return {"sealed": True, "already": already, "transactions": n}
 
     async def _seal_named(
         self,
@@ -220,16 +235,32 @@ class VaultService:
         wipe: str,
         skip_ord: bool = False,
         id_key: str = "id",
+        force: bool = False,
     ) -> None:
+        from app.core.vault_row import unpack_money
+
         cur = await self.db.execute(select_sql, params)
         for r in await cur.fetchall():
             d = dict(r)
-            if d.get("vault_blob"):
+            if d.get("vault_blob") and not force:
                 continue
             extra = {k: d.get(k) for k in extra_keys}
+            amount = int(d.get(amount_key) or 0)
+            if d.get("vault_blob"):
+                inner = unpack_money(dek, d)
+                amount = int(inner.get("amount") or amount or 0)
+                for k in extra_keys:
+                    iv = inner.get(k)
+                    pv = d.get(k)
+                    if iv not in (None, "", 0):
+                        extra[k] = iv
+                    elif pv not in (None, "", 0):
+                        extra[k] = pv
+                    else:
+                        extra[k] = iv if iv is not None else pv
             packed = pack_money(
                 dek,
-                amount=int(d.get(amount_key) or 0),
+                amount=int(amount),
                 extra=extra,
             )
             if skip_ord:

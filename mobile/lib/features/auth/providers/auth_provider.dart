@@ -56,6 +56,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       final user = await _repo.getMe();
       await BankCapture.syncSession(_api, token);
+      try {
+        await _api.post('/households/vault/seal');
+      } catch (_) {}
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
@@ -114,6 +117,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         saltB64: data['kdf_salt'] as String? ?? '',
       );
       await VaultStore.saveDekB64(_storage, dek);
+      try {
+        await _api.post('/households/vault/seal');
+      } catch (_) {}
       await _shareIfPossible();
       return;
     } on DioException catch (e) {

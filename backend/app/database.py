@@ -230,7 +230,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     category_name TEXT DEFAULT '',
     description TEXT DEFAULT '',
     source TEXT DEFAULT 'manual',
-    image_path TEXT DEFAULT '',
     created_at TEXT DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     user_id INTEGER REFERENCES users(id),
     date TEXT,
@@ -643,6 +642,7 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE ai_messages ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
         "ALTER TABLE ai_chat_summaries ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
         "ALTER TABLE ocr_jobs ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE transactions DROP COLUMN IF EXISTS image_path",
     ]
     for sql in stmts:
         try:
