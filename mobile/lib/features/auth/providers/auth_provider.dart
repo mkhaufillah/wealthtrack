@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,6 +44,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repo;
   final SecureStorage _storage;
   final ApiClient _api;
+  Timer? _sharePoll;
+  String? _pendingPassword;
   AuthNotifier(this._repo, this._storage, this._api) : super(const AuthState());
 
   Future<void> checkAuth() async {
@@ -59,6 +62,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       try {
         await _api.post('/households/vault/seal');
       } catch (_) {}
+      await _shareIfPossible();
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
@@ -92,6 +96,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       try {
         await _unlockVault(password);
       } catch (_) {}
+      final dek = await VaultStore.getDekB64(_storage);
+      if (dek == null || dek.isEmpty) {
+        _startSharePoll(password);
+      }
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
@@ -195,6 +203,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {}
   }
 
+  void _startSharePoll(String password) {
+    _pendingPassword = password;
+    _sharePoll?.cancel();
+    _sharePoll = Timer.periodic(const Duration(seconds: 3), (_) {
+      unawaited(_tryShareInbox());
+    });
+    unawaited(_tryShareInbox());
+  }
+
+  Future<void> _tryShareInbox() async {
+    try {
+      final inbox = await _api.get('/households/vault/share-inbox');
+      final boxed = (inbox.data as Map)['boxed_dek'] as String?;
+      if (boxed == null || boxed.isEmpty) return;
+      final dek = await VaultStore.unboxDek(_storage, boxed);
+      await VaultStore.saveDekB64(_storage, dek);
+      final pw = _pendingPassword;
+      if (pw != null && pw.isNotEmpty) {
+        final wrapped = await VaultStore.wrapDek(pw, dek);
+        await _api.post('/households/vault/wrap', data: {
+          'wrapped_dek': wrapped.wrapped,
+          'kdf_salt': wrapped.salt,
+          'kdf_params': kdfParams,
+        });
+      }
+      _pendingPassword = null;
+      _sharePoll?.cancel();
+      _sharePoll = null;
+    } catch (_) {}
+  }
+
   Future<void> shareVault() => _shareIfPossible();
 
   Future<void> sendOtp(String email) async {
@@ -219,6 +258,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    _sharePoll?.cancel();
+    _pendingPassword = null;
     await BankCapture.syncSession(_api, null);
     await VaultStore.clear();
     await _storage.clearAll();
