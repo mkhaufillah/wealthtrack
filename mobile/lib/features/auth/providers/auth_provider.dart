@@ -89,7 +89,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _storage.saveToken(token.accessToken);
       await BankCapture.syncSession(_api, token.accessToken);
       final user = await _repo.getMe();
-      await _unlockVault(password);
+      try {
+        await _unlockVault(password);
+      } catch (_) {}
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
@@ -105,10 +107,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _unlockVault(String password) async {
     try {
-      final pub = await VaultStore.publicKeyB64(_storage);
-      await _api.post('/households/vault/pubkey', data: {'public_key': pub});
-    } catch (_) {}
-    try {
       final wrap = await _api.get('/households/vault/wrap');
       final data = wrap.data as Map;
       final dek = await VaultStore.unwrapDek(
@@ -121,25 +119,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await _api.post('/households/vault/seal');
       } catch (_) {}
       await _shareIfPossible();
+      try {
+        final pub = await VaultStore.publicKeyB64(_storage);
+        await _api.post('/households/vault/pubkey', data: {'public_key': pub});
+      } catch (_) {}
       return;
     } on DioException catch (e) {
-      if (e.response?.statusCode != 404) rethrow;
+      if (e.response?.statusCode != 404) return;
+    } catch (_) {
+      return;
     }
     try {
       final inbox = await _api.get('/households/vault/share-inbox');
-      final boxed = (inbox.data as Map)['boxed_dek'] as String;
-      final dek = await VaultStore.unboxDek(_storage, boxed);
-      await VaultStore.saveDekB64(_storage, dek);
-      final wrapped = await VaultStore.wrapDek(password, dek);
-      await _api.post('/households/vault/wrap', data: {
-        'wrapped_dek': wrapped.wrapped,
-        'kdf_salt': wrapped.salt,
-        'kdf_params': kdfParams,
-      });
-      return;
-    } on DioException catch (e) {
-      if (e.response?.statusCode != 404) rethrow;
-    }
+      final boxed = (inbox.data as Map)['boxed_dek'] as String?;
+      if (boxed != null && boxed.isNotEmpty) {
+        final dek = await VaultStore.unboxDek(_storage, boxed);
+        await VaultStore.saveDekB64(_storage, dek);
+        final wrapped = await VaultStore.wrapDek(password, dek);
+        await _api.post('/households/vault/wrap', data: {
+          'wrapped_dek': wrapped.wrapped,
+          'kdf_salt': wrapped.salt,
+          'kdf_params': kdfParams,
+        });
+        try {
+          final pub = await VaultStore.publicKeyB64(_storage);
+          await _api.post('/households/vault/pubkey', data: {'public_key': pub});
+        } catch (_) {}
+        return;
+      }
+    } catch (_) {}
+    try {
+      final pub = await VaultStore.publicKeyB64(_storage);
+      await _api.post('/households/vault/pubkey', data: {'public_key': pub});
+    } catch (_) {}
     var sealed = false;
     try {
       final me = await _api.get('/households/me');
