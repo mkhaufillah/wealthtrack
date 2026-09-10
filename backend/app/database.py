@@ -648,7 +648,7 @@ async def _migrate_vault(conn) -> None:
         try:
             await conn.execute(sql)
         except Exception as e:
-            print(f"vault migrate warning: {e}")
+            print(f"CRITICAL vault migrate failed (need table owner): {e}")
 
 
 async def _init_schema(conn):
