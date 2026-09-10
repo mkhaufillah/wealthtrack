@@ -60,7 +60,7 @@ Device may keep `DEK_hh` in Android Keystore after login so we do not Argon2 on 
 5. Response is today’s JSON (plaintext numbers).
 6. Drop `DEK_hh` at end of request. Do not write it to Redis, logs, or APM.
 
-SQL aggregates on encrypted amount columns **do not work**. For current volume (~hundreds of txs) decrypt-then-sum in the service is enough. Indexes on `date`, `user_id`, `household` stay; amount/note payloads are opaque bytes.
+SQL **SUM/AVG still need decrypt** (OPE is not homomorphic). Home/budgets/KPR totals = decrypt amounts in process. OPE is only for `ORDER BY` / range. Current volume is enough.
 
 Missing header → `403` with `err.vault_required` (copy via `t()` + `X-Locale`). Do not fall back to plaintext rows after migrate.
 
@@ -90,9 +90,9 @@ Old APK after step 2 cannot read money. Required.
 | `credit_cards` | `credit_limit`, `card_number_last4` |
 | `credit_card_transactions` | `amount`, `description` |
 | `credit_card_installments` | `description`, `total_amount`, `monthly_amount` |
-| `kpr_simulations` | `property_price`, `down_payment`, `total_loan`, `base_interest_rate`, `graduated_increment` |
-| `kpr_rate_periods` | `interest_rate` |
-| `kpr_monthly_schedules` | `payment`, `principal`, `interest`, `remaining_balance`, `interest_rate` |
+| `kpr_simulations` | rupiah fields OPE; `base_interest_rate` / `graduated_increment` AES (not rupiah sort) |
+| `kpr_rate_periods` | `interest_rate` AES |
+| `kpr_monthly_schedules` | rupiah OPE; `interest_rate` AES |
 | `kpr_extra_payments` | `amount` and all old/new remaining/installment/interest-saved amounts |
 | `bank_inbox` | `title`, `text`, `amount`, `merchant` — **yes, encrypt the stored notif** |
 | `ocr_jobs` | `raw_text`, `error` if it echoes amounts |
@@ -148,17 +148,17 @@ Do **not** put OPE values in Meili. Postgres is enough to `ORDER BY amount_ope`.
 
 Today: invite code adds a member. **Not enough** after this doc.
 
-After join, a member who already has `DEK_hh` must **wrap it for the newcomer** (`wrap(KEK_newcomer, DEK_hh)`). Flows:
+After join, a member who already has `DEK_hh` must give it to the newcomer. **Symmetric `wrap(KEK_newcomer, DEK)` is impossible** (Filla does not know Nahda’s password).
 
-1. Newcomer sets password → phone derives `KEK_user`, uploads a **wrap public blob** (or the existing member types/scans a short wrap).
-2. Existing member’s phone, while it holds `DEK_hh`, POSTs the wrapped DEK for `user_id`.
-3. Newcomer unwraps locally, stores in Keystore.
+Concrete wrap:
 
-Until step 3, the newcomer sees the household shell but **not** money (`err.vault_pending`).
+1. Newcomer’s phone: X25519 keypair, private in Keystore, `POST /households/vault/pubkey` with the public key (not a secret).
+2. Existing member’s phone (holds `DEK_hh`): `POST /households/vault/share` with `box(DEK_hh → newcomer_pubkey)`.
+3. Newcomer unboxes, stores `DEK_hh` in Keystore, and **locally** `wrap(KEK_user, DEK_hh)` so a second device can unlock with password. Upload that wrap row.
 
-Leave / kick: delete that user’s wrap row. Optionally rotate `DEK_hh` (re-encrypt rows + rewrap remaining members). Rotation is v2 unless a member is hostile.
+Until step 3: `err.vault_pending` (shell OK, no money). Leave/kick: delete wrap + pubkey rows. DEK rotate = v2.
 
-Create household: phone generates `DEK_hh`, wraps for creator, then creates the household.
+Create household: phone generates `DEK_hh`, wraps for creator (`wrap(KEK_user, DEK)`), then creates the household.
 
 ## Password change and loss
 
@@ -254,4 +254,4 @@ Register / first household create: phone generates `DEK_hh` **before** first mon
 
 ## Open before code
 
-Model is chosen. Do not start code until join-wrap UX + Keystore session + Meili (no money in the index) + OCR in-memory DEK are in the same milestone as the first encrypt. Encrypt-without-those **breaks** inbox, search, OCR, and the second member.
+Product model is chosen. **Not ready to type production crypto** until the implementation plan’s milestone 0 is green: pinned OPE algorithm + test vectors, X25519 share, Keystore session, Meili money-out, OCR DEK-in-RAM. Encrypt-without-those breaks inbox, search, OCR, and Nahda.
