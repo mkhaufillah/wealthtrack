@@ -659,6 +659,13 @@ class TransactionService:
         if not await cursor.fetchone():
             raise TransactionNotFoundError(txn_id)
 
+        from app.core.vault_ctx import VaultRequiredError, current_dek, current_sealed
+        from app.core.vault_row import pack_money, open_row
+
+        cur = await self.db.execute("SELECT * FROM transactions WHERE id = ?", (txn_id,))
+        current = dict(await cur.fetchone() or {})
+        current = open_row(current)
+
         updates: dict[str, object] = {}
         for field in ["type", "amount", "description", "note", "category_id", "date"]:
             val = getattr(data, field, None)
@@ -675,11 +682,47 @@ class TransactionService:
         if not updates:
             raise NoFieldsToUpdateError()
 
-        set_clause = ", ".join(f"{k} = ?" for k in updates)
-        await self.db.execute(
-            f"UPDATE transactions SET {set_clause} WHERE id = ?",
-            list(updates.values()) + [txn_id],
-        )
+        merged = {**current, **updates}
+        if current_sealed():
+            dek = current_dek()
+            if dek is None:
+                raise VaultRequiredError()
+            cat_id = merged.get("category_id")
+            cat_name = merged.get("category_name") or ""
+            if cat_id and not cat_name:
+                c = await self._get_category(int(cat_id))
+                cat_name = c["name"] if c else ""
+            packed = pack_money(
+                dek,
+                amount=int(merged.get("amount") or 0),
+                description=merged.get("description") or "",
+                note=merged.get("note") or "",
+                category_id=int(cat_id) if cat_id is not None else None,
+                category_name=cat_name,
+            )
+            await self.db.execute(
+                """UPDATE transactions SET
+                     type=?, date=?,
+                     vault_blob=?, amount_ord=?, category_trace=?,
+                     amount=0, description='', note='', category_name='',
+                     category_id=?
+                   WHERE id=?""",
+                (
+                    merged.get("type"),
+                    merged.get("date"),
+                    packed["vault_blob"],
+                    packed["amount_ord"],
+                    packed.get("category_trace") or "",
+                    packed.get("category_id"),
+                    txn_id,
+                ),
+            )
+        else:
+            set_clause = ", ".join(f"{k} = ?" for k in updates)
+            await self.db.execute(
+                f"UPDATE transactions SET {set_clause} WHERE id = ?",
+                list(updates.values()) + [txn_id],
+            )
 
         cursor = await self.db.execute(
             f"""{_SELECT_TXN}
