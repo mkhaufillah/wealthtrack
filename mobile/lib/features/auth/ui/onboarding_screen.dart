@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/app_icons.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../core/ui/ui_config.dart';
 import '../../../shared/providers/locale_provider.dart';
@@ -39,7 +40,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       image: 'assets/onboarding/money.jpg',
       titleKey: 'onboarding.p3_title',
       subKey: 'onboarding.p3_sub',
-      hintKey: 'onboarding.p3_hint',
+      lock: true,
     ),
   ];
 
@@ -79,7 +80,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 onPageChanged: (i) => setState(() => _index = i),
                 itemBuilder: (ctx, i) {
                   final s = _slides[i];
-                  final imgH = (MediaQuery.sizeOf(ctx).height * 0.32).clamp(140.0, 240.0);
+                  final imgH = s.lock
+                      ? (MediaQuery.sizeOf(ctx).height * 0.22).clamp(100.0, 160.0)
+                      : (MediaQuery.sizeOf(ctx).height * 0.32).clamp(140.0, 240.0);
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
                     child: Column(
@@ -121,29 +124,42 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           ),
                         ],
                         const SizedBox(height: 8),
-                        Text(
-                          t(s.subKey),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
-                            height: 1.35,
-                          ),
-                        ),
-                        if (s.hintKey != null) ...[
-                          const SizedBox(height: 8),
+                        if (s.lock) ...[
                           Text(
-                            t(s.hintKey!),
+                            t(s.subKey),
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _LockPoint(
+                            icon: AppIcons.shield,
+                            text: t('onboarding.p3_a'),
+                          ),
+                          const SizedBox(height: 8),
+                          _LockPoint(
+                            icon: AppIcons.user,
+                            text: t('onboarding.p3_b'),
+                          ),
+                          const SizedBox(height: 8),
+                          _LockPoint(
+                            icon: AppIcons.alert,
+                            text: t('onboarding.p3_c'),
+                          ),
+                        ] else
+                          Text(
+                            t(s.subKey),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
                               color: AppColors.textSecondary,
                               height: 1.35,
                             ),
                           ),
-                        ],
                         if (s.lang) ...[
                           const SizedBox(height: 16),
                           Row(
@@ -220,15 +236,60 @@ class _Slide {
   final String image;
   final String titleKey;
   final String subKey;
-  final String? hintKey;
   final bool lang;
+  final bool lock;
   const _Slide({
     required this.image,
     required this.titleKey,
     required this.subKey,
-    this.hintKey,
     this.lang = false,
+    this.lock = false,
   });
+}
+
+class _LockPoint extends StatelessWidget {
+  final List<List<dynamic>> icon;
+  final String text;
+  const _LockPoint({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.mint.withOpacity(0.28),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: AppIcon(icon, size: 18, color: AppColors.textPrimary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _LangCard extends StatelessWidget {
