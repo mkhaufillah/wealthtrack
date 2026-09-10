@@ -220,6 +220,7 @@ class HouseholdService:
             is_admin=user_id == hh["created_by"],
             vault_sealed=int(hh.get("vault_sealed") or 0) == 1,
             vault_ready=await self._vault_ready(hh["id"], user_id),
+            vault_needs_share=await self._vault_needs_share(hh["id"], user_id),
         )
 
     async def _vault_ready(self, household_id: int, user_id: int) -> bool:
@@ -227,6 +228,24 @@ class HouseholdService:
             """SELECT 1 FROM household_key_wraps
                WHERE household_id = ? AND user_id = ?
                  AND COALESCE(kdf_params, '') <> 'share'""",
+            (household_id, user_id),
+        )
+        return await cursor.fetchone() is not None
+
+    async def _vault_needs_share(self, household_id: int, user_id: int) -> bool:
+        if not await self._vault_ready(household_id, user_id):
+            return False
+        cursor = await self.db.execute(
+            """SELECT 1 FROM household_members hm
+               WHERE hm.household_id = ?
+                 AND hm.user_id != ?
+                 AND NOT EXISTS (
+                   SELECT 1 FROM household_key_wraps w
+                   WHERE w.household_id = hm.household_id
+                     AND w.user_id = hm.user_id
+                     AND COALESCE(w.kdf_params, '') <> 'share'
+                 )
+               LIMIT 1""",
             (household_id, user_id),
         )
         return await cursor.fetchone() is not None

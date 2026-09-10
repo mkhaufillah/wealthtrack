@@ -166,6 +166,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       final hh = Map<String, dynamic>.from(raw);
       hh['vault_sealed'] = data['vault_sealed'] == true;
       hh['vault_ready'] = data['vault_ready'] == true;
+      hh['vault_needs_share'] = data['vault_needs_share'] == true;
       state = state.copyWith(
         household: hh,
         members: data['members'] as List<dynamic>? ?? [],

@@ -758,7 +758,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   );
                   }),
             ],
-            if (hh['vault_sealed'] == true) ...[
+            if (hh['vault_sealed'] == true &&
+                (hh['vault_ready'] != true || hh['vault_needs_share'] == true)) ...[
               const SizedBox(height: 12),
               _buildVaultShareCard(hh),
             ],

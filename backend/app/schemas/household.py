@@ -30,6 +30,7 @@ class HouseholdDetailOut(BaseModel):
     is_admin: bool
     vault_sealed: bool = False
     vault_ready: bool = False
+    vault_needs_share: bool = False
 
 
 class InviteCodeOut(BaseModel):
