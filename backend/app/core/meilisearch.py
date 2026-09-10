@@ -22,6 +22,7 @@ INDEX_NAME = "transactions"
 SEARCHABLE_ATTRIBUTES = ["date"]
 FILTERABLE_ATTRIBUTES = ["user_id", "type", "category_id", "date"]
 SORTABLE_ATTRIBUTES = ["date"]
+DISPLAYED_ATTRIBUTES = ["id", "type", "category_id", "user_id", "date"]
 
 
 async def init_meilisearch():
@@ -45,6 +46,7 @@ async def init_meilisearch():
     _client.index(INDEX_NAME).update_searchable_attributes(SEARCHABLE_ATTRIBUTES)
     _client.index(INDEX_NAME).update_filterable_attributes(FILTERABLE_ATTRIBUTES)
     _client.index(INDEX_NAME).update_sortable_attributes(SORTABLE_ATTRIBUTES)
+    _client.index(INDEX_NAME).update_displayed_attributes(DISPLAYED_ATTRIBUTES)
 
 
 def close_meilisearch():
@@ -65,8 +67,8 @@ def get_index() -> Index:
 def _index_document_sync(txn: dict) -> None:
     """Index a single transaction document into Meilisearch.
 
-    ``txn`` must contain at minimum:
-      id, description, type, amount, category_id, user_id, date
+    ``txn`` must contain: id, type, category_id, user_id, date.
+    Never index description, note, or amount.
     """
     doc = {
         "id": txn["id"],

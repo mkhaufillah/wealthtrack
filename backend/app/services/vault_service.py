@@ -126,9 +126,11 @@ class VaultService:
                 f"SELECT * FROM kpr_simulations WHERE user_id IN ({placeholders})",
                 tuple(uids),
                 amount_key="total_loan",
-                extra_keys=("name", "property_price", "down_payment", "total_loan"),
+                extra_keys=("name", "property_price", "down_payment", "total_loan", "base_interest_rate", "graduated_increment"),
                 wipe="""UPDATE kpr_simulations SET vault_blob=?, amount_ord=?,
-                    name='', property_price=0, down_payment=0, total_loan=0 WHERE id=?""",
+                    name='', property_price=0, down_payment=0, total_loan=0,
+                    base_interest_rate=0, graduated_increment=0 WHERE id=?""",
+                force=True,
             )
             await self._seal_named(
                 dek,
@@ -144,8 +146,10 @@ class VaultService:
                     "old_installment",
                     "new_installment",
                     "total_interest_saved",
+                    "original_end_date",
+                    "new_end_date",
                 ),
-                wipe="UPDATE kpr_extra_payments SET vault_blob=?, amount_ord=?, amount=0, old_remaining_balance=0, new_remaining_balance=0, old_installment=0, new_installment=0, total_interest_saved=0 WHERE id=?",
+                wipe="UPDATE kpr_extra_payments SET vault_blob=?, amount_ord=?, amount=0, old_remaining_balance=0, new_remaining_balance=0, old_installment=0, new_installment=0, total_interest_saved=0, original_end_date='', new_end_date='' WHERE id=?",
                 force=True,
             )
             await self._seal_named(
@@ -155,9 +159,10 @@ class VaultService:
                     WHERE ks.user_id IN ({placeholders})""",
                 tuple(uids),
                 amount_key="remaining_balance",
-                extra_keys=("payment", "principal", "interest", "remaining_balance"),
+                extra_keys=("payment", "principal", "interest", "remaining_balance", "interest_rate", "rate_type"),
                 wipe="""UPDATE kpr_monthly_schedules SET vault_blob=?, amount_ord=?,
-                    payment=0, principal=0, interest=0, remaining_balance=0 WHERE id=?""",
+                    payment=0, principal=0, interest=0, remaining_balance=0, interest_rate=0 WHERE id=?""",
+                force=True,
             )
             await self._seal_named(
                 dek,
