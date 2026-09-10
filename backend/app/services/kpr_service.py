@@ -64,6 +64,32 @@ class KPRService:
         return out
 
     @staticmethod
+    def _monthly_from_row(r) -> MonthlySchedule:
+        from app.core.vault_row import open_row
+
+        d = open_row(dict(r))
+        return MonthlySchedule(
+            month_number=int(d.get("month_number") or 0),
+            payment=int(d.get("payment") or 0),
+            principal=int(d.get("principal") or 0),
+            interest=int(d.get("interest") or 0),
+            remaining_balance=int(d.get("remaining_balance") or 0),
+            rate_type=str(d.get("rate_type") or "fixed"),
+            interest_rate=float(d.get("interest_rate") or 0),
+        )
+
+    @staticmethod
+    async def _load_schedule(db: CursorWrapper, sim_id: int) -> list[MonthlySchedule]:
+        cursor = await db.execute(
+            """SELECT month_number, payment, principal, interest,
+                      remaining_balance, rate_type, interest_rate, vault_blob
+               FROM kpr_monthly_schedules
+               WHERE simulation_id = ? ORDER BY month_number""",
+            (sim_id,),
+        )
+        return [KPRService._monthly_from_row(r) for r in await cursor.fetchall()]
+
+    @staticmethod
     async def get_simulation_for_user(
         db: CursorWrapper, sim_id: int, user_id: int,
     ) -> dict:
@@ -472,32 +498,32 @@ class KPRService:
         """
         await KPRService.get_simulation_for_user(db, sim_id, user_id)
 
+        schedule = await KPRService._load_schedule(db, sim_id)
         if month is not None:
-            cursor = await db.execute(
-                """SELECT month_number, payment, principal, interest,
-                          remaining_balance, rate_type, interest_rate
-                   FROM kpr_monthly_schedules
-                   WHERE simulation_id = ? AND month_number = ?
-                   ORDER BY month_number""",
-                (sim_id, month),
-            )
-            row = await cursor.fetchone()
-            if not row:
-                raise KPRServiceError("Bulan gak ada di jadwal", status_code=404)
-            return dict(row)
-        else:
-            cursor = await db.execute(
-                """SELECT month_number, payment, principal, interest,
-                          remaining_balance, rate_type, interest_rate, vault_blob
-                   FROM kpr_monthly_schedules
-                   WHERE simulation_id = ?
-                   ORDER BY month_number""",
-                (sim_id,),
-            )
-            rows = await cursor.fetchall()
-            from app.core.vault_row import open_row
-
-            return [open_row(dict(r)) for r in rows]
+            for item in schedule:
+                if item.month_number == month:
+                    return {
+                        "month_number": item.month_number,
+                        "payment": item.payment,
+                        "principal": item.principal,
+                        "interest": item.interest,
+                        "remaining_balance": item.remaining_balance,
+                        "rate_type": item.rate_type,
+                        "interest_rate": item.interest_rate,
+                    }
+            raise KPRServiceError("Bulan gak ada di jadwal", status_code=404)
+        return [
+            {
+                "month_number": s.month_number,
+                "payment": s.payment,
+                "principal": s.principal,
+                "interest": s.interest,
+                "remaining_balance": s.remaining_balance,
+                "rate_type": s.rate_type,
+                "interest_rate": s.interest_rate,
+            }
+            for s in schedule
+        ]
 
     # ── Extra Payments ─────────────────────────────────────────
 
@@ -511,22 +537,12 @@ class KPRService:
         """Preview both reduction options for an extra payment (no DB write)."""
         sim = await KPRService.get_simulation_for_user(db, sim_id, user_id)
 
-        # Load schedule from DB
-        cursor = await db.execute(
-            """SELECT month_number, payment, principal, interest,
-                      remaining_balance, rate_type, interest_rate
-               FROM kpr_monthly_schedules
-               WHERE simulation_id = ? ORDER BY month_number""",
-            (sim_id,),
-        )
-        rows = await cursor.fetchall()
-        if not rows:
+        schedule = await KPRService._load_schedule(db, sim_id)
+        if not schedule:
             raise KPRServiceError(
                 "No schedule found. Generate schedule first.",
                 status_code=400,
             )
-
-        schedule = [MonthlySchedule(**dict(r)) for r in rows]
 
         if data.apply_month < 1 or data.apply_month > len(schedule):
             raise KPRServiceError(
@@ -752,7 +768,27 @@ class KPRService:
         from app.core.vault_row import open_row
 
         rows = await cursor.fetchall()
-        return [open_row(dict(r)) for r in rows]
+        out = []
+        for r in rows:
+            d = open_row(dict(r))
+            d.pop("vault_blob", None)
+            for k in (
+                "id",
+                "simulation_id",
+                "amount",
+                "apply_month",
+                "old_remaining_balance",
+                "new_remaining_balance",
+                "old_remaining_months",
+                "new_remaining_months",
+                "old_installment",
+                "new_installment",
+                "total_interest_saved",
+            ):
+                if d.get(k) is not None:
+                    d[k] = int(d[k])
+            out.append(d)
+        return out
 
     @staticmethod
     async def delete_extra_payment(
