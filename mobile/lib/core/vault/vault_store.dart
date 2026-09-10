@@ -15,7 +15,7 @@ class VaultWrap {
 
 class VaultStore {
   static String? _mem;
-  static const _argon = Argon2id(
+  static final _argon = Argon2id(
     parallelism: 1,
     memory: 65536,
     iterations: 3,
