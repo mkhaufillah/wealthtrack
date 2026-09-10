@@ -894,12 +894,14 @@ async def _prepare_chat_memory(
     rows = await cursor.fetchall()
     from app.core.vault_row import open_row
 
-    msgs = [
-        {"id": r["id"], "role": r["role"], "content": open_row(dict(r)).get("content") or r["content"]}
-        for r in rows
-        if r["role"] in ("user", "assistant")
-        and (r["content"] or "").strip() not in skip
-    ]
+    msgs = []
+    for r in rows:
+        if r["role"] not in ("user", "assistant"):
+            continue
+        opened = open_row(dict(r))
+        content = (opened.get("content") or r["content"] or "").strip()
+        if content not in skip:
+            msgs.append({"id": r["id"], "role": r["role"], "content": content})
     recent_full = msgs[-_HISTORY_WINDOW:]
     overflow = msgs[:-_HISTORY_WINDOW] if len(msgs) > _HISTORY_WINDOW else []
     if overflow:
@@ -1044,14 +1046,21 @@ async def get_chat_messages(
 ) -> list[ChatMessageResponse]:
     """Get all AI chat messages for a user (excluding hidden errors)."""
     cursor = await db.execute(
-        """SELECT id, role, content, status, model, parent_message_id, created_at
+        """SELECT id, role, content, status, model, parent_message_id, created_at, vault_blob
            FROM ai_messages
            WHERE user_id = ? AND status != 'error:hidden'
            ORDER BY created_at ASC""",
         (user_id,),
     )
     rows = await cursor.fetchall()
-    return [ChatMessageResponse(**dict(row)) for row in rows]
+    from app.core.vault_row import open_row
+
+    out = []
+    for row in rows:
+        d = open_row(dict(row))
+        d.pop("vault_blob", None)
+        out.append(ChatMessageResponse(**d))
+    return out
 
 
 async def delete_chat_messages(user_id: int, db: CursorWrapper) -> None:

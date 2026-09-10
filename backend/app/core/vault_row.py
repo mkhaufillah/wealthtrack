@@ -69,16 +69,13 @@ def unpack_money(dek: bytes | None, row: dict) -> dict:
     blob = data.get("vault_blob") or ""
     if dek and blob and is_aes_token(str(blob)):
         inner = json.loads(aes_decrypt(dek, str(blob)))
-        data["amount"] = int(inner.get("amount") or 0)
-        data["description"] = inner.get("description") or ""
-        data["note"] = inner.get("note") or ""
-        if inner.get("category_id") is not None:
-            data["category_id"] = inner["category_id"]
-        if inner.get("category_name"):
-            data["category_name"] = inner["category_name"]
         for k, v in inner.items():
-            if k not in data or data[k] in (None, "", 0):
-                data[k] = v
+            if k == "vault_blob":
+                continue
+            data[k] = v
+        data["amount"] = int(data.get("amount") or 0)
+        data["description"] = data.get("description") or ""
+        data["note"] = data.get("note") or ""
     return data
 
 

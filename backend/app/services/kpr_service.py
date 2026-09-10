@@ -323,7 +323,7 @@ class KPRService:
         for r in rows:
             d = open_row(dict(r))
             cur2 = await db.execute(
-                """SELECT vault_blob, remaining_balance, payment, month_number
+                """SELECT vault_blob, remaining_balance, payment, month_number, interest
                    FROM kpr_monthly_schedules WHERE simulation_id = ?
                    ORDER BY month_number""",
                 (d["id"],),
@@ -339,6 +339,7 @@ class KPRService:
                 )
                 d["current_month_payment"] = int(pick.get("payment") or 0)
                 d["monthly_payment"] = int(sched[0].get("payment") or 0)
+                d["total_interest"] = sum(int(s.get("interest") or 0) for s in sched)
             out.append(d)
         return out
 
