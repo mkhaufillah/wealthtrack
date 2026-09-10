@@ -163,6 +163,7 @@ Create household: phone generates `DEK_hh`, wraps for creator (`wrap(KEK_user, D
 ## Password change and loss
 
 - **Change password:** derive new `KEK_user`, rewrap `DEK_hh`, replace wrap row. **Do not** re-encrypt transactions.
+- **New phone:** login with password → GET wrap → Argon2id unwrap `DEK_hh` into Keystore. Same user, no “bagi gembok”.
 - **Forgot password:** OTP can still reset **login**. It must **not** mint `DEK_hh`. Financial rows stay locked. Copy must say that before confirm.
 - Paper recovery (optional later): user writes a recovery code that wraps `DEK_hh`. That is still user-held, not a server KEK.
 

@@ -71,6 +71,53 @@ class VaultService:
                     ),
                 )
                 n += 1
+            cur = await self.db.execute(
+                f"SELECT * FROM budgets WHERE user_id IN ({placeholders})",
+                tuple(uids),
+            )
+            for r in await cur.fetchall():
+                d = dict(r)
+                if d.get("vault_blob"):
+                    continue
+                packed = pack_money(
+                    dek,
+                    amount=int(d.get("budget_amount") or 0),
+                    category_id=d.get("category_id"),
+                    category_name=d.get("category_name") or "",
+                )
+                await self.db.execute(
+                    """UPDATE budgets SET vault_blob=?, amount_ord=?, category_trace=?,
+                           budget_amount=0, category_name=? WHERE id=?""",
+                    (
+                        packed["vault_blob"],
+                        packed["amount_ord"],
+                        packed.get("category_trace") or "",
+                        packed.get("category_name") or "",
+                        d["id"],
+                    ),
+                )
+            cur = await self.db.execute(
+                f"SELECT * FROM bank_inbox WHERE user_id IN ({placeholders})",
+                tuple(uids),
+            )
+            for r in await cur.fetchall():
+                d = dict(r)
+                if d.get("vault_blob"):
+                    continue
+                packed = pack_money(
+                    dek,
+                    amount=int(d.get("amount") or 0),
+                    extra={
+                        "title": d.get("title") or "",
+                        "text": d.get("text") or "",
+                        "merchant": d.get("merchant") or "",
+                    },
+                )
+                await self.db.execute(
+                    """UPDATE bank_inbox SET vault_blob=?, amount_ord=?,
+                           amount=0, title='', text='', merchant='' WHERE id=?""",
+                    (packed["vault_blob"], packed["amount_ord"], d["id"]),
+                )
         await self.db.execute(
             "UPDATE households SET vault_sealed = 1 WHERE id = ?",
             (hh_id,),
@@ -102,7 +149,8 @@ class VaultService:
         cur = await self.db.execute(
             """SELECT wrapped_dek, kdf_salt, kdf_params
                FROM household_key_wraps
-               WHERE household_id = ? AND user_id = ?""",
+               WHERE household_id = ? AND user_id = ?
+                 AND COALESCE(kdf_params, '') <> 'share'""",
             (hh_id, user_id),
         )
         row = await cur.fetchone()

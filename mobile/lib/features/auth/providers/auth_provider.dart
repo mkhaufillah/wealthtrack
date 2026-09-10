@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exceptions.dart';
@@ -85,10 +86,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _storage.saveToken(token.accessToken);
       await BankCapture.syncSession(_api, token.accessToken);
       final user = await _repo.getMe();
-      await VaultStore.ensureDek(_storage);
-      try {
-        await _api.post('/households/vault/seal');
-      } catch (_) {}
+      await _unlockVault(password);
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
@@ -99,6 +97,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
         status: AuthStatus.error,
         error: _api.handleError(e).toString(),
       );
+    }
+  }
+
+  Future<void> _unlockVault(String password) async {
+    try {
+      final wrap = await _api.get('/households/vault/wrap');
+      final data = wrap.data as Map;
+      final dek = await VaultStore.unwrapDek(
+        password: password,
+        wrappedDek: data['wrapped_dek'] as String,
+        saltB64: data['kdf_salt'] as String? ?? '',
+      );
+      await VaultStore.saveDekB64(_storage, dek);
+    } on DioException catch (e) {
+      if (e.response?.statusCode != 404) rethrow;
+      final dek = await VaultStore.newDekB64();
+      await VaultStore.saveDekB64(_storage, dek);
+      try {
+        final wrapped = await VaultStore.wrapDek(password, dek);
+        await _api.post('/households/vault/wrap', data: {
+          'wrapped_dek': wrapped.wrapped,
+          'kdf_salt': wrapped.salt,
+          'kdf_params': kdfParams,
+        });
+        await _api.post('/households/vault/seal');
+      } catch (_) {}
     }
   }
 
@@ -144,6 +168,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> changePassword(
       String currentPassword, String newPassword) async {
     await _repo.changePassword(currentPassword, newPassword);
+    final dek = await VaultStore.getDekB64(_storage);
+    if (dek == null || dek.isEmpty) return;
+    final wrapped = await VaultStore.wrapDek(newPassword, dek);
+    try {
+      await _api.post('/households/vault/wrap', data: {
+        'wrapped_dek': wrapped.wrapped,
+        'kdf_salt': wrapped.salt,
+        'kdf_params': kdfParams,
+      });
+    } catch (_) {}
   }
 
   Future<void> deleteAccount() async {
