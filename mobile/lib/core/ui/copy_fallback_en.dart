@@ -511,7 +511,7 @@ const Map<String, String> copyFallbackEn = {
   'err.vault_required': 'Unlock the vault first. Log in with your password.',
   'err.vault_pending': 'The house key is not here yet. Ask your partner to share it.',
   'onboarding.p3_title': 'Your money gets a lock',
-  'onboarding.p3_sub': 'The simple version:',
+  'onboarding.p3_sub': 'No stress. Your money notes are locked on your phone, not left on the internet. Remember these three things.',
   'onboarding.p3_a': 'The key lives on your phone, not the internet',
   'onboarding.p3_b': 'You and your partner hold the same key',
   'onboarding.p3_c': 'If the password is gone, the notes are gone too',

@@ -514,7 +514,7 @@ const Map<String, String> copyFallback = {
   'err.vault_required': 'Buka gembok dulu ya. Masuk pake sandi.',
   'err.vault_pending': 'Kunci rumah belum sampai. Minta pasangan bagi gembok ya.',
   'onboarding.p3_title': 'Uang kamu dikunci',
-  'onboarding.p3_sub': 'Simpelnya gini:',
+  'onboarding.p3_sub': 'Tenang aja. Catatan uang kamu dikunci di HP, bukan dititip ke internet. Ingat tiga hal ini ya.',
   'onboarding.p3_a': 'Kuncinya di HP kamu, bukan di internet',
   'onboarding.p3_b': 'Kamu sama pasangan pegang kunci yang sama',
   'onboarding.p3_c': 'Kalau sandi hilang, catatannya ikut hilang',
