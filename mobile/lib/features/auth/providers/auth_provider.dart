@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exceptions.dart';
 import '../../../core/storage/secure_storage.dart';
+import '../../../core/vault/vault_store.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../bank_inbox/data/bank_capture.dart';
 import '../data/auth_repository.dart';
@@ -84,6 +85,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _storage.saveToken(token.accessToken);
       await BankCapture.syncSession(_api, token.accessToken);
       final user = await _repo.getMe();
+      await VaultStore.ensureDek(_storage);
+      try {
+        await _api.post('/households/vault/seal');
+      } catch (_) {}
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
@@ -120,6 +125,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await BankCapture.syncSession(_api, null);
+    await VaultStore.clear();
     await _storage.clearAll();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }

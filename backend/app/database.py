@@ -603,6 +603,54 @@ async def _assign_category_copy_keys(conn) -> None:
     )
 
 
+async def _migrate_vault(conn) -> None:
+    stmts = [
+        "ALTER TABLE households ADD COLUMN IF NOT EXISTS vault_sealed INTEGER NOT NULL DEFAULT 0",
+        """CREATE TABLE IF NOT EXISTS household_key_wraps (
+            household_id INTEGER NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            wrapped_dek TEXT NOT NULL,
+            kdf_salt TEXT NOT NULL DEFAULT '',
+            kdf_params TEXT NOT NULL DEFAULT '',
+            PRIMARY KEY (household_id, user_id)
+        )""",
+        """CREATE TABLE IF NOT EXISTS household_vault_pubkeys (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            household_id INTEGER NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+            public_key TEXT NOT NULL
+        )""",
+        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS amount_ord BIGINT",
+        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS category_trace TEXT DEFAULT ''",
+        "ALTER TABLE budgets ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE budgets ADD COLUMN IF NOT EXISTS amount_ord BIGINT",
+        "ALTER TABLE budgets ADD COLUMN IF NOT EXISTS category_trace TEXT DEFAULT ''",
+        "ALTER TABLE bank_inbox ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE bank_inbox ADD COLUMN IF NOT EXISTS amount_ord BIGINT",
+        "ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE credit_cards ADD COLUMN IF NOT EXISTS amount_ord BIGINT",
+        "ALTER TABLE credit_card_transactions ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE credit_card_transactions ADD COLUMN IF NOT EXISTS amount_ord BIGINT",
+        "ALTER TABLE credit_card_installments ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE credit_card_installments ADD COLUMN IF NOT EXISTS amount_ord BIGINT",
+        "ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS amount_ord BIGINT",
+        "ALTER TABLE kpr_extra_payments ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE kpr_extra_payments ADD COLUMN IF NOT EXISTS amount_ord BIGINT",
+        "ALTER TABLE kpr_monthly_schedules ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE kpr_monthly_schedules ADD COLUMN IF NOT EXISTS amount_ord BIGINT",
+        "ALTER TABLE kpr_rate_periods ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE ai_messages ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE ai_chat_summaries ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE ocr_jobs ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+    ]
+    for sql in stmts:
+        try:
+            await conn.execute(sql)
+        except Exception as e:
+            print(f"vault migrate warning: {e}")
+
+
 async def _init_schema(conn):
     """Create tables and indexes if they don't exist. Idempotent."""
     # Split by semicolons and execute each statement
@@ -615,6 +663,7 @@ async def _init_schema(conn):
                 print(f"Schema init warning (non-fatal): {e}")
     await _migrate_category_icons(conn)
     await _migrate_i18n(conn)
+    await _migrate_vault(conn)
     from app.core.ui_seed import seed_ui
     try:
         await seed_ui(conn)

@@ -312,6 +312,12 @@ class OcrService:
                         (job_id,),
                     )
                 finally:
+                    try:
+                        from pathlib import Path as _P
+
+                        _P(img_path).unlink(missing_ok=True)
+                    except Exception:
+                        pass
                     await bg_db.close()
             except Exception as bg_err:
                 import logging as _logging

@@ -98,8 +98,6 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
           {'value': 'date', 'label': t('sort.oldest')},
           {'value': '-amount', 'label': t('sort.highest')},
           {'value': 'amount', 'label': t('sort.lowest')},
-          {'value': 'name', 'label': t('sort.name_az')},
-          {'value': '-name', 'label': t('sort.name_za')},
         ];
         return Padding(
           padding: const EdgeInsets.all(16),

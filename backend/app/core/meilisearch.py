@@ -19,9 +19,9 @@ _client: Optional[meilisearch.Client] = None
 _index: Optional[Index] = None
 
 INDEX_NAME = "transactions"
-SEARCHABLE_ATTRIBUTES = ["description"]
+SEARCHABLE_ATTRIBUTES = ["date"]
 FILTERABLE_ATTRIBUTES = ["user_id", "type", "category_id", "date"]
-SORTABLE_ATTRIBUTES = ["date", "amount"]
+SORTABLE_ATTRIBUTES = ["date"]
 
 
 async def init_meilisearch():
@@ -70,10 +70,8 @@ def _index_document_sync(txn: dict) -> None:
     """
     doc = {
         "id": txn["id"],
-        "description": txn.get("description", "") or "",
         "type": txn["type"],
-        "amount": int(txn["amount"]),
-        "category_id": int(txn["category_id"]),
+        "category_id": int(txn["category_id"]) if txn.get("category_id") is not None else 0,
         "user_id": int(txn["user_id"]),
         "date": txn.get("date") or "",
     }

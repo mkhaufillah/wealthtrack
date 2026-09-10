@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import '../constants.dart';
 import '../storage/secure_storage.dart';
+import '../vault/vault_store.dart';
 import '../ui/copy_fallback.dart';
 import 'api_exceptions.dart';
 
@@ -59,6 +60,10 @@ class ApiClient {
           options.headers['Authorization'] = 'Bearer $token';
         }
         options.headers['X-Locale'] = activeUiLocale;
+        final dek = await VaultStore.getDekB64(_storage);
+        if (dek != null && dek.isNotEmpty) {
+          options.headers['X-Vault-Key'] = dek;
+        }
         handler.next(options);
       },
       onError: (error, handler) async {

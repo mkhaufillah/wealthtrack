@@ -96,7 +96,8 @@ class HouseholdService:
         household.
         """
         cursor = await self.db.execute(
-            """SELECT h.id, h.name, h.invite_code, h.created_by, h.created_at
+            """SELECT h.id, h.name, h.invite_code, h.created_by, h.created_at,
+                      COALESCE(h.vault_sealed, 0) AS vault_sealed
                FROM households h
                JOIN household_members hm ON hm.household_id = h.id
                WHERE hm.user_id = ?""",
@@ -217,6 +218,8 @@ class HouseholdService:
                 for m in members
             ],
             is_admin=user_id == hh["created_by"],
+            vault_sealed=int(hh.get("vault_sealed") or 0) == 1,
+            vault_ready=False,
         )
 
     # ── Get invite code ────────────────────────────────────────────

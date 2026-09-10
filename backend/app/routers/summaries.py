@@ -1,6 +1,7 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
+from app.core.vault_ctx import VaultRequiredError
 
 from app.database import get_db, CursorWrapper
 from app.core.security import get_current_user
@@ -18,11 +19,14 @@ async def daily_summary(
 ):
     """Income/expense summary for a specific date range (single-user)."""
     service = SummaryService(db)
-    return await service.get_daily_summary(
-        user_id=current_user["id"],
-        date_from=date_from,
-        date_to=date_to,
-    )
+    try:
+        return await service.get_daily_summary(
+            user_id=current_user["id"],
+            date_from=date_from,
+            date_to=date_to,
+        )
+    except VaultRequiredError:
+        raise HTTPException(status_code=403, detail="err.vault_required")
 
 
 @router.get("/household")

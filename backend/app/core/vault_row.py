@@ -1,0 +1,75 @@
+"""Pack/unpack money rows. JSON blob AES + OPE + category trace."""
+
+from __future__ import annotations
+
+import json
+
+from app.core.vault import (
+    aes_decrypt,
+    aes_encrypt,
+    category_trace,
+    is_aes_token,
+    ope_decode,
+    ope_encode,
+)
+
+
+def pack_money(
+    dek: bytes,
+    *,
+    amount: int,
+    description: str = "",
+    note: str = "",
+    category_id: int | None = None,
+    category_name: str = "",
+    extra: dict | None = None,
+) -> dict:
+    payload = {
+        "amount": int(amount),
+        "description": description or "",
+        "note": note or "",
+        "category_id": category_id,
+        "category_name": category_name or "",
+    }
+    if extra:
+        payload.update(extra)
+    blob = aes_encrypt(dek, json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+    out = {
+        "vault_blob": blob,
+        "amount_ord": ope_encode(dek, int(amount)),
+        "amount": 0,
+        "description": "",
+        "note": "",
+        "category_name": "",
+    }
+    if category_id is not None:
+        out["category_trace"] = category_trace(dek, int(category_id))
+        out["category_id"] = None
+    return out
+
+
+def unpack_money(dek: bytes | None, row: dict) -> dict:
+    data = dict(row)
+    blob = data.get("vault_blob") or ""
+    if dek and blob and is_aes_token(str(blob)):
+        inner = json.loads(aes_decrypt(dek, str(blob)))
+        data["amount"] = int(inner.get("amount") or 0)
+        data["description"] = inner.get("description") or ""
+        data["note"] = inner.get("note") or ""
+        if inner.get("category_id") is not None:
+            data["category_id"] = inner["category_id"]
+        if inner.get("category_name"):
+            data["category_name"] = inner["category_name"]
+        for k, v in inner.items():
+            if k not in data or data[k] in (None, "", 0):
+                data[k] = v
+    return data
+
+
+def ope_sum_to_plain(dek: bytes, sum_ord: int, count: int) -> int:
+    if count <= 0:
+        return 0
+    # sum(a_i + off) = sum(a) + n*off
+    from app.core.vault import ope_offset
+
+    return int(sum_ord) - int(count) * ope_offset(dek)

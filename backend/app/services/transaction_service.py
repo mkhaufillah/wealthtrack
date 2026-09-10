@@ -83,7 +83,10 @@ class InvalidOperationError(Exception):
 
 def _format_txn(row, cat_name="", cat_icon="", display_name=""):
     """Convert an asyncpg Record (or dict) to the standard transaction dict."""
-    r = dict(row)
+    from app.core.vault_ctx import current_dek
+    from app.core.vault_row import unpack_money
+
+    r = unpack_money(current_dek(), dict(row))
     return {
         "id": r["id"],
         "amount": int(r["amount"]),
@@ -112,6 +115,7 @@ def _format_txn(row, cat_name="", cat_icon="", display_name=""):
 _SELECT_TXN = """\
 SELECT t.id, t.type, t.amount, t.category_id, t.category_name,
        t.description, t.note, t.date, t.user_id, t.created_at,
+       t.vault_blob, t.amount_ord, t.category_trace,
        c.name AS cat_name, c.icon AS cat_icon, c.copy_key AS cat_copy_key,
        u.display_name AS user_display_name
 FROM transactions t
@@ -121,10 +125,8 @@ LEFT JOIN users u ON t.user_id = u.id"""
 _ORDER_MAP = {
     "date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) ASC",
     "-date": "COALESCE(t.date, LEFT(t.created_at::text, 10)) DESC",
-    "amount": "t.amount ASC",
-    "-amount": "t.amount DESC",
-    "name": "t.description ASC",
-    "-name": "t.description DESC",
+    "amount": "COALESCE(t.amount_ord, t.amount) ASC",
+    "-amount": "COALESCE(t.amount_ord, t.amount) DESC",
 }
 
 _DATE_COALESCE = "COALESCE(t.date, LEFT(t.created_at::text, 10))"
@@ -516,21 +518,56 @@ class TransactionService:
         if not cat:
             raise CategoryNotFoundError(data.category_id)
 
-        cursor = await self.db.execute(
-            """INSERT INTO transactions
-               (user_id, category_id, category_name, type, amount, description, note, date)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                user_id,
-                data.category_id,
-                cat["name"],
-                data.type,
-                data.amount,
-                data.description,
-                data.note,
-                data.date,
-            ),
-        )
+        from app.core.vault_ctx import VaultRequiredError, current_dek, current_sealed
+        from app.core.vault_row import pack_money
+
+        dek = current_dek()
+        if current_sealed():
+            if dek is None:
+                raise VaultRequiredError()
+            packed = pack_money(
+                dek,
+                amount=int(data.amount),
+                description=data.description or "",
+                note=data.note or "",
+                category_id=data.category_id,
+                category_name=cat["name"],
+            )
+            cursor = await self.db.execute(
+                """INSERT INTO transactions
+                   (user_id, category_id, category_name, type, amount, description, note, date,
+                    vault_blob, amount_ord, category_trace)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    user_id,
+                    packed.get("category_id"),
+                    packed.get("category_name") or "",
+                    data.type,
+                    packed["amount"],
+                    packed.get("description") or "",
+                    packed.get("note") or "",
+                    data.date,
+                    packed["vault_blob"],
+                    packed["amount_ord"],
+                    packed.get("category_trace") or "",
+                ),
+            )
+        else:
+            cursor = await self.db.execute(
+                """INSERT INTO transactions
+                   (user_id, category_id, category_name, type, amount, description, note, date)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    user_id,
+                    data.category_id,
+                    cat["name"],
+                    data.type,
+                    data.amount,
+                    data.description,
+                    data.note,
+                    data.date,
+                ),
+            )
         new_id = cursor.lastrowid
 
         cursor = await self.db.execute(

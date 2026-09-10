@@ -27,6 +27,7 @@ from app.services.transaction_service import (
     NoFieldsToUpdateError,
     InvalidOperationError,
 )
+from app.core.vault_ctx import VaultRequiredError
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,8 @@ def _handle_service_error(exc: Exception) -> None:
         raise HTTPException(status_code=400, detail=exc.detail)
     if isinstance(exc, NoFieldsToUpdateError):
         raise HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, VaultRequiredError):
+        raise HTTPException(status_code=403, detail="err.vault_required")
     # Re-raise unexpected errors
     raise
 
@@ -90,7 +93,7 @@ async def list_transactions(
     category_id: Optional[int] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
-    sort: str = Query("-date", pattern="^(date|-date|amount|-amount|name|-name)$"),
+    sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
     q: Optional[str] = Query(None, description="Search by description"),
     category_ids: Optional[str] = Query(None, description="Comma-separated category IDs"),
     db: CursorWrapper = Depends(get_db),

@@ -77,15 +77,29 @@ async def get_current_user(
             raise HTTPException(status_code=401, detail="DB not available")
         user = await _get_user_from_api_key(token, db)
         if user:
+            try:
+                from app.core.vault_ctx import bind_vault_from_request
+
+                await bind_vault_from_request(request, user, db)
+            except Exception:
+                pass
             return user
         raise HTTPException(status_code=401, detail="Invalid API key")
 
-    # Fall back to JWT
     payload = decode_token(token)
-    return {
+    user = {
         "id": int(payload["sub"]),
         "username": payload["username"],
         "role": payload.get("role", "user"),
         "auth_type": "jwt",
         "api_key_scopes": None,
     }
+    try:
+        from app.core.vault_ctx import bind_vault_from_request
+
+        await bind_vault_from_request(request, user, db)
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+    return user

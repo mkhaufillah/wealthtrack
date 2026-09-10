@@ -75,6 +75,8 @@ DROP TABLE IF EXISTS bank_category_rules CASCADE;
 DROP TABLE IF EXISTS bank_inbox CASCADE;
 DROP TABLE IF EXISTS ocr_jobs CASCADE;
 DROP TABLE IF EXISTS budgets CASCADE;
+DROP TABLE IF EXISTS household_vault_pubkeys CASCADE;
+DROP TABLE IF EXISTS household_key_wraps CASCADE;
 DROP TABLE IF EXISTS household_members CASCADE;
 DROP TABLE IF EXISTS households CASCADE;
 DROP TABLE IF EXISTS transactions CASCADE;
@@ -116,7 +118,8 @@ CREATE TABLE households (
     name TEXT NOT NULL,
     invite_code TEXT UNIQUE NOT NULL,
     created_by INTEGER NOT NULL REFERENCES users(id),
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    vault_sealed INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE household_members (
     user_id INTEGER NOT NULL REFERENCES users(id),
@@ -137,7 +140,10 @@ CREATE TABLE transactions (
     created_at TEXT DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     user_id INTEGER REFERENCES users(id),
     date TEXT,
-    note TEXT DEFAULT ''
+    note TEXT DEFAULT '',
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT,
+    category_trace TEXT DEFAULT ''
 );
 CREATE TABLE budgets (
     id SERIAL PRIMARY KEY,

@@ -1,6 +1,6 @@
 # 33 — Household vault (financial records at rest)
 
-**Status:** Specified. Do not implement until this doc is accepted as-is.
+**Status:** Implementing (backend vault + seal + Flutter Keystore header). Spec still this doc.
 
 **See also:** [02 Database](02-database-schema.md) · [03 Backend API](03-backend-api.md) · [05 Flutter](05-flutter-mobile.md) · [32 i18n](32-i18n.md)
 

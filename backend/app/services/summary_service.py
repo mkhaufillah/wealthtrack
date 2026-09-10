@@ -75,8 +75,16 @@ class SummaryService:
             date_sql += " AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?"
             date_params += (d_to,)
 
+        from app.core.vault_ctx import VaultRequiredError, current_dek, current_sealed
+        from app.core.vault_row import ope_sum_to_plain
+
+        sealed = current_sealed()
+        if sealed and current_dek() is None:
+            raise VaultRequiredError()
+        amount_expr = "t.amount_ord" if sealed else "t.amount"
+
         cursor = await self.db.execute(
-            f"""SELECT t.type, COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count
+            f"""SELECT t.type, COALESCE(SUM({amount_expr}), 0) as total, COUNT(*) as count
                FROM transactions t
                WHERE t.user_id = ?{date_sql}
                GROUP BY t.type""",
@@ -86,10 +94,14 @@ class SummaryService:
         income = 0
         expense = 0
         for r in rows:
+            total = int(r["total"] or 0)
+            cnt = int(r["count"] or 0)
+            if sealed:
+                total = ope_sum_to_plain(current_dek() or b"\x00" * 32, total, cnt)
             if r["type"] == "income":
-                income = r["total"]
+                income = total
             else:
-                expense = r["total"]
+                expense = total
 
         # Expense category breakdown
         cursor = await self.db.execute(

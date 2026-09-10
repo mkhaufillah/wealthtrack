@@ -28,6 +28,8 @@ class HouseholdDetailOut(BaseModel):
     household: HouseholdOut
     members: list[MemberOut]
     is_admin: bool
+    vault_sealed: bool = False
+    vault_ready: bool = False
 
 
 class InviteCodeOut(BaseModel):
