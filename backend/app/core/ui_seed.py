@@ -297,6 +297,7 @@ COPY_ID: dict[str, str] = {
     'common.result': 'Hasil hitungan',
     'common.calculate': 'Hitung',
     'common.add_period': 'Tambah periode',
+    'common.add': 'Tambah',
     'common.year_n': '{n} tahun',
     'common.day_n_short': 'Tanggal {n}',
     'common.from_month': 'Dari (bln)',

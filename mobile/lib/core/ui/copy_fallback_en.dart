@@ -292,6 +292,7 @@ const Map<String, String> copyFallbackEn = {
   'common.result': 'Result',
   'common.calculate': 'Calculate',
   'common.add_period': 'Add a period',
+  'common.add': 'Add',
   'common.year_n': '{n} years',
   'common.day_n_short': 'Day {n}',
   'common.from_month': 'From (mo)',
