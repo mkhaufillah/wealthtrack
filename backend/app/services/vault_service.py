@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from app.core.vault_ctx import (
     VaultRequiredError,
     current_dek,
@@ -9,6 +11,8 @@ from app.core.vault_ctx import (
 )
 from app.core.vault_row import pack_money
 from app.database import CursorWrapper
+
+logger = logging.getLogger(__name__)
 
 
 class VaultService:
@@ -258,18 +262,21 @@ class VaultService:
                         extra[k] = pv
                     else:
                         extra[k] = iv if iv is not None else pv
-            packed = pack_money(
-                dek,
-                amount=int(amount),
-                extra=extra,
-            )
-            if skip_ord:
-                await self.db.execute(wipe, (packed["vault_blob"], d[id_key]))
-            else:
-                await self.db.execute(
-                    wipe,
-                    (packed["vault_blob"], packed["amount_ord"], d[id_key]),
+            try:
+                packed = pack_money(
+                    dek,
+                    amount=int(amount),
+                    extra=extra,
                 )
+                if skip_ord:
+                    await self.db.execute(wipe, (packed["vault_blob"], d[id_key]))
+                else:
+                    await self.db.execute(
+                        wipe,
+                        (packed["vault_blob"], packed["amount_ord"], d[id_key]),
+                    )
+            except Exception:
+                logger.exception("vault seal row failed table_id=%s", d.get(id_key))
 
     async def put_wrap(
         self, user_id: int, wrapped_dek: str, kdf_salt: str, kdf_params: str

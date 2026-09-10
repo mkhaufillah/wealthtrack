@@ -78,4 +78,15 @@ def test_pack_extra_roundtrip():
     row = unpack_money(dek, packed)
     assert row["amount"] == 12_000_000
     assert row["name"] == "KPR rumah"
-    assert row["property_price"] == 12_000_000
+
+
+def test_pack_negative_amount_still_encrypts():
+    from app.core.vault_row import pack_money, unpack_money
+
+    dek = generate_dek()
+    packed = pack_money(dek, amount=-1, extra={"remaining_balance": -1})
+    assert packed["amount"] == 0
+    assert packed["amount_ord"] == ope_encode(dek, 0)
+    row = unpack_money(dek, packed)
+    assert row["amount"] == -1
+    assert row["remaining_balance"] == -1

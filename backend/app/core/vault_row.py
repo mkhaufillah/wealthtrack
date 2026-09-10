@@ -34,9 +34,12 @@ def pack_money(
     if extra:
         payload.update(extra)
     blob = aes_encrypt(dek, json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+    ope_amt = int(amount)
+    if ope_amt < 0:
+        ope_amt = 0
     out = {
         "vault_blob": blob,
-        "amount_ord": ope_encode(dek, int(amount)),
+        "amount_ord": ope_encode(dek, ope_amt),
         "amount": 0,
         "description": "",
         "note": "",
