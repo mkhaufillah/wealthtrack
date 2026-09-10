@@ -85,8 +85,8 @@ Old APK after step 2 cannot read money. Required.
 
 | Table | Columns |
 |---|---|
-| `transactions` | `amount`, `description`, `note` |
-| `budgets` | `budget_amount` |
+| `transactions` | `amount`, `description`, `note`, `category_id`, `category_name` |
+| `budgets` | `budget_amount`, `category_id`, `category_name` |
 | `credit_cards` | `credit_limit`, `card_number_last4` |
 | `credit_card_transactions` | `amount`, `description` |
 | `credit_card_installments` | `description`, `total_amount`, `monthly_amount` |
@@ -106,11 +106,11 @@ Old APK after step 2 cannot read money. Required.
 | `users.email`, `username`, `password_hash`, `locale`, `display_name`, `role` | login, OTP, UI |
 | `email_verifications` | OTP delivery; short-lived |
 | `households.name`, `invite_code` | labels / join |
-| `categories.*` | matching + `copy_key` |
+| `categories.*` | global catalog (Makanan, Gaji, `copy_key`, keywords). Not a secret. |
 | `ui_copy`, `ui_config` | product copy |
-| dates, ids, `type`, `status`, `month`, billing day, tenor, `package` / `bank` (app id) | filters and routing |
+| dates, `type`, `status`, `month`, billing day, tenor, `package` / `bank` (app id) | filters and routing |
 | `api_keys.key_hash` | already hashed |
-| `transactions.date`, `category_id` | list filters |
+| `transactions.date` | list by day |
 
 Card **display name** (`credit_cards.name`), KPR **label** (`kpr_simulations.name`): not money; leave plaintext unless we later want them in the vault.
 
@@ -127,6 +127,20 @@ Today: file written under `OCR_IMAGE_DIR`, weekly cleanup only. **Wrong for this
 Spec: write to a temp path if the vision client needs a file, call the vendor, then **delete the bytes in `finally`** (success or fail). Do not keep `ocr_*.jpg` on the VPS. Do not put receipt images on `transactions.image_path`. `ocr_jobs` stores status + optional `raw_text` (vaulted) + `transaction_id`, not a file.
 
 The vision vendor still sees the photo **during that one call**. That is outside the vault.
+
+## Search, filter, sort
+
+**v1 amounts:** AES-256-GCM. All-time sort by amount = decrypt amounts (with `X-Vault-Key`) then sort in process, then paginate. Do not store plaintext or OPE amounts in Meili/Postgres for v1.
+
+**v2 amounts (optional):** OPE on **nominal only**. Filla accepts that a dump shows which rows are larger, plus plaintext **date** and **type**. Description/note stay AES. Do not ship OPE until all-time decrypt-sort is actually slow (hundreds of thousands+). Easy to add; hard to take back.
+
+**Category on a row** (`transactions.category_id` / `category_name`, same on `budgets`) is vaulted. The global `categories` table stays plaintext (picker UI, icons, bank keywords).
+
+**Category filter = same idea as FTS traces.** On write, store `category_trace = HMAC(DEK_hh, "cat:" + category_id)` (and optional traces of `copy_key`). Dump sees clusters (“same category”) but not “Gaji”. Filter: UI still picks from the catalog; server hashes with DEK and looks up traces — no `WHERE category_id = 7` on plaintext.
+
+**Description FTS:** v1 decrypt-then-filter (current volume). Later: word traces `HMAC(DEK_hh, token)` as already described. Meili must not hold plaintext description/amount.
+
+**Drop A–Z / Z–A name sort** (`sort.name_az` / `sort.name_za`, `sort=name|-name`). Description is ciphertext; lexicographic sort needs decrypt-all and the product does not need it. Keep: newest/oldest (date, plaintext) and largest/smallest (amount, decrypt-then-sort).
 
 ## Household join / leave
 
@@ -201,7 +215,7 @@ Not audited endpoint-by-endpoint in the first drafts. This table is the check so
 
 **Need `X-Vault-Key` + decrypt-then-compute (same JSON as today):**
 
-`GET /home`, `GET /summaries/*`, `CRUD /transactions` (+ transfer), `GET/POST /budgets`, reports, `CRUD /credit-cards` + installments + card txns, `CRUD /kpr` + extra + schedule, `GET/POST /exports`, `GET/POST /ai`, `POST /ocr` (see below), `CRUD /bank-inbox` + confirm/reject.
+`GET /home`, `GET /summaries/*`, `CRUD /transactions` (+ transfer, search `q`, filter category via traces), `GET/POST /budgets`, reports, `CRUD /credit-cards` + installments + card txns, `CRUD /kpr` + extra + schedule, `GET/POST /exports`, `GET/POST /ai`, `POST /ocr` (see below), `CRUD /bank-inbox` + confirm/reject.
 
 **Would break if we forget — spec so they do not:**
 
