@@ -154,7 +154,16 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     try {
       final repo = HouseholdRepository(api);
       final data = await repo.getMyHousehold();
-      final hh = Map<String, dynamic>.from(data['household'] as Map? ?? {});
+      final raw = data['household'];
+      if (raw is! Map || raw['id'] == null) {
+        state = state.copyWith(
+          loadingHousehold: false,
+          members: const [],
+          isAdmin: false,
+        );
+        return;
+      }
+      final hh = Map<String, dynamic>.from(raw);
       hh['vault_sealed'] = data['vault_sealed'] == true;
       hh['vault_ready'] = data['vault_ready'] == true;
       state = state.copyWith(
