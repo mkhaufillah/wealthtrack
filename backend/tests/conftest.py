@@ -245,7 +245,8 @@ CREATE TABLE kpr_rate_periods (
     period_end INTEGER NOT NULL,
     interest_rate NUMERIC(6,4) NOT NULL,
     rate_type TEXT NOT NULL DEFAULT 'fixed' CHECK(rate_type IN ('fixed', 'floating')),
-    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+    created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    vault_blob TEXT DEFAULT ''
 );
 CREATE TABLE kpr_monthly_schedules (
     id SERIAL PRIMARY KEY,

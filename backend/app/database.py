@@ -642,7 +642,6 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE ai_messages ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
         "ALTER TABLE ai_chat_summaries ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
         "ALTER TABLE ocr_jobs ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
-        "ALTER TABLE transactions DROP COLUMN IF EXISTS image_path",
     ]
     for sql in stmts:
         try:
