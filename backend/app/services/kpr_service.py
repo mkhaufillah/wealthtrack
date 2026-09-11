@@ -38,6 +38,41 @@ class KPRServiceError(Exception):
 class KPRService:
     """Business logic for KPR simulations and extra payments."""
 
+    @staticmethod
+    def _pack(amount: int, extra: dict | None = None) -> dict:
+        from app.core.vault_write import must_dek
+        from app.core.vault_row import pack_money
+
+        return pack_money(must_dek(), amount=max(0, int(amount)), extra=extra)
+
+    @staticmethod
+    async def _insert_schedule_item(db: CursorWrapper, sim_id: int, item) -> None:
+        packed = KPRService._pack(
+            int(item.remaining_balance) if int(item.remaining_balance) > 0 else 0,
+            extra={
+                "payment": int(item.payment),
+                "principal": int(item.principal),
+                "interest": int(item.interest),
+                "remaining_balance": int(item.remaining_balance),
+                "interest_rate": float(item.interest_rate),
+                "month_number": int(item.month_number),
+                "rate_type": item.rate_type,
+            },
+        )
+        await db.execute(
+            """INSERT INTO kpr_monthly_schedules
+               (simulation_id, month_number, payment, principal, interest,
+                remaining_balance, rate_type, interest_rate, vault_blob, amount_ord)
+               VALUES (?, ?, 0, 0, 0, 0, ?, 0, ?, ?)""",
+            (
+                sim_id,
+                item.month_number,
+                item.rate_type,
+                packed["vault_blob"],
+                packed["amount_ord"],
+            ),
+        )
+
     # ── Shared helpers ─────────────────────────────────────────
 
     @staticmethod
@@ -189,42 +224,58 @@ class KPRService:
         ]
 
         async with db.transaction():
-            # 1. Insert simulation
+            packed_sim = KPRService._pack(
+                total_loan,
+                extra={
+                    "property_price": int(data.property_price),
+                    "down_payment": int(data.down_payment),
+                    "total_loan": int(total_loan),
+                    "base_interest_rate": float(data.base_interest_rate or 0),
+                    "graduated_increment": float(data.graduated_increment or 0),
+                    "graduated_every_months": int(data.graduated_every_months or 0),
+                },
+            )
             cursor = await db.execute(
                 """INSERT INTO kpr_simulations
                    (user_id, name, property_price, down_payment, total_loan,
                     tenor_months, interest_type, start_month, start_year, due_date,
-                    household_id, base_interest_rate, graduated_increment, graduated_every_months)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    household_id, base_interest_rate, graduated_increment, graduated_every_months,
+                    vault_blob, amount_ord)
+                   VALUES (?, ?, 0, 0, 0, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)""",
                 (
                     user_id,
                     data.name,
-                    data.property_price,
-                    data.down_payment,
-                    total_loan,
                     data.tenor_months,
                     data.interest_type,
                     data.start_month,
                     data.start_year,
                     data.due_date,
                     data.household_id,
-                    data.base_interest_rate,
-                    data.graduated_increment,
-                    data.graduated_every_months,
+                    packed_sim["vault_blob"],
+                    packed_sim["amount_ord"],
                 ),
             )
             sim_id = cursor.lastrowid
+            if not sim_id:
+                raise KPRServiceError("Gagal buat simulasi", 500)
 
-            # 2. Insert rate periods if provided
             for rp in data.rate_periods:
+                packed_rp = KPRService._pack(
+                    0,
+                    extra={
+                        "interest_rate": float(rp.interest_rate),
+                        "period_start": int(rp.period_start),
+                        "period_end": int(rp.period_end),
+                        "rate_type": rp.rate_type,
+                    },
+                )
                 await db.execute(
                     """INSERT INTO kpr_rate_periods
-                       (simulation_id, period_start, period_end, interest_rate, rate_type)
-                       VALUES (?, ?, ?, ?, ?)""",
-                    (sim_id, rp.period_start, rp.period_end, rp.interest_rate, rp.rate_type),
+                       (simulation_id, period_start, period_end, interest_rate, rate_type, vault_blob)
+                       VALUES (?, ?, ?, 0, ?, ?)""",
+                    (sim_id, rp.period_start, rp.period_end, rp.rate_type, packed_rp["vault_blob"]),
                 )
 
-            # 3. Calculate schedule via engine
             schedule = calculate_kpr(
                 total_loan=total_loan,
                 tenor_months=data.tenor_months,
@@ -235,24 +286,8 @@ class KPRService:
                 graduated_every_months=data.graduated_every_months,
             )
 
-            # 4. Insert schedule items
             for item in schedule:
-                await db.execute(
-                    """INSERT INTO kpr_monthly_schedules
-                       (simulation_id, month_number, payment, principal, interest,
-                        remaining_balance, rate_type, interest_rate)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (
-                        sim_id,
-                        item.month_number,
-                        item.payment,
-                        item.principal,
-                        item.interest,
-                        item.remaining_balance,
-                        item.rate_type,
-                        item.interest_rate,
-                    ),
-                )
+                await KPRService._insert_schedule_item(db, sim_id, item)
 
         # Build response data
         summary = simulate_summary(schedule)
@@ -423,39 +458,39 @@ class KPRService:
 
         Returns the updated row as a dict.
         """
-        await KPRService.get_simulation_for_user(db, sim_id, user_id)
+        sim = await KPRService.get_simulation_for_user(db, sim_id, user_id)
 
-        # Build dynamic UPDATE — only set non-None fields
         fields: list[str] = []
         params: list = []
 
         if data.name is not None:
             fields.append("name = ?")
             params.append(data.name)
-        if data.property_price is not None:
-            fields.append("property_price = ?")
-            params.append(data.property_price)
-        if data.down_payment is not None:
-            fields.append("down_payment = ?")
-            params.append(data.down_payment)
         if data.tenor_months is not None:
             fields.append("tenor_months = ?")
             params.append(data.tenor_months)
 
-        # Recalculate total_loan if either property_price or down_payment changed
         prop_provided = data.property_price is not None
         dp_provided = data.down_payment is not None
         if prop_provided or dp_provided:
-            cursor = await db.execute(
-                "SELECT property_price, down_payment FROM kpr_simulations WHERE id = ?",
-                (sim_id,),
-            )
-            current = dict(await cursor.fetchone())
-            prop = data.property_price if prop_provided else current["property_price"]
-            dp = data.down_payment if dp_provided else current["down_payment"]
+            prop = int(data.property_price if prop_provided else sim["property_price"])
+            dp = int(data.down_payment if dp_provided else sim["down_payment"])
             new_total = prop - dp
-            fields.append("total_loan = ?")
-            params.append(new_total)
+            packed = KPRService._pack(
+                new_total,
+                extra={
+                    "property_price": prop,
+                    "down_payment": dp,
+                    "total_loan": new_total,
+                    "base_interest_rate": float(sim.get("base_interest_rate") or 0),
+                    "graduated_increment": float(sim.get("graduated_increment") or 0),
+                    "graduated_every_months": int(sim.get("graduated_every_months") or 0),
+                },
+            )
+            fields.append("vault_blob = ?")
+            params.append(packed["vault_blob"])
+            fields.append("amount_ord = ?")
+            params.append(packed["amount_ord"])
 
         if not fields:
             raise KPRServiceError("Gak ada yang diubah", status_code=400)
@@ -666,21 +701,31 @@ class KPRService:
 
         async with db.transaction():
             # Store the extra payment record
+            extra_payload = {
+                "amount": int(data.amount),
+                "apply_month": int(data.apply_month),
+                "old_remaining_balance": int(result.old_remaining_balance),
+                "new_remaining_balance": int(result.new_remaining_balance),
+                "old_remaining_months": int(result.old_remaining_months),
+                "new_remaining_months": int(result.new_remaining_months),
+                "old_installment": int(result.old_installment),
+                "new_installment": int(result.new_installment),
+                "total_interest_saved": int(result.total_interest_saved),
+            }
+            packed_ep = KPRService._pack(int(data.amount), extra=extra_payload)
             cursor = await db.execute(
                 """INSERT INTO kpr_extra_payments
                    (simulation_id, amount, apply_month,
                     reduction_type, old_remaining_balance, new_remaining_balance,
                     old_remaining_months, new_remaining_months, old_installment,
-                    new_installment, total_interest_saved, original_end_date, new_end_date)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    new_installment, total_interest_saved, original_end_date, new_end_date,
+                    vault_blob, amount_ord)
+                   VALUES (?, 0, ?, ?, 0, 0, 0, 0, 0, 0, 0, ?, ?, ?, ?)""",
                 (
-                    sim_id, data.amount,
+                    sim_id,
                     data.apply_month, data.reduction_type,
-                    result.old_remaining_balance, result.new_remaining_balance,
-                    result.old_remaining_months, result.new_remaining_months,
-                    result.old_installment, result.new_installment,
-                    result.total_interest_saved,
                     result.original_end_date, result.new_end_date,
+                    packed_ep["vault_blob"], packed_ep["amount_ord"],
                 ),
             )
             extra_id = cursor.lastrowid or 0
@@ -691,26 +736,11 @@ class KPRService:
                 (sim_id,),
             )
             for item in result.schedule:
-                await db.execute(
-                    """INSERT INTO kpr_monthly_schedules
-                       (simulation_id, month_number, payment, principal, interest,
-                        remaining_balance, rate_type, interest_rate)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (
-                        sim_id,
-                        item.month_number,
-                        item.payment,
-                        item.principal,
-                        item.interest,
-                        item.remaining_balance,
-                        item.rate_type,
-                        item.interest_rate,
-                    ),
-                )
+                await KPRService._insert_schedule_item(db, sim_id, item)
 
         # Re-fetch the record to get DB-generated created_at
         fetch_cursor = await db.execute(
-            """SELECT id, simulation_id, amount,
+            """SELECT id, simulation_id, amount, vault_blob,
                       apply_month, reduction_type,
                       old_remaining_balance, new_remaining_balance,
                       old_remaining_months, new_remaining_months,
@@ -723,7 +753,9 @@ class KPRService:
         db_record = await fetch_cursor.fetchone()
 
         if db_record:
-            return dict(db_record)
+            d = open_row(dict(db_record))
+            d.pop("vault_blob", None)
+            return d
         # Fallback if DB didn't return the record
         return {
             "id": extra_id,
@@ -843,26 +875,13 @@ class KPRService:
                     (sim_id,),
                 )
                 for item in base_schedule:
-                    await db.execute(
-                        """INSERT INTO kpr_monthly_schedules
-                           (simulation_id, month_number, payment, principal, interest,
-                            remaining_balance, rate_type, interest_rate)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            sim_id,
-                            item.month_number,
-                            item.payment,
-                            item.principal,
-                            item.interest,
-                            item.remaining_balance,
-                            item.rate_type,
-                            item.interest_rate,
-                        ),
-                    )
+                    await KPRService._insert_schedule_item(db, sim_id, item)
             else:
+                from app.core.vault_row import open_row
+
                 # Re-apply remaining extra payments
                 cursor = await db.execute(
-                    """SELECT id, amount, apply_month, reduction_type
+                    """SELECT id, amount, apply_month, reduction_type, vault_blob
                        FROM kpr_extra_payments
                        WHERE simulation_id = ?
                        ORDER BY apply_month ASC""",
@@ -872,10 +891,10 @@ class KPRService:
 
                 current_schedule = base_schedule
                 for ep in remaining_extras:
-                    ep_dict = dict(ep)
+                    ep_dict = open_row(dict(ep))
                     ep_result = apply_extra_payment(
                         schedule=current_schedule,
-                        extra_amount=ep_dict["amount"],
+                        extra_amount=int(ep_dict.get("amount") or 0),
                         apply_month=ep_dict["apply_month"],
                         reduction_type=ep_dict["reduction_type"],
                         start_month=sim.get("start_month", 1),
@@ -913,19 +932,4 @@ class KPRService:
                     (sim_id,),
                 )
                 for item in current_schedule:
-                    await db.execute(
-                        """INSERT INTO kpr_monthly_schedules
-                           (simulation_id, month_number, payment, principal, interest,
-                            remaining_balance, rate_type, interest_rate)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            sim_id,
-                            item.month_number,
-                            item.payment,
-                            item.principal,
-                            item.interest,
-                            item.remaining_balance,
-                            item.rate_type,
-                            item.interest_rate,
-                        ),
-                    )
+                    await KPRService._insert_schedule_item(db, sim_id, item)
