@@ -753,6 +753,10 @@ class KPRService:
         )
         month_nums = [int(r["month_number"]) for r in await month_cur.fetchall()]
         out = []
+        from app.core.vault_ctx import current_dek
+
+        can_repack = current_dek() is not None
+        repairs: list[tuple[int, dict]] = []
         for r in rows:
             d = open_row(dict(r))
             d.pop("vault_blob", None)
@@ -772,15 +776,42 @@ class KPRService:
                 d[k] = int(d[k] or 0) if d.get(k) is not None else 0
             apply = int(d.get("apply_month") or 0)
             live = sum(1 for m in month_nums if m >= apply) if apply else len(month_nums)
+            fixed = False
             if d["new_remaining_months"] <= 0 and live > 0:
                 d["new_remaining_months"] = live
+                fixed = True
             if d["old_remaining_months"] <= 0 and live > 0:
                 d["old_remaining_months"] = live
+                fixed = True
             d["original_end_date"] = d.get("original_end_date") or ""
             d["new_end_date"] = d.get("new_end_date") or ""
             d["reduction_type"] = d.get("reduction_type") or "tenor"
             d["created_at"] = d.get("created_at") or ""
+            if fixed and can_repack:
+                repairs.append((int(d["id"]), d))
             out.append(d)
+        # Permanently repair broken blob snapshots so 0s never come back.
+        for ep_id, payload in repairs:
+            packed = KPRService._pack(
+                int(payload.get("amount") or 0),
+                extra={
+                    "amount": int(payload.get("amount") or 0),
+                    "apply_month": int(payload.get("apply_month") or 0),
+                    "old_remaining_balance": int(payload.get("old_remaining_balance") or 0),
+                    "new_remaining_balance": int(payload.get("new_remaining_balance") or 0),
+                    "old_remaining_months": int(payload.get("old_remaining_months") or 0),
+                    "new_remaining_months": int(payload.get("new_remaining_months") or 0),
+                    "old_installment": int(payload.get("old_installment") or 0),
+                    "new_installment": int(payload.get("new_installment") or 0),
+                    "total_interest_saved": int(payload.get("total_interest_saved") or 0),
+                    "original_end_date": payload.get("original_end_date") or "",
+                    "new_end_date": payload.get("new_end_date") or "",
+                },
+            )
+            await db.execute(
+                "UPDATE kpr_extra_payments SET vault_blob=?, amount_ord=? WHERE id=?",
+                (packed["vault_blob"], packed["amount_ord"], ep_id),
+            )
         return out
 
     @staticmethod

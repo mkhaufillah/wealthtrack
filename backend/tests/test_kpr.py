@@ -848,6 +848,60 @@ class TestExtraPaymentAPI:
         data = resp.json()
         assert len(data) == 2
 
+    async def test_list_repairs_zero_tenor_blob(
+        self, client, auth_headers, filla_token, db
+    ):
+        """A blob snapshot with 0 remaining tenor is repaired permanently on list."""
+        from app.core.vault_row import pack_money, unpack_money
+        from tests.conftest import TEST_DEK
+
+        sim_id = await self._create_sim(client, filla_token)
+        created = await client.post(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            json={"amount": 25000000, "apply_month": 12, "reduction_type": "tenor"},
+            headers=auth_headers,
+        )
+        assert created.status_code == 201
+        ep_id = created.json()["id"]
+
+        broken = pack_money(
+            TEST_DEK,
+            amount=25000000,
+            extra={
+                "amount": 25000000,
+                "apply_month": 12,
+                "old_remaining_balance": 0,
+                "new_remaining_balance": 0,
+                "old_remaining_months": 0,
+                "new_remaining_months": 0,
+                "old_installment": 0,
+                "new_installment": 0,
+                "total_interest_saved": 0,
+                "original_end_date": "",
+                "new_end_date": "",
+            },
+        )
+        await db.execute(
+            "UPDATE kpr_extra_payments SET vault_blob=?, amount_ord=? WHERE id=?",
+            (broken["vault_blob"], broken["amount_ord"], ep_id),
+        )
+
+        listed = await client.get(
+            f"/api/v1/kpr/simulations/{sim_id}/extra-payments",
+            headers=auth_headers,
+        )
+        assert listed.status_code == 200
+        row = listed.json()[0]
+        assert row["new_remaining_months"] > 0
+
+        # DB blob must have been rewritten, not just masked in the response.
+        cur = await db.execute(
+            "SELECT vault_blob FROM kpr_extra_payments WHERE id = ?", (ep_id,)
+        )
+        stored = await cur.fetchone()
+        reopened = unpack_money(TEST_DEK, dict(stored))
+        assert reopened["new_remaining_months"] > 0
+
     async def test_delete_extra_payment(
         self, client, auth_headers, filla_token
     ):

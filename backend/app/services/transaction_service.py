@@ -7,6 +7,7 @@ fallback), owner transfer, and balance transfer logic.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Optional
 
 from app.database import CursorWrapper
@@ -396,10 +397,6 @@ class TransactionService:
                 return await self._fetch_by_ids(matching_ids, page, per_page, int(total or 0))
             except Exception as e:
                 logger.warning("hashed Meili search failed: %s", e)
-                return PaginatedTransactions(
-                    data=[],
-                    meta=PaginationMeta(page=page, per_page=per_page, total=0, total_pages=0),
-                )
         return await self._search_vault(
             user_id, q, page, per_page,
             type, category_id, date_from, date_to, sort, category_ids,
@@ -489,15 +486,22 @@ class TransactionService:
         )
         needle = q.lower()
 
-        def _hay(row) -> str:
+        def _tokens(row) -> list[str] | None:
             if isinstance(row, dict):
                 cat = row.get("category") or {}
-                return f"{row.get('description') or ''} {row.get('note') or ''} {cat.get('name') or ''}"
-            cat = getattr(row, "category", None)
-            name = getattr(cat, "name", "") if cat is not None else ""
-            return f"{getattr(row, 'description', '')} {getattr(row, 'note', '')} {name}"
+                hay = f"{row.get('description') or ''} {row.get('note') or ''} {cat.get('name') or ''}"
+            else:
+                cat = getattr(row, "category", None)
+                name = getattr(cat, "name", "") if cat is not None else ""
+                hay = f"{getattr(row, 'description', '')} {getattr(row, 'note', '')} {name}"
+            return re.findall(r"\w+", hay.lower())
 
-        matched = [row for row in batch.data if needle in _hay(row).lower()]
+        want = re.findall(r"\w+", needle)
+        matched = [
+            row
+            for row in batch.data
+            if all(w in _tokens(row) for w in want)
+        ]
         total = len(matched)
         start = (page - 1) * per_page
         page_rows = matched[start:start + per_page]

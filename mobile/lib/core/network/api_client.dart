@@ -12,7 +12,7 @@ import 'api_exceptions.dart';
 /// This client only handles transport-level failures (no network, expired
 /// session). Any `detail` the server sends is passed through as-is.
 
-String _looksLikeHtml(String raw) {
+bool _looksLikeHtml(String raw) {
   final s = raw.trim().toLowerCase();
   return s.contains('<html') ||
       s.contains('<!doctype') ||
