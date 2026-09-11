@@ -346,12 +346,18 @@ class TestBudgetSummary:
 
             # Verify cycle_on is still 1 (kept original)
             cursor = await db.execute(
-                "SELECT cycle_on, budget_amount FROM budgets WHERE user_id = 1 AND month = '2026-05' AND category_id = 6"
+                "SELECT cycle_on FROM budgets WHERE user_id = 1 AND month = '2026-05' AND category_id = 6"
             )
             row = await cursor.fetchone()
             assert row is not None
             assert row["cycle_on"] == 1, "Upsert should NOT update cycle_on"
-            assert row["budget_amount"] == 200000, "Amount should be updated"
+            listed = await client.get(
+                "/api/v1/budgets?month=2026-05",
+                headers={"Authorization": f"Bearer {filla_token}"},
+            )
+            assert listed.status_code == 200
+            item = [b for b in listed.json() if b["category_id"] == 6][0]
+            assert item["amount"] == 200000, "Amount should be updated"
         finally:
             # Restore cycle
             await db.execute("UPDATE users SET cycle_start_day = 1 WHERE id = 1")
