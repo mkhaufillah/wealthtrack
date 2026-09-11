@@ -227,7 +227,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
     # Income / Expense summary for household
     cursor = await db.execute(
-        f"""SELECT type, COALESCE(SUM(amount_ord), 0) as total
+        f"""SELECT type, COALESCE(SUM(amount_ord), 0) as total, COUNT(*) as count
            FROM transactions WHERE user_id IN ({placeholders})
              AND COALESCE(date, LEFT(created_at::text, 10)) BETWEEN ? AND ?
            GROUP BY type""",
@@ -235,11 +235,19 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
     )
     income = 0
     expense = 0
+    from app.core.vault_ctx import current_dek, current_sealed
+    from app.core.vault_row import ope_sum_to_plain
+
+    sealed = current_sealed()
+    dek = current_dek()
     async for r in cursor:
+        total = int(r["total"] or 0)
+        if sealed and dek is not None:
+            total = ope_sum_to_plain(dek, total, int(r["count"] or 0))
         if r["type"] == "income":
-            income = r["total"]
+            income = total
         else:
-            expense = r["total"]
+            expense = total
     balance = income - expense
 
     # Derived metrics

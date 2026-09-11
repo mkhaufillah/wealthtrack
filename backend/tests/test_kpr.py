@@ -5,6 +5,11 @@ from httpx import AsyncClient
 
 from app.database import CursorWrapper
 from app.services.kpr_engine import calculate_kpr, simulate_summary, RatePeriod
+from app.schemas.kpr import ExtraPaymentOut
+
+
+def test_extra_payment_out_survives_missing_blob_fields():
+    ExtraPaymentOut(id=1, simulation_id=23, apply_month=25, reduction_type="installment")
 
 
 # ──────────────────────────────────────────────

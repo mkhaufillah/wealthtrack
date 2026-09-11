@@ -111,32 +111,7 @@ class SummaryService:
                     }
                 )
             return out
-        cursor = await self.db.execute(
-            f"""SELECT c.id, c.name, c.icon, c.copy_key,
-                      SUM(t.amount_ord) as total, COUNT(*) as count
-               FROM transactions t
-               JOIN categories c ON t.category_id = c.id
-               WHERE 1=1 {where_sql}
-                 AND t.type = ?
-               GROUP BY c.id ORDER BY total DESC""",
-            (*params, typ),
-        )
-        by_cat = await cursor.fetchall()
-        categories = []
-        for r in by_cat:
-            pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
-            categories.append(
-                {
-                    "category_id": r["id"],
-                    "category_name": r["name"],
-                    "copy_key": r["copy_key"] or "",
-                    "icon": r["icon"] or "",
-                    "total": int(r["total"]),
-                    "count": r["count"],
-                    "percentage": pct,
-                }
-            )
-        return categories
+        return []
 
     # ── Daily Summary ────────────────────────────────────────────────────
 
@@ -659,20 +634,7 @@ class SummaryService:
                     else:
                         inc = total
                 return {"total_expense": exp, "total_income": inc, "balance": exp - inc}
-            placeholders = ",".join("?" for _ in cat_ids)
-            cursor = await self.db.execute(
-                f"""SELECT
-                       COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) as total_expense,
-                       COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_ord ELSE 0 END), 0) as total_income
-                   FROM transactions t
-                   WHERE t.user_id = ?
-                     AND t.category_id IN ({placeholders})""",
-                (user_id, *cat_ids),
-            )
-            row = await cursor.fetchone()
-            exp = int(row["total_expense"])
-            inc = int(row["total_income"])
-            return {"total_expense": exp, "total_income": inc, "balance": exp - inc}
+            return {"total_expense": 0, "total_income": 0, "balance": 0}
 
         return {
             "savings_investment": await _query_balance(savings_ids),

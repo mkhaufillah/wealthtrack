@@ -87,38 +87,7 @@ async def get_historical_spending(
             )
         out.sort(key=lambda x: -x["avg_amount"])
         return out
-
-    cursor = await db.execute(
-        f"""SELECT t.category_id,
-                   c.name AS category_name,
-                   c.icon AS category_icon,
-                   c.copy_key AS copy_key,
-                   COALESCE(AVG(t.amount_ord), 0)::bigint AS avg_amount,
-                   COALESCE(MAX(t.amount_ord), 0)::bigint AS max_amount,
-                   COUNT(DISTINCT LEFT(COALESCE(t.date, LEFT(t.created_at::text, 10)), 7))
-                       AS months_with_data
-            FROM transactions t
-            LEFT JOIN categories c ON t.category_id = c.id
-            WHERE t.user_id = ?
-              AND t.type = 'expense'
-              AND ({or_conditions})
-            GROUP BY t.category_id, c.name, c.icon, c.copy_key
-            ORDER BY avg_amount DESC""",
-        (user_id, *params),
-    )
-    rows = await cursor.fetchall()
-    return [
-        {
-            "category_id": r["category_id"],
-            "category_name": r["category_name"] or f"Cat#{r['category_id']}",
-            "category_icon": r["category_icon"] or "📦",
-            "copy_key": r["copy_key"] or "",
-            "avg_amount": r["avg_amount"],
-            "max_amount": r["max_amount"],
-            "months_analyzed": r["months_with_data"],
-        }
-        for r in rows
-    ]
+    return []
 
 
 async def get_projection(

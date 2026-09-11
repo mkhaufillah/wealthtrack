@@ -310,20 +310,7 @@ class BudgetService:
                                 dek, int(r["total"] or 0), int(r["count"] or 0)
                             )
                 else:
-                    cat_placeholders = ",".join("?" for _ in cat_ids)
-                    cur = await self.db.execute(
-                        f"""SELECT t.category_id,
-                                   COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0)::bigint AS actual_spent
-                            FROM transactions t
-                            WHERE t.user_id = ?
-                              AND t.category_id IN ({cat_placeholders})
-                              AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                              AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
-                            GROUP BY t.category_id""",
-                        (user_id, *cat_ids, d_from_str, d_to_str),
-                    )
-                    for r in await cur.fetchall():
-                        actual_map[r["category_id"]] = r["actual_spent"]
+                    actual_map = {}
 
             for r in rows:
                 actual_spent = actual_map.get(r["category_id"], 0)
@@ -484,64 +471,7 @@ class BudgetService:
                 )
             return uncategorized
 
-        budgeted_cat_ids = tuple(r["category_id"] for r in budget_rows if r.get("category_id") is not None)
-        uncategorized = []
-
-        if budgeted_cat_ids:
-            placeholders = ",".join("?" * len(budgeted_cat_ids))
-            ucur = await self.db.execute(
-                f"""SELECT t.category_id, c.name AS category_name, c.icon AS category_icon,
-                                   c.copy_key AS copy_key,
-                                   COALESCE(SUM(t.amount_ord), 0)::bigint AS total
-                    FROM transactions t
-                    LEFT JOIN categories c ON t.category_id = c.id
-                    WHERE t.user_id = ?
-                      AND t.type = 'expense'
-                      AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                      AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
-                      AND t.category_id NOT IN ({placeholders})
-                    GROUP BY t.category_id, c.name, c.icon, c.copy_key
-                    ORDER BY total DESC""",
-                (user_id, uncat_d_from, uncat_d_to, *budgeted_cat_ids),
-            )
-            for urow in await ucur.fetchall():
-                uncategorized.append(
-                    {
-                        "category_id": urow["category_id"],
-                        "category_name": urow["category_name"] or "Unknown",
-                        "category_icon": urow["category_icon"] or "📦",
-                        "copy_key": urow["copy_key"] or "",
-                        "total": urow["total"],
-                    }
-                )
-        else:
-            # No budgets at all — all expense categories are unbudgeted
-            ucur = await self.db.execute(
-                """SELECT t.category_id, c.name AS category_name, c.icon AS category_icon,
-                                 c.copy_key AS copy_key,
-                                 COALESCE(SUM(t.amount_ord), 0)::bigint AS total
-                   FROM transactions t
-                   LEFT JOIN categories c ON t.category_id = c.id
-                   WHERE t.user_id = ?
-                     AND t.type = 'expense'
-                     AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                     AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
-                   GROUP BY t.category_id, c.name, c.icon, c.copy_key
-                   ORDER BY total DESC""",
-                (user_id, uncat_d_from, uncat_d_to),
-            )
-            for urow in await ucur.fetchall():
-                uncategorized.append(
-                    {
-                        "category_id": urow["category_id"],
-                        "category_name": urow["category_name"] or "Unknown",
-                        "category_icon": urow["category_icon"] or "📦",
-                        "copy_key": urow["copy_key"] or "",
-                        "total": urow["total"],
-                    }
-                )
-
-        return uncategorized
+        return []
 
     # ── Suggestions (AI) ─────────────────────────────────────────────
 

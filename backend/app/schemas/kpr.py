@@ -117,16 +117,16 @@ class ExtraPaymentPreviewOut(BaseModel):
 class ExtraPaymentOut(BaseModel):
     id: int
     simulation_id: int
-    amount: int
-    apply_month: int
-    reduction_type: str
-    old_remaining_balance: int
-    new_remaining_balance: int
-    old_remaining_months: int
-    new_remaining_months: int
-    old_installment: int
-    new_installment: int
-    total_interest_saved: int
+    amount: int = 0
+    apply_month: int = 1
+    reduction_type: str = "tenor"
+    old_remaining_balance: int = 0
+    new_remaining_balance: int = 0
+    old_remaining_months: int = 0
+    new_remaining_months: int = 0
+    old_installment: int = 0
+    new_installment: int = 0
+    total_interest_saved: int = 0
     original_end_date: str = ""
     new_end_date: str = ""
-    created_at: str
+    created_at: str = ""

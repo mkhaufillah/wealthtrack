@@ -247,19 +247,25 @@ class ExtraPaymentRecord {
   });
 
   factory ExtraPaymentRecord.fromJson(Map<String, dynamic> json) {
+    int n(dynamic v) {
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return int.tryParse('$v') ?? 0;
+    }
+
     return ExtraPaymentRecord(
-      id: json['id'] as int,
-      simulationId: json['simulation_id'] as int,
-      amount: json['amount'] as int,
-      applyMonth: json['apply_month'] as int,
+      id: n(json['id']),
+      simulationId: n(json['simulation_id']),
+      amount: n(json['amount']),
+      applyMonth: n(json['apply_month']),
       reductionType: json['reduction_type'] as String? ?? 'tenor',
-      oldRemainingBalance: json['old_remaining_balance'] as int,
-      newRemainingBalance: json['new_remaining_balance'] as int,
-      oldRemainingMonths: json['old_remaining_months'] as int,
-      newRemainingMonths: json['new_remaining_months'] as int,
-      oldInstallment: json['old_installment'] as int? ?? 0,
-      newInstallment: json['new_installment'] as int? ?? 0,
-      totalInterestSaving: json['total_interest_saved'] as int? ?? 0,
+      oldRemainingBalance: n(json['old_remaining_balance']),
+      newRemainingBalance: n(json['new_remaining_balance']),
+      oldRemainingMonths: n(json['old_remaining_months']),
+      newRemainingMonths: n(json['new_remaining_months']),
+      oldInstallment: n(json['old_installment']),
+      newInstallment: n(json['new_installment']),
+      totalInterestSaving: n(json['total_interest_saved']),
       originalEndDate: json['original_end_date'] as String? ?? '',
       newEndDate: json['new_end_date'] as String? ?? '',
       createdAt: json['created_at'] as String? ?? '',

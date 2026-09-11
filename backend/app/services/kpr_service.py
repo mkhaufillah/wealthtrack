@@ -763,8 +763,11 @@ class KPRService:
                 "new_installment",
                 "total_interest_saved",
             ):
-                if d.get(k) is not None:
-                    d[k] = int(d[k])
+                d[k] = int(d[k] or 0) if d.get(k) is not None else 0
+            d["original_end_date"] = d.get("original_end_date") or ""
+            d["new_end_date"] = d.get("new_end_date") or ""
+            d["reduction_type"] = d.get("reduction_type") or "tenor"
+            d["created_at"] = d.get("created_at") or ""
             out.append(d)
         return out
 

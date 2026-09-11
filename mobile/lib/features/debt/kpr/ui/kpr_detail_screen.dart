@@ -32,6 +32,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
 
   Future<void> _onRefresh() async {
     await ref.read(kprProvider.notifier).loadDetail(widget.simulationId);
+    await ref.read(kprProvider.notifier).loadExtraPayments(widget.simulationId);
   }
 
   Future<void> _confirmDelete(KPRSimulation sim) async {
@@ -388,7 +389,7 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                 size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 8),
             Text(
-              t('kpr.extra_deleted'),
+              t('kpr.extra_payment'),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
