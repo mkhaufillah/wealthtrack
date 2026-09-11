@@ -200,7 +200,7 @@ class CreditCardService:
     ) -> dict:
         """Update a credit card's non-sensitive fields."""
 
-        await self.get_card_for_user(card_id, user_id)
+        card = await self.get_card_for_user(card_id, user_id)
 
         fields: list[str] = []
         params: list = []
@@ -214,12 +214,13 @@ class CreditCardService:
         if data.due_date is not None:
             fields.append("due_date = ?")
             params.append(data.due_date)
-        if data.credit_limit is not None:
-            card = await self.get_card_for_user(card_id, user_id)
+        if data.name is not None or data.credit_limit is not None:
             packed = self._pack(
-                int(data.credit_limit),
+                int(data.credit_limit if data.credit_limit is not None else card.get("credit_limit") or 0),
                 extra={
-                    "credit_limit": int(data.credit_limit),
+                    "credit_limit": int(
+                        data.credit_limit if data.credit_limit is not None else card.get("credit_limit") or 0
+                    ),
                     "card_number_last4": card.get("card_number_last4") or "",
                     "name": data.name if data.name is not None else card.get("name") or "",
                 },
