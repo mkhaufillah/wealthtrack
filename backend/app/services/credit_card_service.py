@@ -112,9 +112,9 @@ class CreditCardService:
         )
         cursor = await self.db.execute(
             """INSERT INTO credit_cards
-               (user_id, name, card_number_last4, billing_date, due_date,
-                credit_limit, household_id, vault_blob, amount_ord)
-               VALUES (?, ?, '', ?, ?, 0, ?, ?, ?)""",
+               (user_id, name, billing_date, due_date,
+                household_id, vault_blob, amount_ord)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 user_id,
                 data.name,
@@ -132,8 +132,8 @@ class CreditCardService:
         """List all credit cards for the user, including household shared cards."""
         cursor = await self.db.execute(
             """SELECT
-                   cc.id, cc.user_id, cc.name, cc.card_number_last4,
-                   cc.billing_date, cc.due_date, cc.credit_limit, cc.vault_blob,
+                   cc.id, cc.user_id, cc.name,
+                   cc.billing_date, cc.due_date, cc.vault_blob,
                    cc.created_at, cc.household_id, cc.display_order,
                    COALESCE(active_inst.cnt, 0) AS active_installments
                FROM credit_cards cc
@@ -160,7 +160,7 @@ class CreditCardService:
 
         # Fetch transactions
         txn_cursor = await self.db.execute(
-            """SELECT id, card_id, description, amount, category_id,
+            """SELECT id, card_id, category_id,
                       transaction_date, is_installment, installment_id, created_at, vault_blob
                FROM credit_card_transactions
                WHERE card_id = ?
@@ -173,8 +173,7 @@ class CreditCardService:
 
         # Fetch installments
         inst_cursor = await self.db.execute(
-            """SELECT id, card_id, description, total_amount, monthly_amount,
-                      total_months,
+            """SELECT id, card_id, total_months,
                       GREATEST(0, total_months - (
                           (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12
                            + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
@@ -265,9 +264,9 @@ class CreditCardService:
         )
         cursor = await self.db.execute(
             """INSERT INTO credit_card_transactions
-               (card_id, description, amount, category_id,
+               (card_id, category_id,
                 transaction_date, is_installment, installment_id, vault_blob, amount_ord)
-               VALUES (?, '', 0, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 card_id,
                 data.category_id,
@@ -281,7 +280,7 @@ class CreditCardService:
         txn_id = cursor.lastrowid
 
         txn_cursor = await self.db.execute(
-            """SELECT id, card_id, description, amount, category_id,
+            """SELECT id, card_id, category_id,
                       transaction_date, is_installment, installment_id, created_at, vault_blob
                FROM credit_card_transactions WHERE id = ?""",
             (txn_id,),
@@ -296,7 +295,7 @@ class CreditCardService:
         await self.get_card_for_user(card_id, user_id)
 
         cursor = await self.db.execute(
-            """SELECT id, card_id, description, amount, category_id,
+            """SELECT id, card_id, category_id,
                       transaction_date, is_installment, installment_id, created_at, vault_blob
                FROM credit_card_transactions
                WHERE card_id = ?
@@ -343,9 +342,8 @@ class CreditCardService:
         )
         cursor = await self.db.execute(
             """INSERT INTO credit_card_installments
-               (card_id, description, total_amount, monthly_amount,
-                total_months, remaining_months, start_month, vault_blob, amount_ord)
-               VALUES (?, '', 0, 0, ?, ?, ?, ?, ?)""",
+               (card_id, total_months, remaining_months, start_month, vault_blob, amount_ord)
+               VALUES (?, ?, ?, ?, ?, ?)""",
             (
                 card_id,
                 data.total_months,
@@ -358,8 +356,7 @@ class CreditCardService:
         inst_id = cursor.lastrowid
 
         inst_cursor = await self.db.execute(
-            """SELECT id, card_id, description, total_amount, monthly_amount,
-                      total_months,
+            """SELECT id, card_id, total_months,
                       GREATEST(0, total_months - (
                           (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12
                            + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
@@ -380,8 +377,7 @@ class CreditCardService:
         await self.get_card_for_user(card_id, user_id)
 
         cursor = await self.db.execute(
-            """SELECT id, card_id, description, total_amount, monthly_amount,
-                      total_months,
+            """SELECT id, card_id, total_months,
                       GREATEST(0, total_months - (
                           (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12
                            + EXTRACT(MONTH FROM CURRENT_DATE)::integer)

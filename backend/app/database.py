@@ -400,10 +400,8 @@ CREATE TABLE IF NOT EXISTS credit_cards (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     name TEXT NOT NULL,
-    card_number_last4 TEXT DEFAULT '',
     billing_date INTEGER NOT NULL DEFAULT 1,
     due_date INTEGER NOT NULL DEFAULT 15,
-    credit_limit INTEGER DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 
@@ -417,8 +415,6 @@ CREATE INDEX IF NOT EXISTS idx_credit_cards_household ON credit_cards(household_
 CREATE TABLE IF NOT EXISTS credit_card_transactions (
     id SERIAL PRIMARY KEY,
     card_id INTEGER NOT NULL REFERENCES credit_cards(id) ON DELETE CASCADE,
-    description TEXT NOT NULL DEFAULT '',
-    amount INTEGER NOT NULL,
     category_id INTEGER REFERENCES categories(id),
     transaction_date TEXT NOT NULL,
     is_installment INTEGER NOT NULL DEFAULT 0,
@@ -432,9 +428,6 @@ CREATE INDEX IF NOT EXISTS idx_cc_transactions_date ON credit_card_transactions(
 CREATE TABLE IF NOT EXISTS credit_card_installments (
     id SERIAL PRIMARY KEY,
     card_id INTEGER NOT NULL REFERENCES credit_cards(id) ON DELETE CASCADE,
-    description TEXT NOT NULL DEFAULT '',
-    total_amount INTEGER NOT NULL,
-    monthly_amount INTEGER NOT NULL,
     total_months INTEGER NOT NULL,
     remaining_months INTEGER NOT NULL,
     start_month TEXT NOT NULL,
@@ -643,6 +636,13 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS old_installment",
         "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS new_installment",
         "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS total_interest_saved",
+        "ALTER TABLE credit_cards DROP COLUMN IF EXISTS credit_limit",
+        "ALTER TABLE credit_cards DROP COLUMN IF EXISTS card_number_last4",
+        "ALTER TABLE credit_card_transactions DROP COLUMN IF EXISTS description",
+        "ALTER TABLE credit_card_transactions DROP COLUMN IF EXISTS amount",
+        "ALTER TABLE credit_card_installments DROP COLUMN IF EXISTS description",
+        "ALTER TABLE credit_card_installments DROP COLUMN IF EXISTS total_amount",
+        "ALTER TABLE credit_card_installments DROP COLUMN IF EXISTS monthly_amount",
     ]
     for sql in stmts:
         try:

@@ -621,14 +621,31 @@ async def test_debt_context_has_kpr_and_cc_detail(db):
            VALUES (1, 9, 'fixed', ?, ?)""",
         (sch_pack["vault_blob"], sch_pack["amount_ord"]),
     )
+    cc_pack = pack_money(
+        TEST_DEK,
+        amount=20000000,
+        extra={"credit_limit": 20000000, "card_number_last4": "1234", "name": "BCA"},
+    )
     await db.execute(
-        """INSERT INTO credit_cards (id, user_id, name, credit_limit, billing_date, due_date, card_number_last4)
-           VALUES (1, 1, 'BCA', 20000000, 5, 15, '1234')"""
+        """INSERT INTO credit_cards (id, user_id, name, billing_date, due_date, vault_blob, amount_ord)
+           VALUES (1, 1, 'BCA', 5, 15, ?, ?)""",
+        (cc_pack["vault_blob"], cc_pack["amount_ord"]),
+    )
+    inst_pack = pack_money(
+        TEST_DEK,
+        amount=1000000,
+        extra={
+            "description": "Laptop",
+            "total_amount": 12000000,
+            "monthly_amount": 1000000,
+            "total_months": 12,
+        },
     )
     await db.execute(
         """INSERT INTO credit_card_installments
-           (card_id, description, total_amount, monthly_amount, total_months, remaining_months, start_month)
-           VALUES (1, 'Laptop', 12000000, 1000000, 12, 8, '2026-01')"""
+           (card_id, total_months, remaining_months, start_month, vault_blob, amount_ord)
+           VALUES (1, 12, 8, '2026-01', ?, ?)""",
+        (inst_pack["vault_blob"], inst_pack["amount_ord"]),
     )
     ctx = await build_context(1, db, question="berapa utang saya")
     text = ctx["debt_context"]

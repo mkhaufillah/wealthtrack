@@ -512,28 +512,29 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
     # CC installments (household-aware)
     cursor = await db.execute(
-        f"""SELECT COUNT(*) AS total_active,
-                  COALESCE(SUM(cci.monthly_amount * GREATEST(0, cci.total_months - (
-                      (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
-                      - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
-                  ))), 0) AS total_installments
+        f"""SELECT cci.vault_blob, cci.total_months, cci.start_month
            FROM credit_card_installments cci
            JOIN credit_cards cc ON cc.id = cci.card_id
-           WHERE ({cc_hh_where})
-               AND cci.total_months > (
-                   (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
-                   - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
-               )""",
+           WHERE ({cc_hh_where})""",
         cc_hh_params,
     )
-    row = await cursor.fetchone()
-    total_cc_installments = int(row["total_installments"]) if row else 0
-    cc_count = row["total_active"] if row else 0
+    total_cc_installments = 0
+    cc_count = 0
+    today_ai = date.today()
+    now_m = today_ai.year * 12 + today_ai.month
+    for r in await cursor.fetchall():
+        sm = str(r["start_month"] or "0000-00")
+        start_m = int(sm[:4]) * 12 + int(sm[5:7] or 0)
+        months = max(0, int(r["total_months"] or 0) - (now_m - start_m))
+        if months <= 0:
+            continue
+        cc_count += 1
+        total_cc_installments += int(open_row(dict(r)).get("monthly_amount") or 0) * months
 
     # CC per-card details with owner
     cursor = await db.execute(
-        f"""SELECT cc.id, cc.name, cc.credit_limit, cc.billing_date, cc.due_date,
-                  cc.card_number_last4, cc.user_id, u.display_name AS owner,
+        f"""SELECT cc.id, cc.name, cc.billing_date, cc.due_date, cc.vault_blob,
+                  cc.user_id, u.display_name AS owner,
                   CASE WHEN cc.user_id = ? THEN 0 ELSE 1 END AS is_member
            FROM credit_cards cc
            JOIN users u ON u.id = cc.user_id
@@ -545,8 +546,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
     inst_by_card: dict[int, list] = {}
     cursor = await db.execute(
-        f"""SELECT cci.card_id, cci.description, cci.monthly_amount, cci.total_amount,
-                  cci.total_months, cci.remaining_months
+        f"""SELECT cci.card_id, cci.vault_blob, cci.total_months, cci.remaining_months
            FROM credit_card_installments cci
            JOIN credit_cards cc ON cc.id = cci.card_id
            WHERE ({cc_hh_where}) AND cci.remaining_months > 0
@@ -554,7 +554,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
         cc_hh_params,
     )
     for row in await cursor.fetchall():
-        inst_by_card.setdefault(int(row["card_id"]), []).append(row)
+        inst_by_card.setdefault(int(row["card_id"]), []).append(open_row(dict(row)))
 
     spend_by_card: dict[int, int] = {}
     cursor = await db.execute(
@@ -623,11 +623,12 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
         )
         for c in cc_details:
             cid = int(c["id"])
-            last4 = (c["card_number_last4"] or "").strip()
+            card = open_row(dict(c))
+            last4 = (card.get("card_number_last4") or "").strip()
             tail = f" *{last4}" if last4 else ""
             spent = spend_by_card.get(cid, 0)
             debt_parts.append(
-                f"  - {c['name']}{tail} ({c['owner']}): limit Rp{int(c['credit_limit'] or 0):,}, "
+                f"  - {c['name']}{tail} ({c['owner']}): limit Rp{int(card.get('credit_limit') or 0):,}, "
                 f"tagihan tgl {c['billing_date']}, tempo tgl {c['due_date']}, "
                 f"belanja bulan ini Rp{spent:,}"
             )

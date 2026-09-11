@@ -164,7 +164,7 @@ class VaultService:
                 tuple(uids),
                 amount_key="credit_limit",
                 extra_keys=("name", "credit_limit", "card_number_last4"),
-                wipe="UPDATE credit_cards SET vault_blob=?, amount_ord=?, name='', credit_limit=0, card_number_last4='' WHERE id=?",
+                wipe="UPDATE credit_cards SET vault_blob=?, amount_ord=? WHERE id=?",
             )
             await self._seal_named(
                 dek,
@@ -174,7 +174,7 @@ class VaultService:
                 tuple(uids),
                 amount_key="amount",
                 extra_keys=("amount", "description"),
-                wipe="UPDATE credit_card_transactions SET vault_blob=?, amount_ord=?, amount=0, description='' WHERE id=?",
+                wipe="UPDATE credit_card_transactions SET vault_blob=?, amount_ord=? WHERE id=?",
             )
             await self._seal_named(
                 dek,
@@ -184,8 +184,7 @@ class VaultService:
                 tuple(uids),
                 amount_key="monthly_amount",
                 extra_keys=("monthly_amount", "total_amount", "description"),
-                wipe="""UPDATE credit_card_installments SET vault_blob=?, amount_ord=?,
-                    monthly_amount=0, total_amount=0, description='' WHERE id=?""",
+                wipe="UPDATE credit_card_installments SET vault_blob=?, amount_ord=? WHERE id=?",
             )
             await self._seal_named(
                 dek,

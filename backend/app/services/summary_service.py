@@ -714,7 +714,7 @@ class SummaryService:
                     d = unpack_money(dek, dict(ks or {}))
                     total_kpr += int(d.get("total_loan") or 0)
             cur = await self.db.execute(
-                """SELECT cct.vault_blob, cct.amount FROM credit_card_transactions cct
+                """SELECT cct.vault_blob FROM credit_card_transactions cct
                    JOIN credit_cards cc ON cc.id = cct.card_id
                    WHERE cc.user_id = ? AND cct.is_installment = 0""",
                 (user_id,),
@@ -724,7 +724,7 @@ class SummaryService:
                 d = unpack_money(dek, dict(r))
                 total_cc_txns += int(d.get("amount") or 0)
             cur = await self.db.execute(
-                """SELECT cci.vault_blob, cci.monthly_amount, cci.remaining_months
+                """SELECT cci.vault_blob, cci.remaining_months
                    FROM credit_card_installments cci
                    JOIN credit_cards cc ON cc.id = cci.card_id
                    WHERE cc.user_id = ?""",
@@ -803,12 +803,7 @@ class SummaryService:
         total_cc_txns = int(row["total_txns"]) if row else 0
 
         cursor = await self.db.execute(
-            """SELECT
-                   COUNT(*) AS total_active,
-                   COALESCE(SUM(cci.monthly_amount * GREATEST(0, cci.total_months - (
-                       (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
-                       - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
-                   ))), 0) AS total_installments
+            """SELECT COUNT(*) AS total_active, 0 AS total_installments
                FROM credit_card_installments cci
                JOIN credit_cards cc ON cc.id = cci.card_id
                WHERE cc.user_id = ?
@@ -993,49 +988,50 @@ class SummaryService:
             kpr_private = int(row["total_kpr_private"]) if row else 0
             kpr_shared = int(row["total_kpr_shared"]) if row else 0
 
-        # CC non-installment transactions: private vs shared
-        cursor = await self.db.execute(
-            """SELECT
-                COALESCE(SUM(CASE WHEN cc.household_id IS NULL THEN cct.amount ELSE 0 END), 0) AS cc_txns_private,
-                COALESCE(SUM(CASE WHEN cc.household_id IS NOT NULL THEN cct.amount ELSE 0 END), 0) AS cc_txns_shared
-            FROM credit_card_transactions cct
-            JOIN credit_cards cc ON cc.id = cct.card_id
-            WHERE cc.user_id = ? AND cct.is_installment = 0
-                AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
-                AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
-            (user_id,),
-        )
-        row = await cursor.fetchone()
-        cc_txns_private = int(row["cc_txns_private"]) if row else 0
-        cc_txns_shared = int(row["cc_txns_shared"]) if row else 0
+        from datetime import date as _date
 
-        # CC installments: private vs shared
-        cursor = await self.db.execute(
-            """SELECT
-                COALESCE(SUM(CASE WHEN cc.household_id IS NULL THEN
-                    cci.monthly_amount * GREATEST(0, cci.total_months - (
-                        (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
-                        - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
-                    ))
-                ELSE 0 END), 0) AS cc_inst_private,
-                COALESCE(SUM(CASE WHEN cc.household_id IS NOT NULL THEN
-                    cci.monthly_amount * GREATEST(0, cci.total_months - (
-                        (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
-                        - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
-                    ))
-                ELSE 0 END), 0) AS cc_inst_shared
-            FROM credit_card_installments cci
-            JOIN credit_cards cc ON cc.id = cci.card_id
-            WHERE cc.user_id = ?
-                AND cci.total_months > (
-                    (EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12 + EXTRACT(MONTH FROM CURRENT_DATE)::integer)
-                    - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12 + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
-                )""",
-            (user_id,),
-        )
-        row = await cursor.fetchone()
-        cc_inst_private = int(row["cc_inst_private"]) if row else 0
-        cc_inst_shared = int(row["cc_inst_shared"]) if row else 0
+        cc_txns_private = 0
+        cc_txns_shared = 0
+        cc_inst_private = 0
+        cc_inst_shared = 0
+        if sealed and dek is not None:
+            from app.core.vault_row import unpack_money
+
+            cur = await self.db.execute(
+                """SELECT cct.vault_blob, cc.household_id
+                   FROM credit_card_transactions cct
+                   JOIN credit_cards cc ON cc.id = cct.card_id
+                   WHERE cc.user_id = ? AND cct.is_installment = 0
+                     AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
+                     AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
+                (user_id,),
+            )
+            for r in await cur.fetchall():
+                amt = int(unpack_money(dek, dict(r)).get("amount") or 0)
+                if r["household_id"]:
+                    cc_txns_shared += amt
+                else:
+                    cc_txns_private += amt
+            cur = await self.db.execute(
+                """SELECT cci.vault_blob, cci.total_months, cci.start_month, cc.household_id
+                   FROM credit_card_installments cci
+                   JOIN credit_cards cc ON cc.id = cci.card_id
+                   WHERE cc.user_id = ?""",
+                (user_id,),
+            )
+            today = _date.today()
+            now_m = today.year * 12 + today.month
+            for r in await cur.fetchall():
+                sm = str(r["start_month"] or "0000-00")
+                start_m = int(sm[:4]) * 12 + int(sm[5:7] or 0)
+                months = max(0, int(r["total_months"] or 0) - (now_m - start_m))
+                if months <= 0:
+                    continue
+                monthly = int(unpack_money(dek, dict(r)).get("monthly_amount") or 0)
+                if r["household_id"]:
+                    cc_inst_shared += monthly * months
+                else:
+                    cc_inst_private += monthly * months
 
         cc_private = cc_txns_private + cc_inst_private
         cc_shared = cc_txns_shared + cc_inst_shared
