@@ -155,7 +155,7 @@ class _HouseholdSetupScreenState extends ConsumerState<HouseholdSetupScreen> {
                 ),
                 const SizedBox(height: 14),
                 _ActionCard(
-                  icon: AppIcons.users,
+                  icon: AppIcons.user,
                   title: t('hh.join'),
                   subtitle: t('hh.setup_join_desc'),
                   buttonLabel: t('hh.join_btn'),
@@ -184,7 +184,7 @@ class _HouseholdSetupScreenState extends ConsumerState<HouseholdSetupScreen> {
 }
 
 class _ActionCard extends StatelessWidget {
-  final String icon;
+  final List<List<dynamic>> icon;
   final String title;
   final String subtitle;
   final String buttonLabel;
