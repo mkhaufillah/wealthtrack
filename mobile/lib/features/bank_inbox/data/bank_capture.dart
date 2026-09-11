@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 import '../../../core/constants.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/storage/secure_storage.dart';
+import '../../../core/vault/vault_store.dart';
 
 /// Android notification-listener bridge. No-ops on tests / iOS.
 class BankCapture {
@@ -62,7 +64,11 @@ class BankCapture {
     }
   }
 
-  static Future<void> syncSession(ApiClient api, String? token) async {
+  static Future<void> syncSession(
+    ApiClient api,
+    String? token, {
+    SecureStorage? storage,
+  }) async {
     if (token == null || token.isEmpty) {
       try {
         await channel.invokeMethod('clearSession');
@@ -83,10 +89,15 @@ class BankCapture {
       }
     } catch (_) {}
     try {
+      String vaultKey = '';
+      if (storage != null) {
+        vaultKey = await VaultStore.getDekB64(storage) ?? '';
+      }
       await channel.invokeMethod('setSession', {
         'base': AppConstants.apiBaseUrl,
         'token': token,
         'lainnya_id': lainnya,
+        'vault_key': vaultKey,
       });
     } on MissingPluginException {
       return;

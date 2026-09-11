@@ -58,7 +58,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return;
       }
       final user = await _repo.getMe();
-      await BankCapture.syncSession(_api, token);
+      await BankCapture.syncSession(_api, token, storage: _storage);
       try {
         await _api.post('/households/vault/seal');
       } catch (_) {}
@@ -91,11 +91,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final token = await _repo.login(username, password);
       await _storage.saveToken(token.accessToken);
-      await BankCapture.syncSession(_api, token.accessToken);
       final user = await _repo.getMe();
       try {
         await _unlockVault(password);
       } catch (_) {}
+      await BankCapture.syncSession(_api, token.accessToken, storage: _storage);
       final dek = await VaultStore.getDekB64(_storage);
       if (dek == null || dek.isEmpty) {
         _startSharePoll(password);
@@ -231,6 +231,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       _pendingPassword = null;
       _sharePoll?.cancel();
       _sharePoll = null;
+      final t = await _storage.getToken();
+      await BankCapture.syncSession(_api, t, storage: _storage);
     } catch (_) {}
   }
 

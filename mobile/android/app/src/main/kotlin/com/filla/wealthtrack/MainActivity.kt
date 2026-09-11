@@ -69,7 +69,8 @@ class MainActivity : FlutterActivity() {
                         val base = args?.get("base")?.toString() ?: ""
                         val token = args?.get("token")?.toString() ?: ""
                         val lainnya = (args?.get("lainnya_id") as? Number)?.toInt() ?: 0
-                        BankNotificationListener.setSession(this, base, token, lainnya)
+                        val vaultKey = args?.get("vault_key")?.toString() ?: ""
+                        BankNotificationListener.setSession(this, base, token, lainnya, vaultKey)
                         result.success(null)
                     }
                     "clearSession" -> {

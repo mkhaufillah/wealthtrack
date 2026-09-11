@@ -88,11 +88,12 @@ class BankNotificationListener : NotificationListenerService() {
 
         fun hasAmount(blob: String): Boolean = AmountDetect.hasAmount(blob)
 
-        fun setSession(context: Context, base: String, token: String, lainnyaId: Int) {
+        fun setSession(context: Context, base: String, token: String, lainnyaId: Int, vaultKey: String) {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString("api_base", base)
                 .putString("api_token", token)
                 .putInt("lainnya_id", lainnyaId)
+                .putString("vault_key", vaultKey)
                 .apply()
         }
 
@@ -101,6 +102,7 @@ class BankNotificationListener : NotificationListenerService() {
                 .remove("api_base")
                 .remove("api_token")
                 .remove("lainnya_id")
+                .remove("vault_key")
                 .apply()
         }
 

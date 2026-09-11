@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.security import get_current_user
+from app.core.vault_ctx import VaultRequiredError
 from app.database import get_db
 from app.schemas.bank_inbox import (
     BankInboxConfirmIn,
@@ -35,6 +36,8 @@ async def ingest(
         )
     except BankInboxError as exc:
         _raise(exc)
+    except VaultRequiredError:
+        raise HTTPException(status_code=401, detail="err.vault_required")
 
 
 @router.get("", response_model=BankInboxList)
@@ -65,6 +68,8 @@ async def confirm(
         return await svc.confirm(item_id, current_user["id"], category_id, internal, pair_id)
     except BankInboxError as exc:
         _raise(exc)
+    except VaultRequiredError:
+        raise HTTPException(status_code=401, detail="err.vault_required")
 
 
 @router.post("/{item_id}/reject", response_model=BankInboxItem)

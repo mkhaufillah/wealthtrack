@@ -49,21 +49,22 @@ class BankNotifActionReceiver : BroadcastReceiver() {
         val prefs = context.getSharedPreferences(BankNotificationListener.PREFS, Context.MODE_PRIVATE)
         val base = prefs.getString("api_base", "") ?: ""
         val token = prefs.getString("api_token", "") ?: ""
-        if (base.isBlank() || token.isBlank()) return
+        val vaultKey = prefs.getString("vault_key", "") ?: ""
+        if (base.isBlank() || token.isBlank() || vaultKey.isBlank()) return
         val body = JSONObject()
             .put("package", pkg)
             .put("title", title)
             .put("text", text)
             .put("posted_at", posted)
-        val ingest = http(base.trimEnd('/') + "/bank-inbox", "POST", token, body) ?: return
+        val ingest = http(base.trimEnd('/') + "/bank-inbox", "POST", token, vaultKey, body) ?: return
         val id = ingest.optInt("id", -1)
         if (id <= 0) return
         when (action) {
             "confirm" -> {
-                http(base.trimEnd('/') + "/bank-inbox/$id/confirm", "POST", token, JSONObject())
+                http(base.trimEnd('/') + "/bank-inbox/$id/confirm", "POST", token, vaultKey, JSONObject())
             }
-            "reject" -> http(base.trimEnd('/') + "/bank-inbox/$id/reject", "POST", token, JSONObject())
-            "delete" -> http(base.trimEnd('/') + "/bank-inbox/$id", "DELETE", token, null)
+            "reject" -> http(base.trimEnd('/') + "/bank-inbox/$id/reject", "POST", token, vaultKey, JSONObject())
+            "delete" -> http(base.trimEnd('/') + "/bank-inbox/$id", "DELETE", token, vaultKey, null)
         }
         dropQueue(context, pkg, posted)
     }
@@ -80,13 +81,14 @@ class BankNotifActionReceiver : BroadcastReceiver() {
         prefs.edit().putString(BankNotificationListener.QUEUE, next.toString()).apply()
     }
 
-    private fun http(url: String, method: String, token: String, body: JSONObject?): JSONObject? {
+    private fun http(url: String, method: String, token: String, vaultKey: String, body: JSONObject?): JSONObject? {
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = 15000
         conn.readTimeout = 20000
         conn.requestMethod = method
         conn.setRequestProperty("Authorization", "Bearer $token")
         conn.setRequestProperty("Accept", "application/json")
+        conn.setRequestProperty("X-Vault-Key", vaultKey)
         if (body != null && method != "GET") {
             conn.doOutput = true
             conn.setRequestProperty("Content-Type", "application/json")
