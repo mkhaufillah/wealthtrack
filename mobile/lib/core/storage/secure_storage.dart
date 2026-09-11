@@ -28,4 +28,7 @@ class SecureStorage {
 
   Future<String?> getSecure(String key) =>
       _storage.read(key: key);
+
+  Future<void> deleteSecure(String key) =>
+      _storage.delete(key: key);
 }

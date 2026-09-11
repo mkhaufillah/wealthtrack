@@ -175,26 +175,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await refreshHouseholdState();
   }
 
-  /// True when the user is in a sealed household but has no DEK yet and
-  /// no wrap of their own — i.e. waiting for the owner to share the key.
+  /// True when the app must block the user on the vault gate: they are in a
+  /// sealed household but this device has no usable family key yet.
+  ///
+  /// Safety rule (bug: users landed on Home without a key and every request
+  /// 500'd): an ambiguous answer must keep the gate CLOSED. Only a positive
+  /// "you have a key" answer opens it. Failures → treat as missing key, so
+  /// the user sees the waiting page (with retry) instead of an error screen.
   Future<bool> _vaultKeyMissing() async {
     final dek = await VaultStore.getDekB64(_storage);
     if (dek != null && dek.isNotEmpty) return false;
     try {
       final me = await _api.get('/households/me');
-      if ((me.data as Map)['vault_sealed'] != true) return false;
+      final data = me.data as Map;
+      // No household → nothing to gate on (household gate handles that).
+      // Household not sealed → plaintext era, no key needed.
+      if (data['vault_sealed'] != true) return false;
+      // Sealed household + no local key → gate. Not even a `vault_ready`
+      // wrap (own password wrap) is enough here: without the DEK on the
+      // device, requests go out keyless and the server rejects them.
+      return true;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return false;
+      if (e.response?.statusCode == 404) return false; // belum punya rumah
+      return true; // network/server error → jangan buka Home tanpa kunci
     } catch (_) {
-      return false;
-    }
-    try {
-      await _api.get('/households/vault/wrap');
-      return false;
-    } on DioException catch (e) {
-      return e.response?.statusCode == 404;
-    } catch (_) {
-      return false;
+      return true;
     }
   }
 
@@ -215,6 +220,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> refreshHouseholdState() async {
     final stillMissing = await _householdMissing(_api);
     state = state.copyWith(needsHousehold: stillMissing);
+  }
+
+  bool _recoveringVault = false;
+
+  /// The server rejected the vault key we sent (``err.vault_required`` /
+  /// ``err.vault_pending``). Re-run the key pipeline once: pick up a gembok
+  /// from the inbox if one is waiting, then re-evaluate the gate so the router
+  /// parks the user on the waiting page instead of an error screen.
+  Future<void> handleVaultRequired() async {
+    if (_recoveringVault) return;
+    _recoveringVault = true;
+    try {
+      await _tryShareInbox();
+      final dek = await VaultStore.getDekB64(_storage);
+      if (dek == null || dek.isEmpty) {
+        await refreshVaultKeyState();
+        return;
+      }
+      // Still holding a key the server refused → stale/foreign key from an
+      // earlier session. Drop it; recoverable via gembok or re-login.
+      await VaultStore.clearDek(_storage);
+      await refreshVaultKeyState();
+    } catch (_) {
+    } finally {
+      _recoveringVault = false;
+    }
   }
 
   Future<void> _unlockVault(String password) async {
@@ -410,5 +441,9 @@ final authProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final api = ref.watch(apiClientProvider);
   final storage = ref.watch(secureStorageProvider);
-  return AuthNotifier(AuthRepository(api), storage, api);
+  final notifier = AuthNotifier(AuthRepository(api), storage, api);
+  // Any endpoint answering err.vault_required / err.vault_pending means our
+  // key is unusable → re-run the vault gate instead of retrying forever.
+  api.onVaultRequired = () => unawaited(notifier.handleVaultRequired());
+  return notifier;
 });

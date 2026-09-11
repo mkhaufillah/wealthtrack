@@ -61,6 +61,11 @@ class ApiClient {
   late final Dio _dio;
   final SecureStorage _storage;
 
+  /// Fired when a response says our vault key is unusable
+  /// (``err.vault_required`` / ``err.vault_pending``). Wired to the auth
+  /// notifier so the app re-checks the vault gate.
+  void Function()? onVaultRequired;
+
   ApiClient({required SecureStorage storage})
       : _storage = storage {
     _dio = Dio(BaseOptions(
@@ -87,6 +92,16 @@ class ApiClient {
         if (error.response?.statusCode == 401 &&
             !error.requestOptions.path.contains('/auth/login')) {
           await _storage.clearToken();
+        }
+        // Server rejected the vault key we sent (missing/foreign/expired).
+        // Let the auth layer re-run the gate instead of leaving the user on
+        // an error screen firing doomed requests.
+        final body = error.response?.data;
+        if (body is Map) {
+          final code = body['code'] ?? body['detail'];
+          if (code == 'err.vault_required' || code == 'err.vault_pending') {
+            onVaultRequired?.call();
+          }
         }
         handler.next(error);
       },

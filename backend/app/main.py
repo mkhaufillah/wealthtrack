@@ -17,6 +17,7 @@ from app.core.limiter import limiter
 from app.database import init_pool, close_pool, background_tasks
 from app.core.redis import init_redis, close_redis
 from app.core.meilisearch import init_meilisearch, close_meilisearch
+from app.core.vault_ctx import VaultPendingError, VaultRequiredError
 from app.routers import auth, categories, transactions, summaries, health, households, exports, budgets, credit_cards, ocr, kpr, ai_advisor, mcp, api_keys, ui, bank_inbox
 
 
@@ -66,6 +67,29 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     loc = locale_from_request(request.headers)
     return JSONResponse(status_code=422, content=error_body(loc, "err.validation"))
+
+
+@app.exception_handler(VaultRequiredError)
+async def vault_required_exception_handler(request: Request, exc: VaultRequiredError):
+    """No usable vault key on this request → 403, never a 500 stacktrace.
+
+    Home/summaries used to blow up with a 500 when the client sent no key,
+    which the app surfaced as a generic crash screen instead of the vault
+    gate. Same contract as the other vault routes (403 err.vault_required).
+    """
+    loc = locale_from_request(request.headers)
+    return JSONResponse(
+        status_code=403, content=error_body(loc, "err.vault_required")
+    )
+
+
+@app.exception_handler(VaultPendingError)
+async def vault_pending_exception_handler(request: Request, exc: VaultPendingError):
+    """Key not shared yet (owner hasn't sent the gembok) → 404 err.vault_pending."""
+    loc = locale_from_request(request.headers)
+    return JSONResponse(
+        status_code=404, content=error_body(loc, "err.vault_pending")
+    )
 
 
 @app.exception_handler(Exception)
