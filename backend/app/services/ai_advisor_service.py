@@ -783,26 +783,39 @@ _HISTORY_WINDOW = 12  # ~6 pasangan user+asisten utuh
 _SUMMARY_MAX_CHARS = 2500
 
 
+def _pack_ai_text(key: str, value: str) -> str:
+    from app.core.vault_write import must_dek
+    from app.core.vault_row import pack_money
+
+    return pack_money(must_dek(), amount=0, extra={key: value or ""})["vault_blob"]
+
+
 async def _load_chat_summary(user_id: int, db: CursorWrapper) -> tuple[str, int]:
     cursor = await db.execute(
-        "SELECT summary, covered_through_id FROM ai_chat_summaries WHERE user_id = ?",
+        "SELECT summary, covered_through_id, vault_blob FROM ai_chat_summaries WHERE user_id = ?",
         (user_id,),
     )
     row = await cursor.fetchone()
     if not row:
         return "", 0
-    return (row["summary"] or "").strip(), int(row["covered_through_id"] or 0)
+    from app.core.vault_row import open_row
+
+    opened = open_row(dict(row))
+    return (opened.get("summary") or row["summary"] or "").strip(), int(row["covered_through_id"] or 0)
 
 
 async def _save_chat_summary(user_id: int, db: CursorWrapper, summary: str, covered_through_id: int) -> None:
+    text = summary[:_SUMMARY_MAX_CHARS]
+    blob = _pack_ai_text("summary", text)
     await db.execute(
-        """INSERT INTO ai_chat_summaries (user_id, summary, covered_through_id, updated_at)
-           VALUES (?, ?, ?, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'))
+        """INSERT INTO ai_chat_summaries (user_id, summary, covered_through_id, updated_at, vault_blob)
+           VALUES (?, '', ?, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), ?)
            ON CONFLICT (user_id) DO UPDATE SET
-             summary = EXCLUDED.summary,
+             summary = '',
              covered_through_id = EXCLUDED.covered_through_id,
-             updated_at = EXCLUDED.updated_at""",
-        (user_id, summary[:_SUMMARY_MAX_CHARS], covered_through_id),
+             updated_at = EXCLUDED.updated_at,
+             vault_blob = EXCLUDED.vault_blob""",
+        (user_id, covered_through_id, blob),
     )
 
 
@@ -908,8 +921,9 @@ async def start_chat(
     """
     # 1. Save user message
     cursor = await db.execute(
-        "INSERT INTO ai_messages (user_id, role, content, status, model) VALUES (?, 'user', ?, 'complete', ?)",
-        (current_user["id"], req.question, req.model),
+        """INSERT INTO ai_messages (user_id, role, content, status, model, vault_blob)
+           VALUES (?, 'user', '', 'complete', ?, ?)""",
+        (current_user["id"], req.model, _pack_ai_text("content", req.question)),
     )
     user_msg_id = cursor.lastrowid
 
@@ -922,8 +936,9 @@ async def start_chat(
 
     # 3. Save processing placeholder for AI, linked to user message via parent_message_id
     cursor = await db.execute(
-        "INSERT INTO ai_messages (user_id, role, content, status, model, parent_message_id) VALUES (?, 'assistant', '', 'processing', ?, ?)",
-        (current_user["id"], req.model, user_msg_id),
+        """INSERT INTO ai_messages (user_id, role, content, status, model, parent_message_id, vault_blob)
+           VALUES (?, 'assistant', '', 'processing', ?, ?, ?)""",
+        (current_user["id"], req.model, user_msg_id, _pack_ai_text("content", "")),
     )
     ai_msg_id = cursor.lastrowid
 
@@ -941,16 +956,21 @@ def _schedule_bg_ai(
 ) -> None:
     """Schedule the background AI processing task (fire-and-forget)."""
 
+    from app.core.vault_ctx import current_dek, set_dek
+
+    dek = current_dek()
+
     async def _process_ai():
         try:
             from app.database import get_db_bg
 
+            set_dek(dek)
             bg_db = await get_db_bg()
             try:
                 # Immediate feedback before context building
                 await bg_db.execute(
-                    "UPDATE ai_messages SET content = ? WHERE id = ?",
-                    ("Mengumpulkan data keuangan...", ai_msg_id),
+                    "UPDATE ai_messages SET content = '', vault_blob = ? WHERE id = ?",
+                    (_pack_ai_text("content", "Mengumpulkan data keuangan..."), ai_msg_id),
                 )
 
                 advise_req = AdviseRequest(
@@ -970,15 +990,15 @@ def _schedule_bg_ai(
                     # Flush to DB every ~100 chars (~every few tokens)
                     if len(full_content) - len(last_flush) >= 100:
                         await bg_db.execute(
-                            "UPDATE ai_messages SET content = ? WHERE id = ?",
-                            (full_content, ai_msg_id),
+                            "UPDATE ai_messages SET content = '', vault_blob = ? WHERE id = ?",
+                            (_pack_ai_text("content", full_content), ai_msg_id),
                         )
                         last_flush = full_content
 
                 # Final flush — outside the for loop
                 await bg_db.execute(
-                    "UPDATE ai_messages SET content = ?, status = 'complete' WHERE id = ?",
-                    (full_content, ai_msg_id),
+                    "UPDATE ai_messages SET content = '', status = 'complete', vault_blob = ? WHERE id = ?",
+                    (_pack_ai_text("content", full_content), ai_msg_id),
                 )
             finally:
                 await bg_db.close()
@@ -987,10 +1007,11 @@ def _schedule_bg_ai(
             try:
                 from app.database import get_db_bg
 
+                set_dek(dek)
                 bg_db = await get_db_bg()
                 await bg_db.execute(
-                    "UPDATE ai_messages SET content = ?, status = 'error' WHERE id = ?",
-                    (f"Gagal jawab. Coba lagi ya.", ai_msg_id),
+                    "UPDATE ai_messages SET content = '', status = 'error', vault_blob = ? WHERE id = ?",
+                    (_pack_ai_text("content", "Gagal jawab. Coba lagi ya."), ai_msg_id),
                 )
                 await bg_db.close()
             except Exception as db_err:

@@ -316,20 +316,25 @@ class TestAiChat:
             assert resp.status_code == 200
             data = resp.json()
 
-            # Verify user message
             cursor = await db.execute(
-                "SELECT role, content, status, model FROM ai_messages WHERE id = ?",
+                "SELECT role, status, model FROM ai_messages WHERE id = ?",
                 (data["user_message_id"],),
             )
             user_msg = await cursor.fetchone()
             assert user_msg["role"] == "user"
-            assert user_msg["content"] == "What is my budget?"
             assert user_msg["status"] == "complete"
             assert user_msg["model"] == "flash"
 
-            # Verify AI message (processing placeholder)
+            listed = await client.get(
+                "/api/v1/ai/chat/messages",
+                headers={"Authorization": f"Bearer {filla_token}"},
+            )
+            assert listed.status_code == 200
+            by_id = {m["id"]: m for m in listed.json()}
+            assert by_id[data["user_message_id"]]["content"] == "What is my budget?"
+
             cursor = await db.execute(
-                "SELECT role, content, status, model, parent_message_id FROM ai_messages WHERE id = ?",
+                "SELECT role, status, model, parent_message_id FROM ai_messages WHERE id = ?",
                 (data["ai_message_id"],),
             )
             ai_msg = await cursor.fetchone()

@@ -551,7 +551,11 @@ class TestFinancialAdviseStream:
 
 @pytest.mark.asyncio
 async def test_chat_memory_summarizes_overflow(db, monkeypatch):
+    from app.core.vault_ctx import set_dek
     from app.services import ai_advisor_service as svc
+    from tests.conftest import TEST_DEK
+
+    set_dek(TEST_DEK)
 
     async def fake_call(messages, model="flash"):
         assert model == "flash"
@@ -569,7 +573,7 @@ async def test_chat_memory_summarizes_overflow(db, monkeypatch):
     assert "bandingkan KPR" in summary
     assert len(recent) == svc._HISTORY_WINDOW
     cursor = await db.execute(
-        "SELECT summary, covered_through_id FROM ai_chat_summaries WHERE user_id = ?",
+        "SELECT covered_through_id FROM ai_chat_summaries WHERE user_id = ?",
         (1,),
     )
     row = await cursor.fetchone()

@@ -47,6 +47,22 @@ class BankInboxService:
     def __init__(self, db):
         self.db = db
 
+    @staticmethod
+    def _pack(amount: int, title: str, text: str, merchant: str) -> dict:
+        from app.core.vault_write import must_dek
+        from app.core.vault_row import pack_money
+
+        return pack_money(
+            must_dek(),
+            amount=max(0, int(amount or 0)),
+            extra={
+                "amount": int(amount or 0) if amount is not None else None,
+                "title": title or "",
+                "text": text or "",
+                "merchant": merchant or "",
+            },
+        )
+
     async def ingest(self, user_id: int, package: str, title: str, text: str, posted_at: str) -> dict:
         parsed = parse_notification(package, title, text)
         if not parsed["bank"]:
@@ -69,24 +85,28 @@ class BankInboxService:
                     return it
             return _item(dict(existing))
 
+        packed = self._pack(
+            parsed["amount"] or 0,
+            title or "",
+            text or "",
+            parsed["merchant"] or "",
+        )
         cursor = await self.db.execute(
             """INSERT INTO bank_inbox
                (user_id, package, bank, title, text, posted_at, amount, txn_type,
-                merchant, parsed, status, fingerprint, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)""",
+                merchant, parsed, status, fingerprint, created_at, vault_blob, amount_ord)
+               VALUES (?, ?, ?, '', '', ?, 0, ?, '', ?, 'pending', ?, ?, ?, ?)""",
             (
                 user_id,
                 package,
                 parsed["bank"],
-                title or "",
-                text or "",
                 posted,
-                parsed["amount"],
                 parsed["type"],
-                parsed["merchant"],
                 1 if parsed["parsed"] else 0,
                 fp,
                 _now(),
+                packed["vault_blob"],
+                packed["amount_ord"],
             ),
         )
         new_id = cursor.lastrowid
@@ -134,7 +154,9 @@ class BankInboxService:
             )
         ).fetchone()
         pending = int(count_row["cnt"] if count_row else 0)
-        raw_items = [dict(r) for r in rows]
+        from app.core.vault_row import open_row
+
+        raw_items = [open_row(dict(r)) for r in rows]
         cats = await self._category_rows()
         items = []
         for d in raw_items:
@@ -160,7 +182,9 @@ class BankInboxService:
         ).fetchone()
         if not row:
             raise BankInboxError("Draf gak ketemu", 404)
-        return dict(row)
+        from app.core.vault_row import open_row
+
+        return open_row(dict(row))
 
     async def _default_category(self, txn_type: str) -> int:
         row = await (

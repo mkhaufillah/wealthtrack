@@ -196,6 +196,8 @@ CREATE TABLE bank_inbox (
     fingerprint TEXT NOT NULL,
     transaction_id INTEGER REFERENCES transactions(id),
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT,
     UNIQUE(user_id, fingerprint)
 );
 CREATE TABLE ai_messages (
