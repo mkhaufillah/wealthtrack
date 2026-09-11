@@ -8,6 +8,7 @@ import 'package:wealthtrack/features/reports/providers/report_provider.dart';
 import 'package:wealthtrack/features/reports/data/report_repository.dart';
 import 'package:wealthtrack/features/reports/models/report_model.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
+import 'package:wealthtrack/core/ui/brand_mark.dart';
 import 'package:wealthtrack/shared/providers/app_providers.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
 import '../helpers/mocks.dart';

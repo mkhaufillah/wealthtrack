@@ -5,6 +5,7 @@ import 'package:wealthtrack/features/home/providers/dashboard_provider.dart';
 import 'package:wealthtrack/features/home/ui/home_screen.dart';
 import 'package:wealthtrack/features/home/ui/widgets/balance_card.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
+import 'package:wealthtrack/core/ui/brand_mark.dart';
 import 'package:wealthtrack/shared/utils/currency_formatter.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
 import 'package:wealthtrack/shared/providers/app_providers.dart';
