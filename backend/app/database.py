@@ -293,12 +293,8 @@ CREATE TABLE IF NOT EXISTS bank_inbox (
     user_id INTEGER NOT NULL REFERENCES users(id),
     package TEXT NOT NULL,
     bank TEXT,
-    title TEXT NOT NULL DEFAULT '',
-    text TEXT NOT NULL DEFAULT '',
     posted_at TEXT NOT NULL DEFAULT '',
-    amount INTEGER,
     txn_type TEXT,
-    merchant TEXT NOT NULL DEFAULT '',
     parsed INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'confirmed', 'rejected')),
     fingerprint TEXT NOT NULL,
@@ -319,7 +315,6 @@ CREATE TABLE IF NOT EXISTS ai_messages (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
-    content TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'processing' CHECK(status IN ('processing', 'complete', 'error', 'error:hidden')),
     model TEXT NOT NULL DEFAULT 'flash',
     parent_message_id INTEGER REFERENCES ai_messages(id),
@@ -330,7 +325,6 @@ CREATE INDEX IF NOT EXISTS idx_ai_messages_user ON ai_messages(user_id, created_
 
 CREATE TABLE IF NOT EXISTS ai_chat_summaries (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    summary TEXT NOT NULL DEFAULT '',
     covered_through_id INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
@@ -643,6 +637,12 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE credit_card_installments DROP COLUMN IF EXISTS description",
         "ALTER TABLE credit_card_installments DROP COLUMN IF EXISTS total_amount",
         "ALTER TABLE credit_card_installments DROP COLUMN IF EXISTS monthly_amount",
+        "ALTER TABLE ai_messages DROP COLUMN IF EXISTS content",
+        "ALTER TABLE ai_chat_summaries DROP COLUMN IF EXISTS summary",
+        "ALTER TABLE bank_inbox DROP COLUMN IF EXISTS title",
+        "ALTER TABLE bank_inbox DROP COLUMN IF EXISTS text",
+        "ALTER TABLE bank_inbox DROP COLUMN IF EXISTS amount",
+        "ALTER TABLE bank_inbox DROP COLUMN IF EXISTS merchant",
     ]
     for sql in stmts:
         try:

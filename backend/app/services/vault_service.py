@@ -114,8 +114,7 @@ class VaultService:
                     },
                 )
                 await self.db.execute(
-                    """UPDATE bank_inbox SET vault_blob=?, amount_ord=?,
-                           amount=0, title='', text='', merchant='' WHERE id=?""",
+                    "UPDATE bank_inbox SET vault_blob=?, amount_ord=? WHERE id=?",
                     (packed["vault_blob"], packed["amount_ord"], d["id"]),
                 )
             await self._seal_named(
@@ -192,7 +191,7 @@ class VaultService:
                 tuple(uids),
                 amount_key="amount",
                 extra_keys=("content",),
-                wipe="UPDATE ai_messages SET vault_blob=?, content='' WHERE id=?",
+                wipe="UPDATE ai_messages SET vault_blob=? WHERE id=?",
                 skip_ord=True,
             )
             await self._seal_named(
@@ -201,7 +200,7 @@ class VaultService:
                 tuple(uids),
                 amount_key="amount",
                 extra_keys=("summary",),
-                wipe="UPDATE ai_chat_summaries SET vault_blob=?, summary='' WHERE user_id=?",
+                wipe="UPDATE ai_chat_summaries SET vault_blob=? WHERE user_id=?",
                 skip_ord=True,
                 id_key="user_id",
             )

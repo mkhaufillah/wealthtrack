@@ -185,12 +185,8 @@ CREATE TABLE bank_inbox (
     user_id INTEGER NOT NULL REFERENCES users(id),
     package TEXT NOT NULL,
     bank TEXT,
-    title TEXT NOT NULL DEFAULT '',
-    text TEXT NOT NULL DEFAULT '',
     posted_at TEXT NOT NULL DEFAULT '',
-    amount INTEGER,
     txn_type TEXT,
-    merchant TEXT NOT NULL DEFAULT '',
     parsed INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'confirmed', 'rejected')),
     fingerprint TEXT NOT NULL,
@@ -204,7 +200,6 @@ CREATE TABLE ai_messages (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
-    content TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'processing' CHECK(status IN ('processing', 'complete', 'error', 'error:hidden')),
     model TEXT NOT NULL DEFAULT 'flash',
     parent_message_id INTEGER REFERENCES ai_messages(id),
@@ -213,7 +208,6 @@ CREATE TABLE ai_messages (
 );
 CREATE TABLE ai_chat_summaries (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    summary TEXT NOT NULL DEFAULT '',
     covered_through_id INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     vault_blob TEXT DEFAULT ''

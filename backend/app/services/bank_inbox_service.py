@@ -93,9 +93,9 @@ class BankInboxService:
         )
         cursor = await self.db.execute(
             """INSERT INTO bank_inbox
-               (user_id, package, bank, title, text, posted_at, amount, txn_type,
-                merchant, parsed, status, fingerprint, created_at, vault_blob, amount_ord)
-               VALUES (?, ?, ?, '', '', ?, 0, ?, '', ?, 'pending', ?, ?, ?, ?)""",
+               (user_id, package, bank, posted_at, txn_type,
+                parsed, status, fingerprint, created_at, vault_blob, amount_ord)
+               VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)""",
             (
                 user_id,
                 package,

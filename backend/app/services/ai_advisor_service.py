@@ -792,7 +792,7 @@ def _pack_ai_text(key: str, value: str) -> str:
 
 async def _load_chat_summary(user_id: int, db: CursorWrapper) -> tuple[str, int]:
     cursor = await db.execute(
-        "SELECT summary, covered_through_id, vault_blob FROM ai_chat_summaries WHERE user_id = ?",
+        "SELECT covered_through_id, vault_blob FROM ai_chat_summaries WHERE user_id = ?",
         (user_id,),
     )
     row = await cursor.fetchone()
@@ -801,17 +801,16 @@ async def _load_chat_summary(user_id: int, db: CursorWrapper) -> tuple[str, int]
     from app.core.vault_row import open_row
 
     opened = open_row(dict(row))
-    return (opened.get("summary") or row["summary"] or "").strip(), int(row["covered_through_id"] or 0)
+    return (opened.get("summary") or "").strip(), int(row["covered_through_id"] or 0)
 
 
 async def _save_chat_summary(user_id: int, db: CursorWrapper, summary: str, covered_through_id: int) -> None:
     text = summary[:_SUMMARY_MAX_CHARS]
     blob = _pack_ai_text("summary", text)
     await db.execute(
-        """INSERT INTO ai_chat_summaries (user_id, summary, covered_through_id, updated_at, vault_blob)
-           VALUES (?, '', ?, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), ?)
+        """INSERT INTO ai_chat_summaries (user_id, covered_through_id, updated_at, vault_blob)
+           VALUES (?, ?, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), ?)
            ON CONFLICT (user_id) DO UPDATE SET
-             summary = '',
              covered_through_id = EXCLUDED.covered_through_id,
              updated_at = EXCLUDED.updated_at,
              vault_blob = EXCLUDED.vault_blob""",
@@ -861,7 +860,7 @@ async def _prepare_chat_memory(
         return (summary or "Belum ada ringkasan percakapan."), recent
 
     cursor = await db.execute(
-        """SELECT id, role, content, vault_blob FROM ai_messages
+        """SELECT id, role, vault_blob FROM ai_messages
            WHERE user_id = ? AND status = 'complete' AND id < ?
            ORDER BY id ASC""",
         (user_id, before_id),
@@ -874,7 +873,7 @@ async def _prepare_chat_memory(
         if r["role"] not in ("user", "assistant"):
             continue
         opened = open_row(dict(r))
-        content = (opened.get("content") or r["content"] or "").strip()
+        content = (opened.get("content") or "").strip()
         if content not in skip:
             msgs.append({"id": r["id"], "role": r["role"], "content": content})
     recent_full = msgs[-_HISTORY_WINDOW:]
@@ -921,8 +920,8 @@ async def start_chat(
     """
     # 1. Save user message
     cursor = await db.execute(
-        """INSERT INTO ai_messages (user_id, role, content, status, model, vault_blob)
-           VALUES (?, 'user', '', 'complete', ?, ?)""",
+        """INSERT INTO ai_messages (user_id, role, status, model, vault_blob)
+           VALUES (?, 'user', 'complete', ?, ?)""",
         (current_user["id"], req.model, _pack_ai_text("content", req.question)),
     )
     user_msg_id = cursor.lastrowid
@@ -936,8 +935,8 @@ async def start_chat(
 
     # 3. Save processing placeholder for AI, linked to user message via parent_message_id
     cursor = await db.execute(
-        """INSERT INTO ai_messages (user_id, role, content, status, model, parent_message_id, vault_blob)
-           VALUES (?, 'assistant', '', 'processing', ?, ?, ?)""",
+        """INSERT INTO ai_messages (user_id, role, status, model, parent_message_id, vault_blob)
+           VALUES (?, 'assistant', 'processing', ?, ?, ?)""",
         (current_user["id"], req.model, user_msg_id, _pack_ai_text("content", "")),
     )
     ai_msg_id = cursor.lastrowid
@@ -969,7 +968,7 @@ def _schedule_bg_ai(
             try:
                 # Immediate feedback before context building
                 await bg_db.execute(
-                    "UPDATE ai_messages SET content = '', vault_blob = ? WHERE id = ?",
+                    "UPDATE ai_messages SET vault_blob = ? WHERE id = ?",
                     (_pack_ai_text("content", "Mengumpulkan data keuangan..."), ai_msg_id),
                 )
 
@@ -990,14 +989,14 @@ def _schedule_bg_ai(
                     # Flush to DB every ~100 chars (~every few tokens)
                     if len(full_content) - len(last_flush) >= 100:
                         await bg_db.execute(
-                            "UPDATE ai_messages SET content = '', vault_blob = ? WHERE id = ?",
+                            "UPDATE ai_messages SET vault_blob = ? WHERE id = ?",
                             (_pack_ai_text("content", full_content), ai_msg_id),
                         )
                         last_flush = full_content
 
                 # Final flush — outside the for loop
                 await bg_db.execute(
-                    "UPDATE ai_messages SET content = '', status = 'complete', vault_blob = ? WHERE id = ?",
+                    "UPDATE ai_messages SET status = 'complete', vault_blob = ? WHERE id = ?",
                     (_pack_ai_text("content", full_content), ai_msg_id),
                 )
             finally:
@@ -1010,7 +1009,7 @@ def _schedule_bg_ai(
                 set_dek(dek)
                 bg_db = await get_db_bg()
                 await bg_db.execute(
-                    "UPDATE ai_messages SET content = '', status = 'error', vault_blob = ? WHERE id = ?",
+                    "UPDATE ai_messages SET status = 'error', vault_blob = ? WHERE id = ?",
                     (_pack_ai_text("content", "Gagal jawab. Coba lagi ya."), ai_msg_id),
                 )
                 await bg_db.close()
@@ -1029,7 +1028,7 @@ async def get_chat_messages(
 ) -> list[ChatMessageResponse]:
     """Get all AI chat messages for a user (excluding hidden errors)."""
     cursor = await db.execute(
-        """SELECT id, role, content, status, model, parent_message_id, created_at, vault_blob
+        """SELECT id, role, status, model, parent_message_id, created_at, vault_blob
            FROM ai_messages
            WHERE user_id = ? AND status != 'error:hidden'
            ORDER BY created_at ASC""",
@@ -1042,6 +1041,7 @@ async def get_chat_messages(
     for row in rows:
         d = open_row(dict(row))
         d.pop("vault_blob", None)
+        d["content"] = d.get("content") or ""
         out.append(ChatMessageResponse(**d))
     return out
 

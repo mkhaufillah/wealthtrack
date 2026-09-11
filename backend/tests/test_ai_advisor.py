@@ -562,12 +562,15 @@ async def test_chat_memory_summarizes_overflow(db, monkeypatch):
         return "Ringkas: user bandingkan KPR A vs B, pilih tenor pendek."
 
     monkeypatch.setattr(svc, "call_model", fake_call)
+    from app.core.vault_row import pack_money
+
     for i in range(16):
         role = "user" if i % 2 == 0 else "assistant"
+        blob = pack_money(TEST_DEK, amount=0, extra={"content": f"pesan-{i}"})["vault_blob"]
         await db.execute(
-            "INSERT INTO ai_messages (user_id, role, content, status, model) "
-            "VALUES (?, ?, ?, 'complete', 'flash')",
-            (1, role, f"pesan-{i}"),
+            "INSERT INTO ai_messages (user_id, role, status, model, vault_blob) "
+            "VALUES (?, ?, 'complete', 'flash', ?)",
+            (1, role, blob),
         )
     summary, recent = await svc._prepare_chat_memory(1, db, [], before_id=10**9)
     assert "bandingkan KPR" in summary

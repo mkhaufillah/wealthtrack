@@ -19,6 +19,13 @@ import os
 from httpx import AsyncClient
 
 
+def _ai_pack(text: str) -> str:
+    from app.core.vault_row import pack_money
+    from tests.conftest import TEST_DEK
+
+    return pack_money(TEST_DEK, amount=0, extra={"content": text})["vault_blob"]
+
+
 # ──────────────────────────────────────────────
 # Shared OCR helpers (same pattern as test_ocr.py)
 # ──────────────────────────────────────────────
@@ -276,12 +283,12 @@ class TestAiChat:
         try:
             # Insert a user message and linked AI message
             await db.execute(
-                "INSERT INTO ai_messages (id, user_id, role, content, status, model) "
-                "VALUES (100, 1, 'user', 'Old question', 'complete', 'flash')",
+                "INSERT INTO ai_messages (id, user_id, role, status, model) "
+                "VALUES (100, 1, 'user', 'complete', 'flash')",
             )
             await db.execute(
-                "INSERT INTO ai_messages (id, user_id, role, content, status, model, parent_message_id) "
-                "VALUES (101, 1, 'assistant', 'Old answer', 'complete', 'flash', 100)",
+                "INSERT INTO ai_messages (id, user_id, role, status, model, parent_message_id) "
+                "VALUES (101, 1, 'assistant', 'complete', 'flash', 100)",
             )
 
             resp = await client.post(
@@ -375,12 +382,14 @@ class TestGetChatMessages:
     async def test_returns_user_messages_ordered(self, client: AsyncClient, filla_token: str, db):
         """Returns messages for the authenticated user in creation order."""
         await db.execute(
-            "INSERT INTO ai_messages (id, user_id, role, content, status, model) "
-            "VALUES (201, 1, 'user', 'Hello', 'complete', 'flash')",
+            "INSERT INTO ai_messages (id, user_id, role, status, model, vault_blob) "
+            "VALUES (201, 1, 'user', 'complete', 'flash', ?)",
+            (_ai_pack("Hello"),),
         )
         await db.execute(
-            "INSERT INTO ai_messages (id, user_id, role, content, status, model, parent_message_id) "
-            "VALUES (202, 1, 'assistant', 'Hi there', 'complete', 'flash', 201)",
+            "INSERT INTO ai_messages (id, user_id, role, status, model, parent_message_id, vault_blob) "
+            "VALUES (202, 1, 'assistant', 'complete', 'flash', 201, ?)",
+            (_ai_pack("Hi there"),),
         )
 
         resp = await client.get(
@@ -398,12 +407,12 @@ class TestGetChatMessages:
     async def test_excludes_error_hidden(self, client: AsyncClient, filla_token: str, db):
         """Excludes messages with status 'error:hidden'."""
         await db.execute(
-            "INSERT INTO ai_messages (id, user_id, role, content, status, model) "
-            "VALUES (301, 1, 'user', 'Visible', 'complete', 'flash')",
+            "INSERT INTO ai_messages (id, user_id, role, status, model) "
+            "VALUES (301, 1, 'user', 'complete', 'flash')",
         )
         await db.execute(
-            "INSERT INTO ai_messages (id, user_id, role, content, status, model) "
-            "VALUES (302, 1, 'user', 'Hidden', 'error:hidden', 'flash')",
+            "INSERT INTO ai_messages (id, user_id, role, status, model) "
+            "VALUES (302, 1, 'user', 'error:hidden', 'flash')",
         )
 
         resp = await client.get(
@@ -419,12 +428,13 @@ class TestGetChatMessages:
     async def test_scoped_to_current_user(self, client: AsyncClient, nahda_token: str, db):
         """Only returns messages for the authenticated user."""
         await db.execute(
-            "INSERT INTO ai_messages (id, user_id, role, content, status, model) "
-            "VALUES (401, 1, 'user', 'Filla msg', 'complete', 'flash')",
+            "INSERT INTO ai_messages (id, user_id, role, status, model) "
+            "VALUES (401, 1, 'user', 'complete', 'flash')",
         )
         await db.execute(
-            "INSERT INTO ai_messages (id, user_id, role, content, status, model) "
-            "VALUES (402, 2, 'user', 'Nahda msg', 'complete', 'flash')",
+            "INSERT INTO ai_messages (id, user_id, role, status, model, vault_blob) "
+            "VALUES (402, 2, 'user', 'complete', 'flash', ?)",
+            (_ai_pack("Nahda msg"),),
         )
 
         resp = await client.get(
@@ -452,12 +462,12 @@ class TestDeleteChatMessages:
     async def test_deletes_all_user_messages(self, client: AsyncClient, filla_token: str, db):
         """Deletes all messages for the authenticated user."""
         await db.execute(
-            "INSERT INTO ai_messages (id, user_id, role, content, status, model) "
-            "VALUES (501, 1, 'user', 'Msg 1', 'complete', 'flash')",
+            "INSERT INTO ai_messages (id, user_id, role, status, model) "
+            "VALUES (501, 1, 'user', 'complete', 'flash')",
         )
         await db.execute(
-            "INSERT INTO ai_messages (id, user_id, role, content, status, model) "
-            "VALUES (502, 1, 'assistant', 'Answer 1', 'complete', 'flash')",
+            "INSERT INTO ai_messages (id, user_id, role, status, model) "
+            "VALUES (502, 1, 'assistant', 'complete', 'flash')",
         )
 
         resp = await client.delete(
@@ -475,12 +485,12 @@ class TestDeleteChatMessages:
     async def test_only_deletes_current_user(self, client: AsyncClient, filla_token: str, db):
         """Only deletes messages for the authenticated user, not others."""
         await db.execute(
-            "INSERT INTO ai_messages (id, user_id, role, content, status, model) "
-            "VALUES (601, 1, 'user', 'Filla msg', 'complete', 'flash')",
+            "INSERT INTO ai_messages (id, user_id, role, status, model) "
+            "VALUES (601, 1, 'user', 'complete', 'flash')",
         )
         await db.execute(
-            "INSERT INTO ai_messages (id, user_id, role, content, status, model) "
-            "VALUES (602, 2, 'user', 'Nahda msg', 'complete', 'flash')",
+            "INSERT INTO ai_messages (id, user_id, role, status, model) "
+            "VALUES (602, 2, 'user', 'complete', 'flash')",
         )
 
         resp = await client.delete(
