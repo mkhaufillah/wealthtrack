@@ -901,28 +901,27 @@ class KPRService:
                         start_year=sim.get("start_year", 2026),
                     )
                     current_schedule = ep_result.schedule
+                    extra_payload = {
+                        "amount": int(ep_dict.get("amount") or 0),
+                        "apply_month": int(ep_dict["apply_month"]),
+                        "old_remaining_balance": int(ep_result.old_remaining_balance),
+                        "new_remaining_balance": int(ep_result.new_remaining_balance),
+                        "old_remaining_months": int(ep_result.old_remaining_months),
+                        "new_remaining_months": int(ep_result.new_remaining_months),
+                        "old_installment": int(ep_result.old_installment),
+                        "new_installment": int(ep_result.new_installment),
+                        "total_interest_saved": int(ep_result.total_interest_saved),
+                    }
+                    packed_ep = KPRService._pack(
+                        int(ep_dict.get("amount") or 0), extra=extra_payload
+                    )
                     await db.execute(
                         """UPDATE kpr_extra_payments
-                           SET old_remaining_balance = ?,
-                               new_remaining_balance = ?,
-                               old_remaining_months = ?,
-                               new_remaining_months = ?,
-                               old_installment = ?,
-                               new_installment = ?,
-                               total_interest_saved = ?,
-                               original_end_date = ?,
-                               new_end_date = ?
-                           WHERE id = ?""",
+                           SET vault_blob=?, amount_ord=?
+                           WHERE id=?""",
                         (
-                            ep_result.old_remaining_balance,
-                            ep_result.new_remaining_balance,
-                            ep_result.old_remaining_months,
-                            ep_result.new_remaining_months,
-                            ep_result.old_installment,
-                            ep_result.new_installment,
-                            ep_result.total_interest_saved,
-                            ep_result.original_end_date,
-                            ep_result.new_end_date,
+                            packed_ep["vault_blob"],
+                            packed_ep["amount_ord"],
                             ep_dict["id"],
                         ),
                     )

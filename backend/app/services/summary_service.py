@@ -696,13 +696,15 @@ class SummaryService:
             for sim in sims:
                 cur = await self.db.execute(
                     """SELECT vault_blob, remaining_balance FROM kpr_monthly_schedules
-                       WHERE simulation_id = ? ORDER BY month_number DESC LIMIT 1""",
+                       WHERE simulation_id = ? ORDER BY month_number""",
                     (sim["id"],),
                 )
-                row = await cur.fetchone()
-                if row:
-                    d = unpack_money(dek, dict(row))
-                    total_kpr += int(d.get("remaining_balance") or 0)
+                sched = [unpack_money(dek, dict(r)) for r in await cur.fetchall()]
+                if sched:
+                    amt = max(int(s.get("remaining_balance") or 0) for s in sched)
+                    if amt <= 0:
+                        amt = int(sched[0].get("remaining_balance") or 0)
+                    total_kpr += amt
                 else:
                     cur = await self.db.execute(
                         "SELECT vault_blob, total_loan FROM kpr_simulations WHERE id = ?",
@@ -920,7 +922,40 @@ class SummaryService:
         Returns separate amounts for private (household_id IS NULL) and
         shared (household_id IS NOT NULL) debts.
         """
-        kpr_schedule_sub = """
+        sealed, dek = self._vault()
+        if sealed and dek is not None:
+            from app.core.vault_row import unpack_money
+
+            cur = await self.db.execute(
+                "SELECT id, household_id FROM kpr_simulations WHERE user_id = ?",
+                (user_id,),
+            )
+            kpr_private = 0
+            kpr_shared = 0
+            sims = await cur.fetchall()
+            for sim in sims:
+                cur = await self.db.execute(
+                    """SELECT vault_blob, remaining_balance FROM kpr_monthly_schedules
+                       WHERE simulation_id = ? ORDER BY month_number""",
+                    (sim["id"],),
+                )
+                sched = [unpack_money(dek, dict(r)) for r in await cur.fetchall()]
+                amt = 0
+                if sched:
+                    amt = max(int(s.get("remaining_balance") or 0) for s in sched)
+                else:
+                    cur = await self.db.execute(
+                        "SELECT vault_blob, total_loan FROM kpr_simulations WHERE id = ?",
+                        (sim["id"],),
+                    )
+                    ks = await cur.fetchone()
+                    amt = int(unpack_money(dek, dict(ks or {})).get("total_loan") or 0)
+                if sim.get("household_id"):
+                    kpr_shared += amt
+                else:
+                    kpr_private += amt
+        else:
+            kpr_schedule_sub = """
             CASE
                 WHEN ks.due_date IS NOT NULL AND EXTRACT(DAY FROM CURRENT_DATE) >= ks.due_date THEN
                     COALESCE((
@@ -939,8 +974,7 @@ class SummaryService:
                     ) END
             END
         """
-        # KPR: private vs shared
-        cursor = await self.db.execute(
+            cursor = await self.db.execute(
             f"""SELECT
                 COALESCE(SUM(CASE WHEN ks.household_id IS NULL THEN ({kpr_schedule_sub}) ELSE 0 END), 0) AS total_kpr_private,
                 COALESCE(SUM(CASE WHEN ks.household_id IS NOT NULL THEN ({kpr_schedule_sub}) ELSE 0 END), 0) AS total_kpr_shared
@@ -954,10 +988,10 @@ class SummaryService:
             ) cm
             WHERE ks.user_id = ?""",
             (user_id,),
-        )
-        row = await cursor.fetchone()
-        kpr_private = int(row["total_kpr_private"]) if row else 0
-        kpr_shared = int(row["total_kpr_shared"]) if row else 0
+            )
+            row = await cursor.fetchone()
+            kpr_private = int(row["total_kpr_private"]) if row else 0
+            kpr_shared = int(row["total_kpr_shared"]) if row else 0
 
         # CC non-installment transactions: private vs shared
         cursor = await self.db.execute(
