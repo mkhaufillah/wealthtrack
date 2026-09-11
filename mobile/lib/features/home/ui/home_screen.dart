@@ -13,6 +13,8 @@ import '../../ocr/providers/ocr_provider.dart';
 import '../../transactions/models/transaction_model.dart';
 import '../../transactions/ui/widgets/transaction_tile.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../bank_inbox/data/bank_capture.dart';
+import '../../bank_inbox/data/bank_notif_prompt.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/bank_draft_card.dart';
 
@@ -31,6 +33,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Future.microtask(() => ref.read(dashboardProvider.notifier).load());
     Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());
     Future.microtask(_loadDraft);
+    Future.microtask(_maybePromptNotif);
+  }
+
+  Future<void> _maybePromptNotif() async {
+    if (!isAndroidBankListener) return;
+    final storage = ref.read(secureStorageProvider);
+    final seen = await storage.getSecure(kBankNotifPromptSeenKey) == '1';
+    final enabled = await BankCapture.isEnabled();
+    if (!bankNotifPromptDue(android: true, seen: seen, enabled: enabled)) {
+      return;
+    }
+    if (!mounted) return;
+    final allow = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(t('bank.prompt_title')),
+        content: Text(t('bank.prompt_body')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('bank.prompt_later')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.accent,
+              foregroundColor: AppColors.onAccent,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('bank.prompt_allow')),
+          ),
+        ],
+      ),
+    );
+    await storage.saveSecure(kBankNotifPromptSeenKey, '1');
+    if (allow == true) {
+      await BankCapture.openSettings();
+      await BankCapture.requestNotify();
+    }
   }
 
   Future<void> _loadDraft() async {
