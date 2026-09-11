@@ -29,3 +29,6 @@ def pack_txn(
         category_id=category_id,
         category_name=category_name or "",
     )
+
+
+pack_budget = pack_txn

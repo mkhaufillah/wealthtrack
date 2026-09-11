@@ -143,26 +143,51 @@ async def get_projection(
     days_elapsed = max(1, (today - d_from_date).days)
     progress_pct = round(days_elapsed / total_days * 100, 1)
 
-    # Get budgets with actual spending for this cycle
+    from app.core.vault_ctx import current_dek, current_sealed
+    from app.core.vault import category_trace
+    from app.core.vault_row import open_row, ope_sum_to_plain
+
     cursor = await db.execute(
-        """SELECT b.category_id, b.category_name, b.budget_amount,
-                  c.icon AS category_icon,
-                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) AS actual
+        """SELECT b.category_id, b.vault_blob, c.name AS category_name,
+                  c.icon AS category_icon, c.copy_key AS copy_key
            FROM budgets b
            LEFT JOIN categories c ON b.category_id = c.id
-           LEFT JOIN transactions t ON t.category_id = b.category_id
-               AND t.user_id = b.user_id
-               AND COALESCE(t.date, LEFT(t.created_at::text, 10)) BETWEEN ? AND ?
-           WHERE b.month = ? AND b.user_id = ?
-           GROUP BY b.category_id, b.category_name, b.budget_amount, c.icon""",
-        (d_from, d_to, d_from_date.strftime("%Y-%m"), user_id),
+           WHERE b.month = ? AND b.user_id = ?""",
+        (d_from_date.strftime("%Y-%m"), user_id),
     )
     rows = await cursor.fetchall()
+    sealed = current_sealed()
+    dek = current_dek()
 
     categories = []
-    for r in rows:
-        actual = r["actual"]
-        budget = r["budget_amount"]
+    for raw in rows:
+        d = open_row(dict(raw))
+        budget = int(d.get("amount") or d.get("budget_amount") or 0)
+        cid = d.get("category_id")
+        actual = 0
+        if cid is not None and sealed and dek is not None:
+            tr = category_trace(dek, int(cid))
+            cur = await db.execute(
+                """SELECT COALESCE(SUM(t.amount_ord), 0) AS total, COUNT(*) AS count
+                   FROM transactions t
+                   WHERE t.user_id = ? AND t.type = 'expense' AND t.category_trace = ?
+                     AND COALESCE(t.date, LEFT(t.created_at::text, 10)) BETWEEN ? AND ?""",
+                (user_id, tr, d_from, d_to),
+            )
+            row = await cur.fetchone()
+            actual = ope_sum_to_plain(
+                dek, int(row["total"] or 0), int(row["count"] or 0)
+            ) if row else 0
+        elif cid is not None:
+            cur = await db.execute(
+                """SELECT COALESCE(SUM(t.amount_ord), 0) AS actual
+                   FROM transactions t
+                   WHERE t.user_id = ? AND t.type = 'expense' AND t.category_id = ?
+                     AND COALESCE(t.date, LEFT(t.created_at::text, 10)) BETWEEN ? AND ?""",
+                (user_id, cid, d_from, d_to),
+            )
+            row = await cur.fetchone()
+            actual = int(row["actual"] or 0) if row else 0
         pct = round(actual / budget * 100, 1) if budget > 0 else 0.0
         remaining = budget - actual
         daily_rate = int(actual / days_elapsed) if days_elapsed > 0 else 0
@@ -179,9 +204,10 @@ async def get_projection(
             health = "healthy"
 
         categories.append({
-            "category_id": r["category_id"],
-            "category_name": r["category_name"],
-            "category_icon": r["category_icon"] or "📦",
+            "category_id": cid,
+            "category_name": d.get("category_name") or "",
+            "category_icon": d.get("category_icon") or "",
+            "copy_key": d.get("copy_key") or "",
             "budget_amount": budget,
             "actual_spent": actual,
             "percentage": pct,

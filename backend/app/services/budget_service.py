@@ -61,7 +61,7 @@ class BudgetService:
     async def _validate_category(self, category_id: int) -> dict:
         """Fetch category row. Raises ``CategoryNotFoundError`` if missing."""
         cursor = await self.db.execute(
-            "SELECT id, name, icon FROM categories WHERE id = ?",
+            "SELECT id, name, icon, copy_key FROM categories WHERE id = ?",
             (category_id,),
         )
         cat = await cursor.fetchone()
@@ -70,7 +70,8 @@ class BudgetService:
         return {
             "id": cat["id"],
             "name": cat["name"],
-            "icon": cat["icon"] or "📦",
+            "icon": cat["icon"] or "",
+            "copy_key": cat["copy_key"] or "",
         }
 
     @staticmethod
@@ -79,13 +80,13 @@ class BudgetService:
         from app.core.vault_row import open_row
 
         row = open_row(dict(row))
-        amt = row.get("budget_amount") or row.get("amount") or 0
+        amt = int(row.get("amount") or row.get("budget_amount") or 0)
         return {
             "id": row["id"],
             "month": row["month"],
             "category_id": row["category_id"],
-            "category_name": row["category_name"],
-            "category_icon": row.get("category_icon") or "📦",
+            "category_name": row.get("category_name") or "",
+            "category_icon": row.get("category_icon") or "",
             "copy_key": row.get("copy_key") or "",
             "amount": amt,
         }
@@ -93,7 +94,7 @@ class BudgetService:
     @staticmethod
     def _build_summary_item(row: dict, actual_spent: int) -> dict:
         """Build a single ``BudgetSummaryItem``-compatible dict."""
-        budget_amount = int(row.get("budget_amount") or row.get("amount") or 0)
+        budget_amount = int(row.get("amount") or row.get("budget_amount") or 0)
         percentage = (actual_spent / budget_amount * 100) if budget_amount > 0 else 0
         return {
             "id": row["id"],
@@ -113,12 +114,12 @@ class BudgetService:
     async def list_budgets(self, user_id: int, month: str) -> list[dict]:
         """Return all budgets for *user_id* in *month* (ordered by amount desc)."""
         cursor = await self.db.execute(
-            """SELECT b.id, b.month, b.category_id, b.category_name, b.budget_amount,
-                      b.vault_blob, c.icon AS category_icon, c.copy_key AS copy_key
+            """SELECT b.id, b.month, b.category_id, b.vault_blob, b.amount_ord,
+                      c.name AS category_name, c.icon AS category_icon, c.copy_key AS copy_key
                FROM budgets b
                LEFT JOIN categories c ON b.category_id = c.id
                WHERE b.month = ? AND b.user_id = ?
-               ORDER BY b.budget_amount DESC""",
+               ORDER BY b.amount_ord DESC NULLS LAST""",
             (month, user_id),
         )
         rows = await cursor.fetchall()
@@ -150,6 +151,14 @@ class BudgetService:
         )
         existing = await cursor.fetchone()
 
+        from app.core.vault_write import pack_budget
+
+        packed = pack_budget(
+            amount=int(amount),
+            category_id=category_id,
+            category_name=cat["name"],
+        )
+
         if existing:
             cycle_on = (
                 explicit_cycle
@@ -157,8 +166,16 @@ class BudgetService:
                 else existing["cycle_on"]
             )
             await self.db.execute(
-                "UPDATE budgets SET budget_amount = ?, category_name = ?, cycle_on = ? WHERE id = ?",
-                (amount, cat["name"], cycle_on, existing["id"]),
+                """UPDATE budgets SET vault_blob=?, amount_ord=?, category_trace=?,
+                   cycle_on=?, budget_amount=0, category_name=? WHERE id=?""",
+                (
+                    packed["vault_blob"],
+                    packed["amount_ord"],
+                    packed.get("category_trace") or "",
+                    cycle_on,
+                    cat["name"],
+                    existing["id"],
+                ),
             )
             budget_id = existing["id"]
         else:
@@ -167,37 +184,24 @@ class BudgetService:
             else:
                 cycle_on = await self._get_user_cycle_start_day(user_id)
             cursor = await self.db.execute(
-                """INSERT INTO budgets (user_id, month, category_id, category_name, budget_amount, cycle_on)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (user_id, month, category_id, cat["name"], amount, cycle_on),
+                """INSERT INTO budgets
+                   (user_id, month, category_id, category_name, budget_amount, cycle_on,
+                    vault_blob, amount_ord, category_trace)
+                   VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)""",
+                (
+                    user_id,
+                    month,
+                    category_id,
+                    cat["name"],
+                    cycle_on,
+                    packed["vault_blob"],
+                    packed["amount_ord"],
+                    packed.get("category_trace") or "",
+                ),
             )
             budget_id = cursor.lastrowid
             if budget_id is None:
                 raise RuntimeError("Failed to create budget")
-
-        from app.core.vault_ctx import VaultRequiredError, current_dek, current_sealed
-        from app.core.vault_row import pack_money
-
-        if current_sealed():
-            dek = current_dek()
-            if dek is None:
-                raise VaultRequiredError()
-            packed = pack_money(
-                dek,
-                amount=int(amount),
-                category_id=category_id,
-                category_name=cat["name"],
-            )
-            await self.db.execute(
-                """UPDATE budgets SET vault_blob=?, amount_ord=?, category_trace=?
-                   WHERE id=?""",
-                (
-                    packed["vault_blob"],
-                    packed["amount_ord"],
-                    packed.get("category_trace") or "",
-                    budget_id,
-                ),
-            )
 
         return {
             "id": budget_id,
@@ -205,6 +209,7 @@ class BudgetService:
             "category_id": category_id,
             "category_name": cat["name"],
             "category_icon": cat["icon"],
+            "copy_key": cat.get("copy_key") or "",
             "amount": amount,
         }
 
@@ -244,12 +249,12 @@ class BudgetService:
 
         # Get all budgets for this month
         cursor = await self.db.execute(
-            """SELECT b.id, b.category_id, b.category_name, b.budget_amount, b.cycle_on,
-                      b.vault_blob, c.icon AS category_icon, c.copy_key AS copy_key
+            """SELECT b.id, b.category_id, b.cycle_on, b.vault_blob,
+                      c.name AS category_name, c.icon AS category_icon, c.copy_key AS copy_key
                FROM budgets b
                LEFT JOIN categories c ON b.category_id = c.id
                WHERE b.month = ? AND b.user_id = ?
-               ORDER BY b.budget_amount DESC""",
+               ORDER BY b.amount_ord DESC NULLS LAST""",
             (month, user_id),
         )
         from app.core.vault_row import open_row
@@ -387,6 +392,8 @@ class BudgetService:
                 i["category_icon"] = m["icon"]
             if m.get("copy_key"):
                 i["copy_key"] = m["copy_key"]
+            if m.get("name"):
+                i["category_name"] = m["name"]
 
     async def _get_unbudgeted_expenses(
         self,
