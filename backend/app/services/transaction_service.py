@@ -96,10 +96,10 @@ def _format_txn(row, cat_name="", cat_icon="", display_name=""):
         "note": r.get("note", "") or "",
         "date": r.get("date") or r["created_at"][:10],
         "category": {
-            "id": r["category_id"],
+            "id": r.get("category_id"),
             "name": cat_name or r.get("category_name", "") or "",
             "icon": cat_icon or "",
-            "copy_key": r.get("cat_copy_key") or "",
+            "copy_key": r.get("cat_copy_key") or r.get("copy_key") or "",
         },
         "user": {
             "id": r.get("user_id", 1) or 1,
@@ -167,11 +167,39 @@ class TransactionService:
 
     async def _get_category(self, category_id: int) -> dict | None:
         cursor = await self.db.execute(
-            "SELECT id, name, icon FROM categories WHERE id = ?",
+            "SELECT id, name, icon, copy_key FROM categories WHERE id = ?",
             (category_id,),
         )
         row = await cursor.fetchone()
         return dict(row) if row else None
+
+    async def _hydrate_categories(self, txns: list[dict]) -> list[dict]:
+        """Fill catalog name/icon/copy_key when JOIN missed (sealed rows)."""
+        need: list[int] = []
+        for t in txns:
+            cat = t.get("category") or {}
+            cid = cat.get("id")
+            if cid and not cat.get("copy_key"):
+                need.append(int(cid))
+        if not need:
+            return txns
+        uniq = list(dict.fromkeys(need))
+        ph = ",".join("?" * len(uniq))
+        cur = await self.db.execute(
+            f"SELECT id, name, icon, copy_key FROM categories WHERE id IN ({ph})",
+            tuple(uniq),
+        )
+        meta = {r["id"]: dict(r) for r in await cur.fetchall()}
+        for t in txns:
+            cat = t.get("category") or {}
+            m = meta.get(cat.get("id"))
+            if not m:
+                continue
+            cat["copy_key"] = m.get("copy_key") or ""
+            cat["name"] = m.get("name") or cat.get("name") or ""
+            cat["icon"] = m.get("icon") or cat.get("icon") or ""
+            t["category"] = cat
+        return txns
 
     async def _index_meili(self, txn: dict) -> None:
         """Best-effort index a transaction dict in Meilisearch."""
@@ -234,10 +262,12 @@ class TransactionService:
             params + [per_page, offset],
         )
         rows = await cursor.fetchall()
-        data = [
-            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
-            for r in rows
-        ]
+        data = await self._hydrate_categories(
+            [
+                _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
+                for r in rows
+            ]
+        )
 
         return PaginatedTransactions(
             data=data,
@@ -397,10 +427,12 @@ class TransactionService:
             *matching_ids, *matching_ids,
         )
         rows = await cursor.fetchall()
-        data = [
-            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
-            for r in rows
-        ]
+        data = await self._hydrate_categories(
+            [
+                _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
+                for r in rows
+            ]
+        )
 
         return PaginatedTransactions(
             data=data,
@@ -458,10 +490,12 @@ class TransactionService:
             params + [per_page, offset],
         )
         rows = await cursor.fetchall()
-        data = [
-            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
-            for r in rows
-        ]
+        data = await self._hydrate_categories(
+            [
+                _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
+                for r in rows
+            ]
+        )
 
         return PaginatedTransactions(
             data=data,
@@ -516,10 +550,12 @@ class TransactionService:
             params + [per_page, offset],
         )
         rows = await cursor.fetchall()
-        data = [
-            _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
-            for r in rows
-        ]
+        data = await self._hydrate_categories(
+            [
+                _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
+                for r in rows
+            ]
+        )
 
         return PaginatedTransactions(
             data=data,
@@ -587,6 +623,8 @@ class TransactionService:
             cat["icon"],
             u["display_name"] if u else "",
         )
+        if cat.get("copy_key"):
+            txn_dict["category"]["copy_key"] = cat["copy_key"]
 
         await self._index_meili(dict(row))
         return txn_dict
@@ -605,11 +643,12 @@ class TransactionService:
             raise TransactionNotFoundError(txn_id)
 
         c = await self._get_category(row["category_id"])
-        return _format_txn(
+        out = _format_txn(
             row,
             c["name"] if c else "",
             c["icon"] if c else "",
         )
+        return (await self._hydrate_categories([out]))[0]
 
     async def update_transaction(
         self, txn_id: int, data: TransactionUpdate, user_id: int
