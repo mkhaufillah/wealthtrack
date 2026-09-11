@@ -29,4 +29,11 @@ void main() {
       isFalse,
     );
   });
+
+  test('push asked only after listener enabled and never twice', () {
+    expect(pushNotifAskDue(requested: false, enabled: false), isFalse);
+    expect(pushNotifAskDue(requested: false, enabled: true), isTrue);
+    expect(pushNotifAskDue(requested: true, enabled: true), isFalse);
+    expect(pushNotifAskDue(requested: true, enabled: false), isFalse);
+  });
 }

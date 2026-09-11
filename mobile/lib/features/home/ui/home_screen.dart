@@ -24,16 +24,31 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   Map<String, dynamic>? _draft;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     Future.microtask(() => ref.read(dashboardProvider.notifier).load());
     Future.microtask(() => ref.read(ocrPendingCountProvider.notifier).load());
     Future.microtask(_loadDraft);
     Future.microtask(_maybePromptNotif);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      Future.microtask(_maybeRequestPush);
+    }
   }
 
   Future<void> _maybePromptNotif() async {
@@ -69,9 +84,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     await storage.saveSecure(kBankNotifPromptSeenKey, '1');
     if (allow == true) {
+      // Read permission only. Push (POST_NOTIFICATIONS) is asked later,
+      // once the listener is actually enabled — see _maybeRequestPush.
       await BankCapture.openSettings();
-      await BankCapture.requestNotify();
     }
+  }
+
+  Future<void> _maybeRequestPush() async {
+    if (!isAndroidBankListener) return;
+    final storage = ref.read(secureStorageProvider);
+    final seen = await storage.getSecure(kBankNotifPromptSeenKey) == '1';
+    if (!seen) return;
+    final requested = await storage.getSecure(kBankPushRequestedKey) == '1';
+    if (requested) return;
+    final enabled = await BankCapture.isEnabled();
+    if (!enabled) return;
+    await BankCapture.requestNotify();
+    await storage.saveSecure(kBankPushRequestedKey, '1');
   }
 
   Future<void> _loadDraft() async {

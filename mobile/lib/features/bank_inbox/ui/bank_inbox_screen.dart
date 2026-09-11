@@ -39,7 +39,8 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
   Future<void> _boot() async {
     final api = ref.read(apiClientProvider);
     final enabled = await BankCapture.isEnabled();
-    await BankCapture.requestNotify();
+    // Push permission is requested by HomeScreen only after the listener is
+    // enabled, so the two permissions never pop at the same time.
     await BankCapture.flushToServer(api);
     if (!mounted) return;
     setState(() => _accessOn = enabled);
