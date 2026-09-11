@@ -141,9 +141,14 @@ async def get_total_count(q: str, filters: Optional[list[str]] = None) -> int:
 
 # ── Bulk index helper (sync, for scripts) ──
 
-def bulk_index_documents(docs: list[dict]) -> None:
+def bulk_index_documents(docs: list[dict], wait: bool = False) -> None:
     """Index multiple documents at once (sync, for migration scripts)."""
-    get_index().add_documents(docs)
+    if not docs:
+        return
+    task = get_index().add_documents(docs)
+    if wait:
+        uid = task.task_uid if hasattr(task, "task_uid") else task
+        get_index().wait_for_task(uid, timeout_ms=120_000)
 
 
 def clear_index() -> None:

@@ -208,22 +208,26 @@ class TransactionService:
             from app.core.vault_ctx import current_dek
             from app.core.vault_row import open_row
 
-            d = dict(txn)
+            if hasattr(txn, "model_dump"):
+                d = txn.model_dump()
+            else:
+                d = dict(txn)
             if d.get("vault_blob"):
                 d = open_row(d)
             cat = d.get("category") if isinstance(d.get("category"), dict) else {}
+            user = d.get("user") if isinstance(d.get("user"), dict) else {}
             text = (
                 f"{d.get('description') or ''} {d.get('note') or ''} "
                 f"{(cat or {}).get('name') or d.get('category_name') or ''}"
             )
-            user = d.get("user") if isinstance(d.get("user"), dict) else {}
+            uid = d.get("user_id") or user.get("id") or 0
             dek = current_dek()
             hashes = word_traces(dek, text) if dek else []
             await index_document(
                 {
                     "id": d["id"],
                     "type": d.get("type") or "",
-                    "user_id": int(d.get("user_id") or user.get("id") or 0),
+                    "user_id": int(uid),
                     "date": d.get("date") or "",
                     "term_hashes": hashes,
                 }
@@ -372,21 +376,24 @@ class TransactionService:
                     offset=offset,
                     limit=per_page,
                 )
-                if matching_ids:
-                    from app.core.vault_query import parse_cat_ids, append_category_filter
+                from app.core.vault_query import parse_cat_ids, append_category_filter
 
-                    if parse_cat_ids(category_id, category_ids):
-                        where = ["t.id IN (" + ",".join("?" * len(matching_ids)) + ")"]
-                        params: list = list(matching_ids)
-                        append_category_filter(where, params, category_id, category_ids)
-                        cur = await self.db.execute(
-                            f"SELECT t.id FROM transactions t WHERE {' AND '.join(where)}",
-                            tuple(params),
-                        )
-                        keep = {r["id"] for r in await cur.fetchall()}
-                        matching_ids = [i for i in matching_ids if i in keep]
-                    if matching_ids:
-                        return await self._fetch_by_ids(matching_ids, page, per_page, int(total or 0))
+                if matching_ids and parse_cat_ids(category_id, category_ids):
+                    where = ["t.id IN (" + ",".join("?" * len(matching_ids)) + ")"]
+                    params: list = list(matching_ids)
+                    append_category_filter(where, params, category_id, category_ids)
+                    cur = await self.db.execute(
+                        f"SELECT t.id FROM transactions t WHERE {' AND '.join(where)}",
+                        tuple(params),
+                    )
+                    keep = {r["id"] for r in await cur.fetchall()}
+                    matching_ids = [i for i in matching_ids if i in keep]
+                if not matching_ids:
+                    return PaginatedTransactions(
+                        data=[],
+                        meta=PaginationMeta(page=page, per_page=per_page, total=0, total_pages=0),
+                    )
+                return await self._fetch_by_ids(matching_ids, page, per_page, int(total or 0))
             except Exception as e:
                 logger.warning("hashed Meili search failed: %s", e)
         return await self._search_vault(
@@ -397,11 +404,37 @@ class TransactionService:
     async def _ensure_term_index(self, user_id: int) -> None:
         if user_id in _term_indexed:
             return
+        from app.core.meilisearch import bulk_index_documents
+        from app.core.vault import word_traces
+        from app.core.vault_ctx import current_dek
+
         batch = await self._list_with_sql(
             user_id, 1, 5000, None, None, None, None, "-date", None,
         )
+        dek = current_dek()
+        docs = []
         for row in batch.data:
-            await self._index_meili(row if isinstance(row, dict) else dict(row))
+            d = row.model_dump() if hasattr(row, "model_dump") else dict(row)
+            cat = d.get("category") if isinstance(d.get("category"), dict) else {}
+            user = d.get("user") if isinstance(d.get("user"), dict) else {}
+            text = (
+                f"{d.get('description') or ''} {d.get('note') or ''} "
+                f"{(cat or {}).get('name') or ''}"
+            )
+            uid = int(d.get("user_id") or user.get("id") or 0)
+            docs.append(
+                {
+                    "id": d["id"],
+                    "type": d.get("type") or "",
+                    "user_id": uid,
+                    "date": d.get("date") or "",
+                    "term_hashes": word_traces(dek, text) if dek else [],
+                }
+            )
+        if docs:
+            await __import__("anyio").to_thread.run_sync(
+                lambda: bulk_index_documents(docs, wait=True)
+            )
         _term_indexed.add(user_id)
 
     async def _fetch_by_ids(
