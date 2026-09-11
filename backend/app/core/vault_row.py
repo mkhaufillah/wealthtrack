@@ -85,6 +85,7 @@ def unpack_money(dek: bytes | None, row: dict) -> dict:
     data["amount"] = int(data.get("amount") or 0)
     data["description"] = data.get("description") or ""
     data["note"] = data.get("note") or ""
+    data["category_name"] = data.get("category_name") or ""
     return data
 
 

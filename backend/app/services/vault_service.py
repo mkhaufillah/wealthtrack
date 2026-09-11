@@ -62,8 +62,7 @@ class VaultService:
                 )
                 await self.db.execute(
                     """UPDATE transactions
-                       SET vault_blob=?, amount_ord=?, category_trace=?,
-                           category_id=NULL
+                       SET vault_blob=?, amount_ord=?, category_trace=?
                        WHERE id=?""",
                     (
                         packed["vault_blob"],

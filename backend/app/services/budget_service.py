@@ -189,13 +189,12 @@ class BudgetService:
                 category_name=cat["name"],
             )
             await self.db.execute(
-                """UPDATE budgets SET vault_blob=?, amount_ord=?, category_trace=?,
-                   budget_amount=0, category_name=?, category_id=NULL WHERE id=?""",
+                """UPDATE budgets SET vault_blob=?, amount_ord=?, category_trace=?
+                   WHERE id=?""",
                 (
                     packed["vault_blob"],
                     packed["amount_ord"],
                     packed.get("category_trace") or "",
-                    packed.get("category_name") or "",
                     budget_id,
                 ),
             )
