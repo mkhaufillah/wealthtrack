@@ -11,7 +11,7 @@ class TestHome:
     async def test_home_amount_display_personal(
         self, client: AsyncClient, filla_token: str, nahda_token: str
     ):
-        await client.post(
+        r_f = await client.post(
             "/api/v1/transactions",
             headers={"Authorization": f"Bearer {filla_token}"},
             json={
@@ -22,7 +22,8 @@ class TestHome:
                 "date": "2020-06-01",
             },
         )
-        await client.post(
+        assert r_f.status_code == 201, r_f.text
+        r_n = await client.post(
             "/api/v1/transactions",
             headers={"Authorization": f"Bearer {nahda_token}"},
             json={
@@ -33,6 +34,7 @@ class TestHome:
                 "date": "2020-06-01",
             },
         )
+        assert r_n.status_code == 201, r_n.text
 
         filla = await client.get(
             "/api/v1/home",

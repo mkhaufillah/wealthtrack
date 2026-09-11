@@ -93,8 +93,8 @@ async def get_historical_spending(
                    c.name AS category_name,
                    c.icon AS category_icon,
                    c.copy_key AS copy_key,
-                   CAST(COALESCE(AVG(t.amount_ord), 0) AS INTEGER) AS avg_amount,
-                   CAST(COALESCE(MAX(t.amount_ord), 0) AS INTEGER) AS max_amount,
+                   COALESCE(AVG(t.amount_ord), 0)::bigint AS avg_amount,
+                   COALESCE(MAX(t.amount_ord), 0)::bigint AS max_amount,
                    COUNT(DISTINCT LEFT(COALESCE(t.date, LEFT(t.created_at::text, 10)), 7))
                        AS months_with_data
             FROM transactions t

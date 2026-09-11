@@ -372,51 +372,54 @@ async def _create_test_db():
     Returns the connection. Caller must close it.
     """
     conn = await asyncpg.connect(TEST_DB_URL)
-    await conn.execute(SCHEMA_SQL)
-    # Seed
-    for u in DEFAULT_USERS:
+    await conn.execute("SELECT pg_advisory_lock(870011)")
+    try:
+        await conn.execute(SCHEMA_SQL)
+        # Seed
+        for u in DEFAULT_USERS:
+            await conn.execute(
+                "INSERT INTO users (id, username, display_name, password_hash, role, email) VALUES ($1, $2, $3, $4, $5, $6)",
+                *u,
+            )
+        for cat in DEFAULT_CATEGORIES:
+            await conn.execute(
+                "INSERT INTO categories (id, name, type, icon, is_default, sort_order, keywords) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                *cat,
+            )
+        for i, t in enumerate(DEFAULT_TRANSACTIONS):
+            day_offset = len(DEFAULT_TRANSACTIONS) - i
+            packed = pack_money(
+                TEST_DEK,
+                amount=int(t[2]),
+                description=t[5],
+                note=t[6],
+                category_id=int(t[3]),
+                category_name=t[4],
+            )
+            await conn.execute(
+                "INSERT INTO transactions (id, type, category_id, date, user_id, created_at, vault_blob, amount_ord, category_trace) "
+                "VALUES ($1, $2, $3, (CURRENT_DATE - MAKE_INTERVAL(days => $4))::date, 1, NOW(), $5, $6, $7)",
+                t[0], t[1], packed.get("category_id"), day_offset,
+                packed["vault_blob"], packed["amount_ord"], packed.get("category_trace") or "",
+            )
         await conn.execute(
-            "INSERT INTO users (id, username, display_name, password_hash, role, email) VALUES ($1, $2, $3, $4, $5, $6)",
-            *u,
+            "INSERT INTO households (id, name, invite_code, created_by, vault_sealed) VALUES (1, 'Home', 'TESTCODE1', 1, 1)"
         )
-    for cat in DEFAULT_CATEGORIES:
-        await conn.execute(
-            "INSERT INTO categories (id, name, type, icon, is_default, sort_order, keywords) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-            *cat,
-        )
-    for i, t in enumerate(DEFAULT_TRANSACTIONS):
-        day_offset = len(DEFAULT_TRANSACTIONS) - i
-        packed = pack_money(
-            TEST_DEK,
-            amount=int(t[2]),
-            description=t[5],
-            note=t[6],
-            category_id=int(t[3]),
-            category_name=t[4],
-        )
-        await conn.execute(
-            "INSERT INTO transactions (id, type, category_id, date, user_id, created_at, vault_blob, amount_ord, category_trace) "
-            "VALUES ($1, $2, $3, (CURRENT_DATE - MAKE_INTERVAL(days => $4))::date, 1, NOW(), $5, $6, $7)",
-            t[0], t[1], packed.get("category_id"), day_offset,
-            packed["vault_blob"], packed["amount_ord"], packed.get("category_trace") or "",
-        )
-    await conn.execute(
-        "INSERT INTO households (id, name, invite_code, created_by, vault_sealed) VALUES (1, 'Home', 'TESTCODE1', 1, 1)"
-    )
-    for uid in [1, 2]:
-        role = 'admin' if uid == 1 else 'member'
-        await conn.execute(
-            "INSERT INTO household_members (user_id, household_id, role) VALUES ($1, 1, $2)",
-            uid, role,
-        )
-    # Reset sequences to prevent conflicts with auto-generated ids
-    for tbl in ["users", "categories", "transactions", "households", "budgets", "email_verifications", "ocr_jobs", "ai_messages", "kpr_simulations", "kpr_rate_periods", "kpr_monthly_schedules", "credit_cards", "credit_card_installments", "credit_card_transactions", "api_keys"]:
-        await conn.execute(f"SELECT setval('{tbl}_id_seq', COALESCE((SELECT MAX(id) FROM {tbl}), 0) + 1, false)")
-    from app.core.ui_seed import seed_ui
-    from app.database import _assign_category_copy_keys
-    await seed_ui(conn)
-    await _assign_category_copy_keys(conn)
-    return conn
+        for uid in [1, 2]:
+            role = "admin" if uid == 1 else "member"
+            await conn.execute(
+                "INSERT INTO household_members (user_id, household_id, role) VALUES ($1, 1, $2)",
+                uid, role,
+            )
+        for tbl in ["users", "categories", "transactions", "households", "budgets", "email_verifications", "ocr_jobs", "ai_messages", "kpr_simulations", "kpr_rate_periods", "kpr_monthly_schedules", "credit_cards", "credit_card_installments", "credit_card_transactions", "api_keys"]:
+            await conn.execute(f"SELECT setval('{tbl}_id_seq', COALESCE((SELECT MAX(id) FROM {tbl}), 0) + 1, false)")
+        from app.core.ui_seed import seed_ui
+        from app.database import _assign_category_copy_keys
+        await seed_ui(conn)
+        await _assign_category_copy_keys(conn)
+        return conn
+    finally:
+        await conn.execute("SELECT pg_advisory_unlock(870011)")
 
 
 # ─── Fixtures (function-scoped) ───────────────────────────────
@@ -455,14 +458,14 @@ async def auth_headers(filla_token: str) -> dict:
     return {"Authorization": f"Bearer {filla_token}"}
 
 
-@pytest_asyncio.fixture
-async def filla_token(db: CursorWrapper) -> str:
+@pytest.fixture
+def filla_token() -> str:
     """JWT token for user filla (admin)."""
     return create_access_token(user_id=1, username="filla", role="admin")
 
 
-@pytest_asyncio.fixture
-async def nahda_token(db: CursorWrapper) -> str:
+@pytest.fixture
+def nahda_token() -> str:
     """JWT token for user nahda (non-admin)."""
     return create_access_token(user_id=2, username="nahda", role="user")
 

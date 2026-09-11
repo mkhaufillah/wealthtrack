@@ -307,8 +307,9 @@ class SummaryService:
         if not d_to:
             d_to = today
 
+        sealed, dek = self._vault()
         cursor = await self.db.execute(
-            """SELECT t.type, CAST(COALESCE(SUM(t.amount_ord), 0) AS INTEGER) as total,
+            """SELECT t.type, COALESCE(SUM(t.amount_ord), 0)::bigint as total,
                       COUNT(*) as count
                FROM transactions t
                JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
@@ -321,44 +322,27 @@ class SummaryService:
         income = 0
         expense = 0
         for r in rows:
+            val = self._plain(sealed, dek, r["total"], r["count"])
             if r["type"] == "income":
-                income = r["total"]
+                income = val
             else:
-                expense = r["total"]
+                expense = val
 
-        cursor = await self.db.execute(
-            """SELECT c.id, c.name, c.icon, c.copy_key,
-                      SUM(t.amount_ord) as total, COUNT(*) as count
-               FROM transactions t
-               JOIN categories c ON t.category_id = c.id
-               JOIN household_members hm ON hm.user_id = t.user_id AND hm.household_id = ?
-               WHERE COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?
-                 AND t.type = 'expense'
-               GROUP BY c.id ORDER BY total DESC""",
+        categories = await self._expense_categories(
+            """ AND t.user_id IN (SELECT user_id FROM household_members WHERE household_id = ?)
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
+                 AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?""",
             (household_id, d_from, d_to),
+            expense,
         )
-        by_cat = await cursor.fetchall()
-        categories = []
-        for r in by_cat:
-            pct = round((r["total"] / expense * 100), 1) if expense > 0 else 0
-            categories.append(
-                {
-                    "category_id": r["id"],
-                    "category_name": r["name"],
-                    "copy_key": r["copy_key"] or "",
-                            "icon": r["icon"] or "",
-                    "total": int(r["total"]),
-                    "count": r["count"],
-                    "percentage": pct,
-                }
-            )
 
         # By user — LEFT JOIN from household_members so users with 0 transactions still appear
         cursor = await self.db.execute(
             """SELECT hm.user_id, u.display_name,
-                      CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) AS INTEGER) as total_expense,
-                      CAST(COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_ord ELSE 0 END), 0) AS INTEGER) as total_income
+                      COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0)::bigint as total_expense,
+                      COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_ord ELSE 0 END), 0)::bigint as total_income,
+                      COUNT(*) FILTER (WHERE t.type = 'expense') as expense_count,
+                      COUNT(*) FILTER (WHERE t.type = 'income') as income_count
                FROM household_members hm
                JOIN users u ON hm.user_id = u.id
                LEFT JOIN transactions t ON t.user_id = hm.user_id
@@ -373,8 +357,8 @@ class SummaryService:
             {
                 "user_id": r["user_id"],
                 "display_name": r["display_name"],
-                "total_expense": int(r["total_expense"]),
-                "total_income": int(r["total_income"]),
+                "total_expense": self._plain(sealed, dek, r["total_expense"], r["expense_count"]),
+                "total_income": self._plain(sealed, dek, r["total_income"], r["income_count"]),
             }
             for r in by_user
         ]
@@ -489,8 +473,10 @@ class SummaryService:
 
         cursor = await self.db.execute(
             """SELECT COALESCE(t.date, LEFT(t.created_at::text, 10)) as date,
-                      CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) AS INTEGER) as expense,
-                      CAST(COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_ord ELSE 0 END), 0) AS INTEGER) as income
+                      COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0)::bigint as expense,
+                      COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_ord ELSE 0 END), 0)::bigint as income,
+                      COUNT(*) FILTER (WHERE t.type = 'expense') as expense_count,
+                      COUNT(*) FILTER (WHERE t.type = 'income') as income_count
                FROM transactions t
                WHERE t.user_id = ?
                  AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
@@ -498,7 +484,14 @@ class SummaryService:
                GROUP BY 1 ORDER BY 1""",
             (user_id, d_from, d_to),
         )
-        daily_snapshot = [dict(r) for r in await cursor.fetchall()]
+        daily_snapshot = [
+            {
+                "date": r["date"],
+                "expense": self._plain(sealed, dek, r["expense"], r["expense_count"]),
+                "income": self._plain(sealed, dek, r["income"], r["income_count"]),
+            }
+            for r in await cursor.fetchall()
+        ]
 
         # Savings rate — same formula the app used client-side, now server-owned.
         # Adjusted: (income - expense) + (savings expense - savings withdrawal)

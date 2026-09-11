@@ -302,7 +302,7 @@ class BudgetService:
                     cat_placeholders = ",".join("?" for _ in cat_ids)
                     cur = await self.db.execute(
                         f"""SELECT t.category_id,
-                                   CAST(COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) AS INTEGER) AS actual_spent
+                                   COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0)::bigint AS actual_spent
                             FROM transactions t
                             WHERE t.user_id = ?
                               AND t.category_id IN ({cat_placeholders})
@@ -478,7 +478,7 @@ class BudgetService:
             ucur = await self.db.execute(
                 f"""SELECT t.category_id, c.name AS category_name, c.icon AS category_icon,
                                    c.copy_key AS copy_key,
-                                   CAST(COALESCE(SUM(t.amount_ord), 0) AS INTEGER) AS total
+                                   COALESCE(SUM(t.amount_ord), 0)::bigint AS total
                     FROM transactions t
                     LEFT JOIN categories c ON t.category_id = c.id
                     WHERE t.user_id = ?
@@ -505,7 +505,7 @@ class BudgetService:
             ucur = await self.db.execute(
                 """SELECT t.category_id, c.name AS category_name, c.icon AS category_icon,
                                  c.copy_key AS copy_key,
-                                 CAST(COALESCE(SUM(t.amount_ord), 0) AS INTEGER) AS total
+                                 COALESCE(SUM(t.amount_ord), 0)::bigint AS total
                    FROM transactions t
                    LEFT JOIN categories c ON t.category_id = c.id
                    WHERE t.user_id = ?

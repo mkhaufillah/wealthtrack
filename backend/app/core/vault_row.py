@@ -54,7 +54,7 @@ def pack_money(
     }
     if category_id is not None:
         out["category_trace"] = category_trace(dek, int(category_id))
-        out["category_id"] = None
+        out["category_id"] = int(category_id)
     return out
 
 
@@ -67,18 +67,24 @@ def open_row(row: dict) -> dict:
 def unpack_money(dek: bytes | None, row: dict) -> dict:
     data = dict(row)
     blob = data.get("vault_blob") or ""
+    if isinstance(blob, (bytes, bytearray, memoryview)):
+        try:
+            blob = bytes(blob).decode("utf-8")
+        except Exception:
+            blob = ""
     if dek and blob and is_aes_token(str(blob)):
         try:
             inner = json.loads(aes_decrypt(dek, str(blob)))
         except Exception:
-            return data
-        for k, v in inner.items():
-            if k == "vault_blob":
-                continue
-            data[k] = v
-        data["amount"] = int(data.get("amount") or 0)
-        data["description"] = data.get("description") or ""
-        data["note"] = data.get("note") or ""
+            inner = {}
+        else:
+            for k, v in inner.items():
+                if k == "vault_blob":
+                    continue
+                data[k] = v
+    data["amount"] = int(data.get("amount") or 0)
+    data["description"] = data.get("description") or ""
+    data["note"] = data.get("note") or ""
     return data
 
 
