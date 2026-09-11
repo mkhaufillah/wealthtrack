@@ -246,9 +246,10 @@ CREATE TABLE IF NOT EXISTS budgets (
     user_id INTEGER NOT NULL REFERENCES users(id),
     month TEXT NOT NULL,
     category_id INTEGER NOT NULL,
-    category_name TEXT NOT NULL,
-    budget_amount INTEGER NOT NULL,
     cycle_on INTEGER NOT NULL DEFAULT 1,
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT,
+    category_trace TEXT DEFAULT '',
     UNIQUE(user_id, month, category_id)
 );
 
@@ -642,6 +643,8 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE ai_messages ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
         "ALTER TABLE ai_chat_summaries ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
         "ALTER TABLE ocr_jobs ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
+        "ALTER TABLE budgets DROP COLUMN IF EXISTS budget_amount",
+        "ALTER TABLE budgets DROP COLUMN IF EXISTS category_name",
     ]
     for sql in stmts:
         try:

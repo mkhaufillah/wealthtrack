@@ -82,18 +82,17 @@ class VaultService:
                     continue
                 packed = pack_money(
                     dek,
-                    amount=int(d.get("budget_amount") or 0),
+                    amount=int(d.get("budget_amount") or d.get("amount") or 0),
                     category_id=d.get("category_id"),
                     category_name=d.get("category_name") or "",
                 )
                 await self.db.execute(
-                    """UPDATE budgets SET vault_blob=?, amount_ord=?, category_trace=?,
-                           budget_amount=0, category_name=? WHERE id=?""",
+                    """UPDATE budgets SET vault_blob=?, amount_ord=?, category_trace=?
+                       WHERE id=?""",
                     (
                         packed["vault_blob"],
                         packed["amount_ord"],
                         packed.get("category_trace") or "",
-                        packed.get("category_name") or "",
                         d["id"],
                     ),
                 )

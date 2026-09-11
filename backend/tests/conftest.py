@@ -163,8 +163,6 @@ CREATE TABLE budgets (
     user_id INTEGER NOT NULL REFERENCES users(id),
     month TEXT NOT NULL,
     category_id INTEGER NOT NULL,
-    category_name TEXT NOT NULL,
-    budget_amount INTEGER NOT NULL,
     cycle_on INTEGER NOT NULL DEFAULT 1,
     vault_blob TEXT DEFAULT '',
     amount_ord BIGINT,

@@ -357,32 +357,20 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
         trend_parts.append(f"{cycle_range_str} | I=Rp{inc:,} | E=Rp{exp:,}")
     trend = " | ".join(trend_parts)
 
-    # ── Budgets vs actuals (user's own budgets, cycle-aware) ──
-    cursor = await db.execute(
-        """SELECT b.category_name, b.budget_amount,
-                  COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) AS actual
-           FROM budgets b
-           LEFT JOIN transactions t ON t.category_id = b.category_id
-               AND t.user_id = b.user_id
-               AND COALESCE(t.date, LEFT(t.created_at::text, 10)) BETWEEN ? AND ?
-           WHERE b.month = ? AND b.user_id = ?
-           GROUP BY b.category_name, b.budget_amount""",
-        (d_from, d_to, d_from_date.strftime("%Y-%m"), user_id),
-    )
+    from app.utils.budget_ai import get_projection
+
+    projection = await get_projection(db, user_id, cycle_start_day, d_from, d_to)
     budgets_list = []
-    async for r in cursor:
-        pct = (r["actual"] / r["budget_amount"] * 100) if r["budget_amount"] > 0 else 0
-        remaining = r["budget_amount"] - r["actual"]
+    for cat in projection["categories"]:
+        pct = cat["percentage"]
+        remaining = cat["remaining"]
         status = "✅" if remaining >= 0 else "🔴"
         budgets_list.append(
-            f"• {r['category_name']}: Rp{r['actual']:,} / Rp{r['budget_amount']:,} ({pct:.0f}%) — sisa Rp{remaining:,} {status}"
+            f"• {cat['category_name']}: Rp{cat['actual_spent']:,} / Rp{cat['budget_amount']:,} ({pct:.0f}%) — sisa Rp{remaining:,} {status}"
         )
     budgets = "\n".join(budgets_list) if budgets_list else "Belum ada anggaran"
 
     # ── Budget health & projection ──
-    from app.utils.budget_ai import get_projection
-
-    projection = await get_projection(db, user_id, cycle_start_day, d_from, d_to)
     proj_lines = []
     for cat in projection["categories"]:
         icon_map = {

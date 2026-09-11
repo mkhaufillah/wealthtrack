@@ -167,13 +167,12 @@ class BudgetService:
             )
             await self.db.execute(
                 """UPDATE budgets SET vault_blob=?, amount_ord=?, category_trace=?,
-                   cycle_on=?, budget_amount=0, category_name=? WHERE id=?""",
+                   cycle_on=? WHERE id=?""",
                 (
                     packed["vault_blob"],
                     packed["amount_ord"],
                     packed.get("category_trace") or "",
                     cycle_on,
-                    cat["name"],
                     existing["id"],
                 ),
             )
@@ -185,14 +184,13 @@ class BudgetService:
                 cycle_on = await self._get_user_cycle_start_day(user_id)
             cursor = await self.db.execute(
                 """INSERT INTO budgets
-                   (user_id, month, category_id, category_name, budget_amount, cycle_on,
+                   (user_id, month, category_id, cycle_on,
                     vault_blob, amount_ord, category_trace)
-                   VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
                     user_id,
                     month,
                     category_id,
-                    cat["name"],
                     cycle_on,
                     packed["vault_blob"],
                     packed["amount_ord"],
@@ -564,7 +562,7 @@ class BudgetService:
 
         # Get existing budgets for this month
         cursor = await self.db.execute(
-            "SELECT category_id, budget_amount, vault_blob FROM budgets WHERE month = ? AND user_id = ?",
+            "SELECT category_id, vault_blob FROM budgets WHERE month = ? AND user_id = ?",
             (month, user_id),
         )
         from app.core.vault_row import open_row
@@ -575,7 +573,7 @@ class BudgetService:
             cid = d.get("category_id")
             if cid is None:
                 continue
-            existing[int(cid)] = int(d.get("budget_amount") or d.get("amount") or 0)
+            existing[int(cid)] = int(d.get("amount") or 0)
 
         # Build suggestions
         items = []
