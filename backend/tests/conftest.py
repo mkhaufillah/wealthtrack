@@ -278,8 +278,6 @@ CREATE TABLE IF NOT EXISTS credit_card_transactions (
     id SERIAL PRIMARY KEY,
     card_id INTEGER NOT NULL REFERENCES credit_cards(id) ON DELETE CASCADE,
     transaction_date TEXT NOT NULL,
-    is_installment INTEGER NOT NULL DEFAULT 0,
-    installment_id INTEGER REFERENCES credit_card_installments(id),
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     vault_blob TEXT DEFAULT '',
     amount_ord BIGINT

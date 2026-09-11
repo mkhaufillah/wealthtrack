@@ -502,7 +502,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
         f"""SELECT COALESCE(SUM(cct.amount_ord), 0) AS total_txns
            FROM credit_card_transactions cct
            JOIN credit_cards cc ON cc.id = cct.card_id
-           WHERE ({cc_hh_where}) AND cct.is_installment = 0
+           WHERE ({cc_hh_where})
                AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
                AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
         cc_hh_params,
@@ -561,7 +561,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
         f"""SELECT cct.card_id, COALESCE(SUM(cct.amount_ord), 0) AS spent
            FROM credit_card_transactions cct
            JOIN credit_cards cc ON cc.id = cct.card_id
-           WHERE ({cc_hh_where}) AND cct.is_installment = 0
+           WHERE ({cc_hh_where})
                AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
                AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)
            GROUP BY cct.card_id""",

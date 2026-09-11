@@ -37,8 +37,6 @@ class CreditCardTransactionCreate(BaseModel):
     amount: int = Field(ge=0)
     category_id: Optional[int] = None
     transaction_date: str
-    is_installment: bool = False
-    installment_id: Optional[int] = None
 
 
 class CreditCardTransactionOut(BaseModel):
@@ -48,7 +46,7 @@ class CreditCardTransactionOut(BaseModel):
     amount: int
     category_id: Optional[int] = None
     transaction_date: str
-    is_installment: bool
+    is_installment: bool = False
     installment_id: Optional[int] = None
     created_at: str
 

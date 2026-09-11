@@ -716,7 +716,7 @@ class SummaryService:
             cur = await self.db.execute(
                 """SELECT cct.vault_blob FROM credit_card_transactions cct
                    JOIN credit_cards cc ON cc.id = cct.card_id
-                   WHERE cc.user_id = ? AND cct.is_installment = 0""",
+                   WHERE cc.user_id = ?""",
                 (user_id,),
             )
             total_cc_txns = 0
@@ -794,7 +794,7 @@ class SummaryService:
             """SELECT COALESCE(SUM(cct.amount_ord), 0) AS total_txns
                FROM credit_card_transactions cct
                JOIN credit_cards cc ON cc.id = cct.card_id
-               WHERE cc.user_id = ? AND cct.is_installment = 0
+               WHERE cc.user_id = ?
                    AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
                    AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
             (user_id,),
@@ -1001,7 +1001,7 @@ class SummaryService:
                 """SELECT cct.vault_blob, cc.household_id
                    FROM credit_card_transactions cct
                    JOIN credit_cards cc ON cc.id = cct.card_id
-                   WHERE cc.user_id = ? AND cct.is_installment = 0
+                   WHERE cc.user_id = ?
                      AND EXTRACT(YEAR FROM cct.transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
                      AND EXTRACT(MONTH FROM cct.transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
                 (user_id,),

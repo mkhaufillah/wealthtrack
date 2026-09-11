@@ -15,7 +15,7 @@ Flutter `deleteInstallment` exists; **no UI**. No `deleteTransaction` on the pro
 
 - Swipe end-to-start (same as card list) + confirm dialog.
 - Copy: **Hapus transaksi?** / **Hapus cicilan?** · **Batal** / **Hapus** · snackbar **Transaksi kehapus** / **Cicilan kehapus**.
-- Deleting an installment also deletes `credit_card_transactions` with that `installment_id` (FK has no CASCADE).
+- Deleting an installment deletes the plan only. Charge rows are a separate table and were never linked.
 - Refresh card detail + next-month projection.
 
 ## 3. Files

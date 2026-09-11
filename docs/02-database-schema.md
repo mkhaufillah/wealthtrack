@@ -567,8 +567,6 @@ CREATE TABLE IF NOT EXISTS credit_card_transactions (
     amount           INTEGER NOT NULL,
     category_id      INTEGER REFERENCES categories(id),
     transaction_date TEXT NOT NULL,
-    is_installment   INTEGER NOT NULL DEFAULT 0,
-    installment_id   INTEGER REFERENCES credit_card_installments(id),
     created_at       TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 
@@ -584,16 +582,12 @@ CREATE INDEX IF NOT EXISTS idx_cc_transactions_date ON credit_card_transactions(
 | amount | `INTEGER` | `NOT NULL` |
 | category_id | `INTEGER` | `REFERENCES categories(id)` |
 | transaction_date | `TEXT` | `NOT NULL` |
-| is_installment | `INTEGER` | `NOT NULL DEFAULT 0` |
-| installment_id | `INTEGER` | `REFERENCES credit_card_installments(id)` |
 | created_at | `TEXT` | `NOT NULL DEFAULT TO_CHAR(NOW(), ...)` |
 
 **Foreign Keys:**
 - `card_id` → `credit_cards(id) ON DELETE CASCADE`
-- `category_id` → `categories(id)`
-- `installment_id` → `credit_card_installments(id)`
 
-> **Note:** `installment_id` references `credit_card_installments`, which is created *after* `credit_card_transactions` in the SQL. This is a forward reference; the schema init script handles it because PostgreSQL defers FK validation until commit time within the same multi-statement execution.
+Charges and installment plans are separate tables. There is no `is_installment` / `installment_id` link.
 
 ---
 
@@ -654,8 +648,6 @@ CREATE INDEX IF NOT EXISTS idx_cc_installments_card ON credit_card_installments(
 | `user_id` | `credit_cards` | `users` | *(none)* |
 | `household_id` | `credit_cards` | `households` | *(none)* |
 | `card_id` | `credit_card_transactions` | `credit_cards` | `CASCADE` |
-| `category_id` | `credit_card_transactions` | `categories` | *(none)* |
-| `installment_id` | `credit_card_transactions` | `credit_card_installments` | *(none)* |
 | `card_id` | `credit_card_installments` | `credit_cards` | `CASCADE` |
 
 ---

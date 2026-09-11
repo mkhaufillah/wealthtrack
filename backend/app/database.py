@@ -404,8 +404,6 @@ CREATE TABLE IF NOT EXISTS credit_card_transactions (
     id SERIAL PRIMARY KEY,
     card_id INTEGER NOT NULL REFERENCES credit_cards(id) ON DELETE CASCADE,
     transaction_date TEXT NOT NULL,
-    is_installment INTEGER NOT NULL DEFAULT 0,
-    installment_id INTEGER REFERENCES credit_card_installments(id),
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 
@@ -648,6 +646,8 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE budgets DROP COLUMN IF EXISTS category_id",
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_budgets_user_month_trace ON budgets(user_id, month, category_trace)",
         "ALTER TABLE credit_card_transactions DROP COLUMN IF EXISTS category_id",
+        "ALTER TABLE credit_card_transactions DROP COLUMN IF EXISTS installment_id",
+        "ALTER TABLE credit_card_transactions DROP COLUMN IF EXISTS is_installment",
     ]
     for sql in stmts:
         try:

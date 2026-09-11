@@ -160,7 +160,7 @@ class CreditCardService:
         # Fetch transactions
         txn_cursor = await self.db.execute(
             """SELECT id, card_id,
-                      transaction_date, is_installment, installment_id, created_at, vault_blob
+                      transaction_date, created_at, vault_blob
                FROM credit_card_transactions
                WHERE card_id = ?
                ORDER BY transaction_date DESC""",
@@ -261,14 +261,11 @@ class CreditCardService:
         )
         cursor = await self.db.execute(
             """INSERT INTO credit_card_transactions
-               (card_id,
-                transaction_date, is_installment, installment_id, vault_blob, amount_ord)
-               VALUES (?, ?, ?, ?, ?, ?)""",
+               (card_id, transaction_date, vault_blob, amount_ord)
+               VALUES (?, ?, ?, ?)""",
             (
                 card_id,
                 data.transaction_date,
-                1 if data.is_installment else 0,
-                data.installment_id,
                 packed["vault_blob"],
                 packed["amount_ord"],
             ),
@@ -277,7 +274,7 @@ class CreditCardService:
 
         txn_cursor = await self.db.execute(
             """SELECT id, card_id,
-                      transaction_date, is_installment, installment_id, created_at, vault_blob
+                      transaction_date, created_at, vault_blob
                FROM credit_card_transactions WHERE id = ?""",
             (txn_id,),
         )
@@ -292,7 +289,7 @@ class CreditCardService:
 
         cursor = await self.db.execute(
             """SELECT id, card_id,
-                      transaction_date, is_installment, installment_id, created_at, vault_blob
+                      transaction_date, created_at, vault_blob
                FROM credit_card_transactions
                WHERE card_id = ?
                ORDER BY transaction_date DESC""",
@@ -404,10 +401,6 @@ class CreditCardService:
             raise InstallmentNotFoundError(inst_id)
 
         await self.db.execute(
-            "DELETE FROM credit_card_transactions WHERE installment_id = ?",
-            (inst_id,),
-        )
-        await self.db.execute(
             "DELETE FROM credit_card_installments WHERE id = ?", (inst_id,)
         )
 
@@ -437,7 +430,7 @@ class CreditCardService:
             monthly = 0
             tcur = await self.db.execute(
                 """SELECT vault_blob FROM credit_card_transactions
-                   WHERE card_id = ? AND is_installment = 0
+                   WHERE card_id = ?
                      AND EXTRACT(YEAR FROM transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
                      AND EXTRACT(MONTH FROM transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
                 (card_id,),
