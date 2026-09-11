@@ -81,8 +81,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       try {
         await _api.post('/households/vault/seal');
       } catch (_) {}
-      await _shareIfPossible();
       await _tryShareInbox();
+      await _ensurePubkey();
       final needsHousehold = await _householdMissing(_api);
       final needsVaultKey = await _vaultKeyMissing();
       state = AuthState(
@@ -151,6 +151,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final me = await _api.get('/households/me');
       final sealed = (me.data as Map)['vault_sealed'] == true;
       if (sealed) {
+        // Joined an existing household: publish our pubkey (so the owner can
+        // address the gembok to us) and wait for their explicit share.
+        await _ensurePubkey();
         await _tryShareInbox();
         await refreshVaultKeyState();
         return;
@@ -170,7 +173,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'kdf_params': kdfParams,
       });
       await _api.post('/households/vault/seal');
-      await _shareIfPossible();
+      // Sharing is manual: the owner presses "Kirim kunci" in Profile.
+      // Auto-sharing here leaked the family key to anyone who joined with
+      // the invite code without the owner ever approving it.
     } catch (_) {}
     await refreshHouseholdState();
   }
@@ -224,28 +229,33 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   bool _recoveringVault = false;
 
-  /// The server rejected the vault key we sent (``err.vault_required`` /
-  /// ``err.vault_pending``). Re-run the key pipeline once: pick up a gembok
-  /// from the inbox if one is waiting, then re-evaluate the gate so the router
-  /// parks the user on the waiting page instead of an error screen.
+  /// The server rejected a data request for lack of a usable key
+  /// (``err.vault_required``). Pick up a gembok if one is waiting and
+  /// re-evaluate the gate — the router then parks the user on the waiting
+  /// page instead of an error screen.
+  ///
+  /// Never drops a key we already hold: that is the "nothing here yet" path
+  /// for the vault endpoints, not proof the key is stale.
   Future<void> handleVaultRequired() async {
     if (_recoveringVault) return;
     _recoveringVault = true;
     try {
       await _tryShareInbox();
-      final dek = await VaultStore.getDekB64(_storage);
-      if (dek == null || dek.isEmpty) {
-        await refreshVaultKeyState();
-        return;
-      }
-      // Still holding a key the server refused → stale/foreign key from an
-      // earlier session. Drop it; recoverable via gembok or re-login.
-      await VaultStore.clearDek(_storage);
       await refreshVaultKeyState();
     } catch (_) {
     } finally {
       _recoveringVault = false;
     }
+  }
+
+  /// Publish this device's public key so the household owner can box the
+  /// family key for it. Without a pubkey the owner's "Kirim kunci" has no
+  /// address to send to and the member waits forever.
+  Future<void> _ensurePubkey() async {
+    try {
+      final pub = await VaultStore.publicKeyB64(_storage);
+      await _api.post('/households/vault/pubkey', data: {'public_key': pub});
+    } catch (_) {}
   }
 
   Future<void> _unlockVault(String password) async {
@@ -261,7 +271,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       try {
         await _api.post('/households/vault/seal');
       } catch (_) {}
-      await _shareIfPossible();
+      // No auto-share: the owner shares explicitly from Profile.
       try {
         final pub = await VaultStore.publicKeyB64(_storage);
         await _api.post('/households/vault/pubkey', data: {'public_key': pub});
@@ -313,7 +323,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'kdf_params': kdfParams,
       });
       await _api.post('/households/vault/seal');
-      await _shareIfPossible();
+      // Sharing is manual: the owner presses "Kirim kunci" in Profile.
+      // Auto-sharing here leaked the family key to anyone who joined with
+      // the invite code without the owner ever approving it.
     } catch (_) {}
   }
 
@@ -398,7 +410,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _sharePoll?.cancel();
     _pendingPassword = null;
     await BankCapture.syncSession(_api, null);
-    await VaultStore.clear();
+    await VaultStore.clearDek(_storage);
     await _storage.clearAll();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }

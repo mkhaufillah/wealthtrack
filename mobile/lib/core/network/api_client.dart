@@ -93,15 +93,17 @@ class ApiClient {
             !error.requestOptions.path.contains('/auth/login')) {
           await _storage.clearToken();
         }
-        // Server rejected the vault key we sent (missing/foreign/expired).
-        // Let the auth layer re-run the gate instead of leaving the user on
-        // an error screen firing doomed requests.
-        final body = error.response?.data;
-        if (body is Map) {
-          final code = body['code'] ?? body['detail'];
-          if (code == 'err.vault_required' || code == 'err.vault_pending') {
-            onVaultRequired?.call();
-          }
+        // A *data* endpoint refused us for lack of a usable key. Vault gate
+        // endpoints answer ``err.vault_pending`` (404) for "nothing here yet"
+        // — that is not a broken key, so ignore it and never wipe a key we
+        // actually hold (that bug locked owners out of their own vault).
+        final response = error.response;
+        final body = response?.data;
+        if (response?.statusCode == 403 &&
+            body is Map &&
+            (body['code'] ?? body['detail']) == 'err.vault_required' &&
+            !error.requestOptions.path.startsWith('/households/vault/')) {
+          onVaultRequired?.call();
         }
         handler.next(error);
       },
