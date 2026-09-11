@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.core.vault import category_trace
-from app.core.vault_ctx import current_dek, current_sealed
+from app.core.vault_ctx import current_dek
 
 
 def parse_cat_ids(category_id=None, category_ids=None) -> list[int]:
@@ -25,12 +25,9 @@ def append_category_filter(
     if not ids:
         return
     dek = current_dek()
-    if current_sealed() and dek is not None:
-        traces = [category_trace(dek, i) for i in ids]
-        ph = ",".join("?" * len(traces))
-        where.append(f"t.category_trace IN ({ph})")
-        params.extend(traces)
+    if dek is None:
         return
-    ph = ",".join("?" * len(ids))
-    where.append(f"t.category_id IN ({ph})")
-    params.extend(ids)
+    traces = [category_trace(dek, i) for i in ids]
+    ph = ",".join("?" * len(traces))
+    where.append(f"t.category_trace IN ({ph})")
+    params.extend(traces)

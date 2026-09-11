@@ -260,12 +260,11 @@ class BankInboxService:
         )
         cursor = await self.db.execute(
             """INSERT INTO transactions
-               (user_id, category_id, type, date, source,
+               (user_id, type, date, source,
                 vault_blob, amount_ord, category_trace)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 user_id,
-                packed.get("category_id"),
                 txn_type,
                 date,
                 source,

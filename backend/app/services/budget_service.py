@@ -114,16 +114,29 @@ class BudgetService:
     async def list_budgets(self, user_id: int, month: str) -> list[dict]:
         """Return all budgets for *user_id* in *month* (ordered by amount desc)."""
         cursor = await self.db.execute(
-            """SELECT b.id, b.month, b.category_id, b.vault_blob, b.amount_ord,
-                      c.name AS category_name, c.icon AS category_icon, c.copy_key AS copy_key
+            """SELECT b.id, b.month, b.vault_blob, b.amount_ord
                FROM budgets b
-               LEFT JOIN categories c ON b.category_id = c.id
                WHERE b.month = ? AND b.user_id = ?
                ORDER BY b.amount_ord DESC NULLS LAST""",
             (month, user_id),
         )
         rows = await cursor.fetchall()
-        return [self._build_budget_response(r) for r in rows]
+        out = [self._build_budget_response(r) for r in rows]
+        ids = [o["category_id"] for o in out if o.get("category_id")]
+        if ids:
+            ph = ",".join("?" * len(ids))
+            cur = await self.db.execute(
+                f"SELECT id, name, icon, copy_key FROM categories WHERE id IN ({ph})",
+                tuple(ids),
+            )
+            meta = {r["id"]: dict(r) for r in await cur.fetchall()}
+            for o in out:
+                m = meta.get(o.get("category_id")) or {}
+                if m:
+                    o["copy_key"] = m.get("copy_key") or ""
+                    o["category_name"] = m.get("name") or o.get("category_name") or ""
+                    o["category_icon"] = m.get("icon") or o.get("category_icon") or ""
+        return out
 
     async def create_or_update_budget(
         self,
@@ -144,13 +157,6 @@ class BudgetService:
         # Determine cycle day
         explicit_cycle = cycle_on_override  # may be None
 
-        # Check for existing budget
-        cursor = await self.db.execute(
-            "SELECT id, cycle_on FROM budgets WHERE user_id = ? AND month = ? AND category_id = ?",
-            (user_id, month, category_id),
-        )
-        existing = await cursor.fetchone()
-
         from app.core.vault_write import pack_budget
 
         packed = pack_budget(
@@ -158,6 +164,12 @@ class BudgetService:
             category_id=category_id,
             category_name=cat["name"],
         )
+
+        cursor = await self.db.execute(
+            "SELECT id, cycle_on FROM budgets WHERE user_id = ? AND month = ? AND category_trace = ?",
+            (user_id, month, packed.get("category_trace") or ""),
+        )
+        existing = await cursor.fetchone()
 
         if existing:
             cycle_on = (
@@ -184,13 +196,12 @@ class BudgetService:
                 cycle_on = await self._get_user_cycle_start_day(user_id)
             cursor = await self.db.execute(
                 """INSERT INTO budgets
-                   (user_id, month, category_id, cycle_on,
+                   (user_id, month, cycle_on,
                     vault_blob, amount_ord, category_trace)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?)""",
                 (
                     user_id,
                     month,
-                    category_id,
                     cycle_on,
                     packed["vault_blob"],
                     packed["amount_ord"],
@@ -247,10 +258,8 @@ class BudgetService:
 
         # Get all budgets for this month
         cursor = await self.db.execute(
-            """SELECT b.id, b.category_id, b.cycle_on, b.vault_blob,
-                      c.name AS category_name, c.icon AS category_icon, c.copy_key AS copy_key
+            """SELECT b.id, b.cycle_on, b.vault_blob
                FROM budgets b
-               LEFT JOIN categories c ON b.category_id = c.id
                WHERE b.month = ? AND b.user_id = ?
                ORDER BY b.amount_ord DESC NULLS LAST""",
             (month, user_id),
@@ -277,7 +286,7 @@ class BudgetService:
                 from app.core.vault import category_trace
                 from app.core.vault_row import ope_sum_to_plain
 
-                if current_sealed() and current_dek():
+                if current_dek():
                     dek = current_dek()
                     assert dek is not None
                     traces = [category_trace(dek, int(i)) for i in cat_ids]
@@ -347,19 +356,20 @@ class BudgetService:
                     actual_spent = ope_sum_to_plain(
                         dek, int(row["total"] or 0), int(row["count"] or 0)
                     ) if row else 0
-                elif cid is None:
-                    actual_spent = 0
-                else:
+                elif dek is not None and cid is not None:
+                    tr = category_trace(dek, int(cid))
                     cur = await self.db.execute(
-                        """SELECT COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_ord ELSE 0 END), 0) AS actual_spent
+                        """SELECT COALESCE(SUM(t.amount_ord), 0) AS total, COUNT(*) AS count
                            FROM transactions t
-                           WHERE t.category_id = ? AND t.user_id = ?
+                           WHERE t.category_trace = ? AND t.user_id = ? AND t.type = 'expense'
                              AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
                              AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?""",
-                        (cid, user_id, d_from_str, d_to_str),
+                        (tr, user_id, d_from_str, d_to_str),
                     )
                     row = await cur.fetchone()
-                    actual_spent = row[0] if row is not None else 0
+                    actual_spent = ope_sum_to_plain(
+                        dek, int(row["total"] or 0), int(row["count"] or 0)
+                    ) if row else 0
                 results.append(self._build_summary_item(r, actual_spent))
 
         # ── Unbudgeted expenses ──
@@ -424,7 +434,7 @@ class BudgetService:
         from app.core.vault_ctx import current_dek, current_sealed
         from app.core.vault_row import unpack_money
 
-        if current_sealed() and current_dek():
+        if current_dek():
             dek = current_dek()
             budgeted = {
                 int(r["category_id"])
@@ -609,7 +619,7 @@ class BudgetService:
         from app.core.vault_ctx import current_dek, current_sealed
         from app.core.vault_row import ope_sum_to_plain
 
-        if current_sealed() and current_dek():
+        if current_dek():
             dek = current_dek()
             assert dek is not None
             cursor = await self.db.execute(

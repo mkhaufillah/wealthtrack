@@ -314,7 +314,7 @@ class TestBudgetSummary:
         assert resp.status_code == 201
 
         cursor = await db.execute(
-            "SELECT cycle_on FROM budgets WHERE user_id = 1 AND month = '2026-05' AND category_id = 6"
+            "SELECT cycle_on FROM budgets WHERE user_id = 1 AND month = '2026-05' "
         )
         row = await cursor.fetchone()
         assert row is not None
@@ -346,7 +346,7 @@ class TestBudgetSummary:
 
             # Verify cycle_on is still 1 (kept original)
             cursor = await db.execute(
-                "SELECT cycle_on FROM budgets WHERE user_id = 1 AND month = '2026-05' AND category_id = 6"
+                "SELECT cycle_on FROM budgets WHERE user_id = 1 AND month = '2026-05' "
             )
             row = await cursor.fetchone()
             assert row is not None
@@ -396,7 +396,7 @@ class TestBudgetSummary:
 
             # Verify budget has cycle_on=25
             cursor = await db.execute(
-                "SELECT cycle_on FROM budgets WHERE user_id = 1 AND month = '2026-05' AND category_id = 1"
+                "SELECT cycle_on FROM budgets WHERE user_id = 1 AND month = '2026-05'"
             )
             row = await cursor.fetchone()
             assert row is not None

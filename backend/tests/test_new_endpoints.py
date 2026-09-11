@@ -566,9 +566,9 @@ class TestAllTimeCategoryBalance:
         async def _tx(typ, cat, amount, desc):
             p = pack_money(TEST_DEK, amount=amount, description=desc, category_id=cat, category_name="")
             await db.execute(
-                "INSERT INTO transactions (user_id, type, category_id, date, vault_blob, amount_ord, category_trace) "
-                "VALUES (1, ?, ?, CURRENT_DATE, ?, ?, ?)",
-                typ, cat, p["vault_blob"], p["amount_ord"], p.get("category_trace") or "",
+                "INSERT INTO transactions (user_id, type, date, vault_blob, amount_ord, category_trace) "
+                "VALUES (1, ?, CURRENT_DATE, ?, ?, ?)",
+                typ, p["vault_blob"], p["amount_ord"], p.get("category_trace") or "",
             )
 
         await _tx("expense", 100, 500000, "Monthly investment")
@@ -605,8 +605,8 @@ class TestAllTimeCategoryBalance:
 
         p = pack_money(TEST_DEK, amount=500000, description="Filla investment", category_id=110)
         await db.execute(
-            "INSERT INTO transactions (user_id, type, category_id, date, vault_blob, amount_ord, category_trace) "
-            "VALUES (1, 'expense', 110, CURRENT_DATE, ?, ?, ?)",
+            "INSERT INTO transactions (user_id, type, date, vault_blob, amount_ord, category_trace) "
+            "VALUES (1, 'expense', CURRENT_DATE, ?, ?, ?)",
             p["vault_blob"], p["amount_ord"], p.get("category_trace") or "",
         )
 

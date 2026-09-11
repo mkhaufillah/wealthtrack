@@ -282,13 +282,12 @@ class OcrService:
                         )
                         cursor = await bg_db.execute(
                             """INSERT INTO transactions
-                               (user_id, type, category_id, date,
+                               (user_id, type, date,
                                 vault_blob, amount_ord, category_trace)
-                               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                               VALUES (?, ?, ?, ?, ?, ?)""",
                             (
                                 user_id,
                                 txn_type,
-                                packed.get("category_id"),
                                 txn_date,
                                 packed["vault_blob"],
                                 packed["amount_ord"],

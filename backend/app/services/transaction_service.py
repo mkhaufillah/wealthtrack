@@ -114,13 +114,11 @@ def _format_txn(row, cat_name="", cat_icon="", display_name=""):
 
 
 _SELECT_TXN = """\
-SELECT t.id, t.type, t.category_id,
+SELECT t.id, t.type,
        t.date, t.user_id, t.created_at, t.source,
        t.vault_blob, t.amount_ord, t.category_trace,
-       c.name AS cat_name, c.icon AS cat_icon, c.copy_key AS cat_copy_key,
        u.display_name AS user_display_name
 FROM transactions t
-LEFT JOIN categories c ON t.category_id = c.id
 LEFT JOIN users u ON t.user_id = u.id"""
 
 _ORDER_MAP = {
@@ -264,7 +262,7 @@ class TransactionService:
         rows = await cursor.fetchall()
         data = await self._hydrate_categories(
             [
-                _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
+                _format_txn(r, r.get("cat_name") or "", r.get("cat_icon") or "")
                 for r in rows
             ]
         )
@@ -367,14 +365,6 @@ class TransactionService:
         meili_filters: list[str] = [f"user_id = {user_id}"]
         if type:
             meili_filters.append(f'type = "{type}"')
-        if category_ids:
-            ids = [int(x.strip()) for x in category_ids.split(",") if x.strip().isdigit()]
-            if ids:
-                meili_filters.append(
-                    f"category_id IN [{', '.join(str(i) for i in ids)}]"
-                )
-        elif category_id:
-            meili_filters.append(f"category_id = {category_id}")
         if date_from:
             meili_filters.append(f'date >= "{date_from}"')
         if date_to:
@@ -414,6 +404,24 @@ class TransactionService:
                 meta=PaginationMeta(page=page, per_page=per_page, total=0, total_pages=0),
             )
 
+        from app.core.vault_query import parse_cat_ids, append_category_filter
+
+        if parse_cat_ids(category_id, category_ids):
+            where = ["t.id IN (" + ",".join("?" * len(matching_ids)) + ")"]
+            params: list = list(matching_ids)
+            append_category_filter(where, params, category_id, category_ids)
+            cur = await self.db.execute(
+                f"SELECT t.id FROM transactions t WHERE {' AND '.join(where)}",
+                tuple(params),
+            )
+            keep = {r["id"] for r in await cur.fetchall()}
+            matching_ids = [i for i in matching_ids if i in keep]
+            if not matching_ids:
+                return PaginatedTransactions(
+                    data=[],
+                    meta=PaginationMeta(page=page, per_page=per_page, total=0, total_pages=0),
+                )
+
         # Fetch from PostgreSQL preserving Meilisearch order
         placeholders = ",".join("?" for _ in matching_ids)
         order_clause = (
@@ -429,7 +437,7 @@ class TransactionService:
         rows = await cursor.fetchall()
         data = await self._hydrate_categories(
             [
-                _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
+                _format_txn(r, r.get("cat_name") or "", r.get("cat_icon") or "")
                 for r in rows
             ]
         )
@@ -492,7 +500,7 @@ class TransactionService:
         rows = await cursor.fetchall()
         data = await self._hydrate_categories(
             [
-                _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
+                _format_txn(r, r.get("cat_name") or "", r.get("cat_icon") or "")
                 for r in rows
             ]
         )
@@ -552,7 +560,7 @@ class TransactionService:
         rows = await cursor.fetchall()
         data = await self._hydrate_categories(
             [
-                _format_txn(r, r["cat_name"] or "", r["cat_icon"] or "")
+                _format_txn(r, r.get("cat_name") or "", r.get("cat_icon") or "")
                 for r in rows
             ]
         )
@@ -591,12 +599,11 @@ class TransactionService:
         )
         cursor = await self.db.execute(
             """INSERT INTO transactions
-               (user_id, category_id, type, date, source,
+               (user_id, type, date, source,
                 vault_blob, amount_ord, category_trace)
-               VALUES (?, ?, ?, ?, 'manual', ?, ?, ?)""",
+               VALUES (?, ?, ?, 'manual', ?, ?, ?)""",
             (
                 user_id,
-                packed.get("category_id"),
                 data.type,
                 data.date,
                 packed["vault_blob"],
@@ -702,8 +709,7 @@ class TransactionService:
         await self.db.execute(
             """UPDATE transactions SET
                  type=?, date=?,
-                 vault_blob=?, amount_ord=?, category_trace=?,
-                 category_id=?
+                 vault_blob=?, amount_ord=?, category_trace=?
                WHERE id=?""",
             (
                 merged.get("type"),
@@ -711,7 +717,6 @@ class TransactionService:
                 packed["vault_blob"],
                 packed["amount_ord"],
                 packed.get("category_trace") or "",
-                packed.get("category_id"),
                 txn_id,
             ),
         )
@@ -859,11 +864,10 @@ class TransactionService:
             )
             cursor = await self.db.execute(
                 """INSERT INTO transactions
-                   (type, category_id, date, user_id, vault_blob, amount_ord, category_trace)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   (type, date, user_id, vault_blob, amount_ord, category_trace)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
                 (
                     "expense",
-                    packed_exp.get("category_id"),
                     req.date,
                     user_id,
                     packed_exp["vault_blob"],
@@ -881,11 +885,10 @@ class TransactionService:
             )
             cursor = await self.db.execute(
                 """INSERT INTO transactions
-                   (type, category_id, date, user_id, vault_blob, amount_ord, category_trace)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   (type, date, user_id, vault_blob, amount_ord, category_trace)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
                 (
                     "income",
-                    packed_inc.get("category_id"),
                     req.date,
                     t.user_id,
                     packed_inc["vault_blob"],

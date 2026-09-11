@@ -644,6 +644,10 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE kpr_simulations DROP COLUMN IF EXISTS name",
         "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS original_end_date",
         "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS new_end_date",
+        "ALTER TABLE transactions DROP COLUMN IF EXISTS category_id",
+        "ALTER TABLE budgets DROP CONSTRAINT IF EXISTS budgets_user_id_month_category_id_key",
+        "ALTER TABLE budgets DROP COLUMN IF EXISTS category_id",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_budgets_user_month_trace ON budgets(user_id, month, category_trace)",
     ]
     for sql in stmts:
         try:

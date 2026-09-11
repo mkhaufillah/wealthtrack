@@ -149,7 +149,6 @@ CREATE TABLE household_vault_pubkeys (
 CREATE TABLE transactions (
     id SERIAL PRIMARY KEY,
     type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
-    category_id INTEGER REFERENCES categories(id),
     source TEXT DEFAULT 'manual',
     created_at TEXT DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     user_id INTEGER REFERENCES users(id),
@@ -162,12 +161,11 @@ CREATE TABLE budgets (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     month TEXT NOT NULL,
-    category_id INTEGER NOT NULL,
     cycle_on INTEGER NOT NULL DEFAULT 1,
     vault_blob TEXT DEFAULT '',
     amount_ord BIGINT,
     category_trace TEXT DEFAULT '',
-    UNIQUE(user_id, month, category_id)
+    UNIQUE(user_id, month, category_trace)
 );
 CREATE TABLE ocr_jobs (
     id SERIAL PRIMARY KEY,
@@ -358,9 +356,9 @@ async def _create_test_db():
                 category_name=t[4],
             )
             await conn.execute(
-                "INSERT INTO transactions (id, type, category_id, date, user_id, created_at, vault_blob, amount_ord, category_trace) "
-                "VALUES ($1, $2, $3, (CURRENT_DATE - MAKE_INTERVAL(days => $4))::date, 1, NOW(), $5, $6, $7)",
-                t[0], t[1], packed.get("category_id"), day_offset,
+                "INSERT INTO transactions (id, type, date, user_id, created_at, vault_blob, amount_ord, category_trace) "
+                "VALUES ($1, $2, (CURRENT_DATE - MAKE_INTERVAL(days => $3))::date, 1, NOW(), $4, $5, $6)",
+                t[0], t[1], day_offset,
                 packed["vault_blob"], packed["amount_ord"], packed.get("category_trace") or "",
             )
         await conn.execute(
