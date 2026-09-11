@@ -5,6 +5,7 @@ import 'package:cryptography/cryptography.dart';
 import '../storage/secure_storage.dart';
 
 const kVaultDekKey = 'vault_dek_v1';
+const kDekOwnerKey = 'vault_dek_owner';
 const kdfParams = 'argon2id:m=65536,t=3,p=1';
 
 class VaultWrap {
@@ -24,6 +25,11 @@ class VaultStore {
   static final _aes = AesGcm.with256bits();
 
   static Future<String?> getDekB64(SecureStorage storage) async {
+    // The stored key belongs to one account. Never hand it to another account
+    // that logs in on the same device (that is how "wrong key" bugs start).
+    final owner = await storage.getSecure(kDekOwnerKey);
+    final current = await storage.getCurrentUserId();
+    if (owner != null && current != null && owner != '$current') return null;
     if (_mem != null && _mem!.isNotEmpty) return _mem;
     final v = await storage.getSecure(kVaultDekKey);
     if (v != null && v.isNotEmpty) _mem = v;
@@ -32,6 +38,8 @@ class VaultStore {
 
   static Future<void> saveDekB64(SecureStorage storage, String b64) async {
     await storage.saveSecure(kVaultDekKey, b64);
+    final uid = await storage.getCurrentUserId();
+    if (uid != null) await storage.saveSecure(kDekOwnerKey, '$uid');
     _mem = b64;
   }
 
@@ -91,7 +99,11 @@ class VaultStore {
     return base64Encode(clear);
   }
 
-  static Future<void> clear() async {
+  /// Drop the in-memory copy only. Used on logout: the device keeps its vault
+  /// key (and its x25519 identity key) so logging back in does not cost the
+  /// user their family key — otherwise every logout means asking the owner to
+  /// send the gembok again, and the gembok box is sealed to the old identity.
+  static Future<void> clearSession() async {
     _mem = null;
   }
 
@@ -101,6 +113,7 @@ class VaultStore {
   static Future<void> clearDek(SecureStorage storage) async {
     _mem = null;
     await storage.deleteSecure(kVaultDekKey);
+    await storage.deleteSecure(kDekOwnerKey);
   }
 
   static const _xSeed = 'vault_x25519_seed';

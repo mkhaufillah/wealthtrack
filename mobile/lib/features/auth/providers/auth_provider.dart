@@ -77,6 +77,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return;
       }
       final user = await _repo.getMe();
+      await _storage.saveCurrentUserId(user.id);
       await BankCapture.syncSession(_api, token, storage: _storage);
       try {
         await _api.post('/households/vault/seal');
@@ -116,6 +117,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = await _repo.login(username, password);
       await _storage.saveToken(token.accessToken);
       final user = await _repo.getMe();
+      await _storage.saveCurrentUserId(user.id);
       try {
         await _unlockVault(password);
       } catch (_) {}
@@ -410,8 +412,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _sharePoll?.cancel();
     _pendingPassword = null;
     await BankCapture.syncSession(_api, null);
-    await VaultStore.clearDek(_storage);
-    await _storage.clearAll();
+    // Keep the vault key and this device's identity key: they are the only way
+    // back into the family data (and the only address a gembok can be sent
+    // to). Wiping them turned every logout into "wait for the owner again".
+    await VaultStore.clearSession();
+    await _storage.clearToken();
+    await _storage.clearCurrentUserId();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 

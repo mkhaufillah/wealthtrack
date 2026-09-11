@@ -31,4 +31,20 @@ class SecureStorage {
 
   Future<void> deleteSecure(String key) =>
       _storage.delete(key: key);
+
+  /// Which account the stored vault key / cached user currently belongs to.
+  /// Used to stop a key from one account being handed to another account on
+  /// the same device.
+  static const _currentUserIdKey = 'current_user_id';
+
+  Future<void> saveCurrentUserId(int id) =>
+      _storage.write(key: _currentUserIdKey, value: '$id');
+
+  Future<int?> getCurrentUserId() async {
+    final raw = await _storage.read(key: _currentUserIdKey);
+    return raw == null ? null : int.tryParse(raw);
+  }
+
+  Future<void> clearCurrentUserId() =>
+      _storage.delete(key: _currentUserIdKey);
 }
