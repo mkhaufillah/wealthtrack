@@ -857,6 +857,8 @@ class KPRService:
                         "old_installment": int(ep_result.old_installment),
                         "new_installment": int(ep_result.new_installment),
                         "total_interest_saved": int(ep_result.total_interest_saved),
+                        "original_end_date": ep_result.original_end_date,
+                        "new_end_date": ep_result.new_end_date,
                     }
                     packed_ep = KPRService._pack(
                         int(ep_dict.get("amount") or 0), extra=extra_payload

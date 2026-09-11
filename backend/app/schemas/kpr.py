@@ -127,6 +127,6 @@ class ExtraPaymentOut(BaseModel):
     old_installment: int
     new_installment: int
     total_interest_saved: int
-    original_end_date: str
-    new_end_date: str
+    original_end_date: str = ""
+    new_end_date: str = ""
     created_at: str
