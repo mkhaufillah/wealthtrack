@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/ui/copy_fallback.dart';
-import '../../core/ui/brand_mark.dart';
-import '../../core/ui/app_icons.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/copy_fallback.dart';
+import '../../../core/ui/brand_mark.dart';
+import '../../../core/ui/app_icons.dart';
 import '../providers/auth_provider.dart';
-import 'package:wealthtrack/core/api/api_client.dart';
-import 'package:wealthtrack/features/profile/data/household_repository.dart';
+import '../../../shared/providers/app_providers.dart';
+import '../../profile/data/household_repository.dart';
 
 /// Gate shown to authenticated users who have no household yet.
 ///
@@ -129,7 +129,7 @@ class _HouseholdSetupScreenState extends ConsumerState<HouseholdSetupScreen> {
                 Text(
                   t('hh.setup_title'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
