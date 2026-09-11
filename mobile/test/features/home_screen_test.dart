@@ -80,7 +80,8 @@ void main() {
     testWidgets('shows error display when error present', (tester) async {
       await tester.pumpWidget(buildHomeApp(error: 'Connection failed'));
       expect(find.text('Connection failed'), findsOneWidget);
-      expect(find.text('Coba lagi'), findsOneWidget);
+      expect(find.byType(BrandMark), findsOneWidget);
+      expect(find.text('Muat ulang'), findsOneWidget);
       await tester.pump();
     });
 

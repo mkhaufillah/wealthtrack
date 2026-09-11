@@ -188,7 +188,7 @@ void main() {
       await tester.pumpWidget(
           buildReportsApp(error: 'Failed to load reports'));
       expect(find.text('Failed to load reports'), findsOneWidget);
-      expect(find.byWidgetPredicate((w) => w is AppIcon && w.icon == HugeIcons.strokeRoundedAlert02), findsOneWidget);
+      expect(find.byType(BrandMark), findsOneWidget);
     });
 
     testWidgets('shows error display with retry button', (tester) async {
@@ -196,7 +196,7 @@ void main() {
         buildReportsApp(error: 'Something went wrong'),
       );
       expect(find.text('Something went wrong'), findsOneWidget);
-      expect(find.text('Coba lagi'), findsOneWidget);
+      expect(find.text('Muat ulang'), findsOneWidget);
     });
 
     testWidgets('shows month picker with navigation arrows', (tester) async {
