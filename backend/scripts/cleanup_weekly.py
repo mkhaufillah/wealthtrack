@@ -117,14 +117,13 @@ async def cleanup_ocr_jobs(conn, dry_run: bool):
 
     if dry_run:
         rows = await conn.fetch(
-            "SELECT id, image_filename, created_at FROM ocr_jobs "
+            "SELECT id, created_at FROM ocr_jobs "
             "WHERE created_at::timestamp < now() - interval '7 days' "
             "  AND transaction_id IS NULL "
             "ORDER BY created_at"
         )
         for r in rows:
-            print(f"  [DRY-RUN] Would delete: id={r['id']}, "
-                  f"file={r['image_filename']}, created={r['created_at']}")
+            print(f"  [DRY-RUN] Would delete: id={r['id']}, created={r['created_at']}")
         print(f"  Would delete {total_deletable} OCR job(s).")
     else:
         if total_deletable > 0:

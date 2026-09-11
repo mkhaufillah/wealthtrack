@@ -277,11 +277,9 @@ CREATE INDEX IF NOT EXISTS idx_household_members_household ON household_members(
 CREATE TABLE IF NOT EXISTS ocr_jobs (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
-    image_filename TEXT,
     status TEXT NOT NULL DEFAULT 'processing' CHECK(status IN ('processing', 'completed', 'failed')),
     transaction_id INTEGER REFERENCES transactions(id),
     error TEXT,
-    raw_text TEXT,
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     completed_at TEXT
 );
@@ -643,6 +641,8 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE bank_inbox DROP COLUMN IF EXISTS text",
         "ALTER TABLE bank_inbox DROP COLUMN IF EXISTS amount",
         "ALTER TABLE bank_inbox DROP COLUMN IF EXISTS merchant",
+        "ALTER TABLE ocr_jobs DROP COLUMN IF EXISTS image_filename",
+        "ALTER TABLE ocr_jobs DROP COLUMN IF EXISTS raw_text",
     ]
     for sql in stmts:
         try:

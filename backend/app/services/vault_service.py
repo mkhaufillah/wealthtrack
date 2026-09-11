@@ -215,10 +215,6 @@ class VaultService:
                 wipe="UPDATE kpr_rate_periods SET vault_blob=? WHERE id=?",
                 skip_ord=True,
             )
-            await self.db.execute(
-                f"UPDATE ocr_jobs SET image_filename=NULL WHERE user_id IN ({placeholders})",
-                tuple(uids),
-            )
         await self.db.execute(
             "UPDATE households SET vault_sealed = 1 WHERE id = ?",
             (hh_id,),

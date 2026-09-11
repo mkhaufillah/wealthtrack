@@ -220,8 +220,8 @@ class OcrService:
 
         # Create OCR job
         cursor = await self.db.execute(
-            "INSERT INTO ocr_jobs (user_id, image_filename, status) VALUES (?, ?, 'processing')",
-            (user_id, img_filename),
+            "INSERT INTO ocr_jobs (user_id, status) VALUES (?, 'processing')",
+            (user_id,),
         )
         job_id = cursor.lastrowid
         from app.core.vault_ctx import current_dek, set_dek

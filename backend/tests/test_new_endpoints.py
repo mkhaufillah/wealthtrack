@@ -120,7 +120,7 @@ class TestOcrProcessAndSave:
     async def test_concurrent_job_rejected(self, client: AsyncClient, filla_token: str, db):
         """Second job while one is processing returns 429."""
         await db.execute(
-            "INSERT INTO ocr_jobs (user_id, image_filename, status) VALUES (1, 'existing.png', 'processing')",
+            "INSERT INTO ocr_jobs (user_id, status) VALUES (1, 'processing')",
         )
         png_data = _make_tiny_png()
         resp = await client.post(
@@ -158,18 +158,18 @@ class TestOcrPendingCount:
         """Returns correct count of processing jobs for this user only."""
         # Two processing jobs for this user
         await db.execute(
-            "INSERT INTO ocr_jobs (user_id, image_filename, status) VALUES (1, 'job1.png', 'processing')",
+            "INSERT INTO ocr_jobs (user_id, status) VALUES (1, 'processing')",
         )
         await db.execute(
-            "INSERT INTO ocr_jobs (user_id, image_filename, status) VALUES (1, 'job2.png', 'processing')",
+            "INSERT INTO ocr_jobs (user_id, status) VALUES (1, 'processing')",
         )
         # Completed job (should not be counted)
         await db.execute(
-            "INSERT INTO ocr_jobs (user_id, image_filename, status) VALUES (1, 'done.png', 'completed')",
+            "INSERT INTO ocr_jobs (user_id, status) VALUES (1, 'completed')",
         )
         # Processing job for another user (should not be counted)
         await db.execute(
-            "INSERT INTO ocr_jobs (user_id, image_filename, status) VALUES (2, 'other.png', 'processing')",
+            "INSERT INTO ocr_jobs (user_id, status) VALUES (2, 'processing')",
         )
 
         resp = await client.get(
@@ -183,8 +183,8 @@ class TestOcrPendingCount:
     async def test_reports_recent_failure(self, client: AsyncClient, filla_token: str, db):
         """Returns error info when there is a recent failure."""
         await db.execute(
-            "INSERT INTO ocr_jobs (user_id, image_filename, status, error, created_at) "
-            "VALUES (1, 'failed.png', 'failed', 'Gagal baca struk. Fotoin yang lebih jelas ya.', NOW())",
+            "INSERT INTO ocr_jobs (user_id, status, error, created_at) "
+            "VALUES (1, 'failed', 'Gagal baca struk. Fotoin yang lebih jelas ya.', NOW())",
         )
 
         resp = await client.get(
