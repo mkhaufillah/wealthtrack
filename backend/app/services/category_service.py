@@ -251,11 +251,23 @@ class CategoryService:
         if existing["is_default"]:
             raise DefaultCategoryEditError(category_id)
 
-        cursor = await self.db.execute(
-            "SELECT id FROM transactions WHERE category_id = ? LIMIT 1", (category_id,)
-        )
-        if await cursor.fetchone():
-            raise CategoryInUseError(category_id)
+        from app.core.vault import category_trace
+        from app.core.vault_ctx import current_dek
+
+        dek = current_dek()
+        if dek is not None:
+            cursor = await self.db.execute(
+                "SELECT id FROM transactions WHERE category_trace = ? LIMIT 1",
+                (category_trace(dek, int(category_id)),),
+            )
+            if await cursor.fetchone():
+                raise CategoryInUseError(category_id)
+            cursor = await self.db.execute(
+                "SELECT id FROM budgets WHERE category_trace = ? LIMIT 1",
+                (category_trace(dek, int(category_id)),),
+            )
+            if await cursor.fetchone():
+                raise CategoryInUseError(category_id)
 
         await self.db.execute("DELETE FROM categories WHERE id = ?", (category_id,))
 

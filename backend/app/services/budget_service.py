@@ -572,7 +572,7 @@ class BudgetService:
 
         # Get existing budgets for this month
         cursor = await self.db.execute(
-            "SELECT category_id, vault_blob FROM budgets WHERE month = ? AND user_id = ?",
+            "SELECT vault_blob FROM budgets WHERE month = ? AND user_id = ?",
             (month, user_id),
         )
         from app.core.vault_row import open_row

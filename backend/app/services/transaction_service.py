@@ -649,7 +649,9 @@ class TransactionService:
         if not row:
             raise TransactionNotFoundError(txn_id)
 
-        c = await self._get_category(row["category_id"])
+        from app.core.vault_row import open_row
+        opened = open_row(dict(row))
+        c = await self._get_category(int(opened["category_id"])) if opened.get("category_id") is not None else None
         out = _format_txn(
             row,
             c["name"] if c else "",
@@ -727,7 +729,9 @@ class TransactionService:
             (txn_id,),
         )
         row = await cursor.fetchone()
-        c = await self._get_category(row["category_id"])
+        from app.core.vault_row import open_row
+        opened = open_row(dict(row))
+        c = await self._get_category(int(opened["category_id"])) if opened.get("category_id") is not None else None
 
         await self._index_meili(dict(row))
 
@@ -787,7 +791,9 @@ class TransactionService:
             (txn_id,),
         )
         row = await cursor.fetchone()
-        c = await self._get_category(row["category_id"])
+        from app.core.vault_row import open_row
+        opened = open_row(dict(row))
+        c = await self._get_category(int(opened["category_id"])) if opened.get("category_id") is not None else None
 
         await self._index_meili(dict(row))
 

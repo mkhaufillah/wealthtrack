@@ -277,7 +277,6 @@ CREATE TABLE IF NOT EXISTS credit_card_installments (
 CREATE TABLE IF NOT EXISTS credit_card_transactions (
     id SERIAL PRIMARY KEY,
     card_id INTEGER NOT NULL REFERENCES credit_cards(id) ON DELETE CASCADE,
-    category_id INTEGER REFERENCES categories(id),
     transaction_date TEXT NOT NULL,
     is_installment INTEGER NOT NULL DEFAULT 0,
     installment_id INTEGER REFERENCES credit_card_installments(id),

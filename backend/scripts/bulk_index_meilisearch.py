@@ -53,7 +53,7 @@ def main():
     client.create_index(INDEX_NAME, {"primaryKey": "id"})
     client.index(INDEX_NAME).update_searchable_attributes(["description"])
     client.index(INDEX_NAME).update_filterable_attributes(
-        ["user_id", "type", "category_id", "date"]
+        ["user_id", "type", "date"]
     )
     client.index(INDEX_NAME).update_sortable_attributes(["date", "amount"])
 
@@ -69,7 +69,6 @@ def main():
             "description": row.get("description", "") or "",
             "type": row["type"],
             "amount": int(row["amount"]),
-            "category_id": int(row["category_id"]),
             "user_id": int(row["user_id"]),
             "date": row.get("date") or "",
         })

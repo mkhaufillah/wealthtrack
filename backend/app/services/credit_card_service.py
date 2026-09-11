@@ -159,7 +159,7 @@ class CreditCardService:
 
         # Fetch transactions
         txn_cursor = await self.db.execute(
-            """SELECT id, card_id, category_id,
+            """SELECT id, card_id,
                       transaction_date, is_installment, installment_id, created_at, vault_blob
                FROM credit_card_transactions
                WHERE card_id = ?
@@ -256,16 +256,16 @@ class CreditCardService:
             extra={
                 "amount": int(data.amount),
                 "description": data.description or "",
+                "category_id": data.category_id,
             },
         )
         cursor = await self.db.execute(
             """INSERT INTO credit_card_transactions
-               (card_id, category_id,
+               (card_id,
                 transaction_date, is_installment, installment_id, vault_blob, amount_ord)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?)""",
             (
                 card_id,
-                data.category_id,
                 data.transaction_date,
                 1 if data.is_installment else 0,
                 data.installment_id,
@@ -276,7 +276,7 @@ class CreditCardService:
         txn_id = cursor.lastrowid
 
         txn_cursor = await self.db.execute(
-            """SELECT id, card_id, category_id,
+            """SELECT id, card_id,
                       transaction_date, is_installment, installment_id, created_at, vault_blob
                FROM credit_card_transactions WHERE id = ?""",
             (txn_id,),
@@ -291,7 +291,7 @@ class CreditCardService:
         await self.get_card_for_user(card_id, user_id)
 
         cursor = await self.db.execute(
-            """SELECT id, card_id, category_id,
+            """SELECT id, card_id,
                       transaction_date, is_installment, installment_id, created_at, vault_blob
                FROM credit_card_transactions
                WHERE card_id = ?
