@@ -233,6 +233,22 @@ class AuthService:
         user = await self._get_user_by_id(cursor.lastrowid)
         if not user:
             raise UserNotFoundError()
+
+        # Auto-create a personal household so solo users get a vault
+        # immediately. Without membership there is no DEK and every write
+        # fails with err.vault_required.
+        try:
+            from app.services.household_service import HouseholdService
+            from app.schemas.household import CreateHouseholdIn
+
+            await HouseholdService(self.db).create_household(
+                CreateHouseholdIn(name=(data.display_name or "Home")[:100]),
+                user["id"],
+            )
+        except Exception:
+            # Registration must not fail because solo household setup broke;
+            # the user can still create one later in Profile.
+            pass
         return user
 
     # ── Login ───────────────────────────────────────────────────────

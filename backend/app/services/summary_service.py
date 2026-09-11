@@ -708,6 +708,14 @@ class SummaryService:
                 "cc_count": cc_count,
                 "total_debt": total_kpr + total_cc,
             }
+        # No DEK = no plaintext. Money columns are vault-only now.
+        return {
+            "total_kpr": 0,
+            "kpr_count": 0,
+            "total_cc": 0,
+            "cc_count": 0,
+            "total_debt": 0,
+        }
         # Total KPR remaining with due_date awareness
         cursor = await self.db.execute(
             """SELECT COALESCE(SUM(
@@ -912,43 +920,9 @@ class SummaryService:
                 else:
                     kpr_private += amt
         else:
-            kpr_schedule_sub = """
-            CASE
-                WHEN ks.due_date IS NOT NULL AND EXTRACT(DAY FROM CURRENT_DATE) >= ks.due_date THEN
-                    COALESCE((
-                        SELECT kms.remaining_balance
-                        FROM kpr_monthly_schedules kms
-                        WHERE kms.simulation_id = ks.id
-                        AND kms.month_number = cm.current_month
-                    ), ks.total_loan)
-                ELSE
-                    CASE WHEN cm.current_month <= 1 THEN ks.total_loan
-                    ELSE (
-                        SELECT kms.remaining_balance
-                        FROM kpr_monthly_schedules kms
-                        WHERE kms.simulation_id = ks.id
-                        AND kms.month_number = cm.current_month - 1
-                    ) END
-            END
-        """
-            cursor = await self.db.execute(
-            f"""SELECT
-                COALESCE(SUM(CASE WHEN ks.household_id IS NULL THEN ({kpr_schedule_sub}) ELSE 0 END), 0) AS total_kpr_private,
-                COALESCE(SUM(CASE WHEN ks.household_id IS NOT NULL THEN ({kpr_schedule_sub}) ELSE 0 END), 0) AS total_kpr_shared
-            FROM kpr_simulations ks
-            CROSS JOIN LATERAL (
-                SELECT LEAST(
-                    (EXTRACT(YEAR FROM CURRENT_DATE) - ks.start_year) * 12
-                    + (EXTRACT(MONTH FROM CURRENT_DATE) - ks.start_month) + 1,
-                    ks.tenor_months
-                ) AS current_month
-            ) cm
-            WHERE ks.user_id = ?""",
-            (user_id,),
-            )
-            row = await cursor.fetchone()
-            kpr_private = int(row["total_kpr_private"]) if row else 0
-            kpr_shared = int(row["total_kpr_shared"]) if row else 0
+            # No DEK: no plaintext snapshot columns left, so no KPR estimate.
+            kpr_private = 0
+            kpr_shared = 0
 
         from datetime import date as _date
 

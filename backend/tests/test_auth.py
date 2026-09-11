@@ -140,6 +140,44 @@ class TestAuthRegister:
         )
         assert resp.status_code == 422
 
+    async def test_register_creates_personal_household(
+        self, client: AsyncClient, db
+    ):
+        """New users get a personal household so the vault can seal."""
+        email = "solo@example.com"
+        await client.post("/api/v1/auth/send-otp", json={"email": email})
+        cur = await db.execute(
+            "SELECT code FROM email_verifications WHERE email = ? "
+            "ORDER BY created_at DESC LIMIT 1",
+            (email,),
+        )
+        row = await cur.fetchone()
+        assert row is not None, "send-otp should persist the code"
+
+        resp = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": email,
+                "otp_code": row["code"],
+                "username": "solouser",
+                "display_name": "Solo User",
+                "password": "securepass123",
+            },
+        )
+        assert resp.status_code == 201, resp.text
+
+        login = await client.post(
+            "/api/v1/auth/login",
+            json={"username": "solouser", "password": "securepass123"},
+        )
+        assert login.status_code == 200
+        token = login.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        me = await client.get("/api/v1/households/me", headers=headers)
+        assert me.status_code == 200, me.text
+        assert me.json()["household"]["name"] == "Solo User"
+
 
 class TestAuthMe:
     async def test_me_success(self, client: AsyncClient, filla_token: str):
