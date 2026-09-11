@@ -134,7 +134,8 @@ class CreditCardService:
                    cc.id, cc.user_id,
                    cc.billing_date, cc.due_date, cc.vault_blob,
                    cc.created_at, cc.household_id, cc.display_order,
-                   COALESCE(active_inst.cnt, 0) AS active_installments
+                   COALESCE(active_inst.cnt, 0) AS active_installments,
+                   COALESCE(active_txn.cnt, 0) AS active_transactions
                FROM credit_cards cc
                LEFT JOIN (
                    SELECT card_id, COUNT(*) AS cnt
@@ -142,6 +143,11 @@ class CreditCardService:
                    WHERE remaining_months > 0
                    GROUP BY card_id
                ) active_inst ON active_inst.card_id = cc.id
+               LEFT JOIN (
+                   SELECT card_id, COUNT(*) AS cnt
+                   FROM credit_card_transactions
+                   GROUP BY card_id
+               ) active_txn ON active_txn.card_id = cc.id
                WHERE cc.user_id = ?
                   OR cc.household_id IN (
                       SELECT household_id FROM household_members WHERE user_id = ?
@@ -424,10 +430,14 @@ class CreditCardService:
         cards = await cursor.fetchall()
         per_card: list[dict] = []
         grand_total = 0
+        total_txns = 0
+        total_insts = 0
         for r in cards:
             card_id = r["card_id"]
             card = open_row({"vault_blob": r["card_blob"]})
             monthly = 0
+            txn_n = 0
+            inst_n = 0
             tcur = await self.db.execute(
                 """SELECT vault_blob FROM credit_card_transactions
                    WHERE card_id = ?
@@ -437,6 +447,7 @@ class CreditCardService:
             )
             for t in await tcur.fetchall():
                 monthly += int(open_row(dict(t)).get("amount") or 0)
+                txn_n += 1
             icur = await self.db.execute(
                 """SELECT vault_blob, total_months, start_month FROM credit_card_installments
                    WHERE card_id = ?
@@ -450,37 +461,23 @@ class CreditCardService:
             )
             for inst in await icur.fetchall():
                 monthly += int(open_row(dict(inst)).get("monthly_amount") or 0)
+                inst_n += 1
             grand_total += monthly
+            total_txns += txn_n
+            total_insts += inst_n
             per_card.append(
                 {
                     "card_id": card_id,
                     "card_name": card.get("name") or "",
                     "total": monthly,
+                    "txn_count": txn_n,
+                    "inst_count": inst_n,
                 }
             )
 
-        # Count distinct active installments dynamically (remaining > 0)
-        count_cursor = await self.db.execute(
-            """SELECT COUNT(*) AS cnt
-               FROM credit_card_installments cci
-               JOIN credit_cards cc ON cc.id = cci.card_id
-               WHERE (cc.user_id = ?
-                  OR cc.household_id IN (
-                      SELECT household_id FROM household_members WHERE user_id = ?
-                  ))
-                 AND cci.total_months > (
-                     EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12
-                     + EXTRACT(MONTH FROM CURRENT_DATE)::integer
-                     - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12
-                        + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
-                 )""",
-            (user_id, user_id),
-        )
-        count_row = await count_cursor.fetchone()
-        total_installments = int(count_row["cnt"] or 0) if count_row else 0
-
         return NextMonthProjection(
-            total_installments=total_installments,
+            total_installments=total_insts,
+            total_transactions=total_txns,
             total_expected=grand_total,
             per_card=per_card,
         )

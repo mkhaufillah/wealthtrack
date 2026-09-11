@@ -146,6 +146,12 @@ class TestCreateTransaction:
         assert data["amount"] == 50000
         assert data["card_id"] == card_id
 
+        listed = await client.get("/api/v1/credit-cards", headers=auth_headers)
+        assert listed.status_code == 200
+        card = next(c for c in listed.json() if c["id"] == card_id)
+        assert card["active_transactions"] == 1
+        assert card["active_installments"] == 0
+
     async def test_transaction_on_nonexistent_card(
         self, client: AsyncClient, auth_headers: dict
     ):
@@ -271,6 +277,7 @@ class TestNextMonthProjection:
         data = resp.json()
         assert data["total_installments"] == 0
         assert data["total_expected"] == 0
+        assert data["total_transactions"] == 0
 
     async def test_projection_with_installments(
         self, client: AsyncClient, auth_headers: dict
@@ -324,6 +331,47 @@ class TestNextMonthProjection:
         # total_installments is the count of active installments
         assert data["total_installments"] == 2
         assert len(data["per_card"]) == 1  # both on the same card
+        assert data["total_transactions"] == 0
+
+    async def test_projection_counts_this_month_transactions(
+        self, client: AsyncClient, auth_headers: dict
+    ):
+        from datetime import date
+
+        card_resp = await client.post(
+            "/api/v1/credit-cards",
+            json={"name": "BCA", "billing_date": 5, "due_date": 20},
+            headers=auth_headers,
+        )
+        card_id = card_resp.json()["id"]
+        today = date.today().isoformat()
+        await client.post(
+            f"/api/v1/credit-cards/{card_id}/transactions",
+            json={"description": "Kopi", "amount": 50000, "transaction_date": today},
+            headers=auth_headers,
+        )
+        await client.post(
+            f"/api/v1/credit-cards/{card_id}/installments",
+            json={
+                "description": "HP",
+                "total_amount": 12000000,
+                "monthly_amount": 1000000,
+                "total_months": 12,
+                "remaining_months": 12,
+                "start_month": today[:7],
+            },
+            headers=auth_headers,
+        )
+        proj = await client.get(
+            "/api/v1/credit-cards/next-month-projection", headers=auth_headers
+        )
+        assert proj.status_code == 200
+        data = proj.json()
+        assert data["total_transactions"] == 1
+        assert data["total_installments"] == 1
+        assert data["total_expected"] == 1050000
+        assert data["per_card"][0]["txn_count"] == 1
+        assert data["per_card"][0]["inst_count"] == 1
 
 
 # ── Delete & Cascade ─────────────────────────────────────────────────

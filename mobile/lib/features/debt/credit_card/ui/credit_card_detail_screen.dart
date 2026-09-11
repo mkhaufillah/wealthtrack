@@ -332,10 +332,11 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
 
   Widget _buildProjectionSummary(Map<String, dynamic>? cardProjection, NextMonthProjection projection, {CreditCardModel? card}) {
     final totalForCard = cardProjection?['total'] as int? ?? projection.totalExpected;
-    final perCardCount = card?.installments
-            ?.where((inst) => inst.remainingMonths > 0)
-            .length ??
+    final instCount = cardProjection?['inst_count'] as int? ??
+        card?.installments?.where((inst) => inst.remainingMonths > 0).length ??
         projection.totalInstallments;
+    final txnCount = cardProjection?['txn_count'] as int? ??
+        projection.totalTransactions;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -363,8 +364,9 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  t('cc.inst_note')
-                    .replaceAll('{count}', '$perCardCount')
+                  t('cc.proj_note')
+                    .replaceAll('{tx}', '$txnCount')
+                    .replaceAll('{inst}', '$instCount')
                     .replaceAll('{amount}', formatCurrency(totalForCard)),
                   style: TextStyle(
                     fontSize: 13,

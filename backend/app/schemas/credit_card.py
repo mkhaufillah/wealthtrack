@@ -28,6 +28,7 @@ class CreditCardOut(BaseModel):
     credit_limit: int
     created_at: str
     active_installments: int = 0
+    active_transactions: int = 0
     household_id: Optional[int] = None
     display_order: int = 0
 
@@ -74,5 +75,6 @@ class CreditCardInstallmentOut(BaseModel):
 
 class NextMonthProjection(BaseModel):
     total_installments: int = 0
+    total_transactions: int = 0
     total_expected: int = 0
     per_card: list[dict] = []

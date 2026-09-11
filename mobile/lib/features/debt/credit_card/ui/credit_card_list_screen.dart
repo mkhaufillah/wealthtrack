@@ -74,6 +74,9 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
     final totalActiveInstallments = state.cards.fold<int>(0, (sum, c) {
       return sum + (c.activeInstallments);
     });
+    final totalActiveTransactions = state.cards.fold<int>(0, (sum, c) {
+      return sum + (c.activeTransactions);
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -105,7 +108,11 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
                           itemCount: state.cards.length + 1, // +1 for summary header
                           itemBuilder: (_, i) {
                             if (i == 0) {
-                              return _buildSummaryHeader(totalLimit, totalActiveInstallments);
+                              return _buildSummaryHeader(
+                                totalLimit,
+                                totalActiveInstallments,
+                                totalActiveTransactions,
+                              );
                             }
                             return _buildCard(state.cards[i - 1]);
                           },
@@ -120,7 +127,11 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
     );
   }
 
-  Widget _buildSummaryHeader(int totalLimit, int totalActiveInstallments) {
+  Widget _buildSummaryHeader(
+    int totalLimit,
+    int totalActiveInstallments,
+    int totalActiveTransactions,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -150,6 +161,15 @@ class _CreditCardListScreenState extends ConsumerState<CreditCardListScreen> {
               Expanded(
                 child: _summaryItem(t('cc.inst_active'), totalActiveInstallments.toString(), AppIcons.receipt),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _summaryItem(t('cc.txn_active'), totalActiveTransactions.toString(), AppIcons.receipt),
+              ),
+              const Expanded(child: SizedBox()),
             ],
           ),
         ],

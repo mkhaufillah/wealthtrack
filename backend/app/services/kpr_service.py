@@ -746,6 +746,12 @@ class KPRService:
         from app.core.vault_row import open_row
 
         rows = await cursor.fetchall()
+        month_cur = await db.execute(
+            """SELECT month_number FROM kpr_monthly_schedules
+               WHERE simulation_id = ?""",
+            (sim_id,),
+        )
+        month_nums = [int(r["month_number"]) for r in await month_cur.fetchall()]
         out = []
         for r in rows:
             d = open_row(dict(r))
@@ -764,6 +770,12 @@ class KPRService:
                 "total_interest_saved",
             ):
                 d[k] = int(d[k] or 0) if d.get(k) is not None else 0
+            apply = int(d.get("apply_month") or 0)
+            live = sum(1 for m in month_nums if m >= apply) if apply else len(month_nums)
+            if d["new_remaining_months"] <= 0 and live > 0:
+                d["new_remaining_months"] = live
+            if d["old_remaining_months"] <= 0 and live > 0:
+                d["old_remaining_months"] = live
             d["original_end_date"] = d.get("original_end_date") or ""
             d["new_end_date"] = d.get("new_end_date") or ""
             d["reduction_type"] = d.get("reduction_type") or "tenor"

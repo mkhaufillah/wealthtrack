@@ -8,6 +8,7 @@ class CreditCardModel {
   final int creditLimit;
   final String createdAt;
   final int activeInstallments;
+  final int activeTransactions;
   final List<CCTransaction>? transactions;
   final List<CCInstallment>? installments;
 
@@ -21,6 +22,7 @@ class CreditCardModel {
     this.creditLimit = 0,
     required this.createdAt,
     this.activeInstallments = 0,
+    this.activeTransactions = 0,
     this.transactions,
     this.installments,
   });
@@ -36,6 +38,7 @@ class CreditCardModel {
       creditLimit: json['credit_limit'] as int? ?? 0,
       createdAt: json['created_at'] as String? ?? '',
       activeInstallments: json['active_installments'] as int? ?? 0,
+      activeTransactions: json['active_transactions'] as int? ?? 0,
       transactions: (json['transactions'] as List?)
           ?.map((e) => CCTransaction.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -124,11 +127,13 @@ class CCInstallment {
 
 class NextMonthProjection {
   final int totalInstallments;
+  final int totalTransactions;
   final int totalExpected;
   final List<Map<String, dynamic>> perCard;
 
   NextMonthProjection({
     this.totalInstallments = 0,
+    this.totalTransactions = 0,
     this.totalExpected = 0,
     this.perCard = const [],
   });
@@ -136,6 +141,7 @@ class NextMonthProjection {
   factory NextMonthProjection.fromJson(Map<String, dynamic> json) {
     return NextMonthProjection(
       totalInstallments: json['total_installments'] as int? ?? 0,
+      totalTransactions: json['total_transactions'] as int? ?? 0,
       totalExpected: json['total_expected'] as int? ?? 0,
       perCard: (json['per_card'] as List?)
               ?.map((e) => e as Map<String, dynamic>)
