@@ -334,7 +334,6 @@ CREATE INDEX IF NOT EXISTS idx_ocr_jobs_user_created ON ocr_jobs(user_id, create
 CREATE TABLE IF NOT EXISTS kpr_simulations (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
-    name TEXT NOT NULL DEFAULT 'KPR Simulation',
     tenor_months INTEGER NOT NULL DEFAULT 120,
     interest_type TEXT NOT NULL DEFAULT 'fixed' CHECK(interest_type IN ('fixed', 'floating', 'graduated', 'mix')),
     start_month INTEGER NOT NULL DEFAULT 1,
@@ -381,8 +380,6 @@ CREATE TABLE IF NOT EXISTS kpr_extra_payments (
     simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
     apply_month INTEGER NOT NULL,
     reduction_type TEXT NOT NULL DEFAULT 'tenor' CHECK(reduction_type IN ('tenor', 'installment')),
-    original_end_date TEXT DEFAULT '',
-    new_end_date TEXT DEFAULT '',
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
 
@@ -391,7 +388,6 @@ CREATE INDEX IF NOT EXISTS idx_kpr_extra_payments_sim ON kpr_extra_payments(simu
 CREATE TABLE IF NOT EXISTS credit_cards (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
-    name TEXT NOT NULL,
     billing_date INTEGER NOT NULL DEFAULT 1,
     due_date INTEGER NOT NULL DEFAULT 15,
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
@@ -630,6 +626,7 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS total_interest_saved",
         "ALTER TABLE credit_cards DROP COLUMN IF EXISTS credit_limit",
         "ALTER TABLE credit_cards DROP COLUMN IF EXISTS card_number_last4",
+        "ALTER TABLE credit_cards DROP COLUMN IF EXISTS name",
         "ALTER TABLE credit_card_transactions DROP COLUMN IF EXISTS description",
         "ALTER TABLE credit_card_transactions DROP COLUMN IF EXISTS amount",
         "ALTER TABLE credit_card_installments DROP COLUMN IF EXISTS description",
@@ -643,6 +640,10 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE bank_inbox DROP COLUMN IF EXISTS merchant",
         "ALTER TABLE ocr_jobs DROP COLUMN IF EXISTS image_filename",
         "ALTER TABLE ocr_jobs DROP COLUMN IF EXISTS raw_text",
+        "ALTER TABLE ocr_jobs DROP COLUMN IF EXISTS vault_blob",
+        "ALTER TABLE kpr_simulations DROP COLUMN IF EXISTS name",
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS original_end_date",
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS new_end_date",
     ]
     for sql in stmts:
         try:

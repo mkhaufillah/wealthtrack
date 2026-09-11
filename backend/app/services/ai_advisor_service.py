@@ -469,7 +469,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
     # KPR per-simulation details with owner
     hh_where = "ks.user_id = ? OR ks.household_id IN (SELECT household_id FROM household_members WHERE user_id = ?)"
     cursor = await db.execute(
-        f"""SELECT ks.id, ks.name, ks.vault_blob, ks.interest_type, ks.tenor_months,
+        f"""SELECT ks.id, ks.vault_blob, ks.interest_type, ks.tenor_months,
                   ks.start_month, ks.start_year, ks.due_date, ks.user_id,
                   u.display_name AS owner,
                   CASE WHEN ks.user_id = ? THEN 0 ELSE 1 END AS is_member,
@@ -533,7 +533,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
     # CC per-card details with owner
     cursor = await db.execute(
-        f"""SELECT cc.id, cc.name, cc.billing_date, cc.due_date, cc.vault_blob,
+        f"""SELECT cc.id, cc.billing_date, cc.due_date, cc.vault_blob,
                   cc.user_id, u.display_name AS owner,
                   CASE WHEN cc.user_id = ? THEN 0 ELSE 1 END AS is_member
            FROM credit_cards cc
@@ -628,7 +628,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
             tail = f" *{last4}" if last4 else ""
             spent = spend_by_card.get(cid, 0)
             debt_parts.append(
-                f"  - {c['name']}{tail} ({c['owner']}): limit Rp{int(card.get('credit_limit') or 0):,}, "
+                f"  - {card.get('name') or 'Kartu'}{tail} ({c['owner']}): limit Rp{int(card.get('credit_limit') or 0):,}, "
                 f"tagihan tgl {c['billing_date']}, tempo tgl {c['due_date']}, "
                 f"belanja bulan ini Rp{spent:,}"
             )

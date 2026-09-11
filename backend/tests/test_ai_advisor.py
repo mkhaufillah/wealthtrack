@@ -600,13 +600,14 @@ async def test_debt_context_has_kpr_and_cc_detail(db):
             "down_payment": 100000000,
             "total_loan": 400000000,
             "base_interest_rate": 0.075,
+            "name": "Rumah BSD",
         },
     )
     await db.execute(
         """INSERT INTO kpr_simulations
-           (id, user_id, name, tenor_months, interest_type, start_month, start_year, due_date,
+           (id, user_id, tenor_months, interest_type, start_month, start_year, due_date,
             vault_blob, amount_ord)
-           VALUES (1, 1, 'Rumah BSD', 240, 'fixed', 1, 2026, 10, ?, ?)""",
+           VALUES (1, 1, 240, 'fixed', 1, 2026, 10, ?, ?)""",
         (sim_pack["vault_blob"], sim_pack["amount_ord"]),
     )
     sch_pack = pack_money(
@@ -634,8 +635,8 @@ async def test_debt_context_has_kpr_and_cc_detail(db):
         extra={"credit_limit": 20000000, "card_number_last4": "1234", "name": "BCA"},
     )
     await db.execute(
-        """INSERT INTO credit_cards (id, user_id, name, billing_date, due_date, vault_blob, amount_ord)
-           VALUES (1, 1, 'BCA', 5, 15, ?, ?)""",
+        """INSERT INTO credit_cards (id, user_id, billing_date, due_date, vault_blob, amount_ord)
+           VALUES (1, 1, 5, 15, ?, ?)""",
         (cc_pack["vault_blob"], cc_pack["amount_ord"]),
     )
     inst_pack = pack_money(

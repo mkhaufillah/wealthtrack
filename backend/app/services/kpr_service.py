@@ -225,6 +225,7 @@ class KPRService:
             packed_sim = KPRService._pack(
                 total_loan,
                 extra={
+                    "name": data.name or "",
                     "property_price": int(data.property_price),
                     "down_payment": int(data.down_payment),
                     "total_loan": int(total_loan),
@@ -235,12 +236,11 @@ class KPRService:
             )
             cursor = await db.execute(
                 """INSERT INTO kpr_simulations
-                   (user_id, name, tenor_months, interest_type, start_month, start_year, due_date,
+                   (user_id, tenor_months, interest_type, start_month, start_year, due_date,
                     household_id, vault_blob, amount_ord)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     user_id,
-                    data.name,
                     data.tenor_months,
                     data.interest_type,
                     data.start_month,
@@ -318,7 +318,7 @@ class KPRService:
     ) -> list[dict]:
         """List all KPR simulations accessible to the user (metadata only)."""
         cursor = await db.execute(
-            """SELECT ks.id, ks.user_id, ks.name, ks.tenor_months, ks.interest_type, ks.created_at,
+            """SELECT ks.id, ks.user_id, ks.tenor_months, ks.interest_type, ks.created_at,
                       ks.start_month, ks.start_year, ks.due_date,
                       ks.household_id, ks.display_order, ks.vault_blob
                FROM kpr_simulations ks
@@ -422,22 +422,20 @@ class KPRService:
         fields: list[str] = []
         params: list = []
 
-        if data.name is not None:
-            fields.append("name = ?")
-            params.append(data.name)
         if data.tenor_months is not None:
             fields.append("tenor_months = ?")
             params.append(data.tenor_months)
 
         prop_provided = data.property_price is not None
         dp_provided = data.down_payment is not None
-        if prop_provided or dp_provided:
-            prop = int(data.property_price if prop_provided else sim["property_price"])
-            dp = int(data.down_payment if dp_provided else sim["down_payment"])
+        if data.name is not None or prop_provided or dp_provided:
+            prop = int(data.property_price if prop_provided else sim.get("property_price") or 0)
+            dp = int(data.down_payment if dp_provided else sim.get("down_payment") or 0)
             new_total = prop - dp
             packed = KPRService._pack(
                 new_total,
                 extra={
+                    "name": data.name if data.name is not None else sim.get("name") or "",
                     "property_price": prop,
                     "down_payment": dp,
                     "total_loan": new_total,
@@ -670,17 +668,17 @@ class KPRService:
                 "old_installment": int(result.old_installment),
                 "new_installment": int(result.new_installment),
                 "total_interest_saved": int(result.total_interest_saved),
+                "original_end_date": result.original_end_date,
+                "new_end_date": result.new_end_date,
             }
             packed_ep = KPRService._pack(int(data.amount), extra=extra_payload)
             cursor = await db.execute(
                 """INSERT INTO kpr_extra_payments
-                   (simulation_id, apply_month, reduction_type,
-                    original_end_date, new_end_date, vault_blob, amount_ord)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   (simulation_id, apply_month, reduction_type, vault_blob, amount_ord)
+                   VALUES (?, ?, ?, ?, ?)""",
                 (
                     sim_id,
                     data.apply_month, data.reduction_type,
-                    result.original_end_date, result.new_end_date,
                     packed_ep["vault_blob"], packed_ep["amount_ord"],
                 ),
             )
@@ -698,7 +696,6 @@ class KPRService:
         fetch_cursor = await db.execute(
             """SELECT id, simulation_id, vault_blob,
                       apply_month, reduction_type,
-                      original_end_date, new_end_date,
                       created_at
                FROM kpr_extra_payments WHERE id = ?""",
             (extra_id,),
@@ -740,7 +737,6 @@ class KPRService:
         cursor = await db.execute(
             """SELECT id, simulation_id, vault_blob,
                       apply_month, reduction_type,
-                      original_end_date, new_end_date,
                       created_at
                FROM kpr_extra_payments
                WHERE simulation_id = ?

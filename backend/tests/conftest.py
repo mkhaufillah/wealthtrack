@@ -213,7 +213,6 @@ CREATE TABLE ai_chat_summaries (
 CREATE TABLE kpr_simulations (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
-    name TEXT NOT NULL DEFAULT 'KPR Simulation',
     tenor_months INTEGER NOT NULL DEFAULT 120,
     interest_type TEXT NOT NULL DEFAULT 'fixed' CHECK(interest_type IN ('fixed', 'floating', 'graduated', 'mix')),
     start_month INTEGER NOT NULL DEFAULT 1,
@@ -249,8 +248,6 @@ CREATE TABLE IF NOT EXISTS kpr_extra_payments (
     simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
     apply_month INTEGER NOT NULL,
     reduction_type TEXT NOT NULL DEFAULT 'tenor' CHECK(reduction_type IN ('tenor', 'installment')),
-    original_end_date TEXT DEFAULT '',
-    new_end_date TEXT DEFAULT '',
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     vault_blob TEXT DEFAULT '',
     amount_ord BIGINT
@@ -259,7 +256,6 @@ CREATE TABLE IF NOT EXISTS kpr_extra_payments (
 CREATE TABLE IF NOT EXISTS credit_cards (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
-    name TEXT NOT NULL,
     billing_date INTEGER NOT NULL DEFAULT 1,
     due_date INTEGER NOT NULL DEFAULT 15,
     household_id INTEGER DEFAULT NULL,

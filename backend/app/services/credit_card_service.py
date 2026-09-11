@@ -112,12 +112,11 @@ class CreditCardService:
         )
         cursor = await self.db.execute(
             """INSERT INTO credit_cards
-               (user_id, name, billing_date, due_date,
+               (user_id, billing_date, due_date,
                 household_id, vault_blob, amount_ord)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?)""",
             (
                 user_id,
-                data.name,
                 data.billing_date,
                 data.due_date,
                 data.household_id,
@@ -132,7 +131,7 @@ class CreditCardService:
         """List all credit cards for the user, including household shared cards."""
         cursor = await self.db.execute(
             """SELECT
-                   cc.id, cc.user_id, cc.name,
+                   cc.id, cc.user_id,
                    cc.billing_date, cc.due_date, cc.vault_blob,
                    cc.created_at, cc.household_id, cc.display_order,
                    COALESCE(active_inst.cnt, 0) AS active_installments
@@ -204,9 +203,6 @@ class CreditCardService:
         fields: list[str] = []
         params: list = []
 
-        if data.name is not None:
-            fields.append("name = ?")
-            params.append(data.name)
         if data.billing_date is not None:
             fields.append("billing_date = ?")
             params.append(data.billing_date)
@@ -423,13 +419,13 @@ class CreditCardService:
         from app.core.vault_row import open_row
 
         cursor = await self.db.execute(
-            """SELECT cc.id AS card_id, cc.name AS card_name, cc.vault_blob AS card_blob
+            """SELECT cc.id AS card_id, cc.vault_blob AS card_blob
                FROM credit_cards cc
                WHERE cc.user_id = ?
                   OR cc.household_id IN (
                       SELECT household_id FROM household_members WHERE user_id = ?
                   )
-               ORDER BY cc.name""",
+               ORDER BY cc.id""",
             (user_id, user_id),
         )
         cards = await cursor.fetchall()
@@ -437,7 +433,7 @@ class CreditCardService:
         grand_total = 0
         for r in cards:
             card_id = r["card_id"]
-            card = open_row({"name": r["card_name"], "vault_blob": r["card_blob"]})
+            card = open_row({"vault_blob": r["card_blob"]})
             monthly = 0
             tcur = await self.db.execute(
                 """SELECT vault_blob FROM credit_card_transactions
@@ -465,7 +461,7 @@ class CreditCardService:
             per_card.append(
                 {
                     "card_id": card_id,
-                    "card_name": card.get("name") or r["card_name"],
+                    "card_name": card.get("name") or "",
                     "total": monthly,
                 }
             )
