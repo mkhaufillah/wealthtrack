@@ -149,7 +149,10 @@ class _KPRDetailScreenState extends ConsumerState<KPRDetailScreen> {
                   onRetry: _onRefresh,
                 )
               : sim == null
-                  ? ErrorDisplay(message: t('kpr.sim_not_found'))
+                  ? ErrorDisplay(
+                      message: t('kpr.sim_not_found'),
+                      onRetry: _onRefresh,
+                    )
                   : RefreshIndicator(
                       onRefresh: _onRefresh,
                       child: ListView(

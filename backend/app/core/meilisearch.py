@@ -148,7 +148,11 @@ def bulk_index_documents(docs: list[dict], wait: bool = False) -> None:
     task = get_index().add_documents(docs)
     if wait:
         uid = task.task_uid if hasattr(task, "task_uid") else task
-        get_index().wait_for_task(uid, timeout_ms=120_000)
+        idx = get_index()
+        try:
+            idx.wait_for_task(uid, timeout_ms=120_000)
+        except TypeError:
+            idx.wait_for_task(uid, timeout=120)
 
 
 def clear_index() -> None:

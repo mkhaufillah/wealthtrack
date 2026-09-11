@@ -1,7 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/ui/app_icons.dart';
+import '../../core/ui/brand_mark.dart';
 import '../../core/ui/copy_fallback.dart';
+
+String friendlyErrorText(String raw) {
+  final s = raw.trim();
+  if (s.isEmpty) return t('err.generic');
+  final low = s.toLowerCase();
+  if (low.contains('<html') ||
+      low.contains('<!doctype') ||
+      low.contains('<body') ||
+      low.contains('<head')) {
+    return t('err.generic');
+  }
+  if (s.length > 280) return t('err.generic');
+  return s;
+}
 
 class ErrorDisplay extends StatelessWidget {
   final String message;
@@ -10,27 +24,40 @@ class ErrorDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = friendlyErrorText(message);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppIcon(AppIcons.alert, size: 48, color: AppColors.highlight),
-            const SizedBox(height: 16),
-            Text(message, textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-            if (onRetry != null) ...[
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: onRetry,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-                icon: AppIcon(AppIcons.refresh, size: 18),
-                label: Text(t('common.retry')),
+            const BrandMark(size: 96),
+            const SizedBox(height: 20),
+            Text(
+              t('err.title'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
               ),
-            ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.4),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: onRetry ?? () {},
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.onAccent,
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+              ),
+              child: Text(t('err.refresh')),
+            ),
           ],
         ),
       ),

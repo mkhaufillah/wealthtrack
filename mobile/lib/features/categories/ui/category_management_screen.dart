@@ -6,6 +6,7 @@ import '../../../core/ui/app_icons.dart';
 import '../../../core/ui/category_glyph.dart';
 import '../../../core/ui/category_icons.dart';
 import '../../../core/ui/copy_fallback.dart';
+import '../../../shared/widgets/error_display.dart';
 
 class CategoryManagementScreen extends ConsumerStatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -360,7 +361,10 @@ class _CategoryManagementScreenState
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
-              ? Center(child: Text('${t('cat.fail')}: ${state.error}'))
+              ? ErrorDisplay(
+                  message: state.error!,
+                  onRetry: () => ref.read(categoryManagementProvider.notifier).load(),
+                )
               : RefreshIndicator(
                   onRefresh: () =>
                       ref.read(categoryManagementProvider.notifier).load(),

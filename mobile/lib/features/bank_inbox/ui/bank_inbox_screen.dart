@@ -6,6 +6,7 @@ import '../../../core/ui/app_icons.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/utils/currency_formatter.dart';
+import '../../../shared/widgets/error_display.dart';
 import '../data/bank_capture.dart';
 
 class BankInboxScreen extends ConsumerStatefulWidget {
@@ -270,12 +271,7 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(_error!, style: TextStyle(color: AppColors.highlight)),
-        ),
-      );
+      return ErrorDisplay(message: _error!, onRetry: _load);
     }
     if (_items.isEmpty) {
       return Center(

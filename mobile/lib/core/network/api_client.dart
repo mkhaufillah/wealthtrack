@@ -12,6 +12,23 @@ import 'api_exceptions.dart';
 /// This client only handles transport-level failures (no network, expired
 /// session). Any `detail` the server sends is passed through as-is.
 
+String _looksLikeHtml(String raw) {
+  final s = raw.trim().toLowerCase();
+  return s.contains('<html') ||
+      s.contains('<!doctype') ||
+      s.contains('<body') ||
+      s.contains('<head');
+}
+
+String _statusCopy(int? status) {
+  return switch (status) {
+    403 => t('err.forbidden'),
+    404 => t('err.not_found'),
+    502 || 503 || 504 => t('err.unavailable'),
+    _ => t('err.generic'),
+  };
+}
+
 String _rawCode(DioException error) {
   final data = error.response?.data;
   if (data is Map && data['code'] is String) {
@@ -191,15 +208,15 @@ class ApiClient {
         return ApiException(t(code), statusCode: error.response?.statusCode);
       }
 
-      // Server-localized detail (or legacy ID string).
-      if (rawMsg.isNotEmpty) {
+      // Server-localized detail (or legacy ID string). Never dump HTML.
+      if (rawMsg.isNotEmpty && !_looksLikeHtml(rawMsg) && rawMsg.length < 280) {
         return ApiException(rawMsg, statusCode: error.response?.statusCode);
       }
 
       if (error.response?.statusCode == 429) {
         return ApiException(t('err.rate_limit'));
       }
-      return ApiException(t('err.generic'));
+      return ApiException(_statusCopy(error.response?.statusCode));
     }
 
     return ApiException(t('err.generic'));

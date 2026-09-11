@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'core/theme/app_theme.dart';
+import 'core/ui/copy_fallback.dart';
 import 'core/ui/ui_config.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/ui/login_screen.dart';
@@ -40,6 +41,7 @@ import 'shared/providers/theme_provider.dart';
 import 'shared/providers/locale_provider.dart';
 import 'shared/providers/onboarding_provider.dart';
 import 'shared/widgets/app_scaffold.dart';
+import 'shared/widgets/error_display.dart';
 
 final _isAuthenticatedProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).isAuthenticated;
@@ -50,6 +52,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final onboarded = ref.watch(onboardingProvider);
   return GoRouter(
     initialLocation: '/login',
+    errorBuilder: (context, state) => Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: ErrorDisplay(
+          message: t('err.not_found'),
+          onRetry: () => GoRouter.of(context).go('/home'),
+        ),
+      ),
+    ),
     redirect: (context, state) {
       final loc = state.matchedLocation;
       final loggingIn = loc == '/login';

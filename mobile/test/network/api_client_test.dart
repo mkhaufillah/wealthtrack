@@ -212,6 +212,31 @@ void main() {
         expect((result as ApiException).message, 'Wrong username or password');
         activeUiLocale = 'id-ID';
       });
+
+      test('masks nginx html 502', () {
+        final dioError = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          response: Response(
+            statusCode: 502,
+            data: '<html><body>502 Bad Gateway</body></html>',
+            requestOptions: RequestOptions(path: '/test'),
+          ),
+        );
+        final result = client.handleError(dioError);
+        expect((result as ApiException).message, 'Server lagi rehat sebentar. Muat ulang ya.');
+      });
+
+      test('maps 404 to not found copy', () {
+        final dioError = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          response: Response(
+            statusCode: 404,
+            requestOptions: RequestOptions(path: '/test'),
+          ),
+        );
+        final result = client.handleError(dioError);
+        expect((result as ApiException).message, 'Datanya gak ketemu. Muat ulang ya, atau coba lagi nanti.');
+      });
     });
 
     group('constructor', () {

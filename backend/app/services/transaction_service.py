@@ -396,6 +396,10 @@ class TransactionService:
                 return await self._fetch_by_ids(matching_ids, page, per_page, int(total or 0))
             except Exception as e:
                 logger.warning("hashed Meili search failed: %s", e)
+                return PaginatedTransactions(
+                    data=[],
+                    meta=PaginationMeta(page=page, per_page=per_page, total=0, total_pages=0),
+                )
         return await self._search_vault(
             user_id, q, page, per_page,
             type, category_id, date_from, date_to, sort, category_ids,
