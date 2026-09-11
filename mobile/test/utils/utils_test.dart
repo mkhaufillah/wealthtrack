@@ -68,4 +68,28 @@ void main() {
       expect(formatDate('2026-05-27'), '27 May 2026');
     });
   });
+
+  group('catLabel', () {
+    setUp(() {
+      activeUiLocale = 'id-ID';
+      applyRemoteCopy({});
+    });
+
+    test('returns name when copy key is missing (new custom category)', () {
+      expect(catLabel(name: 'Pet Care', copyKey: 'cat.n.custom.25'), 'Pet Care');
+    });
+
+    test('returns translated copy when available', () {
+      expect(catLabel(name: 'Makanan', copyKey: 'cat.n.food'), 'Makanan & minuman');
+    });
+
+    test('returns name when no copy key', () {
+      expect(catLabel(name: 'Hobi'), 'Hobi');
+    });
+
+    test('uses server name when remote copy present', () {
+      applyRemoteCopy({'cat.n.custom.25': 'Pet Care'});
+      expect(catLabel(name: 'Pet Care', copyKey: 'cat.n.custom.25'), 'Pet Care');
+    });
+  });
 }

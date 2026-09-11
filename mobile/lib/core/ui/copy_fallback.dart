@@ -637,7 +637,10 @@ String t(String key) {
 String catLabel({required String name, String? copyKey}) {
   final k = (copyKey ?? '').trim();
   if (k.isEmpty) return name;
-  return t(k);
+  final v = t(k);
+  // Missing copy (e.g. brand-new custom category that hasn't reached this
+  // device's copy cache yet) must not leak the raw key. Use server name.
+  return v == k ? name : v;
 }
 
 /// Built-in household names that were stored in English.
