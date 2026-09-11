@@ -123,6 +123,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final state = ref.watch(dashboardProvider);
     final ocrState = ref.watch(ocrPendingCountProvider);
     final user = ref.watch(authProvider).user;
+    final needsHousehold = ref.watch(authProvider).needsHousehold;
     final firstName = (user?.displayName.isNotEmpty ?? false)
         ? user!.displayName.split(' ').first
         : 'Kamu';
@@ -157,6 +158,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(18, 12, 18, 96),
                       children: [
+                        if (needsHousehold) ...[
+                          _HouseholdPromptCard(
+                            onCreate: () => context.push('/profile'),
+                            onJoin: () => context.push('/profile'),
+                          ),
+                          const SizedBox(height: 14),
+                        ],
                         _HiRow(
                           name: firstName,
                           fullName: user?.displayName ?? firstName,
@@ -641,6 +649,68 @@ class _RecentSection extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _HouseholdPromptCard extends StatelessWidget {
+  final VoidCallback onCreate;
+  final VoidCallback onJoin;
+  const _HouseholdPromptCard({required this.onCreate, required this.onJoin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              AppIcon(AppIcons.users, size: 20, color: AppColors.accent),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  t('hh.pending_title'),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            t('hh.pending_body'),
+            style: TextStyle(fontSize: 13, height: 1.4, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: onCreate,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: AppColors.onAccent,
+                  ),
+                  child: Text(t('hh.create_btn')),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onJoin,
+                  child: Text(t('hh.join_btn')),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

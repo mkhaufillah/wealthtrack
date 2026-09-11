@@ -129,6 +129,8 @@ const Map<String, String> copyFallbackEn = {
   'hh.create_new': 'Create new',
   'hh.name': 'Household name',
   'hh.default_name': 'Home',
+  'hh.pending_title': 'Set up a home first so your notes unlock',
+  'hh.pending_body': 'This account has no household yet. Create one with your own name or join with an invite code — it is your call.',
   'hh.members': 'Members',
   'profile.cycle_pill': 'Day {n}',
   'profile.family_n': '{n} people',

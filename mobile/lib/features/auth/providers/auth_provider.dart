@@ -18,12 +18,14 @@ class AuthState {
   final UserModel? user;
   final String? error;
   final bool isAuthenticated;
+  final bool needsHousehold;
 
   const AuthState({
     this.status = AuthStatus.initial,
     this.user,
     this.error,
     this.isAuthenticated = false,
+    this.needsHousehold = false,
   });
 
   AuthState copyWith({
@@ -31,13 +33,26 @@ class AuthState {
     UserModel? user,
     String? error,
     bool? isAuthenticated,
+    bool? needsHousehold,
   }) =>
       AuthState(
         status: status ?? this.status,
         user: user ?? this.user,
         error: error ?? this.error,
         isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+        needsHousehold: needsHousehold ?? this.needsHousehold,
       );
+}
+
+Future<bool> _householdMissing(ApiClient api) async {
+  try {
+    await api.get('/households/me');
+    return false;
+  } on DioException catch (e) {
+    return e.response?.statusCode == 404;
+  } catch (_) {
+    return false;
+  }
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
@@ -63,10 +78,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await _api.post('/households/vault/seal');
       } catch (_) {}
       await _shareIfPossible();
+      final needsHousehold = await _householdMissing(_api);
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
         isAuthenticated: true,
+        needsHousehold: needsHousehold,
       );
     } catch (e) {
       developer.log('checkAuth error: $e');
@@ -100,10 +117,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (dek == null || dek.isEmpty) {
         _startSharePoll(password);
       }
+      final needsHousehold = await _householdMissing(_api);
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
         isAuthenticated: true,
+        needsHousehold: needsHousehold,
       );
     } catch (e) {
       state = AuthState(

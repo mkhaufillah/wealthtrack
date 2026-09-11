@@ -132,6 +132,8 @@ const Map<String, String> copyFallback = {
   'hh.create_new': 'Buat baru',
   'hh.name': 'Nama keluarga',
   'hh.default_name': 'Rumah',
+  'hh.pending_title': 'Bikin Rumah dulu, biar catatan kebuka',
+  'hh.pending_body': 'Belum ada keluarga di akun ini. Bikin dengan nama kamu sendiri atau gabung pakai kode undangan — kamu yang pilih.',
   'hh.members': 'Anggota',
   'profile.cycle_pill': 'Tanggal {n}',
   'profile.family_n': '{n} orang',

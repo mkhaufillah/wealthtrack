@@ -140,10 +140,11 @@ class TestAuthRegister:
         )
         assert resp.status_code == 422
 
-    async def test_register_creates_personal_household(
+    async def test_register_does_not_create_household(
         self, client: AsyncClient, db
     ):
-        """New users get a personal household so the vault can seal."""
+        """Registration must NOT create a household — the user chooses
+        create/join later. Guardrail against the auto-household shortcut."""
         email = "solo@example.com"
         await client.post("/api/v1/auth/send-otp", json={"email": email})
         cur = await db.execute(
@@ -175,8 +176,7 @@ class TestAuthRegister:
         headers = {"Authorization": f"Bearer {token}"}
 
         me = await client.get("/api/v1/households/me", headers=headers)
-        assert me.status_code == 200, me.text
-        assert me.json()["household"]["name"] == "Solo User"
+        assert me.status_code == 404, "register must not auto-create a household"
 
 
 class TestAuthMe:
