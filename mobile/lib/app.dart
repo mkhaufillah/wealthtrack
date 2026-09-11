@@ -13,6 +13,7 @@ import 'features/auth/ui/login_screen.dart';
 import 'features/auth/ui/register_screen.dart';
 import 'features/auth/ui/onboarding_screen.dart';
 import 'features/auth/ui/household_setup_screen.dart';
+import 'features/auth/ui/vault_waiting_screen.dart';
 import 'features/home/ui/home_screen.dart';
 import 'features/transactions/ui/transaction_list_screen.dart';
 import 'features/transactions/ui/add_transaction_screen.dart';
@@ -52,9 +53,14 @@ final _needsHouseholdProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).needsHousehold;
 });
 
+final _needsVaultKeyProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).needsVaultKey;
+});
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   final loggedIn = ref.watch(_isAuthenticatedProvider);
   final needsHousehold = ref.watch(_needsHouseholdProvider);
+  final needsVaultKey = ref.watch(_needsVaultKeyProvider);
   final onboarded = ref.watch(onboardingProvider);
   return GoRouter(
     initialLocation: '/login',
@@ -73,10 +79,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final registering = loc == '/register';
       final onboarding = loc == '/onboarding';
       final householdSetup = loc == '/household-setup';
+      final vaultWaiting = loc == '/vault-waiting';
 
       if (onboarded == null) return null;
 
       if (loggedIn) {
+        if (needsVaultKey && !vaultWaiting) return '/vault-waiting';
+        if (vaultWaiting && !needsVaultKey) return '/home';
         if (needsHousehold && !householdSetup) return '/household-setup';
         if (householdSetup && !needsHousehold) return '/home';
         if (loggingIn || registering || onboarding) return '/home';
@@ -95,6 +104,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/household-setup',
         builder: (_, __) => const HouseholdSetupScreen(),
+      ),
+      GoRoute(
+        path: '/vault-waiting',
+        builder: (_, __) => const VaultWaitingScreen(),
       ),
       ShellRoute(
         builder: (_, __, child) => MainShell(child: child),

@@ -417,7 +417,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       body: state.deleting
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
+          : RefreshIndicator(
+              onRefresh: () async {
+                await ref.read(authProvider.notifier).refreshVaultKey();
+                await _loadHousehold();
+              },
+              color: AppColors.accent,
+              child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
                 _buildHero(user, state),
@@ -516,6 +523,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                 ),
               ],
+            ),
             ),
     );
   }

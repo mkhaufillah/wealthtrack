@@ -19,6 +19,7 @@ class AuthState {
   final String? error;
   final bool isAuthenticated;
   final bool needsHousehold;
+  final bool needsVaultKey;
 
   const AuthState({
     this.status = AuthStatus.initial,
@@ -26,6 +27,7 @@ class AuthState {
     this.error,
     this.isAuthenticated = false,
     this.needsHousehold = false,
+    this.needsVaultKey = false,
   });
 
   AuthState copyWith({
@@ -34,6 +36,7 @@ class AuthState {
     String? error,
     bool? isAuthenticated,
     bool? needsHousehold,
+    bool? needsVaultKey,
   }) =>
       AuthState(
         status: status ?? this.status,
@@ -41,6 +44,7 @@ class AuthState {
         error: error ?? this.error,
         isAuthenticated: isAuthenticated ?? this.isAuthenticated,
         needsHousehold: needsHousehold ?? this.needsHousehold,
+        needsVaultKey: needsVaultKey ?? this.needsVaultKey,
       );
 }
 
@@ -78,12 +82,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await _api.post('/households/vault/seal');
       } catch (_) {}
       await _shareIfPossible();
+      await _tryShareInbox();
       final needsHousehold = await _householdMissing(_api);
+      final needsVaultKey = await _vaultKeyMissing();
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
         isAuthenticated: true,
         needsHousehold: needsHousehold,
+        needsVaultKey: needsVaultKey,
       );
     } catch (e) {
       developer.log('checkAuth error: $e');
@@ -118,11 +125,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         _startSharePoll(password);
       }
       final needsHousehold = await _householdMissing(_api);
+      final needsVaultKey = await _vaultKeyMissing();
       state = AuthState(
         status: AuthStatus.authenticated,
         user: user,
         isAuthenticated: true,
         needsHousehold: needsHousehold,
+        needsVaultKey: needsVaultKey,
       );
     } catch (e) {
       state = AuthState(
@@ -133,10 +142,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Called after the user creates or joins a household from the
-  /// household-setup gate. Wraps a fresh DEK with the login password
-  /// (kept in _pendingPassword by `login`) and seals the vault, so writes
-  /// work immediately without waiting for the next login.
+  /// household-setup gate. For a NEW household it wraps a fresh DEK with
+  /// the login password and seals the vault. For a JOINED (already sealed)
+  /// household it must NOT mint its own DEK — the family key arrives via
+  /// share-inbox; show the waiting page until the owner shares it.
   Future<void> finishVaultSetup() async {
+    try {
+      final me = await _api.get('/households/me');
+      final sealed = (me.data as Map)['vault_sealed'] == true;
+      if (sealed) {
+        await _tryShareInbox();
+        await refreshVaultKeyState();
+        return;
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return;
+    } catch (_) {}
     final pw = _pendingPassword;
     if (pw == null || pw.isEmpty) return;
     try {
@@ -152,6 +173,42 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _shareIfPossible();
     } catch (_) {}
     await refreshHouseholdState();
+  }
+
+  /// True when the user is in a sealed household but has no DEK yet and
+  /// no wrap of their own — i.e. waiting for the owner to share the key.
+  Future<bool> _vaultKeyMissing() async {
+    final dek = await VaultStore.getDekB64(_storage);
+    if (dek != null && dek.isNotEmpty) return false;
+    try {
+      final me = await _api.get('/households/me');
+      if ((me.data as Map)['vault_sealed'] != true) return false;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return false;
+    } catch (_) {
+      return false;
+    }
+    try {
+      await _api.get('/households/vault/wrap');
+      return false;
+    } on DioException catch (e) {
+      return e.response?.statusCode == 404;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Pick up a shared DEK from the inbox, then refresh the gate flags.
+  /// Safe to call from pull-to-refresh / the waiting page poll.
+  Future<void> refreshVaultKey() async {
+    await _tryShareInbox();
+    await refreshVaultKeyState();
+  }
+
+  /// Re-check whether the account has a household and update the gate flag.
+  Future<void> refreshVaultKeyState() async {
+    final missing = await _vaultKeyMissing();
+    state = state.copyWith(needsVaultKey: missing);
   }
 
   /// Re-check whether the account has a household and update the gate flag.
