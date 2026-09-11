@@ -132,6 +132,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Called after the user creates or joins a household from the
+  /// household-setup gate. Wraps a fresh DEK with the login password
+  /// (kept in _pendingPassword by `login`) and seals the vault, so writes
+  /// work immediately without waiting for the next login.
+  Future<void> finishVaultSetup() async {
+    final pw = _pendingPassword;
+    if (pw == null || pw.isEmpty) return;
+    try {
+      final dek = await VaultStore.newDekB64();
+      await VaultStore.saveDekB64(_storage, dek);
+      final wrapped = await VaultStore.wrapDek(pw, dek);
+      await _api.post('/households/vault/wrap', data: {
+        'wrapped_dek': wrapped.wrapped,
+        'kdf_salt': wrapped.salt,
+        'kdf_params': kdfParams,
+      });
+      await _api.post('/households/vault/seal');
+      await _shareIfPossible();
+    } catch (_) {}
+    await refreshHouseholdState();
+  }
+
+  /// Re-check whether the account has a household and update the gate flag.
+  Future<void> refreshHouseholdState() async {
+    final stillMissing = await _householdMissing(_api);
+    state = state.copyWith(needsHousehold: stillMissing);
+  }
+
   Future<void> _unlockVault(String password) async {
     try {
       final wrap = await _api.get('/households/vault/wrap');

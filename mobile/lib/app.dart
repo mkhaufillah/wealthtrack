@@ -12,6 +12,7 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/ui/login_screen.dart';
 import 'features/auth/ui/register_screen.dart';
 import 'features/auth/ui/onboarding_screen.dart';
+import 'features/auth/ui/household_setup_screen.dart';
 import 'features/home/ui/home_screen.dart';
 import 'features/transactions/ui/transaction_list_screen.dart';
 import 'features/transactions/ui/add_transaction_screen.dart';
@@ -47,8 +48,13 @@ final _isAuthenticatedProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).isAuthenticated;
 });
 
+final _needsHouseholdProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).needsHousehold;
+});
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   final loggedIn = ref.watch(_isAuthenticatedProvider);
+  final needsHousehold = ref.watch(_needsHouseholdProvider);
   final onboarded = ref.watch(onboardingProvider);
   return GoRouter(
     initialLocation: '/login',
@@ -66,10 +72,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final loggingIn = loc == '/login';
       final registering = loc == '/register';
       final onboarding = loc == '/onboarding';
+      final householdSetup = loc == '/household-setup';
 
       if (onboarded == null) return null;
 
       if (loggedIn) {
+        if (needsHousehold && !householdSetup) return '/household-setup';
+        if (householdSetup && !needsHousehold) return '/home';
         if (loggingIn || registering || onboarding) return '/home';
         return null;
       }
@@ -83,6 +92,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
+      GoRoute(
+        path: '/household-setup',
+        builder: (_, __) => const HouseholdSetupScreen(),
+      ),
       ShellRoute(
         builder: (_, __, child) => MainShell(child: child),
         routes: [
