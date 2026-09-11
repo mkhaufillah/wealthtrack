@@ -20,7 +20,7 @@ _index: Optional[Index] = None
 
 INDEX_NAME = "transactions"
 SEARCHABLE_ATTRIBUTES = ["date"]
-FILTERABLE_ATTRIBUTES = ["user_id", "type", "date"]
+FILTERABLE_ATTRIBUTES = ["user_id", "type", "date", "term_hashes"]
 SORTABLE_ATTRIBUTES = ["date"]
 DISPLAYED_ATTRIBUTES = ["id", "type", "user_id", "date"]
 
@@ -70,11 +70,15 @@ def _index_document_sync(txn: dict) -> None:
     ``txn`` must contain: id, type, user_id, date.
     Never index description, note, amount, or category_id.
     """
+    hashes = txn.get("term_hashes") or []
+    if isinstance(hashes, str):
+        hashes = [h for h in hashes.split() if h]
     doc = {
         "id": txn["id"],
         "type": txn["type"],
         "user_id": int(txn["user_id"]),
         "date": txn.get("date") or "",
+        "term_hashes": list(hashes),
     }
     get_index().add_documents([doc])
 

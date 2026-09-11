@@ -28,6 +28,8 @@ from app.schemas.transaction import (
 
 logger = logging.getLogger(__name__)
 
+_term_indexed: set[int] = set()
+
 
 # ── Domain exceptions ───────────────────────────────────────────────
 
@@ -200,9 +202,32 @@ class TransactionService:
         return txns
 
     async def _index_meili(self, txn: dict) -> None:
-        """Best-effort index a transaction dict in Meilisearch."""
+        """Best-effort index metadata + HMAC word traces. Never plaintext."""
         try:
-            await index_document(txn)
+            from app.core.vault import word_traces
+            from app.core.vault_ctx import current_dek
+            from app.core.vault_row import open_row
+
+            d = dict(txn)
+            if d.get("vault_blob"):
+                d = open_row(d)
+            cat = d.get("category") if isinstance(d.get("category"), dict) else {}
+            text = (
+                f"{d.get('description') or ''} {d.get('note') or ''} "
+                f"{(cat or {}).get('name') or d.get('category_name') or ''}"
+            )
+            user = d.get("user") if isinstance(d.get("user"), dict) else {}
+            dek = current_dek()
+            hashes = word_traces(dek, text) if dek else []
+            await index_document(
+                {
+                    "id": d["id"],
+                    "type": d.get("type") or "",
+                    "user_id": int(d.get("user_id") or user.get("id") or 0),
+                    "date": d.get("date") or "",
+                    "term_hashes": hashes,
+                }
+            )
         except Exception as e:
             logger.warning("Meilisearch indexing error: %s", e)
 
@@ -295,7 +320,7 @@ class TransactionService:
         """List user's transactions with optional search (Meilisearch + SQL fallback)."""
         # ── If search query provided, use Meilisearch ──
         if q and q.strip():
-            return await self._search_vault(
+            return await self._search_hashed(
                 user_id, q.strip(), page, per_page,
                 type, category_id, date_from, date_to, sort, category_ids,
             )
@@ -304,6 +329,107 @@ class TransactionService:
         return await self._list_with_sql(
             user_id, page, per_page,
             type, category_id, date_from, date_to, sort, category_ids,
+        )
+
+
+    async def _search_hashed(
+        self,
+        user_id: int,
+        q: str,
+        page: int,
+        per_page: int,
+        type: str | None,
+        category_id: int | None,
+        date_from: str | None,
+        date_to: str | None,
+        sort: str,
+        category_ids: str | None,
+    ) -> PaginatedTransactions:
+        """Meili AND-filter on HMAC word traces. RAM substring if Meili is cold/down."""
+        from app.core.vault import word_traces
+        from app.core.vault_ctx import current_dek
+
+        dek = current_dek()
+        hashes = word_traces(dek, q) if dek else []
+        if dek and hashes:
+            try:
+                await self._ensure_term_index(user_id)
+                meili_filters: list[str] = [f"user_id = {user_id}"]
+                if type:
+                    meili_filters.append(f'type = "{type}"')
+                if date_from:
+                    meili_filters.append(f'date >= "{date_from}"')
+                if date_to:
+                    meili_filters.append(f'date <= "{date_to}"')
+                for h in hashes:
+                    meili_filters.append(f'term_hashes = "{h}"')
+                offset = (page - 1) * per_page
+                total = await meili_total_count("", meili_filters)
+                matching_ids = await search_descriptions(
+                    "",
+                    filters=meili_filters,
+                    sort={"date": ["date:asc"], "-date": ["date:desc"]}.get(sort),
+                    offset=offset,
+                    limit=per_page,
+                )
+                if matching_ids:
+                    from app.core.vault_query import parse_cat_ids, append_category_filter
+
+                    if parse_cat_ids(category_id, category_ids):
+                        where = ["t.id IN (" + ",".join("?" * len(matching_ids)) + ")"]
+                        params: list = list(matching_ids)
+                        append_category_filter(where, params, category_id, category_ids)
+                        cur = await self.db.execute(
+                            f"SELECT t.id FROM transactions t WHERE {' AND '.join(where)}",
+                            tuple(params),
+                        )
+                        keep = {r["id"] for r in await cur.fetchall()}
+                        matching_ids = [i for i in matching_ids if i in keep]
+                    if matching_ids:
+                        return await self._fetch_by_ids(matching_ids, page, per_page, int(total or 0))
+            except Exception as e:
+                logger.warning("hashed Meili search failed: %s", e)
+        return await self._search_vault(
+            user_id, q, page, per_page,
+            type, category_id, date_from, date_to, sort, category_ids,
+        )
+
+    async def _ensure_term_index(self, user_id: int) -> None:
+        if user_id in _term_indexed:
+            return
+        batch = await self._list_with_sql(
+            user_id, 1, 5000, None, None, None, None, "-date", None,
+        )
+        for row in batch.data:
+            await self._index_meili(row if isinstance(row, dict) else dict(row))
+        _term_indexed.add(user_id)
+
+    async def _fetch_by_ids(
+        self, matching_ids: list[int], page: int, per_page: int, total: int
+    ) -> PaginatedTransactions:
+        placeholders = ",".join("?" for _ in matching_ids)
+        order_clause = f"array_position(ARRAY[{placeholders}]::int[], t.id)"
+        cursor = await self.db.execute(
+            f"""{_SELECT_TXN}
+            WHERE t.id IN ({placeholders})
+            ORDER BY {order_clause}""",
+            matching_ids + matching_ids,
+        )
+        rows = await cursor.fetchall()
+        data = await self._hydrate_categories(
+            [
+                _format_txn(r, r.get("cat_name") or "", r.get("cat_icon") or "")
+                for r in rows
+            ]
+        )
+        return PaginatedTransactions(
+            data=data,
+            meta=PaginationMeta(
+                page=page,
+                per_page=per_page,
+                total=total,
+                total_pages=max(1, (total + per_page - 1) // per_page) if total else 0,
+            ),
         )
 
     async def _search_vault(

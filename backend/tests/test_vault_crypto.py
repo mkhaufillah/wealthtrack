@@ -100,3 +100,22 @@ def test_pack_decimal_extra():
     packed = pack_money(dek, amount=0, extra={"interest_rate": Decimal("0.0899")})
     row = unpack_money(dek, packed)
     assert abs(float(row["interest_rate"]) - 0.0899) < 1e-9
+
+
+def test_tokenize_word_boundary():
+    from app.core.vault import tokenize
+
+    assert tokenize("QRIS GRAB food!") == ["qris", "grab", "food"]
+    assert "gaji" in tokenize("Gaji")
+    assert tokenize("a x") == []
+
+
+def test_word_traces_keyed():
+    from app.core.vault import generate_dek, word_traces, word_trace
+
+    dek = generate_dek()
+    other = generate_dek()
+    hashes = word_traces(dek, "Gaji bulanan")
+    assert word_trace(dek, "gaji") in hashes
+    assert word_traces(other, "Gaji bulanan") != hashes
+    assert "gaji" not in "".join(hashes)

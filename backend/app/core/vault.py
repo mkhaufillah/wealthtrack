@@ -82,3 +82,23 @@ def category_trace(dek: bytes, category_id: int) -> str:
 def word_trace(dek: bytes, token: str) -> str:
     norm = " ".join(token.lower().split())
     return hmac.new(dek, f"w:{norm}".encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def tokenize(text: str) -> list[str]:
+    """Word-boundary tokens, length >= 2. No stemming."""
+    import re
+
+    if not text:
+        return []
+    seen: set[str] = set()
+    out: list[str] = []
+    for tok in re.findall(r"[^\W_]+", text.lower(), flags=re.UNICODE):
+        if len(tok) < 2 or tok in seen:
+            continue
+        seen.add(tok)
+        out.append(tok)
+    return out
+
+
+def word_traces(dek: bytes, text: str) -> list[str]:
+    return [word_trace(dek, tok) for tok in tokenize(text)]
