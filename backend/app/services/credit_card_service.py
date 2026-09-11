@@ -59,6 +59,13 @@ class CreditCardService:
     def __init__(self, db: CursorWrapper) -> None:
         self.db = db
 
+    @staticmethod
+    def _pack(amount: int, extra: dict | None = None) -> dict:
+        from app.core.vault_write import must_dek
+        from app.core.vault_row import pack_money
+
+        return pack_money(must_dek(), amount=max(0, int(amount)), extra=extra)
+
     # ── helpers ──────────────────────────────────────────────────────
 
     async def get_card_for_user(self, card_id: int, user_id: int) -> dict:
@@ -95,19 +102,27 @@ class CreditCardService:
         self, data: CreditCardCreate, user_id: int
     ) -> dict:
         """Create a new credit card for the given user."""
+        packed = self._pack(
+            int(data.credit_limit or 0),
+            extra={
+                "credit_limit": int(data.credit_limit or 0),
+                "card_number_last4": data.card_number_last4 or "",
+                "name": data.name,
+            },
+        )
         cursor = await self.db.execute(
             """INSERT INTO credit_cards
                (user_id, name, card_number_last4, billing_date, due_date,
-                credit_limit, household_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                credit_limit, household_id, vault_blob, amount_ord)
+               VALUES (?, ?, '', ?, ?, 0, ?, ?, ?)""",
             (
                 user_id,
                 data.name,
-                data.card_number_last4,
                 data.billing_date,
                 data.due_date,
-                data.credit_limit,
                 data.household_id,
+                packed["vault_blob"],
+                packed["amount_ord"],
             ),
         )
         card_id = cursor.lastrowid
@@ -200,8 +215,19 @@ class CreditCardService:
             fields.append("due_date = ?")
             params.append(data.due_date)
         if data.credit_limit is not None:
-            fields.append("credit_limit = ?")
-            params.append(data.credit_limit)
+            card = await self.get_card_for_user(card_id, user_id)
+            packed = self._pack(
+                int(data.credit_limit),
+                extra={
+                    "credit_limit": int(data.credit_limit),
+                    "card_number_last4": card.get("card_number_last4") or "",
+                    "name": data.name if data.name is not None else card.get("name") or "",
+                },
+            )
+            fields.append("vault_blob = ?")
+            params.append(packed["vault_blob"])
+            fields.append("amount_ord = ?")
+            params.append(packed["amount_ord"])
 
         if not fields:
             raise ValueError("Gak ada yang diubah")
@@ -229,31 +255,40 @@ class CreditCardService:
         """Add a transaction to a credit card."""
         await self.get_card_for_user(card_id, user_id)
 
+        packed = self._pack(
+            int(data.amount),
+            extra={
+                "amount": int(data.amount),
+                "description": data.description or "",
+            },
+        )
         cursor = await self.db.execute(
             """INSERT INTO credit_card_transactions
                (card_id, description, amount, category_id,
-                transaction_date, is_installment, installment_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                transaction_date, is_installment, installment_id, vault_blob, amount_ord)
+               VALUES (?, '', 0, ?, ?, ?, ?, ?, ?)""",
             (
                 card_id,
-                data.description,
-                data.amount,
                 data.category_id,
                 data.transaction_date,
                 1 if data.is_installment else 0,
                 data.installment_id,
+                packed["vault_blob"],
+                packed["amount_ord"],
             ),
         )
         txn_id = cursor.lastrowid
 
         txn_cursor = await self.db.execute(
             """SELECT id, card_id, description, amount, category_id,
-                      transaction_date, is_installment, installment_id, created_at
+                      transaction_date, is_installment, installment_id, created_at, vault_blob
                FROM credit_card_transactions WHERE id = ?""",
             (txn_id,),
         )
         row = await txn_cursor.fetchone()
-        return dict(row)
+        from app.core.vault_row import open_row
+
+        return open_row(dict(row))
 
     async def list_transactions(self, card_id: int, user_id: int) -> list[dict]:
         """List all transactions for a credit card."""
@@ -261,14 +296,15 @@ class CreditCardService:
 
         cursor = await self.db.execute(
             """SELECT id, card_id, description, amount, category_id,
-                      transaction_date, is_installment, installment_id, created_at
+                      transaction_date, is_installment, installment_id, created_at, vault_blob
                FROM credit_card_transactions
                WHERE card_id = ?
                ORDER BY transaction_date DESC""",
             (card_id,),
         )
-        rows = await cursor.fetchall()
-        return [dict(r) for r in rows]
+        from app.core.vault_row import open_row
+
+        return [open_row(dict(r)) for r in await cursor.fetchall()]
 
     async def delete_transaction(
         self, card_id: int, txn_id: int, user_id: int
@@ -295,19 +331,27 @@ class CreditCardService:
         """Add an installment plan to a credit card."""
         await self.get_card_for_user(card_id, user_id)
 
+        packed = self._pack(
+            int(data.total_amount),
+            extra={
+                "description": data.description or "",
+                "total_amount": int(data.total_amount),
+                "monthly_amount": int(data.monthly_amount),
+                "total_months": int(data.total_months),
+            },
+        )
         cursor = await self.db.execute(
             """INSERT INTO credit_card_installments
                (card_id, description, total_amount, monthly_amount,
-                total_months, remaining_months, start_month)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                total_months, remaining_months, start_month, vault_blob, amount_ord)
+               VALUES (?, '', 0, 0, ?, ?, ?, ?, ?)""",
             (
                 card_id,
-                data.description,
-                data.total_amount,
-                data.monthly_amount,
                 data.total_months,
                 data.total_months,
                 data.start_month,
+                packed["vault_blob"],
+                packed["amount_ord"],
             ),
         )
         inst_id = cursor.lastrowid
@@ -321,12 +365,14 @@ class CreditCardService:
                           - (CAST(SUBSTR(start_month, 1, 4) AS integer) * 12
                              + CAST(SUBSTR(start_month, 6, 2) AS integer))
                       )) AS remaining_months,
-                      start_month, created_at
+                      start_month, created_at, vault_blob
                FROM credit_card_installments WHERE id = ?""",
             (inst_id,),
         )
         row = await inst_cursor.fetchone()
-        return dict(row)
+        from app.core.vault_row import open_row
+
+        return open_row(dict(row))
 
     async def list_installments(self, card_id: int, user_id: int) -> list[dict]:
         """List all installment plans for a credit card."""
@@ -341,14 +387,15 @@ class CreditCardService:
                           - (CAST(SUBSTR(start_month, 1, 4) AS integer) * 12
                              + CAST(SUBSTR(start_month, 6, 2) AS integer))
                       )) AS remaining_months,
-                      start_month, created_at
+                      start_month, created_at, vault_blob
                FROM credit_card_installments
                WHERE card_id = ?
                ORDER BY start_month DESC""",
             (card_id,),
         )
-        rows = await cursor.fetchall()
-        return [dict(r) for r in rows]
+        from app.core.vault_row import open_row
+
+        return [open_row(dict(r)) for r in await cursor.fetchall()]
 
     async def delete_installment(
         self, card_id: int, inst_id: int, user_id: int
@@ -376,55 +423,52 @@ class CreditCardService:
     async def next_month_projection(self, user_id: int) -> NextMonthProjection:
         """Aggregate this month's non-installment transactions and active
         installments per card for next month's projection."""
+        from app.core.vault_row import open_row
+
         cursor = await self.db.execute(
-            """SELECT
-                   cc.id AS card_id,
-                   cc.name AS card_name,
-                   COALESCE(SUM(combined.monthly), 0) AS total_monthly
+            """SELECT cc.id AS card_id, cc.name AS card_name, cc.vault_blob AS card_blob
                FROM credit_cards cc
-               LEFT JOIN (
-                   -- current month non-installment transactions
-                   SELECT card_id, amount AS monthly
-                   FROM credit_card_transactions
-                   WHERE is_installment = 0
-                     AND EXTRACT(YEAR FROM transaction_date::date)
-                         = EXTRACT(YEAR FROM CURRENT_DATE)
-                     AND EXTRACT(MONTH FROM transaction_date::date)
-                         = EXTRACT(MONTH FROM CURRENT_DATE)
-                   UNION ALL
-                   -- active installments
-                   SELECT cci.card_id, cci.monthly_amount AS monthly
-                   FROM credit_card_installments cci
-                   WHERE cci.total_months > (
-                       EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12
-                       + EXTRACT(MONTH FROM CURRENT_DATE)::integer
-                       - (CAST(SUBSTR(cci.start_month, 1, 4) AS integer) * 12
-                          + CAST(SUBSTR(cci.start_month, 6, 2) AS integer))
-                   )
-               ) combined ON combined.card_id = cc.id
                WHERE cc.user_id = ?
                   OR cc.household_id IN (
                       SELECT household_id FROM household_members WHERE user_id = ?
                   )
-               GROUP BY cc.id, cc.name
                ORDER BY cc.name""",
             (user_id, user_id),
         )
-        rows = await cursor.fetchall()
-
+        cards = await cursor.fetchall()
         per_card: list[dict] = []
         grand_total = 0
-        total_installments = 0
-
-        for r in rows:
-            monthly = int(r["total_monthly"])
-            if monthly > 0:
-                total_installments += 1
+        for r in cards:
+            card_id = r["card_id"]
+            card = open_row({"name": r["card_name"], "vault_blob": r["card_blob"]})
+            monthly = 0
+            tcur = await self.db.execute(
+                """SELECT vault_blob FROM credit_card_transactions
+                   WHERE card_id = ? AND is_installment = 0
+                     AND EXTRACT(YEAR FROM transaction_date::date) = EXTRACT(YEAR FROM CURRENT_DATE)
+                     AND EXTRACT(MONTH FROM transaction_date::date) = EXTRACT(MONTH FROM CURRENT_DATE)""",
+                (card_id,),
+            )
+            for t in await tcur.fetchall():
+                monthly += int(open_row(dict(t)).get("amount") or 0)
+            icur = await self.db.execute(
+                """SELECT vault_blob, total_months, start_month FROM credit_card_installments
+                   WHERE card_id = ?
+                     AND total_months > (
+                       EXTRACT(YEAR FROM CURRENT_DATE)::integer * 12
+                       + EXTRACT(MONTH FROM CURRENT_DATE)::integer
+                       - (CAST(SUBSTR(start_month, 1, 4) AS integer) * 12
+                          + CAST(SUBSTR(start_month, 6, 2) AS integer))
+                     )""",
+                (card_id,),
+            )
+            for inst in await icur.fetchall():
+                monthly += int(open_row(dict(inst)).get("monthly_amount") or 0)
             grand_total += monthly
             per_card.append(
                 {
-                    "card_id": r["card_id"],
-                    "card_name": r["card_name"],
+                    "card_id": card_id,
+                    "card_name": card.get("name") or r["card_name"],
                     "total": monthly,
                 }
             )
@@ -447,8 +491,7 @@ class CreditCardService:
             (user_id, user_id),
         )
         count_row = await count_cursor.fetchone()
-        if count_row:
-            total_installments = count_row["cnt"]
+        total_installments = int(count_row["cnt"] or 0) if count_row else 0
 
         return NextMonthProjection(
             total_installments=total_installments,
