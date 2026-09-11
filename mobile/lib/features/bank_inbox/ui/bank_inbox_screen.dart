@@ -343,17 +343,6 @@ class _BankInboxScreenState extends ConsumerState<BankInboxScreen> {
                           onPressed: parsed ? () => _pickAndConfirm(item) : null,
                           child: Text(t('bank.confirm')),
                         ),
-                        if (item['internal_suggested'] == true) ...[
-                          const SizedBox(width: 8),
-                          OutlinedButton(
-                            onPressed: () => _act(
-                              item['id'] as int,
-                              'confirm',
-                              data: {'internal': true, 'pair_id': item['pair_id']},
-                            ),
-                            child: Text(t('bank.internal')),
-                          ),
-                        ],
                         const SizedBox(width: 8),
                         TextButton(
                           onPressed: () => _act(item['id'] as int, 'reject'),

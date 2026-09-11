@@ -11,9 +11,8 @@ Docs and README stay English. On-screen copy is Bahasa via `t()` / `ui_copy`.
 Make bank-draft confirm useful, not noisy:
 
 1. **Auto-category** — `categories.keywords` (Kelola kategori). No second rules table/screen.
-2. **Own-account transfer detection** — Jago→BCA (same person) must not look like spending.
-3. **Category picker on Catat** — user picks a category before the row becomes a transaction.
-4. **iOS** — same inbox API; **no silent notification listener** (Apple does not allow it).
+2. **Category picker on Catat** — user picks a category before the row becomes a transaction.
+3. **iOS** — same inbox API; **no silent notification listener** (Apple does not allow it).
 
 No bank passwords. No IB scrape. Drafts still require confirm except where this doc says a rule only *suggests* a category.
 
@@ -36,60 +35,11 @@ In-app Catat still uses a picker; `suggested_category_id` is pre-highlighted.
 
 ---
 
-## 2. Own-account transfer detection
+## 2. Own-account transfer — dropped
 
-### Why
+Removed. Inbox actions are **Catat**, **Abaikan**, **Hapus** only. Confirm always writes one draft. `internal` / `pair_id` on confirm are ignored if an old client still sends them.
 
-Filla holds Jago, BCA, Mandiri, BRI, Superbank, Krom. A Rp500.000 move Jago→BCA produces:
-
-- expense draft on Jago
-- income draft on BCA (or the reverse)
-
-Two confirms would inflate expense *and* income. Personal all-time **net** is ~0, but reports/budgets look like spending.
-
-### Pairing rule (server)
-
-Two **pending** drafts for the **same user** pair when:
-
-- amounts equal and > 0
-- types opposite (`expense` + `income`)
-- **different** `bank` slugs
-- `|posted_at − posted_at| ≤ 72 hours`
-
-If several candidates, pick the closest `posted_at`.
-
-GET item fields:
-
-- `pair_id` — other draft id, or null
-- `internal_suggested` — bool
-
-### Confirm
-
-`POST /bank-inbox/{id}/confirm`
-
-```json
-{ "category_id": 1, "internal": true, "pair_id": 12 }
-```
-
-When `internal` is true:
-
-1. Validate `pair_id` still pending and matches the pairing rule.
-2. Confirm **both** drafts.
-3. Both transactions: `source='internal_transfer'`, category = existing Transfer category (same helper as balance transfer).
-4. Types stay expense/income so net is zero.
-
-When `internal` is false/omitted: confirm one draft as today (rules/picker apply). Pair is ignored.
-
-Rejecting one draft does not auto-reject the pair.
-
-### UI
-
-If `internal_suggested`, show a second action: **Transfer sendiri** next to Catat.
-
-Catat = normal expense/income.
-Transfer sendiri = `internal: true`.
-
-Copy: `bank.internal`, `bank.internal_hint`.
+Existing `source=internal_transfer` rows stay; no new ones.
 
 ---
 
@@ -106,8 +56,6 @@ Flow:
 5. Cancel sheet → no write.
 
 Unparsed drafts still cannot confirm (existing 400).
-
-**Transfer sendiri** skips the picker (Transfer category is fixed).
 
 Copy: `bank.pick_category`.
 
@@ -146,14 +94,13 @@ iOS project: enable `ios` via `flutter create --platforms ios` only when buildin
 
 1. Category picker (confirm already accepts `category_id`).
 2. `suggested_category_id` from `categories.keywords`.
-3. Internal pair fields + `internal` confirm + UI button.
-4. Paste-text ingest UI (Android + future iOS).
+3. Paste-text ingest UI (Android + future iOS).
 
 ## Tests
 
-- `tests/test_bank_match.py` — keyword match, type filter, pair.
-- `tests/test_bank_inbox.py` — confirm with category_id; internal pair; paste/manual package.
-- Widget: Catat opens dialog; Transfer sendiri posts `internal: true`.
+- `tests/test_bank_match.py` — keyword match, type filter.
+- `tests/test_bank_inbox.py` — confirm with category_id; confirm ignores `internal`/`pair_id`; paste/manual package.
+- Widget: Catat opens dialog.
 
 ## Copy guardrail
 

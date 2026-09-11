@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from app.services.bank_parser import fingerprint, parse_notification
-from app.services.bank_match import find_pair, suggest_category_id
+from app.services.bank_match import suggest_category_id
 
 
 class BankInboxError(Exception):
@@ -163,11 +163,7 @@ class BankInboxService:
             blob = f"{d.get('title') or ''} {d.get('text') or ''} {d.get('merchant') or ''}"
             ttype = d.get("txn_type") or "expense"
             sug = suggest_category_id(cats, blob, ttype)
-            pair = find_pair(raw_items, d) if d.get("status") == "pending" else None
-            d["suggested_category_id"] = sug
-            d["pair_id"] = pair
-            d["internal_suggested"] = pair is not None
-            items.append(_item(d))
+            items.append(_item({**d, "suggested_category_id": sug}))
         return {
             "items": items,
             "pending_count": pending,
@@ -205,11 +201,7 @@ class BankInboxService:
         item_id: int,
         user_id: int,
         category_id: int | None,
-        internal: bool = False,
-        pair_id: int | None = None,
     ) -> dict:
-        if internal:
-            return await self._confirm_internal(item_id, user_id, pair_id)
         row = await self._get_owned(item_id, user_id)
         if row["status"] != "pending":
             raise BankInboxError("Draf ini sudah diproses")
@@ -282,33 +274,6 @@ class BankInboxService:
         )
         fresh = await self._get_owned(row["id"], user_id)
         return _item(fresh)
-
-    async def _confirm_internal(self, item_id: int, user_id: int, pair_id: int | None) -> dict:
-        if not pair_id:
-            raise BankInboxError("Pasangan transfer gak ada")
-        row = await self._get_owned(item_id, user_id)
-        other = await self._get_owned(pair_id, user_id)
-        if find_pair([row, other], row) != pair_id:
-            raise BankInboxError("Ini bukan transfer antar rekening sendiri")
-        exp_id = await self._transfer_category("expense")
-        inc_id = await self._transfer_category("income")
-        first = row if (row.get("txn_type") or "expense") == "expense" else other
-        second = other if first is row else row
-        await self._write_txn(first, user_id, exp_id if (first.get("txn_type") or "expense") == "expense" else inc_id, "internal_transfer")
-        await self._write_txn(second, user_id, exp_id if (second.get("txn_type") or "expense") == "expense" else inc_id, "internal_transfer")
-        fresh = await self._get_owned(item_id, user_id)
-        return _item(fresh)
-
-    async def _transfer_category(self, ttype: str) -> int:
-        row = await (
-            await self.db.execute(
-                "SELECT id FROM categories WHERE name = ? AND type = ?",
-                ("Transfer", ttype),
-            )
-        ).fetchone()
-        if row:
-            return int(row["id"])
-        return await self._default_category(ttype)
 
     async def _category_rows(self) -> list[dict]:
         rows = await (

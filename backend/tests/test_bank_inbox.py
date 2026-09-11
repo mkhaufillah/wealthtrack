@@ -256,7 +256,7 @@ async def test_keyword_suggests_category_on_confirm(client: AsyncClient, auth_he
 
 
 @pytest.mark.asyncio
-async def test_internal_transfer_confirms_pair(client: AsyncClient, auth_headers: dict):
+async def test_confirm_ignores_internal_pair(client: AsyncClient, auth_headers: dict):
     out_ = await client.post(
         "/api/v1/bank-inbox",
         headers=auth_headers,
@@ -279,17 +279,19 @@ async def test_internal_transfer_confirms_pair(client: AsyncClient, auth_headers
     )
     listed = await client.get("/api/v1/bank-inbox", headers=auth_headers)
     by_id = {i["id"]: i for i in listed.json()["items"]}
-    assert by_id[out_.json()["id"]]["internal_suggested"] is True
-    assert by_id[out_.json()["id"]]["pair_id"] == inn.json()["id"]
+    assert by_id[out_.json()["id"]]["internal_suggested"] is False
+    assert by_id[out_.json()["id"]]["pair_id"] is None
     confirmed = await client.post(
         f"/api/v1/bank-inbox/{out_.json()['id']}/confirm",
         headers=auth_headers,
         json={"internal": True, "pair_id": inn.json()["id"]},
     )
     assert confirmed.status_code == 200, confirmed.text
+    assert confirmed.json()["status"] == "confirmed"
     listed2 = await client.get("/api/v1/bank-inbox", headers=auth_headers)
-    pending = [i for i in listed2.json()["items"] if i["status"] == "pending"]
-    assert pending == []
+    by2 = {i["id"]: i for i in listed2.json()["items"]}
+    assert by2[out_.json()["id"]]["status"] == "confirmed"
+    assert by2[inn.json()["id"]]["status"] == "pending"
 
 
 @pytest.mark.asyncio

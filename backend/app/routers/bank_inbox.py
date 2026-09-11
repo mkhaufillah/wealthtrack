@@ -63,9 +63,7 @@ async def confirm(
     svc = BankInboxService(db)
     try:
         category_id = body.category_id if body else None
-        internal = bool(body.internal) if body else False
-        pair_id = body.pair_id if body else None
-        return await svc.confirm(item_id, current_user["id"], category_id, internal, pair_id)
+        return await svc.confirm(item_id, current_user["id"], category_id)
     except BankInboxError as exc:
         _raise(exc)
     except VaultRequiredError:
