@@ -579,19 +579,47 @@ async def test_chat_memory_summarizes_overflow(db, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_debt_context_has_kpr_and_cc_detail(db):
+    from app.core.vault_ctx import set_dek
+    from app.core.vault_row import pack_money
     from app.services.ai_advisor_service import build_context
+    from tests.conftest import TEST_DEK
 
+    set_dek(TEST_DEK)
+    sim_pack = pack_money(
+        TEST_DEK,
+        amount=400000000,
+        extra={
+            "property_price": 500000000,
+            "down_payment": 100000000,
+            "total_loan": 400000000,
+            "base_interest_rate": 0.075,
+        },
+    )
     await db.execute(
         """INSERT INTO kpr_simulations
-           (id, user_id, name, property_price, down_payment, total_loan, tenor_months,
-            interest_type, base_interest_rate, start_month, start_year, due_date)
-           VALUES (1, 1, 'Rumah BSD', 500000000, 100000000, 400000000, 240,
-                   'fixed', 0.075, 1, 2026, 10)"""
+           (id, user_id, name, tenor_months, interest_type, start_month, start_year, due_date,
+            vault_blob, amount_ord)
+           VALUES (1, 1, 'Rumah BSD', 240, 'fixed', 1, 2026, 10, ?, ?)""",
+        (sim_pack["vault_blob"], sim_pack["amount_ord"]),
+    )
+    sch_pack = pack_money(
+        TEST_DEK,
+        amount=390000000,
+        extra={
+            "payment": 3500000,
+            "principal": 1000000,
+            "interest": 2500000,
+            "remaining_balance": 390000000,
+            "interest_rate": 0.075,
+            "month_number": 9,
+            "rate_type": "fixed",
+        },
     )
     await db.execute(
         """INSERT INTO kpr_monthly_schedules
-           (simulation_id, month_number, payment, principal, interest, remaining_balance, rate_type, interest_rate)
-           VALUES (1, 9, 3500000, 1000000, 2500000, 390000000, 'fixed', 0.075)"""
+           (simulation_id, month_number, rate_type, vault_blob, amount_ord)
+           VALUES (1, 9, 'fixed', ?, ?)""",
+        (sch_pack["vault_blob"], sch_pack["amount_ord"]),
     )
     await db.execute(
         """INSERT INTO credit_cards (id, user_id, name, credit_limit, billing_date, due_date, card_number_last4)

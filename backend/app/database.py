@@ -343,14 +343,8 @@ CREATE TABLE IF NOT EXISTS kpr_simulations (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     name TEXT NOT NULL DEFAULT 'KPR Simulation',
-    property_price INTEGER NOT NULL DEFAULT 0,
-    down_payment INTEGER NOT NULL DEFAULT 0,
-    total_loan INTEGER NOT NULL DEFAULT 0,
     tenor_months INTEGER NOT NULL DEFAULT 120,
     interest_type TEXT NOT NULL DEFAULT 'fixed' CHECK(interest_type IN ('fixed', 'floating', 'graduated', 'mix')),
-    base_interest_rate NUMERIC(6,4) NOT NULL DEFAULT 0.075,
-    graduated_increment NUMERIC(6,4) NOT NULL DEFAULT 0.005,
-    graduated_every_months INTEGER NOT NULL DEFAULT 12,
     start_month INTEGER NOT NULL DEFAULT 1,
     start_year INTEGER NOT NULL DEFAULT 2026,
     due_date INTEGER DEFAULT NULL,
@@ -364,7 +358,6 @@ CREATE TABLE IF NOT EXISTS kpr_rate_periods (
     simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
     period_start INTEGER NOT NULL,
     period_end INTEGER NOT NULL,
-    interest_rate NUMERIC(6,4) NOT NULL,
     rate_type TEXT NOT NULL DEFAULT 'fixed' CHECK(rate_type IN ('fixed', 'floating')),
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 );
@@ -375,12 +368,9 @@ CREATE TABLE IF NOT EXISTS kpr_monthly_schedules (
     id SERIAL PRIMARY KEY,
     simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
     month_number INTEGER NOT NULL,
-    payment INTEGER NOT NULL,
-    principal INTEGER NOT NULL,
-    interest INTEGER NOT NULL,
-    remaining_balance INTEGER NOT NULL,
     rate_type TEXT NOT NULL,
-    interest_rate NUMERIC(6,4) NOT NULL,
+    vault_blob TEXT DEFAULT '',
+    amount_ord BIGINT,
     UNIQUE(simulation_id, month_number)
 );
 
@@ -389,10 +379,6 @@ CREATE INDEX IF NOT EXISTS idx_kpr_schedules_sim ON kpr_monthly_schedules(simula
 -- Household debt support
 ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS household_id INTEGER REFERENCES households(id);
 ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
--- Legacy column migration (safe on existing)
-ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS base_interest_rate NUMERIC(6,4) NOT NULL DEFAULT 0.075;
-ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS graduated_increment NUMERIC(6,4) NOT NULL DEFAULT 0.005;
-ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS graduated_every_months INTEGER NOT NULL DEFAULT 12;
 ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS start_month INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS start_year INTEGER NOT NULL DEFAULT 2026;
 ALTER TABLE kpr_simulations ADD COLUMN IF NOT EXISTS due_date INTEGER DEFAULT NULL;
@@ -401,16 +387,8 @@ CREATE INDEX IF NOT EXISTS idx_kpr_simulations_household ON kpr_simulations(hous
 CREATE TABLE IF NOT EXISTS kpr_extra_payments (
     id SERIAL PRIMARY KEY,
     simulation_id INTEGER NOT NULL REFERENCES kpr_simulations(id) ON DELETE CASCADE,
-    amount INTEGER NOT NULL,
     apply_month INTEGER NOT NULL,
     reduction_type TEXT NOT NULL DEFAULT 'tenor' CHECK(reduction_type IN ('tenor', 'installment')),
-    old_remaining_balance INTEGER NOT NULL,
-    new_remaining_balance INTEGER NOT NULL,
-    old_remaining_months INTEGER NOT NULL,
-    new_remaining_months INTEGER NOT NULL,
-    old_installment INTEGER NOT NULL DEFAULT 0,
-    new_installment INTEGER NOT NULL DEFAULT 0,
-    total_interest_saved INTEGER NOT NULL DEFAULT 0,
     original_end_date TEXT DEFAULT '',
     new_end_date TEXT DEFAULT '',
     created_at TEXT NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
@@ -645,6 +623,26 @@ async def _migrate_vault(conn) -> None:
         "ALTER TABLE ocr_jobs ADD COLUMN IF NOT EXISTS vault_blob TEXT DEFAULT ''",
         "ALTER TABLE budgets DROP COLUMN IF EXISTS budget_amount",
         "ALTER TABLE budgets DROP COLUMN IF EXISTS category_name",
+        "ALTER TABLE kpr_simulations DROP COLUMN IF EXISTS property_price",
+        "ALTER TABLE kpr_simulations DROP COLUMN IF EXISTS down_payment",
+        "ALTER TABLE kpr_simulations DROP COLUMN IF EXISTS total_loan",
+        "ALTER TABLE kpr_simulations DROP COLUMN IF EXISTS base_interest_rate",
+        "ALTER TABLE kpr_simulations DROP COLUMN IF EXISTS graduated_increment",
+        "ALTER TABLE kpr_simulations DROP COLUMN IF EXISTS graduated_every_months",
+        "ALTER TABLE kpr_rate_periods DROP COLUMN IF EXISTS interest_rate",
+        "ALTER TABLE kpr_monthly_schedules DROP COLUMN IF EXISTS payment",
+        "ALTER TABLE kpr_monthly_schedules DROP COLUMN IF EXISTS principal",
+        "ALTER TABLE kpr_monthly_schedules DROP COLUMN IF EXISTS interest",
+        "ALTER TABLE kpr_monthly_schedules DROP COLUMN IF EXISTS remaining_balance",
+        "ALTER TABLE kpr_monthly_schedules DROP COLUMN IF EXISTS interest_rate",
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS amount",
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS old_remaining_balance",
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS new_remaining_balance",
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS old_remaining_months",
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS new_remaining_months",
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS old_installment",
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS new_installment",
+        "ALTER TABLE kpr_extra_payments DROP COLUMN IF EXISTS total_interest_saved",
     ]
     for sql in stmts:
         try:

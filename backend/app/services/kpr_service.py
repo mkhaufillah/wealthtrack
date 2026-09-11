@@ -61,9 +61,8 @@ class KPRService:
         )
         await db.execute(
             """INSERT INTO kpr_monthly_schedules
-               (simulation_id, month_number, payment, principal, interest,
-                remaining_balance, rate_type, interest_rate, vault_blob, amount_ord)
-               VALUES (?, ?, 0, 0, 0, 0, ?, 0, ?, ?)""",
+               (simulation_id, month_number, rate_type, vault_blob, amount_ord)
+               VALUES (?, ?, ?, ?, ?)""",
             (
                 sim_id,
                 item.month_number,
@@ -80,7 +79,7 @@ class KPRService:
         from app.core.vault_row import open_row
 
         cursor = await db.execute(
-            """SELECT period_start, period_end, interest_rate, rate_type, vault_blob
+            """SELECT period_start, period_end, rate_type, vault_blob
                FROM kpr_rate_periods WHERE simulation_id = ?
                ORDER BY period_start""",
             (sim_id,),
@@ -116,8 +115,7 @@ class KPRService:
     @staticmethod
     async def _load_schedule(db: CursorWrapper, sim_id: int) -> list[MonthlySchedule]:
         cursor = await db.execute(
-            """SELECT month_number, payment, principal, interest,
-                      remaining_balance, rate_type, interest_rate, vault_blob
+            """SELECT month_number, rate_type, vault_blob
                FROM kpr_monthly_schedules
                WHERE simulation_id = ? ORDER BY month_number""",
             (sim_id,),
@@ -237,11 +235,9 @@ class KPRService:
             )
             cursor = await db.execute(
                 """INSERT INTO kpr_simulations
-                   (user_id, name, property_price, down_payment, total_loan,
-                    tenor_months, interest_type, start_month, start_year, due_date,
-                    household_id, base_interest_rate, graduated_increment, graduated_every_months,
-                    vault_blob, amount_ord)
-                   VALUES (?, ?, 0, 0, 0, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)""",
+                   (user_id, name, tenor_months, interest_type, start_month, start_year, due_date,
+                    household_id, vault_blob, amount_ord)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     user_id,
                     data.name,
@@ -271,8 +267,8 @@ class KPRService:
                 )
                 await db.execute(
                     """INSERT INTO kpr_rate_periods
-                       (simulation_id, period_start, period_end, interest_rate, rate_type, vault_blob)
-                       VALUES (?, ?, ?, 0, ?, ?)""",
+                       (simulation_id, period_start, period_end, rate_type, vault_blob)
+                       VALUES (?, ?, ?, ?, ?)""",
                     (sim_id, rp.period_start, rp.period_end, rp.rate_type, packed_rp["vault_blob"]),
                 )
 
@@ -322,54 +318,10 @@ class KPRService:
     ) -> list[dict]:
         """List all KPR simulations accessible to the user (metadata only)."""
         cursor = await db.execute(
-            """SELECT
-                   ks.id, ks.user_id, ks.name, ks.property_price, ks.down_payment,
-                   ks.total_loan, ks.tenor_months, ks.interest_type, ks.created_at,
-                   ks.start_month, ks.start_year, ks.due_date,
-                   ks.household_id, ks.display_order, ks.vault_blob,
-                   COALESCE(agg.total_interest, 0) AS total_interest,
-                   COALESCE(agg.monthly_payment, 0) AS monthly_payment,
-                   COALESCE(agg.current_month_number, 1) AS current_month_number,
-                   COALESCE(agg.current_month_payment, 0) AS current_month_payment,
-                   COALESCE(agg.current_remaining_balance, 0) AS current_remaining_balance
+            """SELECT ks.id, ks.user_id, ks.name, ks.tenor_months, ks.interest_type, ks.created_at,
+                      ks.start_month, ks.start_year, ks.due_date,
+                      ks.household_id, ks.display_order, ks.vault_blob
                FROM kpr_simulations ks
-               LEFT JOIN (
-                   SELECT
-                       simulation_id,
-                       SUM(interest) AS total_interest,
-                       MAX(CASE WHEN month_number = 1 THEN payment ELSE 0 END) AS monthly_payment,
-                       MAX(CASE WHEN month_number = (
-                           SELECT GREATEST(1, LEAST(
-                               (EXTRACT(YEAR FROM CURRENT_DATE) - ks2.start_year) * 12
-                               + (EXTRACT(MONTH FROM CURRENT_DATE) - ks2.start_month) + 1,
-                               ks2.tenor_months
-                           ))
-                           FROM kpr_simulations ks2 WHERE ks2.id = kms.simulation_id
-                       ) THEN payment ELSE 0 END) AS current_month_payment,
-                       MAX(CASE WHEN month_number = (
-                           SELECT CASE WHEN cm.current_month <= 1 THEN 0
-                           ELSE cm.current_month - 1 END
-                           FROM kpr_simulations ks3
-                           CROSS JOIN LATERAL (
-                               SELECT LEAST(
-                                   (EXTRACT(YEAR FROM CURRENT_DATE) - ks3.start_year) * 12
-                                   + (EXTRACT(MONTH FROM CURRENT_DATE) - ks3.start_month) + 1,
-                                   ks3.tenor_months
-                               ) AS current_month
-                           ) cm
-                           WHERE ks3.id = kms.simulation_id
-                       ) THEN remaining_balance ELSE 0 END) AS current_remaining_balance,
-                       (
-                           SELECT GREATEST(1, LEAST(
-                               (EXTRACT(YEAR FROM CURRENT_DATE) - ks3.start_year) * 12
-                               + (EXTRACT(MONTH FROM CURRENT_DATE) - ks3.start_month) + 1,
-                               ks3.tenor_months
-                           ))
-                           FROM kpr_simulations ks3 WHERE ks3.id = kms.simulation_id
-                       ) AS current_month_number
-                   FROM kpr_monthly_schedules kms
-                   GROUP BY simulation_id
-               ) agg ON agg.simulation_id = ks.id
                WHERE ks.user_id = ?
                   OR ks.household_id IN (
                       SELECT household_id FROM household_members WHERE user_id = ?
@@ -383,8 +335,16 @@ class KPRService:
         out = []
         for r in rows:
             d = open_row(dict(r))
+            from datetime import date as _date
+            today = _date.today()
+            sm = int(d.get("start_month") or 1)
+            sy = int(d.get("start_year") or today.year)
+            tenor = int(d.get("tenor_months") or 1)
+            d["current_month_number"] = max(
+                1, min(tenor, (today.year - sy) * 12 + (today.month - sm) + 1)
+            )
             cur2 = await db.execute(
-                """SELECT vault_blob, remaining_balance, payment, month_number, interest
+                """SELECT vault_blob, month_number
                    FROM kpr_monthly_schedules WHERE simulation_id = ?
                    ORDER BY month_number""",
                 (d["id"],),
@@ -414,8 +374,7 @@ class KPRService:
         sim = await KPRService.get_simulation_for_user(db, sim_id, user_id)
 
         cursor = await db.execute(
-            """SELECT month_number, payment, principal, interest,
-                      remaining_balance, rate_type, interest_rate, vault_blob
+            """SELECT month_number, rate_type, vault_blob
                FROM kpr_monthly_schedules
                WHERE simulation_id = ?
                ORDER BY month_number""",
@@ -715,12 +674,9 @@ class KPRService:
             packed_ep = KPRService._pack(int(data.amount), extra=extra_payload)
             cursor = await db.execute(
                 """INSERT INTO kpr_extra_payments
-                   (simulation_id, amount, apply_month,
-                    reduction_type, old_remaining_balance, new_remaining_balance,
-                    old_remaining_months, new_remaining_months, old_installment,
-                    new_installment, total_interest_saved, original_end_date, new_end_date,
-                    vault_blob, amount_ord)
-                   VALUES (?, 0, ?, ?, 0, 0, 0, 0, 0, 0, 0, ?, ?, ?, ?)""",
+                   (simulation_id, apply_month, reduction_type,
+                    original_end_date, new_end_date, vault_blob, amount_ord)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
                     sim_id,
                     data.apply_month, data.reduction_type,
@@ -740,12 +696,9 @@ class KPRService:
 
         # Re-fetch the record to get DB-generated created_at
         fetch_cursor = await db.execute(
-            """SELECT id, simulation_id, amount, vault_blob,
+            """SELECT id, simulation_id, vault_blob,
                       apply_month, reduction_type,
-                      old_remaining_balance, new_remaining_balance,
-                      old_remaining_months, new_remaining_months,
-                      old_installment, new_installment,
-                      total_interest_saved, original_end_date, new_end_date,
+                      original_end_date, new_end_date,
                       created_at
                FROM kpr_extra_payments WHERE id = ?""",
             (extra_id,),
@@ -785,12 +738,9 @@ class KPRService:
         await KPRService.get_simulation_for_user(db, sim_id, user_id)
 
         cursor = await db.execute(
-            """SELECT id, simulation_id, amount, vault_blob,
+            """SELECT id, simulation_id, vault_blob,
                       apply_month, reduction_type,
-                      old_remaining_balance, new_remaining_balance,
-                      old_remaining_months, new_remaining_months,
-                      old_installment, new_installment,
-                      total_interest_saved, original_end_date, new_end_date,
+                      original_end_date, new_end_date,
                       created_at
                FROM kpr_extra_payments
                WHERE simulation_id = ?
@@ -881,7 +831,7 @@ class KPRService:
 
                 # Re-apply remaining extra payments
                 cursor = await db.execute(
-                    """SELECT id, amount, apply_month, reduction_type, vault_blob
+                    """SELECT id, apply_month, reduction_type, vault_blob
                        FROM kpr_extra_payments
                        WHERE simulation_id = ?
                        ORDER BY apply_month ASC""",

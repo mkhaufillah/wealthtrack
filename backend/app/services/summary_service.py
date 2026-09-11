@@ -695,7 +695,7 @@ class SummaryService:
             total_kpr = 0
             for sim in sims:
                 cur = await self.db.execute(
-                    """SELECT vault_blob, remaining_balance FROM kpr_monthly_schedules
+                    """SELECT vault_blob FROM kpr_monthly_schedules
                        WHERE simulation_id = ? ORDER BY month_number""",
                     (sim["id"],),
                 )
@@ -707,7 +707,7 @@ class SummaryService:
                     total_kpr += amt
                 else:
                     cur = await self.db.execute(
-                        "SELECT vault_blob, total_loan FROM kpr_simulations WHERE id = ?",
+                        "SELECT vault_blob FROM kpr_simulations WHERE id = ?",
                         (sim["id"],),
                     )
                     ks = await cur.fetchone()
@@ -935,7 +935,7 @@ class SummaryService:
             sims = await cur.fetchall()
             for sim in sims:
                 cur = await self.db.execute(
-                    """SELECT vault_blob, remaining_balance FROM kpr_monthly_schedules
+                    """SELECT vault_blob FROM kpr_monthly_schedules
                        WHERE simulation_id = ? ORDER BY month_number""",
                     (sim["id"],),
                 )
@@ -945,7 +945,7 @@ class SummaryService:
                     amt = max(int(s.get("remaining_balance") or 0) for s in sched)
                 else:
                     cur = await self.db.execute(
-                        "SELECT vault_blob, total_loan FROM kpr_simulations WHERE id = ?",
+                        "SELECT vault_blob FROM kpr_simulations WHERE id = ?",
                         (sim["id"],),
                     )
                     ks = await cur.fetchone()

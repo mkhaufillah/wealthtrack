@@ -464,55 +464,25 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
                 search_text = format_search_results(results)
 
     # ── Debt summary (household-aware) ──
-    hh_where = "ks.user_id = ? OR ks.household_id IN (SELECT household_id FROM household_members WHERE user_id = ?)"
-    hh_params = (user_id, user_id)
-
-    cursor = await db.execute(
-        f"""SELECT COALESCE(SUM(
-            CASE
-                WHEN ks.due_date IS NOT NULL AND EXTRACT(DAY FROM CURRENT_DATE) >= ks.due_date THEN
-                    COALESCE((
-                        SELECT kms.remaining_balance FROM kpr_monthly_schedules kms
-                        WHERE kms.simulation_id = ks.id AND kms.month_number = cm.current_month
-                    ), ks.total_loan)
-                ELSE
-                    CASE WHEN cm.current_month <= 1 THEN ks.total_loan
-                    ELSE (
-                        SELECT kms.remaining_balance FROM kpr_monthly_schedules kms
-                        WHERE kms.simulation_id = ks.id AND kms.month_number = cm.current_month - 1
-                    ) END
-            END
-        ), 0) AS total_kpr
-        FROM kpr_simulations ks
-        CROSS JOIN LATERAL (
-            SELECT LEAST(
-                (EXTRACT(YEAR FROM CURRENT_DATE) - ks.start_year) * 12
-                + (EXTRACT(MONTH FROM CURRENT_DATE) - ks.start_month) + 1,
-                ks.tenor_months
-            ) AS current_month
-        ) cm
-        WHERE {hh_where}""",
-        hh_params,
-    )
-    row = await cursor.fetchone()
-    total_kpr = int(row["total_kpr"]) if row else 0
+    total_kpr = 0
 
     # KPR per-simulation details with owner
+    hh_where = "ks.user_id = ? OR ks.household_id IN (SELECT household_id FROM household_members WHERE user_id = ?)"
     cursor = await db.execute(
-        f"""SELECT ks.id, ks.name, ks.property_price, ks.down_payment, ks.total_loan,
-                  ks.interest_type, ks.base_interest_rate, ks.tenor_months,
+        f"""SELECT ks.id, ks.name, ks.vault_blob, ks.interest_type, ks.tenor_months,
                   ks.start_month, ks.start_year, ks.due_date, ks.user_id,
                   u.display_name AS owner,
                   CASE WHEN ks.user_id = ? THEN 0 ELSE 1 END AS is_member,
-                  COALESCE((SELECT COUNT(*) FROM kpr_extra_payments kep WHERE kep.simulation_id = ks.id), 0) AS extra_payments,
-                  COALESCE((SELECT SUM(kep.amount) FROM kpr_extra_payments kep WHERE kep.simulation_id = ks.id), 0) AS extra_sum
+                  COALESCE((SELECT COUNT(*) FROM kpr_extra_payments kep WHERE kep.simulation_id = ks.id), 0) AS extra_payments
            FROM kpr_simulations ks
            JOIN users u ON u.id = ks.user_id
            WHERE {hh_where}
            ORDER BY ks.display_order ASC, ks.created_at DESC""",
         (user_id, user_id, user_id),
     )
-    kpr_details = await cursor.fetchall()
+    from app.core.vault_row import open_row
+
+    kpr_details = [open_row(dict(r)) for r in await cursor.fetchall()]
     kpr_count = len(kpr_details)
 
     # Per-member KPR breakdown
@@ -623,20 +593,21 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
             tenor = int(k["tenor_months"] or 1)
             elapsed = max(1, min(elapsed, tenor))
             cur = await db.execute(
-                """SELECT payment, remaining_balance, interest_rate
-                   FROM kpr_monthly_schedules
+                """SELECT vault_blob FROM kpr_monthly_schedules
                    WHERE simulation_id = ? AND month_number = ?""",
                 (k["id"], elapsed),
             )
-            sch = await cur.fetchone()
-            cicilan = int(sch["payment"]) if sch else 0
-            sisa = int(sch["remaining_balance"]) if sch else int(k["total_loan"] or 0)
-            rate = float(sch["interest_rate"] if sch and sch["interest_rate"] is not None else k["base_interest_rate"] or 0)
+            sch_row = await cur.fetchone()
+            sch = open_row(dict(sch_row)) if sch_row else {}
+            cicilan = int(sch.get("payment") or 0)
+            sisa = int(sch.get("remaining_balance") or k.get("total_loan") or 0)
+            total_kpr += sisa
+            rate = float(sch.get("interest_rate") if sch.get("interest_rate") is not None else k.get("base_interest_rate") or 0)
             rate_pct = rate * 100 if rate <= 1 else rate
             itype = type_label.get(k["interest_type"] or "fixed", k["interest_type"])
             due = f", jatuh tempo tgl {k['due_date']}" if k["due_date"] else ""
-            extra_n = int(k["extra_payments"] or 0)
-            extra_sum = int(k["extra_sum"] or 0)
+            extra_n = int(k.get("extra_payments") or 0)
+            extra_sum = 0
             extra_txt = f", extra payment {extra_n}x Rp{extra_sum:,}" if extra_n else ""
             debt_parts.append(
                 f"  - {k['name'] or 'Simulasi KPR'} ({k['owner']}): "

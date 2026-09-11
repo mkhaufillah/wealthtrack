@@ -124,9 +124,7 @@ class VaultService:
                 tuple(uids),
                 amount_key="total_loan",
                 extra_keys=("name", "property_price", "down_payment", "total_loan", "base_interest_rate", "graduated_increment"),
-                wipe="""UPDATE kpr_simulations SET vault_blob=?, amount_ord=?,
-                    name='', property_price=0, down_payment=0, total_loan=0,
-                    base_interest_rate=0, graduated_increment=0 WHERE id=?""",
+                wipe="""UPDATE kpr_simulations SET vault_blob=?, amount_ord=? WHERE id=?""",
                 force=True,
             )
             await self._seal_named(
@@ -146,7 +144,7 @@ class VaultService:
                     "original_end_date",
                     "new_end_date",
                 ),
-                wipe="UPDATE kpr_extra_payments SET vault_blob=?, amount_ord=?, amount=0, old_remaining_balance=0, new_remaining_balance=0, old_installment=0, new_installment=0, total_interest_saved=0, original_end_date='', new_end_date='' WHERE id=?",
+                wipe="UPDATE kpr_extra_payments SET vault_blob=?, amount_ord=? WHERE id=?",
                 force=True,
             )
             await self._seal_named(
@@ -157,8 +155,7 @@ class VaultService:
                 tuple(uids),
                 amount_key="remaining_balance",
                 extra_keys=("payment", "principal", "interest", "remaining_balance", "interest_rate", "rate_type"),
-                wipe="""UPDATE kpr_monthly_schedules SET vault_blob=?, amount_ord=?,
-                    payment=0, principal=0, interest=0, remaining_balance=0, interest_rate=0 WHERE id=?""",
+                wipe="""UPDATE kpr_monthly_schedules SET vault_blob=?, amount_ord=? WHERE id=?""",
                 force=True,
             )
             await self._seal_named(
@@ -217,7 +214,7 @@ class VaultService:
                 tuple(uids),
                 amount_key="amount",
                 extra_keys=("interest_rate", "rate_type", "period_start", "period_end"),
-                wipe="UPDATE kpr_rate_periods SET vault_blob=?, interest_rate=0 WHERE id=?",
+                wipe="UPDATE kpr_rate_periods SET vault_blob=? WHERE id=?",
                 skip_ord=True,
             )
             await self.db.execute(
