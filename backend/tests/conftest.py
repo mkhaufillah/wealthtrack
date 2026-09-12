@@ -426,6 +426,21 @@ def nahda_token() -> str:
     return create_access_token(user_id=2, username="nahda", role="user")
 
 
+@pytest.fixture
+def no_llm_keys(monkeypatch):
+    """Pretend NO LLM provider is configured.
+
+    The app falls back between OpenCode and OpenRouter, so "not configured"
+    only holds when both keys are blank — blanking one key now means "use the
+    other provider".
+    """
+    from app.core.config import settings as _settings
+
+    monkeypatch.setattr(_settings, "OPENCODE_GO_API_KEY", "", raising=False)
+    monkeypatch.setattr(_settings, "OPENROUTER_API_KEY", "", raising=False)
+    return _settings
+
+
 @pytest.fixture(autouse=True)
 def _global_redis_isolation():
     """Reset the process-global Redis singleton before every test.

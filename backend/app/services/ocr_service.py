@@ -31,6 +31,34 @@ def _vision_model() -> str:
         else "deepseek-v4-flash-vision-exp"
     )
 
+
+def sweep_ocr_images(max_age_hours: int = 24) -> int:
+    """Delete leftover receipt images older than ``max_age_hours``.
+
+    Each OCR job deletes its own image in a ``finally`` block, so anything still
+    on disk is an orphan from a crash or a container restart. Without this the
+    OCR dir grows forever (and it holds pictures of receipts — data we do not
+    want to keep around). Returns the number of files removed.
+    """
+    import time
+    from pathlib import Path as _Path
+
+    directory = _Path(settings.OCR_IMAGE_DIR)
+    if not directory.exists():
+        return 0
+    cutoff = time.time() - (max_age_hours * 3600)
+    removed = 0
+    for path in directory.glob("ocr_*"):
+        try:
+            if path.is_file() and path.stat().st_mtime < cutoff:
+                path.unlink()
+                removed += 1
+        except OSError:
+            continue
+    if removed:
+        logger.info("ocr image sweep removed %s stale file(s)", removed)
+    return removed
+
 # ── System-wide semaphore: max 2 concurrent Vision API calls across all users ──
 _ocr_semaphore = asyncio.Semaphore(2)
 
@@ -144,15 +172,16 @@ class OcrService:
         """
         self._validate_image(content_type, file_bytes)
 
-        api_key = settings.llm_api_key
-        if not api_key:
+        from app.core.llm import vision_plan
+
+        if not any(a.key for a in vision_plan()):
             raise OcrApiKeyError()
 
         data_url = self._compress_image(file_bytes)
         categories_str = await self._load_categories()
         prompt = SYSTEM_PROMPT.format(categories=categories_str)
 
-        content = await self._call_vision_api(data_url, prompt, api_key)
+        content = await self._call_vision_api(data_url, prompt)
 
         try:
             parsed = json.loads(content)
@@ -204,11 +233,13 @@ class OcrService:
                 "Struk sebelumnya masih diproses, tunggu ya."
             )
 
-        api_key = settings.llm_api_key
-        if not api_key:
+        from app.core.llm import vision_plan
+
+        if not any(a.key for a in vision_plan()):
             raise OcrApiKeyError()
 
         # Save image to disk
+        sweep_ocr_images()
         ocr_dir = Path(settings.OCR_IMAGE_DIR)
         ocr_dir.mkdir(exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -242,7 +273,7 @@ class OcrService:
                     prompt = SYSTEM_PROMPT.format(categories=categories_str)
 
                     content = await self._call_vision_api_with_retry(
-                        data_url, prompt, api_key
+                        data_url, prompt
                     )
                     parsed = json.loads(content)
 
@@ -439,88 +470,23 @@ class OcrService:
         )
 
     async def _call_vision_api(
-        self, data_url: str, prompt: str, api_key: str
+        self, data_url: str, prompt: str, api_key: str | None = None
     ) -> str:
-        """Call the Vision API (single attempt, no retry)."""
-        try:
-            async with _ocr_semaphore:
-                async with httpx.AsyncClient(timeout=120) as client:
-                    resp = await client.post(
-                        settings.llm_api_url,
-                        headers=settings.llm_headers(),
-                        json={
-                            "model": _vision_model(),
-                            "messages": [
-                                {"role": "system", "content": prompt},
-                                {
-                                    "role": "user",
-                                    "content": [
-                                        {
-                                            "type": "image_url",
-                                            "image_url": {"url": data_url},
-                                        },
-                                        {
-                                            "type": "text",
-                                            "text": "Ambil data transaksi dari gambar ini.",
-                                        },
-                                    ],
-                                },
-                            ],
-                            "max_tokens": 4096,
-                        },
-                    )
+        """Call the Vision API (one attempt per provider, no retry)."""
+        from app.core.llm import vision_plan
 
-            if resp.status_code == 429:
-                raise OcrVisionApiError(
-                    "Kebanyakan request. Tunggu sebentar, coba lagi.",
-                    status_code=429,
-                )
-            elif resp.status_code == 401:
-                raise OcrVisionApiError(
-                    "OCR belum dikonfigurasi — cek API key",
-                )
-            elif resp.status_code == 503:
-                raise OcrVisionApiError(
-                    "Layanan baca struk lagi sibuk. Coba sebentar lagi ya."
-                )
-            elif resp.status_code != 200:
-                logger.warning("OCR vision HTTP %s: %s", resp.status_code, (resp.text or "")[:400])
-                raise OcrVisionApiError(f"Layanan baca struk error (HTTP {resp.status_code})")
-
-            body = resp.json()
-            content = body["choices"][0]["message"]["content"].strip()
-            content = re.sub(r"^```(?:json)?\s*", "", content)
-            content = re.sub(r"\s*```$", "", content)
-            return content
-
-        except httpx.TimeoutException:
-            raise OcrTimeoutError()
-        except httpx.RequestError as e:
-            raise OcrVisionApiError(f"Gagal hubungi layanan baca struk: {e}")
-
-    async def _call_vision_api_with_retry(
-        self, data_url: str, prompt: str, api_key: str
-    ) -> str:
-        """Call the Vision API with retry (5 attempts, jittered exp. backoff for 429).
-
-        Unlike ``_call_vision_api``, this does **not** translate httpx
-        exceptions into ``OcrVisionApiError`` — those propagate to the
-        caller's ``except Exception`` handler (the background task).
-        """
-        import random as _random
-
-        vision_resp = None
-        last_exc: Exception | None = None
-
-        async with _ocr_semaphore:
-            for attempt in range(5):
-                try:
+        last_status = 0
+        network_err: Exception | None = None
+        timeout_hit = False
+        for attempt in vision_plan():
+            try:
+                async with _ocr_semaphore:
                     async with httpx.AsyncClient(timeout=120) as client:
-                        vision_resp = await client.post(
-                            settings.llm_api_url,
-                            headers=settings.llm_headers(),
+                        resp = await client.post(
+                            attempt.url,
+                            headers=attempt.headers,
                             json={
-                                "model": _vision_model(),
+                                "model": attempt.model,
                                 "messages": [
                                     {"role": "system", "content": prompt},
                                     {
@@ -540,42 +506,133 @@ class OcrService:
                                 "max_tokens": 4096,
                             },
                         )
-                except (httpx.TimeoutException, httpx.RequestError) as exc:
-                    last_exc = exc
-                    wait = (2 ** attempt) + _random.uniform(0, 1)
-                    await asyncio.sleep(wait)
-                    continue
+            except httpx.TimeoutException as e:
+                timeout_hit = True
+                network_err = e
+                continue  # try the next provider
+            except httpx.RequestError as e:
+                last_status = 0
+                network_err = e
+                logger.warning("OCR vision via %s unreachable: %s", attempt.provider, e)
+                continue
 
-                if vision_resp is None:
-                    continue
-
-                if vision_resp.status_code == 429:
-                    last_exc = OcrVisionApiError(
-                        "Kebanyakan request. Tunggu sebentar, coba lagi.",
-                        status_code=429,
-                    )
-                    wait = (2 ** attempt) + _random.uniform(1, 3)
-                    await asyncio.sleep(wait)
-                    continue
-                elif vision_resp.status_code in (401, 503):
-                    raise OcrVisionApiError(
-                        f"Vision API error: HTTP {vision_resp.status_code}"
-                    )
-                elif vision_resp.status_code != 200:
-                    logger.warning(
-                        "OCR vision HTTP %s: %s",
-                        vision_resp.status_code,
-                        (vision_resp.text or "")[:400],
-                    )
-                    raise OcrVisionApiError(
-                        f"Vision API error: HTTP {vision_resp.status_code}"
-                    )
-
-                body = vision_resp.json()
+            if resp.status_code == 200:
+                body = resp.json()
                 content = body["choices"][0]["message"]["content"].strip()
                 content = re.sub(r"^```(?:json)?\s*", "", content)
                 content = re.sub(r"\s*```$", "", content)
                 return content
+
+            last_status = resp.status_code
+            logger.warning(
+                "OCR vision via %s HTTP %s: %s",
+                attempt.provider,
+                resp.status_code,
+                (getattr(resp, "text", "") or "")[:300],
+            )
+            continue  # try the next provider
+
+        if last_status == 429:
+            raise OcrVisionApiError(
+                "Kebanyakan request. Tunggu sebentar, coba lagi.",
+                status_code=429,
+            )
+        if last_status in (401, 403):
+            raise OcrVisionApiError("OCR belum dikonfigurasi — cek API key")
+        if last_status == 503:
+            raise OcrVisionApiError("Layanan baca struk lagi sibuk. Coba sebentar lagi ya.")
+        if last_status:
+            raise OcrVisionApiError(f"Layanan baca struk error (HTTP {last_status})")
+        if timeout_hit:
+            raise OcrTimeoutError()
+        if network_err is not None:
+            raise OcrVisionApiError(f"Gagal hubungi layanan baca struk: {network_err}")
+        raise OcrVisionApiError("Gagal hubungi layanan baca struk")
+
+    async def _call_vision_api_with_retry(
+        self, data_url: str, prompt: str, api_key: str | None = None
+    ) -> str:
+        """Call the Vision API across the provider plan (OpenCode → OpenRouter).
+
+        Per provider: up to 5 attempts with jittered backoff for transient
+        failures (timeout, 429, 5xx). Auth/quota answers (401/403/429) skip to
+        the next provider instead of burning all retries on a dead one — this is
+        what makes "OpenCode limit" stop meaning "OCR down".
+
+        Unlike ``_call_vision_api``, httpx exceptions are not translated into
+        ``OcrVisionApiError`` until every provider has been tried.
+        """
+        import random as _random
+
+        from app.core.llm import vision_plan
+
+        payload = {
+            "messages": [
+                {"role": "system", "content": prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url", "image_url": {"url": data_url}},
+                        {"type": "text", "text": "Ambil data transaksi dari gambar ini."},
+                    ],
+                },
+            ],
+            "max_tokens": 4096,
+        }
+
+        plan = vision_plan()
+        if not plan:
+            raise OcrApiKeyError()
+
+        last_exc: Exception | None = None
+
+        async with _ocr_semaphore:
+            for attempt in plan:
+                for round_no in range(5):
+                    resp = None
+                    try:
+                        async with httpx.AsyncClient(timeout=120) as client:
+                            resp = await client.post(
+                                attempt.url,
+                                headers=attempt.headers,
+                                json={**payload, "model": attempt.model},
+                            )
+                    except (httpx.TimeoutException, httpx.RequestError) as exc:
+                        last_exc = exc
+                        await asyncio.sleep((2 ** round_no) + _random.uniform(0, 1))
+                        continue
+
+                    if resp.status_code == 200:
+                        body = resp.json()
+                        content = body["choices"][0]["message"]["content"].strip()
+                        content = re.sub(r"^```(?:json)?\s*", "", content)
+                        content = re.sub(r"\s*```$", "", content)
+                        return content
+
+                    logger.warning(
+                        "OCR vision via %s HTTP %s: %s",
+                        attempt.provider,
+                        resp.status_code,
+                        (resp.text or "")[:300],
+                    )
+                    if resp.status_code == 429:
+                        last_exc = OcrVisionApiError(
+                            "Kebanyakan request. Tunggu sebentar, coba lagi.",
+                            status_code=429,
+                        )
+                        break  # quota → try the next provider now
+                    if resp.status_code in (401, 403):
+                        last_exc = OcrVisionApiError(
+                            f"Vision API error: HTTP {resp.status_code}"
+                        )
+                        break  # bad key → try the next provider now
+                    last_exc = OcrVisionApiError(
+                        f"Vision API error: HTTP {resp.status_code}"
+                    )
+                    if resp.status_code >= 500:
+                        await asyncio.sleep((2 ** round_no) + _random.uniform(1, 3))
+                        continue
+                    break
 
         if last_exc:
             raise last_exc

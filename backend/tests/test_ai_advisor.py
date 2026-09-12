@@ -126,34 +126,24 @@ class TestFinancialAdvise:
         )
         assert resp.status_code == 401
 
-    async def test_returns_500_without_api_key(self, client: AsyncClient, filla_token: str):
-        """POST /ai/advise with valid auth returns 500 when API key is not configured."""
-        saved_key = settings.OPENCODE_GO_API_KEY
-        settings.OPENCODE_GO_API_KEY = ""
-        try:
-            resp = await client.post(
-                "/api/v1/ai/advise",
-                headers={"Authorization": f"Bearer {filla_token}"},
-                json={"question": "How can I save more money?"},
-            )
-            assert resp.status_code == 500
-            assert "belum dikonfigurasi" in resp.json()["detail"].lower()
-        finally:
-            settings.OPENCODE_GO_API_KEY = saved_key
+    async def test_returns_500_without_api_key(self, client: AsyncClient, filla_token: str, no_llm_keys):
+        """POST /ai/advise with valid auth returns 500 when NO provider is configured."""
+        resp = await client.post(
+            "/api/v1/ai/advise",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"question": "How can I save more money?"},
+        )
+        assert resp.status_code == 500
+        assert "belum dikonfigurasi" in resp.json()["detail"].lower()
 
-    async def test_empty_question(self, client: AsyncClient, filla_token: str):
+    async def test_empty_question(self, client: AsyncClient, filla_token: str, no_llm_keys):
         """POST /ai/advise with empty question still reaches the handler."""
-        saved_key = settings.OPENCODE_GO_API_KEY
-        settings.OPENCODE_GO_API_KEY = ""
-        try:
-            resp = await client.post(
-                "/api/v1/ai/advise",
-                headers={"Authorization": f"Bearer {filla_token}"},
-                json={"question": ""},
-            )
-            assert resp.status_code in (422, 500)
-        finally:
-            settings.OPENCODE_GO_API_KEY = saved_key
+        resp = await client.post(
+            "/api/v1/ai/advise",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"question": ""},
+        )
+        assert resp.status_code in (422, 500)
 
     async def test_successful_advise(
         self, client: AsyncClient, filla_token: str, monkeypatch
@@ -312,35 +302,27 @@ class TestFinancialAdviseStream:
         assert resp.status_code == 401
 
     async def test_stream_returns_500_without_api_key(
-        self, client: AsyncClient, filla_token: str
+        self, client: AsyncClient, filla_token: str, no_llm_keys
     ):
-        """POST /ai/advise/stream returns 500 when API key is not configured."""
-        saved_key = settings.OPENCODE_GO_API_KEY
-        settings.OPENCODE_GO_API_KEY = ""
-        try:
-            resp = await client.post(
-                "/api/v1/ai/advise/stream",
-                headers={"Authorization": f"Bearer {filla_token}"},
-                json={"question": "How can I save more money?"},
-            )
-            assert resp.status_code == 500
-            assert "belum dikonfigurasi" in resp.text.lower()
-        finally:
-            settings.OPENCODE_GO_API_KEY = saved_key
+        """POST /ai/advise/stream returns 500 when NO provider is configured."""
+        resp = await client.post(
+            "/api/v1/ai/advise/stream",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"question": "How can I save more money?"},
+        )
+        assert resp.status_code == 500
+        assert "belum dikonfigurasi" in resp.text.lower()
 
-    async def test_stream_empty_question(self, client: AsyncClient, filla_token: str):
+    async def test_stream_empty_question(
+        self, client: AsyncClient, filla_token: str, no_llm_keys
+    ):
         """POST /ai/advise/stream with empty question reaches the handler."""
-        saved_key = settings.OPENCODE_GO_API_KEY
-        settings.OPENCODE_GO_API_KEY = ""
-        try:
-            resp = await client.post(
-                "/api/v1/ai/advise/stream",
-                headers={"Authorization": f"Bearer {filla_token}"},
-                json={"question": ""},
-            )
-            assert resp.status_code in (422, 500)
-        finally:
-            settings.OPENCODE_GO_API_KEY = saved_key
+        resp = await client.post(
+            "/api/v1/ai/advise/stream",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            json={"question": ""},
+        )
+        assert resp.status_code in (422, 500)
 
     async def test_stream_returns_tokens(
         self, client: AsyncClient, filla_token: str, monkeypatch

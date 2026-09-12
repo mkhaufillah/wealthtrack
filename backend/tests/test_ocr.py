@@ -235,24 +235,17 @@ class TestProcessOcr:
         pass
 
     async def test_ocr_missing_api_key(
-        self, client: AsyncClient, filla_token: str, monkeypatch
+        self, client: AsyncClient, filla_token: str, no_llm_keys
     ):
-        """When API key is missing, returns 500."""
-        from app.core.config import settings
-
-        saved = settings.OPENCODE_GO_API_KEY
-        settings.OPENCODE_GO_API_KEY = ""
-        try:
-            png_data = _make_tiny_png()
-            resp = await client.post(
-                "/api/v1/ocr/process",
-                headers={"Authorization": f"Bearer {filla_token}"},
-                files={"file": ("receipt.png", png_data, "image/png")},
-            )
-            assert resp.status_code == 500
-            assert "belum dikonfigurasi" in resp.json()["detail"].lower()
-        finally:
-            settings.OPENCODE_GO_API_KEY = saved
+        """When no provider is configured, returns 500."""
+        png_data = _make_tiny_png()
+        resp = await client.post(
+            "/api/v1/ocr/process",
+            headers={"Authorization": f"Bearer {filla_token}"},
+            files={"file": ("receipt.png", png_data, "image/png")},
+        )
+        assert resp.status_code == 500
+        assert "belum dikonfigurasi" in resp.json()["detail"].lower()
 
     async def test_ocr_raw_text_fallback(
         self, client: AsyncClient, filla_token: str, monkeypatch

@@ -703,88 +703,153 @@ async def resolve_model(model: str) -> tuple[str, str, str]:
 async def call_model_stream(
     messages: list, model: str = "deepseek-v4-flash"
 ) -> AsyncGenerator[str, None]:
-    """Call the model API with streaming. Yields token strings as they arrive."""
-    resolved, api_url, api_key = await resolve_model(model)
+    """Call the model API with streaming. Yields token strings as they arrive.
 
-    async with httpx.AsyncClient(timeout=600) as client:
-        async with client.stream(
-            "POST",
-            api_url,
-            headers=settings.llm_headers(),
-            json={
-                "model": resolved,
-                "messages": messages,
-                "max_tokens": 16384,
-                "temperature": 0.7,
-                "stream": True,
-            },
-        ) as resp:
-            if resp.status_code != 200:
-                error_text = await resp.aread()
-                logger.warning("AI stream HTTP %s: %s", resp.status_code, error_text[:300])
-                if resp.status_code in (401, 403, 429):
-                    yield "[ERROR:Layanan AI lagi kena batas pemakaian (kuota 5 jam OpenCode). Tunggu bentar atau pakai Flash.]"
-                else:
-                    yield f"[ERROR:{resp.status_code}]"
-                return
+    Walks the provider plan (OpenCode → OpenRouter). A provider is only swapped
+    out BEFORE the first token: once we have yielded text we cannot silently
+    restart the answer.
+    """
+    from app.core.llm import chat_plan, is_retryable_status
 
-            full_content = ""
-            async for line in resp.aiter_lines():
-                if not line.startswith("data: "):
-                    continue
-                payload = line[6:]
-                if payload.strip() == "[DONE]":
-                    break
-                try:
-                    chunk = json.loads(payload)
-                except json.JSONDecodeError:
-                    continue
-                # Some providers emit keep-alive/empty events with no choices.
-                choices = chunk.get("choices") or []
-                if not choices:
-                    continue
-                delta = choices[0].get("delta", {})
-                token = delta.get("content", "")
-                if token:
-                    full_content += token
-                    yield token
+    plan = chat_plan(model)
+    quota_status = 0
+    last_status = 0
 
-            if not full_content or not full_content.strip():
-                yield "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
+    for idx, attempt in enumerate(plan):
+        emitted = False
+        try:
+            async with httpx.AsyncClient(timeout=600) as client:
+                async with client.stream(
+                    "POST",
+                    attempt.url,
+                    headers=attempt.headers,
+                    json={
+                        "model": attempt.model,
+                        "messages": messages,
+                        "max_tokens": 16384,
+                        "temperature": 0.7,
+                        "stream": True,
+                    },
+                ) as resp:
+                    if resp.status_code != 200:
+                        error_text = await resp.aread()
+                        last_status = resp.status_code
+                        logger.warning(
+                            "AI stream via %s HTTP %s: %s",
+                            attempt.provider,
+                            resp.status_code,
+                            error_text[:300],
+                        )
+                        is_last = idx == len(plan) - 1
+                        if is_retryable_status(resp.status_code) and not is_last:
+                            if resp.status_code in (401, 403, 429):
+                                quota_status = resp.status_code
+                            continue
+                        if resp.status_code in (401, 403, 429):
+                            yield "[ERROR:Layanan AI lagi kena batas pemakaian (kuota 5 jam OpenCode). Tunggu bentar atau pakai Flash.]"
+                        else:
+                            yield f"[ERROR:{resp.status_code}]"
+                        return
+
+                    full_content = ""
+                    async for line in resp.aiter_lines():
+                        if not line.startswith("data: "):
+                            continue
+                        payload = line[6:]
+                        if payload.strip() == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(payload)
+                        except json.JSONDecodeError:
+                            continue
+                        # Some providers emit keep-alive/empty events with no choices.
+                        choices = chunk.get("choices") or []
+                        if not choices:
+                            continue
+                        delta = choices[0].get("delta", {})
+                        token = delta.get("content", "")
+                        if token:
+                            full_content += token
+                            emitted = True
+                            yield token
+
+                    if not full_content or not full_content.strip():
+                        yield "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
+                    return
+        except (httpx.TimeoutException, httpx.RequestError) as exc:
+            logger.warning("AI stream via %s unreachable: %s", attempt.provider, exc)
+            if emitted:
+                raise
+            continue
+
+    logger.warning("AI stream exhausted all providers (quota=%s)", quota_status or last_status)
+    if quota_status in (401, 403, 429):
+        yield "[ERROR:Layanan AI lagi kena batas pemakaian (kuota 5 jam OpenCode). Tunggu bentar atau pakai Flash.]"
+        return
+    yield "[ERROR:Layanan AI lagi gak bisa dihubungi. Coba lagi sebentar ya.]"
 
 
 async def call_model(
     messages: list, model: str = "deepseek-v4-flash"
 ) -> str:
-    """Call the model API without streaming. Returns full response text."""
-    resolved, api_url, api_key = await resolve_model(model)
+    """Call the model API without streaming. Returns full response text.
 
-    async with httpx.AsyncClient(timeout=300) as client:
-        resp = await client.post(
-            api_url,
-            headers=settings.llm_headers(),
-            json={
-                "model": resolved,
-                "messages": messages,
-                "max_tokens": 16384,
-                "temperature": 0.7,
-            },
-        )
+    Walks the provider plan (OpenCode → OpenRouter) so a quota stop on the
+    primary provider no longer breaks the assistant.
+    """
+    from app.core.llm import chat_plan, is_retryable_status
 
-    if resp.status_code != 200:
-        logger.warning("AI HTTP %s", resp.status_code)
-        if resp.status_code in (401, 403, 429):
-            raise Exception("Layanan AI lagi kena batas pemakaian (kuota 5 jam OpenCode). Tunggu bentar atau pakai Flash.")
-        raise Exception(f"AI API error: {resp.status_code}")
+    quota_status = 0
+    last_status = 0
+    last_err: Exception | None = None
 
-    body = resp.json()
-    choices = body.get("choices") or []
-    if not choices:
-        return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
-    content = choices[0].get("message", {}).get("content", "")
-    if not content or not content.strip():
-        return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
-    return content.strip()
+    for attempt in chat_plan(model):
+        try:
+            async with httpx.AsyncClient(timeout=300) as client:
+                resp = await client.post(
+                    attempt.url,
+                    headers=attempt.headers,
+                    json={
+                        "model": attempt.model,
+                        "messages": messages,
+                        "max_tokens": 16384,
+                        "temperature": 0.7,
+                    },
+                )
+        except (httpx.TimeoutException, httpx.RequestError) as exc:
+            last_err = exc
+            logger.warning("AI via %s unreachable: %s", attempt.provider, exc)
+            continue
+
+        if resp.status_code != 200:
+            last_status = resp.status_code
+            logger.warning(
+                "AI via %s HTTP %s: %s",
+                attempt.provider,
+                resp.status_code,
+                (getattr(resp, "text", "") or "")[:200],
+            )
+            if is_retryable_status(resp.status_code):
+                if resp.status_code in (401, 403, 429):
+                    quota_status = resp.status_code
+                continue
+            raise Exception(f"AI API error: {resp.status_code}")
+
+        body = resp.json()
+        choices = body.get("choices") or []
+        if not choices:
+            return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
+        content = choices[0].get("message", {}).get("content", "")
+        if not content or not content.strip():
+            return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
+        return content.strip()
+
+    logger.warning("AI exhausted all providers (last_status=%s)", last_status or last_err)
+    if quota_status in (401, 403, 429):
+        raise Exception("Layanan AI lagi kena batas pemakaian (kuota 5 jam OpenCode). Tunggu bentar atau pakai Flash.")
+    if last_status:
+        raise Exception(f"AI API error: {last_status}")
+    raise Exception("Layanan AI lagi gak bisa dihubungi. Coba lagi sebentar ya.")
 
 
 _HISTORY_WINDOW = 12  # ~6 pasangan user+asisten utuh
@@ -1067,8 +1132,10 @@ async def delete_chat_messages(user_id: int, db: CursorWrapper) -> None:
 
 
 def ensure_api_key_configured():
-    """Check that the AI API key is configured. Returns None or raises ValueError."""
-    if not settings.llm_api_key:
+    """Check that at least one AI provider is configured. Raises ValueError otherwise."""
+    from app.core.llm import plan_configured
+
+    if not plan_configured():
         raise ValueError("AI belum dikonfigurasi")
 
 

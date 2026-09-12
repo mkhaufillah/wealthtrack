@@ -26,6 +26,13 @@ async def lifespan(app: FastAPI):
     await init_pool()
     await init_redis()
     await init_meilisearch()
+    # Drop leftover receipt images from a crashed/restarted OCR job.
+    try:
+        from app.services.ocr_service import sweep_ocr_images
+
+        sweep_ocr_images()
+    except Exception:
+        pass
     yield
     # Cancel all tracked background tasks gracefully
     for task in set(background_tasks):
