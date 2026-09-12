@@ -55,3 +55,80 @@ class TestVaultRequiredContract:
         from app.main import app
 
         assert Err in app.exception_handlers
+
+
+class TestDeviceClaim:
+    """A member who picked the key up on a device counts as holding it.
+
+    The app writes ``kdf_params='device'`` with an EMPTY body (no secret is
+    stored) when the gembok arrives on a cold start — i.e. with no password in
+    memory to build a password wrap. Without this marker the owner keeps seeing
+    "Bagi gembok" and the member keeps seeing "menunggu kunci" until some later
+    login, even though the member is already inside the vault.
+    """
+
+    async def _claim(self, client: AsyncClient, token: str):
+        return await client.post(
+            "/api/v1/households/vault/wrap",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "wrapped_dek": "",
+                "kdf_salt": "device",
+                "kdf_params": "device",
+            },
+        )
+
+    async def _seed_owner_wrap(self, db):
+        await db.execute(
+            """INSERT INTO household_key_wraps
+               (user_id, household_id, wrapped_dek, kdf_salt, kdf_params)
+               VALUES (1, 1, 'blob', 'salt', 'argon2id:m=65536,t=3,p=1')
+               ON CONFLICT DO NOTHING"""
+        )
+
+    async def test_device_claim_clears_owner_card(
+        self, client: AsyncClient, db, filla_token: str, nahda_token: str
+    ):
+        await self._seed_owner_wrap(db)
+
+        before = await client.get(
+            "/api/v1/households/me",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert before.json()["vault_needs_share"] is True  # nahda has no key yet
+
+        resp = await self._claim(client, nahda_token)
+        assert resp.status_code == 200, resp.text
+
+        after = await client.get(
+            "/api/v1/households/me",
+            headers={"Authorization": f"Bearer {filla_token}"},
+        )
+        assert after.json()["vault_needs_share"] is False
+        assert after.json()["vault_ready"] is True
+
+        member = await client.get(
+            "/api/v1/households/me",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert member.json()["vault_ready"] is True
+        assert member.json()["vault_needs_share"] is False
+
+    async def test_device_claim_is_not_a_share_inbox_box(
+        self, client: AsyncClient, nahda_token: str
+    ):
+        """The claim marker must never look like an unclaimed gembok."""
+        assert (await self._claim(client, nahda_token)).status_code == 200
+
+        inbox = await client.get(
+            "/api/v1/households/vault/share-inbox",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert inbox.status_code == 404
+
+        wrap = await client.get(
+            "/api/v1/households/vault/wrap",
+            headers={"Authorization": f"Bearer {nahda_token}"},
+        )
+        assert wrap.status_code == 200
+        assert wrap.json()["kdf_params"] == "device"

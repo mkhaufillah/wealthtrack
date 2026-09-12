@@ -264,25 +264,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final wrap = await _api.get('/households/vault/wrap');
       final data = wrap.data as Map;
-      final dek = await VaultStore.unwrapDek(
-        password: password,
-        wrappedDek: data['wrapped_dek'] as String,
-        saltB64: data['kdf_salt'] as String? ?? '',
-      );
-      await VaultStore.saveDekB64(_storage, dek);
-      try {
-        await _api.post('/households/vault/seal');
-      } catch (_) {}
-      // No auto-share: the owner shares explicitly from Profile.
-      try {
-        final pub = await VaultStore.publicKeyB64(_storage);
-        await _api.post('/households/vault/pubkey', data: {'public_key': pub});
-      } catch (_) {}
-      return;
+      final params = (data['kdf_params'] as String?) ?? '';
+      // `device` = key held on this device only (no password wrap): nothing to
+      // unwrap, fall through so a password wrap can still be created below.
+      if (params != 'device') {
+        final dek = await VaultStore.unwrapDek(
+          password: password,
+          wrappedDek: data['wrapped_dek'] as String,
+          saltB64: data['kdf_salt'] as String? ?? '',
+        );
+        await VaultStore.saveDekB64(_storage, dek);
+        try {
+          await _api.post('/households/vault/seal');
+        } catch (_) {}
+        // No auto-share: the owner shares explicitly from Profile.
+        try {
+          final pub = await VaultStore.publicKeyB64(_storage);
+          await _api.post('/households/vault/pubkey', data: {'public_key': pub});
+        } catch (_) {}
+        return;
+      }
     } on DioException catch (e) {
       if (e.response?.statusCode != 404) return;
     } catch (_) {
-      return;
+      // Unwrap failed (wrong password / device-only wrap) → try the inbox.
     }
     try {
       final inbox = await _api.get('/households/vault/share-inbox');
@@ -375,6 +380,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'wrapped_dek': wrapped.wrapped,
           'kdf_salt': wrapped.salt,
           'kdf_params': kdfParams,
+        });
+      } else {
+        // Picked up on a cold start (no password in memory). Still tell the
+        // server this device holds the family key, otherwise the owner keeps
+        // seeing "Bagi gembok" and the member keeps seeing "menunggu kunci"
+        // until some later login. Body stays EMPTY on purpose: nothing secret
+        // is stored, and `kdf_params='device'` means "held on this device,
+        // not password-recoverable" — clients never try to unwrap it.
+        await _api.post('/households/vault/wrap', data: {
+          'wrapped_dek': '',
+          'kdf_salt': 'device',
+          'kdf_params': 'device',
         });
       }
       _pendingPassword = null;
