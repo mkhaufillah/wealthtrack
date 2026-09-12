@@ -7,7 +7,6 @@ import '../../../../core/ui/ui_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_icons.dart';
 import '../../../../shared/providers/app_providers.dart';
-import '../../../../core/network/api_client.dart';
 
 /// Admin panel: browse + edit ui_copy via /ui/copy (server-driven copy).
 /// Visible only for role=admin. Catalog locale is independent of app language.

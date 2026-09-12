@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/core/network/api_client.dart';
 import 'package:wealthtrack/core/network/api_exceptions.dart';
 import 'package:wealthtrack/core/ui/copy_fallback.dart';
-import 'package:wealthtrack/core/storage/secure_storage.dart';
 import '../helpers/mocks.dart';
 
 void main() {

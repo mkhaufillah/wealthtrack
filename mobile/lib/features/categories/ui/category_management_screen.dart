@@ -55,7 +55,7 @@ class _CategoryManagementScreenState
           );
     _nameEnCtrl.text = (category?['name_en'] as String?) ?? '';
     _keyCtrl.text = isEdit
-        ? (category?['copy_key'] as String? ?? '')
+        ? (category['copy_key'] as String? ?? '')
         : t('cat.key_auto');
     _keywordsCtrl.text =
         (category?['keywords'] as List?)?.join(', ') ?? '';
@@ -242,7 +242,7 @@ class _CategoryManagementScreenState
                                   setSheetState(() => saving = true);
                                   final success = await ref
                                       .read(categoryManagementProvider.notifier)
-                                      .delete(category!['id'] as int);
+                                      .delete(category['id'] as int);
                                   if (!ctx.mounted) return;
                                   if (success) {
                                     Navigator.pop(ctx, true);
@@ -288,7 +288,7 @@ class _CategoryManagementScreenState
                                         .read(
                                             categoryManagementProvider.notifier)
                                         .update(
-                                            category!['id'] as int, data)
+                                            category['id'] as int, data)
                                     : await ref
                                         .read(
                                             categoryManagementProvider.notifier)

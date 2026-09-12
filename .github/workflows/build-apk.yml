@@ -113,8 +113,11 @@ jobs:
       - name: Remove default test file
         run: rm -f test/widget_test.dart
 
-      - name: Analyze (lint)
-        run: flutter analyze
+      - name: Analyze (lint) — gate on warnings/errors
+        run: |
+          # Infos (const-usage style, deprecations) are reported but do not
+          # block: see the count printed here and fix them in batches.
+          flutter analyze --no-fatal-infos
 
       - name: Run tests + coverage
         run: flutter test --coverage

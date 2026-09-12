@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
@@ -662,7 +661,6 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
   int? _selectedCategoryId;
   int _cycleOn = 1;
   bool _isSaving = false;
-  int? _existingBudgetId;
 
   @override
   void initState() {

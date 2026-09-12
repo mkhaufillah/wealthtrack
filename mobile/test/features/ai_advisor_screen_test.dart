@@ -5,7 +5,6 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:wealthtrack/core/ui/app_icons.dart';
 import 'package:wealthtrack/features/ai/ui/ai_advisor_screen.dart';
 import 'package:wealthtrack/features/auth/providers/auth_provider.dart';
-import 'package:wealthtrack/features/auth/data/auth_repository.dart';
 import 'package:wealthtrack/features/auth/models/user_model.dart';
 import 'package:wealthtrack/core/theme/app_theme.dart';
 import 'package:wealthtrack/core/network/api_client.dart';

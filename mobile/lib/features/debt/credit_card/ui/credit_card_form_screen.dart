@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/credit_card_provider.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../features/auth/providers/auth_provider.dart';
 import '../../../../shared/providers/app_providers.dart';
 
 /// Extracts raw integer amount from a formatted IDR string like "Rp 50.000".

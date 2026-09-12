@@ -2,7 +2,6 @@ import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../core/network/api_client.dart';
-import '../../../shared/providers/app_providers.dart';
 import '../../auth/models/user_model.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../data/household_repository.dart';

@@ -4,15 +4,12 @@ import '../../../core/ui/app_icons.dart';
 import '../../../core/ui/category_glyph.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'widgets/charts_section.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../features/home/providers/dashboard_provider.dart';
-import '../../../shared/widgets/loading_indicator.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/currency_formatter.dart';
 import '../../../shared/utils/date_formatter.dart';
@@ -31,8 +28,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   late DateTime _currentMonth;
   String _cycleLabel = '';
   int _userCycleDay = 1;
-  DateTime? _cycleFrom;
-  DateTime? _cycleTo;
   List<BudgetSummaryItem> _budgetItems = [];
   List<UnbudgetedExpense> _uncategorizedExpenses = [];
 
@@ -93,8 +88,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final lastDay = DateFormat('yyyy-MM-dd').format(dTo);
 
     // Build cycle label from dates (e.g. "25 Apr – 24 Mei 2026")
-    _cycleFrom = dFrom;
-    _cycleTo = dTo;
     _cycleLabel = '${formatDayMonth(dFrom)} ${dFrom.year} – ${formatDayMonth(dTo)} ${dTo.year}';
 
     ref.read(reportProvider.notifier).load(monthStr, dateFrom: firstDay, dateTo: lastDay);
@@ -163,7 +156,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     // Reload when transactions change (add/edit/transfer from other screens)
     ref.listen<int>(homeRefreshProvider, (prev, next) {
-      if (prev != next && _currentMonth != null) _loadMonth();
+      if (prev != next) _loadMonth();
     });
 
     return Scaffold(

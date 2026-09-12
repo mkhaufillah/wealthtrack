@@ -219,7 +219,7 @@ class _CreditCardDetailScreenState extends ConsumerState<CreditCardDetailScreen>
                         if (state.projection != null)
                           _buildProjectionSummary(
                             state.projection!.perCard
-                                .where((p) => p['card_id'] == card?.id)
+                                .where((p) => p['card_id'] == card.id)
                                 .firstOrNull,
                             state.projection!,
                             card: card,

@@ -3,7 +3,6 @@ import '../../../../core/ui/copy_fallback.dart';
 import '../../../../core/ui/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../providers/kpr_provider.dart';
 import '../../models/kpr_model.dart';
 import '../../../../shared/utils/currency_formatter.dart';

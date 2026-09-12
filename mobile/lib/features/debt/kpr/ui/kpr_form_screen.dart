@@ -10,7 +10,6 @@ import '../../models/kpr_model.dart';
 import '../../../../shared/utils/currency_formatter.dart';
 import '../../../../shared/utils/date_formatter.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../features/auth/providers/auth_provider.dart';
 import '../../../../shared/providers/app_providers.dart';
 
 /// Extracts raw integer amount from a formatted IDR string like "Rp 50.000".

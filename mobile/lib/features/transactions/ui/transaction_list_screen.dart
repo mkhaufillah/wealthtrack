@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/utils/date_formatter.dart';
-import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/empty_state.dart';
@@ -157,7 +156,6 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             final allSelected = selected.length == cats.length;
-            final theme = Theme.of(ctx);
             return Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -807,41 +805,3 @@ class _TypeSeg extends StatelessWidget {
   }
 }
 
-class _PaginationRow extends StatelessWidget {
-  final int page;
-  final int totalPages;
-  final VoidCallback? onPrev;
-  final VoidCallback? onNext;
-  const _PaginationRow({
-    required this.page,
-    required this.totalPages,
-    this.onPrev,
-    this.onNext,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: AppIcon(AppIcons.back, size: 20),
-            onPressed: onPrev,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            t('tx.page_n').replaceAll('{page}', '$page').replaceAll('{total}', '$totalPages'),
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: AppIcon(AppIcons.next, size: 20),
-            onPressed: onNext,
-          ),
-        ],
-      ),
-    );
-  }
-}

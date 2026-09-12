@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wealthtrack/features/budgets/providers/budget_suggestion_provider.dart';
 import 'package:wealthtrack/features/budgets/models/budget_model.dart';
 import 'package:wealthtrack/features/budgets/data/budget_repository.dart';
-import 'package:wealthtrack/core/network/api_client.dart';
 import '../helpers/mocks.dart';
 
 void main() {

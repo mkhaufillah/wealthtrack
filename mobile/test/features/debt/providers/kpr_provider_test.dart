@@ -116,9 +116,6 @@ void main() {
     });
 
     group('create', () {
-      KPRSimulation createdSimulation(KPRNotifier n) =>
-          n.state.selectedSimulation!;
-
       test('creates simulation and adds to list', () async {
         mockApi.onPost('/kpr/simulations', {
           'id': 1,

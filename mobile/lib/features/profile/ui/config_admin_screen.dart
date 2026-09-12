@@ -5,9 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/ui/copy_fallback.dart';
 import '../../../../core/ui/ui_config.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/ui/app_icons.dart';
 import '../../../../shared/providers/app_providers.dart';
-import '../../../../core/network/api_client.dart';
 
 /// Admin panel: edit ui_config (format + flags) via /ui/config.
 /// Theme tokens are deliberately read-only — editing them needs contrast
@@ -25,7 +23,6 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
   String? _error;
 
   Map<String, dynamic>? _format;
-  Map<String, dynamic>? _flags;
 
   final _prefixCtrl = TextEditingController();
   final _groupSepCtrl = TextEditingController();
@@ -87,7 +84,6 @@ class _ConfigAdminScreenState extends ConsumerState<ConfigAdminScreen> {
       );
       setState(() {
         _format = fmt;
-        _flags = flags;
         _selectedPreset = activePreset;
         _prefixCtrl.text = fmt?['currency_prefix']?.toString() ?? 'Rp';
         _groupSepCtrl.text = fmt?['group_sep']?.toString() ?? '.';
