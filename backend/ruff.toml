@@ -1,0 +1,42 @@
+# Ruff configuration for the WealthTrack backend.
+#
+# Baseline intentionally starts at high-signal rules: real bugs (F/E9), import
+# hygiene (I), modernisation (UP) and correctness-ish simplifications. Rules
+# that fight the codebase's deliberate patterns are not selected:
+#   * BLE001 — blind `except Exception` is intentional around best-effort
+#     side effects (redis/meili/notify) so a helper can never break a request.
+#   * B008  — FastAPI's `Depends(...)` in defaults is the documented style.
+#   * S*    — security linting would flood on tests/fixtures.
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = [
+    "E4",   # pycodestyle: imports
+    "E7",   # pycodestyle: statements (unused comparisons, etc.)
+    "E9",   # pycodestyle: runtime errors (syntax-ish)
+    "F",    # pyflakes: unused imports/variables, undefined names
+    "I",    # isort: import ordering
+    "UP",   # pyupgrade: modern syntax
+    "SIM",  # flake8-simplify
+    "RET",  # flake8-return
+    "PIE",  # flake8-pie
+    "C4",   # flake8-comprehensions
+    "PERF", # perflint
+    "RUF",  # ruff-specific (unused unpacked vars, etc.)
+    "ASYNC",# async pitfalls (blocking calls in async def)
+]
+
+ignore = [
+    "E501",    # line length: handled by the formatter, not linter
+    "SIM117",  # nested `with` blocks are often clearer than a long chain
+    "RUF001",  # unicode confusables: Indonesian copy is full of them
+    "RUF002",
+    "RUF003",
+]
+
+[lint.per-file-ignores]
+# Tests lean on fixtures/imports for their side effects and long literals.
+"tests/**" = ["E402", "F401", "F841", "SIM", "RUF059"]
+# Scripts are one-shot operators; keep them readable rather than clever.
+"scripts/**" = ["E402", "PERF"]

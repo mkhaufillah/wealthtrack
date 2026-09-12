@@ -7,7 +7,6 @@ Provides:
 - search_descriptions — full-text search → returns [transaction_id, ...]
 """
 
-import functools
 from typing import Optional
 
 import meilisearch
@@ -153,8 +152,3 @@ def bulk_index_documents(docs: list[dict], wait: bool = False) -> None:
             idx.wait_for_task(uid, timeout_ms=120_000)
         except TypeError:
             idx.wait_for_task(uid, timeout=120)
-
-
-def clear_index() -> None:
-    """Delete all documents from the index (for re-indexing)."""
-    get_index().delete_all_documents()

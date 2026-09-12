@@ -60,53 +60,9 @@ class Settings(BaseSettings):
     MEILISEARCH_URL: str = "http://localhost:7700"
     MEILISEARCH_MASTER_KEY: str = ""
 
-    # MCP
-    MCP_ENABLED: bool = True
-    MCP_STREAM_PATH: str = "/mcp/stream"
-
     @property
     def cors_origins_list(self) -> list[str]:
         return json.loads(self.CORS_ORIGINS)
-
-    @property
-    def llm_provider(self) -> str:
-        # OpenCode Go proven working; OpenRouter only when OpenCode absent.
-        if self.OPENCODE_GO_API_KEY:
-            return "opencode"
-        if self.OPENROUTER_API_KEY:
-            return "openrouter"
-        return "opencode"
-
-    @property
-    def llm_via_openrouter(self) -> bool:
-        return self.llm_provider == "openrouter"
-
-    @property
-    def llm_api_url(self) -> str:
-        if self.llm_provider == "openrouter":
-            return "https://openrouter.ai/api/v1/chat/completions"
-        return "https://opencode.ai/zen/go/v1/chat/completions"
-
-    @property
-    def llm_api_key(self) -> str:
-        if self.llm_provider == "openrouter":
-            return self.OPENROUTER_API_KEY
-        return self.OPENCODE_GO_API_KEY
-
-    def llm_headers(self) -> dict:
-        headers = {
-            "Authorization": f"Bearer {self.llm_api_key}",
-            "Content-Type": "application/json",
-            "User-Agent": "wealthtrack-backend/1.0",
-        }
-        if self.llm_provider == "openrouter":
-            headers["HTTP-Referer"] = "https://wealthtrack.filla.id"
-            headers["X-Title"] = "WealthTrack"
-        else:
-            # OpenCode Go: requires identifying UA + session for routing.
-            import uuid
-            headers["x-opencode-session"] = str(uuid.uuid4())
-        return headers
 
 
 settings = Settings()

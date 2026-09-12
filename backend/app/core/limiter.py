@@ -1,7 +1,5 @@
 """Shared rate limiter — used by main.py and auth endpoints."""
 
-import os
-
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 

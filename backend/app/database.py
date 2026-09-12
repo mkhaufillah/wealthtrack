@@ -5,7 +5,6 @@ Uses asyncpg with a thin wrapper that provides cursor-like interface
 for backward compatibility with the existing codebase patterns.
 """
 
-import re
 import asyncio
 import asyncpg
 

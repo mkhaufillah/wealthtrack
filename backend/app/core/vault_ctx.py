@@ -39,15 +39,6 @@ def set_dek(dek: bytes | None) -> None:
     _dek.set(dek)
 
 
-def require_dek() -> bytes:
-    if current_sealed() and current_dek() is None:
-        raise VaultRequiredError()
-    dek = current_dek()
-    if current_sealed() and dek is None:
-        raise VaultRequiredError()
-    return dek  # type: ignore[return-value]
-
-
 async def bind_vault_from_request(request: Request, user: dict, db) -> None:
     _dek.set(None)
     _sealed.set(False)

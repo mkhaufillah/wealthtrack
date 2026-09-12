@@ -24,13 +24,6 @@ from app.database import CursorWrapper, background_tasks
 
 logger = logging.getLogger(__name__)
 
-def _vision_model() -> str:
-    return (
-        "deepseek/deepseek-v4-flash-vision-exp"
-        if settings.llm_via_openrouter
-        else "deepseek-v4-flash-vision-exp"
-    )
-
 
 def sweep_ocr_images(max_age_hours: int = 24) -> int:
     """Delete leftover receipt images older than ``max_age_hours``.

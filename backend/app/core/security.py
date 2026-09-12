@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.core.config import settings
-from app.database import get_db, pool
+from app.database import get_db
 from app.services.api_key_service import ApiKeyService, API_KEY_PREFIX
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

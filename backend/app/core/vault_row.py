@@ -10,7 +10,6 @@ from app.core.vault import (
     aes_encrypt,
     category_trace,
     is_aes_token,
-    ope_decode,
     ope_encode,
 )
 

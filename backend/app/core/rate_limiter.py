@@ -71,7 +71,7 @@ async def check_rate_limit(
         max_requests, window_sec, now,
     )
 
-    allowed, current_count = result  # [1, count] or [0, count]
+    allowed, _ = result  # [1, count] or [0, count]
 
     if not allowed:
         raise HTTPException(

@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
     for task in set(background_tasks):
         task.cancel()
     if background_tasks:
-        done, pending = await asyncio.wait(
+        await asyncio.wait(
             background_tasks, timeout=10.0
         )
     background_tasks.clear()
