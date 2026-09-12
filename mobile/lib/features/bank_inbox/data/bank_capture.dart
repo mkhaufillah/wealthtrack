@@ -116,25 +116,6 @@ class BankCapture {
     }
   }
 
-  static const packageSlugs = <String, String>{
-    'com.bca': 'bca',
-    'id.bmri.livin': 'mandiri',
-    'id.co.bri.brimo': 'bri',
-    'com.jago.digitalBanking': 'jago',
-    'id.co.bankfama.android': 'superbank',
-    'com.krom.android': 'krom',
-    'id.co.btn.mobilebanking.android': 'btn',
-    'id.co.bankbkemobile.digitalbank': 'seabank',
-    'com.bibit.bibitid': 'bibit',
-    'com.stockbit.android': 'stockbit',
-    'com.telkom.mwallet': 'linkaja',
-    'id.flip': 'flip',
-    'ovo.id': 'ovo',
-    'com.gojek.gopay': 'gopay',
-    'id.dana': 'dana',
-    'com.shopeepay.id': 'shopeepay',
-  };
-
   static bool hasAmount(String blob) => parseAmount(blob) != null;
 
   /// Keep in sync with `bank_parser.parse_amount` and Kotlin `AmountDetect`.
@@ -179,13 +160,6 @@ class BankCapture {
     final value = int.tryParse(s);
     if (value == null || value <= 0 || value > 10000000000) return null;
     return value;
-  }
-
-  static String slugForPackage(String pkg) {
-    final known = packageSlugs[pkg];
-    if (known != null) return known;
-    final last = pkg.split('.').last.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '').toLowerCase();
-    return last.isEmpty ? 'other' : last;
   }
 
   static Future<void> setListenPackages(List<String> packages) async {

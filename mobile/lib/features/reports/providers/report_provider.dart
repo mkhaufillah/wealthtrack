@@ -53,11 +53,6 @@ class ReportNotifier extends StateNotifier<ReportState> {
   final ApiClient _api;
   ReportNotifier(this._repo, this._api) : super(const ReportState());
 
-  void selectMonth(String month) {
-    state = state.copyWith(selectedMonth: month);
-    load(month);
-  }
-
   Future<void> load(String month, {String? dateFrom, String? dateTo}) async {
     state = state.copyWith(isLoading: true, error: null, selectedMonth: month);
     try {

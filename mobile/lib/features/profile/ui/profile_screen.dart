@@ -117,12 +117,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _loadCycleDay() {
-    ref.read(profileProvider.notifier).loadCycleDay(
-      ref.read(authProvider).user,
-    );
-  }
-
   Future<void> _saveCycleDay(int day) async {
     await ref.read(profileProvider.notifier).setCycleDay(
       ref.read(apiClientProvider),

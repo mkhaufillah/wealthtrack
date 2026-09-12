@@ -5,5 +5,4 @@ class AppConstants {
   static const Duration receiveTimeout = Duration(seconds: 60);
 
   static const String tokenKey = 'auth_token';
-  static const String userKey = 'auth_user';
 }

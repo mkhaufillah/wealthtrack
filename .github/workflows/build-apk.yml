@@ -113,8 +113,26 @@ jobs:
       - name: Remove default test file
         run: rm -f test/widget_test.dart
 
-      - name: Run tests
-        run: flutter test
+      - name: Analyze (lint)
+        run: flutter analyze
+
+      - name: Run tests + coverage
+        run: flutter test --coverage
+
+      - name: Coverage summary
+        run: |
+          python3 - <<'PY'
+          import os
+          p = 'coverage/lcov.info'
+          if not os.path.exists(p):
+              print('lcov.info missing — coverage not collected'); raise SystemExit(0)
+          lf = lh = 0
+          for line in open(p):
+              if line.startswith('LF:'): lf += int(line.split(':')[1])
+              elif line.startswith('LH:'): lh += int(line.split(':')[1])
+          pct = (lh / lf * 100) if lf else 0.0
+          print(f'Flutter line coverage: {lh}/{lf} = {pct:.1f}%')
+          PY
 
       - name: Build APK (release)
         run: flutter build apk --release

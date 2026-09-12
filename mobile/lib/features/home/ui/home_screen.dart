@@ -96,9 +96,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final seen = await storage.getSecure(kBankNotifPromptSeenKey) == '1';
     if (!seen) return;
     final requested = await storage.getSecure(kBankPushRequestedKey) == '1';
-    if (requested) return;
     final enabled = await BankCapture.isEnabled();
-    if (!enabled) return;
+    // Single source of truth for the condition (see bank_notif_prompt_test).
+    if (!pushNotifAskDue(requested: requested, enabled: enabled)) return;
     await BankCapture.requestNotify();
     await storage.saveSecure(kBankPushRequestedKey, '1');
   }

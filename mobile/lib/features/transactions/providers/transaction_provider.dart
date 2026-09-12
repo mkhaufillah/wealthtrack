@@ -161,7 +161,6 @@ class TransactionListNotifier extends StateNotifier<TransactionListState> {
   }
 
   void nextPage() => goToPage(state.page + 1);
-  void prevPage() => goToPage(state.page - 1);
 
   /// Load next page for infinite scroll — appends to existing list.
   Future<void> loadNextPage() async {

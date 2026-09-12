@@ -1,1 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?><resources><string name="widget_description">Quick add transactions and scan receipts</string></resources>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WealthTrack</string>
+    <string name="widget_description">Catat transaksi dan pindai struk cepat</string>
+    <string name="widget_add">Catat</string>
+    <string name="widget_transaction">Transaksi</string>
+    <string name="widget_scan">Pindai</string>
+    <string name="widget_receipt">Struk</string>
+</resources>

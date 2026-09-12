@@ -107,15 +107,6 @@ class VaultStore {
     _mem = null;
   }
 
-  /// Drop the cached + persisted DEK. Used when the server says the key we
-  /// hold is not valid for this household (stale key from an old session) —
-  /// the app then falls back to the gembok inbox or a password login.
-  static Future<void> clearDek(SecureStorage storage) async {
-    _mem = null;
-    await storage.deleteSecure(kVaultDekKey);
-    await storage.deleteSecure(kDekOwnerKey);
-  }
-
   static const _xSeed = 'vault_x25519_seed';
   static final _x25519 = X25519();
 

@@ -13,12 +13,6 @@ class SecureStorage {
   Future<void> clearToken() =>
       _storage.delete(key: AppConstants.tokenKey);
 
-  Future<void> saveUser(String userJson) =>
-      _storage.write(key: AppConstants.userKey, value: userJson);
-
-  Future<String?> getUser() =>
-      _storage.read(key: AppConstants.userKey);
-
   Future<void> clearAll() async {
     await _storage.deleteAll();
   }

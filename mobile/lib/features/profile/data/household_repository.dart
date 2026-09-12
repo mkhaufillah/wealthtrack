@@ -30,12 +30,4 @@ class HouseholdRepository {
     }
   }
 
-  Future<String> getInviteCode() async {
-    try {
-      final res = await _client.get('/households/invite-code');
-      return res.data['invite_code'] as String;
-    } catch (e) {
-      throw _client.handleError(e);
-    }
-  }
 }

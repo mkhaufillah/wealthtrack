@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WealthTrack</string>
+    <string name="widget_description">Quick add transactions and scan receipts</string>
+    <string name="widget_add">Add</string>
+    <string name="widget_transaction">Transaction</string>
+    <string name="widget_scan">Scan</string>
+    <string name="widget_receipt">Receipt</string>
+</resources>

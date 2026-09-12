@@ -71,10 +71,15 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -q -r requirements.txt
-          pip install -q pytest pytest-asyncio httpx
+          pip install -q pytest pytest-asyncio httpx pytest-cov ruff vulture
 
-      - name: Run tests
-        run: pytest tests/ -v --tb=short
+      - name: Lint (ruff) + dead code (vulture)
+        run: |
+          ruff check app scripts tests
+          vulture app --min-confidence 90
+
+      - name: Run tests + coverage
+        run: pytest tests/ -q --tb=short --cov=app --cov-report=term-missing:skip-covered
         env:
           WEALTHTRACK_TEST_DATABASE_URL: ${{ env.WEALTHTRACK_TEST_DATABASE_URL }}
           REDIS_URL: redis://localhost:6380/0
