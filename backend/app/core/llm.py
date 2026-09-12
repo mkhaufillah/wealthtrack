@@ -133,3 +133,14 @@ def is_retryable_status(status: int) -> bool:
 def plan_configured() -> bool:
     """True when at least one provider key is available (so features can run)."""
     return bool(_providers())
+
+
+def chat_max_tokens(scale: int = 1) -> int:
+    """Output budget for chat calls (``scale`` doubles for a retry)."""
+    base = int(getattr(settings, "LLM_MAX_TOKENS_CHAT", 32768) or 32768)
+    return base * max(1, scale)
+
+
+def vision_max_tokens() -> int:
+    """Output budget for receipt OCR calls."""
+    return int(getattr(settings, "LLM_MAX_TOKENS_VISION", 16384) or 16384)

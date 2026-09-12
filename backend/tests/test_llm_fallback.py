@@ -156,6 +156,76 @@ class TestOcrFallback:
         assert calls == [OPENCODE_URL, OPENROUTER_URL]
 
 
+class TestTokenBudget:
+    def test_budgets_come_from_settings(self, monkeypatch):
+        from app.core.llm import chat_max_tokens, vision_max_tokens
+
+        monkeypatch.setattr(settings, "LLM_MAX_TOKENS_CHAT", 5000, raising=False)
+        monkeypatch.setattr(settings, "LLM_MAX_TOKENS_VISION", 7000, raising=False)
+        assert chat_max_tokens() == 5000
+        assert chat_max_tokens(scale=2) == 10000  # retry doubles the cap
+        assert vision_max_tokens() == 7000
+
+    async def test_empty_answer_because_of_length_is_retried_bigger(
+        self, both_keys, monkeypatch
+    ):
+        """finish_reason=length + no text (all budget spent on reasoning) → retry."""
+        from app.core.llm import OPENCODE_URL
+        from app.services import ai_advisor_service as svc
+
+        seen: list[int] = []
+
+        async def _post(self, url, **kwargs):
+            seen.append(kwargs["json"]["max_tokens"])
+            if len(seen) == 1:
+                return _FakeResponse(
+                    200,
+                    {
+                        "choices": [
+                            {
+                                "finish_reason": "length",
+                                "message": {"content": None},
+                            }
+                        ]
+                    },
+                )
+            return _FakeResponse(
+                200,
+                {
+                    "choices": [
+                        {"finish_reason": "stop", "message": {"content": "jawaban lengkap"}}
+                    ]
+                },
+            )
+
+        monkeypatch.setattr(httpx.AsyncClient, "post", _post)
+        out = await svc.call_model([{"role": "user", "content": "hai"}])
+
+        assert out == "jawaban lengkap"
+        assert len(seen) == 2
+        assert seen[1] == seen[0] * 2
+        assert seen[0] == settings.LLM_MAX_TOKENS_CHAT
+
+    async def test_vision_uses_configured_budget(self, both_keys, monkeypatch):
+        from app.core.llm import OPENCODE_URL
+        from app.services.ocr_service import OcrService
+
+        monkeypatch.setattr(settings, "LLM_MAX_TOKENS_VISION", 1234, raising=False)
+        seen: list[int] = []
+
+        async def _post(self, url, **kwargs):
+            seen.append(kwargs["json"]["max_tokens"])
+            return _FakeResponse(
+                200, {"choices": [{"message": {"content": '{"amount": 1}'}}]}
+            )
+
+        monkeypatch.setattr(httpx.AsyncClient, "post", _post)
+        svc = OcrService(db=None)  # type: ignore[arg-type]
+        await svc._call_vision_api_with_retry("data:image/jpeg;base64,AAA", "prompt")
+
+        assert seen == [1234]
+
+
 class TestOcrImageSweep:
     def test_removes_only_old_images(self, tmp_path, monkeypatch):
         from app.services.ocr_service import sweep_ocr_images

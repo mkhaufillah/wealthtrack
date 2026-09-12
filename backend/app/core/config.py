@@ -49,6 +49,13 @@ class Settings(BaseSettings):
     BRAVE_SEARCH_API_KEY: str = ""
     OCR_IMAGE_DIR: str = str(Path.home() / "ocr_images")
 
+    # Output token budgets. The providers allow far more (OpenRouter reports
+    # max out 384k for deepseek-v4-flash, 943k for the vision model), and the
+    # models are reasoning models: reasoning tokens eat the same budget, so a
+    # too-small cap returns finish_reason=length with an empty answer.
+    LLM_MAX_TOKENS_CHAT: int = 32768
+    LLM_MAX_TOKENS_VISION: int = 16384
+
     # Meilisearch
     MEILISEARCH_URL: str = "http://localhost:7700"
     MEILISEARCH_MASTER_KEY: str = ""

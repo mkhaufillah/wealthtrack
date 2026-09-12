@@ -473,7 +473,7 @@ class OcrService:
         self, data_url: str, prompt: str, api_key: str | None = None
     ) -> str:
         """Call the Vision API (one attempt per provider, no retry)."""
-        from app.core.llm import vision_plan
+        from app.core.llm import vision_max_tokens, vision_plan
 
         last_status = 0
         network_err: Exception | None = None
@@ -503,7 +503,7 @@ class OcrService:
                                         ],
                                     },
                                 ],
-                                "max_tokens": 4096,
+                                "max_tokens": vision_max_tokens(),
                             },
                         )
             except httpx.TimeoutException as e:
@@ -564,7 +564,7 @@ class OcrService:
         """
         import random as _random
 
-        from app.core.llm import vision_plan
+        from app.core.llm import vision_max_tokens, vision_plan
 
         payload = {
             "messages": [
@@ -577,7 +577,7 @@ class OcrService:
                     ],
                 },
             ],
-            "max_tokens": 4096,
+            "max_tokens": vision_max_tokens(),
         }
 
         plan = vision_plan()

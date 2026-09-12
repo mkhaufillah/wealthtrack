@@ -709,7 +709,7 @@ async def call_model_stream(
     out BEFORE the first token: once we have yielded text we cannot silently
     restart the answer.
     """
-    from app.core.llm import chat_plan, is_retryable_status
+    from app.core.llm import chat_max_tokens, chat_plan, is_retryable_status
 
     plan = chat_plan(model)
     quota_status = 0
@@ -726,7 +726,7 @@ async def call_model_stream(
                     json={
                         "model": attempt.model,
                         "messages": messages,
-                        "max_tokens": 16384,
+                        "max_tokens": chat_max_tokens(),
                         "temperature": 0.7,
                         "stream": True,
                     },
@@ -797,52 +797,65 @@ async def call_model(
     Walks the provider plan (OpenCode → OpenRouter) so a quota stop on the
     primary provider no longer breaks the assistant.
     """
-    from app.core.llm import chat_plan, is_retryable_status
+    from app.core.llm import chat_max_tokens, chat_plan, is_retryable_status
 
     quota_status = 0
     last_status = 0
     last_err: Exception | None = None
 
     for attempt in chat_plan(model):
-        try:
-            async with httpx.AsyncClient(timeout=300) as client:
-                resp = await client.post(
-                    attempt.url,
-                    headers=attempt.headers,
-                    json={
-                        "model": attempt.model,
-                        "messages": messages,
-                        "max_tokens": 16384,
-                        "temperature": 0.7,
-                    },
+        # Two rounds per provider: the second (only used when the model spent
+        # the whole budget on reasoning and returned nothing) doubles the cap.
+        for round_no in (0, 1):
+            try:
+                async with httpx.AsyncClient(timeout=300) as client:
+                    resp = await client.post(
+                        attempt.url,
+                        headers=attempt.headers,
+                        json={
+                            "model": attempt.model,
+                            "messages": messages,
+                            "max_tokens": chat_max_tokens(scale=round_no + 1),
+                            "temperature": 0.7,
+                        },
+                    )
+            except (httpx.TimeoutException, httpx.RequestError) as exc:
+                last_err = exc
+                logger.warning("AI via %s unreachable: %s", attempt.provider, exc)
+                break
+
+            if resp.status_code != 200:
+                last_status = resp.status_code
+                logger.warning(
+                    "AI via %s HTTP %s: %s",
+                    attempt.provider,
+                    resp.status_code,
+                    (getattr(resp, "text", "") or "")[:200],
                 )
-        except (httpx.TimeoutException, httpx.RequestError) as exc:
-            last_err = exc
-            logger.warning("AI via %s unreachable: %s", attempt.provider, exc)
-            continue
+                if is_retryable_status(resp.status_code):
+                    if resp.status_code in (401, 403, 429):
+                        quota_status = resp.status_code
+                    break
+                raise Exception(f"AI API error: {resp.status_code}")
 
-        if resp.status_code != 200:
-            last_status = resp.status_code
-            logger.warning(
-                "AI via %s HTTP %s: %s",
-                attempt.provider,
-                resp.status_code,
-                (getattr(resp, "text", "") or "")[:200],
-            )
-            if is_retryable_status(resp.status_code):
-                if resp.status_code in (401, 403, 429):
-                    quota_status = resp.status_code
+            body = resp.json()
+            choices = body.get("choices") or []
+            if not choices:
+                return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
+            choice = choices[0]
+            content = (choice.get("message") or {}).get("content") or ""
+            if content.strip():
+                return content.strip()
+
+            # Empty answer: if the model ran out of budget mid-thought, retry
+            # once with a bigger cap instead of telling the user "no answer".
+            if choice.get("finish_reason") == "length" and round_no == 0:
+                logger.warning(
+                    "AI via %s returned no text (finish_reason=length) — retrying with a larger budget",
+                    attempt.provider,
+                )
                 continue
-            raise Exception(f"AI API error: {resp.status_code}")
-
-        body = resp.json()
-        choices = body.get("choices") or []
-        if not choices:
             return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
-        content = choices[0].get("message", {}).get("content", "")
-        if not content or not content.strip():
-            return "Maaf, saya tidak bisa merespons pertanyaan itu. Silakan tanya tentang keuangan Anda."
-        return content.strip()
 
     logger.warning("AI exhausted all providers (last_status=%s)", last_status or last_err)
     if quota_status in (401, 403, 429):
