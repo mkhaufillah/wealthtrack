@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from app.core.config import settings
-from app.core.llm import chat_plan, is_retryable_status, vision_plan
+from app.core.llm import CHAT_MODELS, chat_plan, is_retryable_status, vision_plan
 
 
 @pytest.fixture
@@ -28,11 +28,21 @@ class TestPlan:
 
     def test_model_ids_are_mapped_per_provider(self, both_keys):
         flash = {a.provider: a.model for a in chat_plan("flash")}
-        assert flash["opencode"] == "deepseek-v4-flash"
-        assert flash["openrouter"] == "deepseek/deepseek-v4-flash"
+        assert flash["opencode"] == "deepseek-v4.1-flash"
+        assert flash["openrouter"] == "deepseek/deepseek-v4.1-flash"
+
+        advanced = {a.provider: a.model for a in chat_plan("advanced")}
+        assert advanced["opencode"] == "deepseek-v4-pro"
+        assert advanced["openrouter"] == "deepseek/deepseek-v4-pro"
 
         vision = {a.provider: a.model for a in vision_plan()}
         assert vision["openrouter"] == "deepseek/deepseek-v4-flash-vision-exp"
+
+    def test_opus_is_gone(self, both_keys):
+        """Legacy 'opus' alias was removed — unknown aliases pass through raw."""
+        assert "opus" not in CHAT_MODELS["opencode"]
+        assert "opus" not in CHAT_MODELS["openrouter"]
+        assert [a.model for a in chat_plan("opus")] == ["opus", "opus"]
 
     def test_openrouter_only_when_opencode_key_absent(self, monkeypatch):
         monkeypatch.setattr(settings, "OPENCODE_GO_API_KEY", "", raising=False)

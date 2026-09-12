@@ -1427,15 +1427,17 @@ Ask financial questions with full user context injected for personalized advice.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `question` | string | required | Financial question |
-| `model` | string | `"flash"` | `"flash"` for DeepSeek V4 (all users), `"opus"` for Claude Opus (admin only) |
+| `model` | string | `"flash"` | `"flash"` (all users) or `"advanced"` (admin only) |
 | `history` | array | `[]` | Last 10 chat exchanges (max) for conversation continuity. Each item: `{"role": "user"|"assistant", "content": "..."}` |
 
-**Model routing:**
+**Model routing** (aliases → provider model ids; see `app/core/llm.py`):
 
-| Model | When used |
-|-------|-----------|
-| `flash` | Fast, budget — default for all (OpenCode Go) |
-| `opus` | Deep analysis — admin only, via OpenRouter |
+| Alias | OpenCode | OpenRouter | When used |
+|-------|----------|------------|-----------|
+| `flash` | `deepseek-v4.1-flash` | `deepseek/deepseek-v4.1-flash` | Fast, budget — default for all |
+| `advanced` | `deepseek-v4-pro` | `deepseek/deepseek-v4-pro` | Deep analysis — admin only |
+
+Providers are tried in order (OpenCode, then OpenRouter when its key is set): 401/403/429/5xx on the first moves the call to the next one. Unknown aliases are passed through as-is.
 
 ```json
 // Response 200

@@ -20,14 +20,12 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 # Chat model aliases per provider (keys come from the client: flash/advanced).
 CHAT_MODELS: dict[str, dict[str, str]] = {
     "opencode": {
-        "flash": "deepseek-v4-flash",
+        "flash": "deepseek-v4.1-flash",
         "advanced": "deepseek-v4-pro",
-        "opus": "deepseek-v4-pro",  # legacy APK
     },
     "openrouter": {
-        "flash": "deepseek/deepseek-v4-flash",
+        "flash": "deepseek/deepseek-v4.1-flash",
         "advanced": "deepseek/deepseek-v4-pro",
-        "opus": "deepseek/deepseek-v4-pro",  # legacy APK
     },
 }
 

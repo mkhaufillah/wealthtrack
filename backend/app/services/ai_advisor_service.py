@@ -19,7 +19,6 @@ import httpx
 
 from pydantic import BaseModel
 
-from app.core.config import settings
 from app.database import CursorWrapper, background_tasks
 
 logger = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ class HistoryItem(BaseModel):
 
 class AdviseRequest(BaseModel):
     question: str
-    model: str = "flash"  # "flash" | "advanced"  (legacy: "opus")
+    model: str = "flash"  # "flash" | "advanced"
     history: list[HistoryItem] = []
 
 
@@ -677,31 +676,11 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
 
 
 # ── Model Resolution & API Calls ──────────────────────────────────────
-
-
-async def resolve_model(model: str) -> tuple[str, str, str]:
-    """Return (resolved_model, api_url, api_key) for the given model."""
-    if settings.llm_via_openrouter:
-        model_map = {
-            "flash": "deepseek/deepseek-v4-flash",
-            "advanced": "deepseek/deepseek-v4-pro",
-            "opus": "deepseek/deepseek-v4-pro",  # legacy APK
-        }
-    else:
-        # OpenCode Go catalog
-        model_map = {
-            "flash": "deepseek-v4-flash",
-            "advanced": "deepseek-v4-pro",
-            "opus": "deepseek-v4-pro",  # legacy APK
-        }
-    resolved = model_map.get(model, model)
-    api_url = settings.llm_api_url
-    api_key = settings.llm_api_key
-    return resolved, api_url, api_key
+# Model aliases + provider order live in app/core/llm.py (chat_plan/vision_plan).
 
 
 async def call_model_stream(
-    messages: list, model: str = "deepseek-v4-flash"
+    messages: list, model: str = "flash"
 ) -> AsyncGenerator[str, None]:
     """Call the model API with streaming. Yields token strings as they arrive.
 
@@ -790,7 +769,7 @@ async def call_model_stream(
 
 
 async def call_model(
-    messages: list, model: str = "deepseek-v4-flash"
+    messages: list, model: str = "flash"
 ) -> str:
     """Call the model API without streaming. Returns full response text.
 
@@ -1154,7 +1133,7 @@ def ensure_api_key_configured():
 
 def check_model_access(req_model: str, current_user: dict) -> None:
     """Check model access restrictions. Raises ValueError if access denied."""
-    if req_model in ("advanced", "opus") and current_user.get("role") != "admin":
+    if req_model in ("advanced",) and current_user.get("role") != "admin":
         raise ValueError(
             "Advanced model is only available for the primary account holder"
         )
