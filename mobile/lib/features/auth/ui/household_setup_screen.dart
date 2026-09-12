@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/copy_fallback.dart';
 import '../../../core/ui/brand_mark.dart';
@@ -98,19 +99,27 @@ class _HouseholdSetupScreenState extends ConsumerState<HouseholdSetupScreen> {
 
   Future<void> _run(Future<void> Function() action) async {
     setState(() => _busy = true);
+    var failure = '';
     try {
       await action();
       await ref.read(authProvider.notifier).finishVaultSetup();
-    } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(ref.read(apiClientProvider).handleError(e).toString()),
-        ),
-      );
+      final auth = ref.read(authProvider);
+      if (!auth.needsHousehold) {
+        // The router moves us on when the gate flags change, but do it
+        // explicitly as well: a successful create must never leave the user on
+        // a screen that looks like nothing happened.
+        context.go(auth.needsVaultKey ? '/vault-waiting' : '/home');
+        return;
+      }
+      failure = t('hh.setup_incomplete');
+    } catch (e) {
+      failure = ref.read(apiClientProvider).handleError(e).toString();
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+    if (!mounted || failure.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure)));
   }
 
   @override

@@ -139,6 +139,7 @@ COPY_ID: dict[str, str] = {
     'hh.setup_create_desc': 'Buat Rumah baru dengan nama yang kamu mau. Cocok buat mulai pakai sendirian.',
     'hh.setup_join_desc': 'Masuk ke Rumah yang udah ada pakai kode undangan dari pasangan atau keluarga.',
     'hh.setup_note': 'Rumah bisa diatur lagi di Profil.',
+    'hh.setup_incomplete': 'Rumahnya dibuat, tapi kuncinya belum siap. Coba tekan sekali lagi.',
     'hh.wait_key_title': 'Tunggu gembok dari pemilik Rumah',
     'hh.wait_key_body': 'Kamu sudah masuk ke Rumah ini, tapi datanya masih terkunci. Minta pemilik Rumah buka Profil → Bagi gembok. Begitu dikirim, app bakal kebuka otomatis.',
     'hh.wait_key_note': 'Gembok = kunci enkripsi keluarga. Tanpa gembok, isi Rumah nggak bisa dibaca siapa pun — termasuk kamu. Ini proteksi, bukan error.',

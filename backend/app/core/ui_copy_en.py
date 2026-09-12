@@ -136,6 +136,7 @@ COPY_EN: dict[str, str] = {
     'hh.setup_create_desc': 'Create a new Home with any name you like. Great for starting on your own.',
     'hh.setup_join_desc': 'Join an existing Home with an invite code from your partner or family.',
     'hh.setup_note': 'You can manage your Home later in Profile.',
+    'hh.setup_incomplete': 'The Home was created, but the key is not ready yet. Please try once more.',
     'hh.wait_key_title': 'Waiting for the owner to share the key',
     'hh.wait_key_body': 'You are inside this Home, but its data is still locked. Ask the Home owner to open Profile → Share the lock. Once sent, the app unlocks automatically.',
     'hh.wait_key_note': 'The key is the family encryption key. Without it, the Home stays unreadable to everyone — including you. This is protection, not an error.',

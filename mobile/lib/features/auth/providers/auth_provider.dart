@@ -150,36 +150,63 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// share-inbox; show the waiting page until the owner shares it.
   Future<void> finishVaultSetup() async {
     try {
-      final me = await _api.get('/households/me');
-      final sealed = (me.data as Map)['vault_sealed'] == true;
-      if (sealed) {
-        // Joined an existing household: publish our pubkey (so the owner can
-        // address the gembok to us) and wait for their explicit share.
-        await _ensurePubkey();
-        await _tryShareInbox();
-        await refreshVaultKeyState();
-        return;
-      }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return;
-    } catch (_) {}
-    final pw = _pendingPassword;
-    if (pw == null || pw.isEmpty) return;
-    try {
-      final dek = await VaultStore.newDekB64();
-      await VaultStore.saveDekB64(_storage, dek);
+      try {
+        final me = await _api.get('/households/me');
+        final sealed = (me.data as Map)['vault_sealed'] == true;
+        if (sealed) {
+          // Joined an existing household: publish our pubkey (so the owner can
+          // address the gembok to us) and wait for their explicit share.
+          await _ensurePubkey();
+          await _tryShareInbox();
+          return;
+        }
+      } on DioException catch (e) {
+        if (e.response?.statusCode == 404) return;
+      } catch (_) {}
+
+      // Brand-new household: mint the family key here. The password is only
+      // needed for the recovery wrap, so a cold-started session (no password in
+      // memory) must still be able to finish — otherwise the household is
+      // created but the app silently does nothing and the gate never leaves.
+      try {
+        final dek = await VaultStore.newDekB64();
+        await VaultStore.saveDekB64(_storage, dek);
+        await _postKeyHeld(dek);
+        await _api.post('/households/vault/seal');
+        _pendingPassword = null;
+        // Sharing is manual: the owner presses "Bagi gembok" in Profile.
+      } catch (_) {}
+    } finally {
+      // ALWAYS re-evaluate both gates, whatever happened above: the router only
+      // moves the user off the setup screen when these flags change.
+      await refreshVaultKeyState();
+      await refreshHouseholdState();
+    }
+  }
+
+  /// Record that this device holds the family key.
+  ///
+  /// With a password we store a real recovery wrap. Without one (cold start,
+  /// nothing typed yet) we store a `device` claim with an EMPTY body — never
+  /// the key itself — so the household still counts as keyed and the owner's
+  /// "Bagi gembok" card is accurate. A device claim is upgraded to a password
+  /// wrap on the next login.
+  Future<void> _postKeyHeld(String dek, {String? password}) async {
+    final pw = password ?? _pendingPassword;
+    if (pw != null && pw.isNotEmpty) {
       final wrapped = await VaultStore.wrapDek(pw, dek);
       await _api.post('/households/vault/wrap', data: {
         'wrapped_dek': wrapped.wrapped,
         'kdf_salt': wrapped.salt,
         'kdf_params': kdfParams,
       });
-      await _api.post('/households/vault/seal');
-      // Sharing is manual: the owner presses "Kirim kunci" in Profile.
-      // Auto-sharing here leaked the family key to anyone who joined with
-      // the invite code without the owner ever approving it.
-    } catch (_) {}
-    await refreshHouseholdState();
+      return;
+    }
+    await _api.post('/households/vault/wrap', data: {
+      'wrapped_dek': '',
+      'kdf_salt': 'device',
+      'kdf_params': 'device',
+    });
   }
 
   /// True when the app must block the user on the vault gate: they are in a
@@ -261,12 +288,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _unlockVault(String password) async {
+    var havePasswordWrap = false;
     try {
       final wrap = await _api.get('/households/vault/wrap');
       final data = wrap.data as Map;
       final params = (data['kdf_params'] as String?) ?? '';
       // `device` = key held on this device only (no password wrap): nothing to
-      // unwrap, fall through so a password wrap can still be created below.
+      // unwrap here; it gets upgraded below now that we know the password.
       if (params != 'device') {
         final dek = await VaultStore.unwrapDek(
           password: password,
@@ -274,20 +302,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
           saltB64: data['kdf_salt'] as String? ?? '',
         );
         await VaultStore.saveDekB64(_storage, dek);
-        try {
-          await _api.post('/households/vault/seal');
-        } catch (_) {}
-        // No auto-share: the owner shares explicitly from Profile.
-        try {
-          final pub = await VaultStore.publicKeyB64(_storage);
-          await _api.post('/households/vault/pubkey', data: {'public_key': pub});
-        } catch (_) {}
-        return;
+        havePasswordWrap = true;
       }
     } on DioException catch (e) {
       if (e.response?.statusCode != 404) return;
     } catch (_) {
-      // Unwrap failed (wrong password / device-only wrap) → try the inbox.
+      // Unwrap failed (wrong password / corrupt wrap) → try the inbox.
+    }
+    if (havePasswordWrap) {
+      try {
+        await _api.post('/households/vault/seal');
+      } catch (_) {}
+      // No auto-share: the owner shares explicitly from Profile.
+      await _ensurePubkey();
+      return;
     }
     try {
       final inbox = await _api.get('/households/vault/share-inbox');
@@ -295,23 +323,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (boxed != null && boxed.isNotEmpty) {
         final dek = await VaultStore.unboxDek(_storage, boxed);
         await VaultStore.saveDekB64(_storage, dek);
-        final wrapped = await VaultStore.wrapDek(password, dek);
-        await _api.post('/households/vault/wrap', data: {
-          'wrapped_dek': wrapped.wrapped,
-          'kdf_salt': wrapped.salt,
-          'kdf_params': kdfParams,
-        });
-        try {
-          final pub = await VaultStore.publicKeyB64(_storage);
-          await _api.post('/households/vault/pubkey', data: {'public_key': pub});
-        } catch (_) {}
+        await _postKeyHeld(dek, password: password);
+        await _ensurePubkey();
         return;
       }
     } catch (_) {}
-    try {
-      final pub = await VaultStore.publicKeyB64(_storage);
-      await _api.post('/households/vault/pubkey', data: {'public_key': pub});
-    } catch (_) {}
+    // We may already hold the family key (minted on a cold start, or picked up
+    // in an earlier session). Record it now — and upgrade a device-only claim
+    // into a real password wrap, which is what makes the key recoverable after
+    // logout or a reinstall.
+    final held = await VaultStore.getDekB64(_storage);
+    if (held != null && held.isNotEmpty) {
+      await _postKeyHeld(held, password: password);
+      await _ensurePubkey();
+      return;
+    }
+    await _ensurePubkey();
     var sealed = false;
     try {
       final me = await _api.get('/households/me');
@@ -373,27 +400,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (boxed == null || boxed.isEmpty) return;
       final dek = await VaultStore.unboxDek(_storage, boxed);
       await VaultStore.saveDekB64(_storage, dek);
-      final pw = _pendingPassword;
-      if (pw != null && pw.isNotEmpty) {
-        final wrapped = await VaultStore.wrapDek(pw, dek);
-        await _api.post('/households/vault/wrap', data: {
-          'wrapped_dek': wrapped.wrapped,
-          'kdf_salt': wrapped.salt,
-          'kdf_params': kdfParams,
-        });
-      } else {
-        // Picked up on a cold start (no password in memory). Still tell the
-        // server this device holds the family key, otherwise the owner keeps
-        // seeing "Bagi gembok" and the member keeps seeing "menunggu kunci"
-        // until some later login. Body stays EMPTY on purpose: nothing secret
-        // is stored, and `kdf_params='device'` means "held on this device,
-        // not password-recoverable" — clients never try to unwrap it.
-        await _api.post('/households/vault/wrap', data: {
-          'wrapped_dek': '',
-          'kdf_salt': 'device',
-          'kdf_params': 'device',
-        });
-      }
+      await _postKeyHeld(dek);
       _pendingPassword = null;
       _sharePoll?.cancel();
       _sharePoll = null;
