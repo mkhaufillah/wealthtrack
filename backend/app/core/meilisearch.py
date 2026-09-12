@@ -7,15 +7,16 @@ Provides:
 - search_descriptions — full-text search → returns [transaction_id, ...]
 """
 
-from typing import Optional
+
+import contextlib
 
 import meilisearch
 from meilisearch.index import Index
 
 from app.core.config import settings
 
-_client: Optional[meilisearch.Client] = None
-_index: Optional[Index] = None
+_client: meilisearch.Client | None = None
+_index: Index | None = None
 
 INDEX_NAME = "transactions"
 SEARCHABLE_ATTRIBUTES = ["date"]
@@ -34,10 +35,8 @@ async def init_meilisearch():
     _client = meilisearch.Client(url, key)
 
     # Create index if not exists
-    try:
+    with contextlib.suppress(meilisearch.errors.MeilisearchApiError):
         _client.create_index(INDEX_NAME, {"primaryKey": "id"})
-    except meilisearch.errors.MeilisearchApiError:
-        pass  # already exists
 
     _index = _client.index(INDEX_NAME)
 
@@ -87,8 +86,8 @@ def _delete_document_sync(txn_id: int) -> None:
     get_index().delete_document(txn_id)
 
 
-def _search_sync(q: str, filters: Optional[list[str]] = None,
-                 sort: Optional[list[str]] = None,
+def _search_sync(q: str, filters: list[str] | None = None,
+                 sort: list[str] | None = None,
                  offset: int = 0, limit: int = 50) -> dict:
     """Search transactions and return full Meilisearch response."""
     return get_index().search(q, {
@@ -116,8 +115,8 @@ async def delete_document(txn_id: int) -> None:
 
 async def search_descriptions(
     q: str,
-    filters: Optional[list[str]] = None,
-    sort: Optional[list[str]] = None,
+    filters: list[str] | None = None,
+    sort: list[str] | None = None,
     offset: int = 0,
     limit: int = 50,
 ) -> list[int]:
@@ -129,7 +128,7 @@ async def search_descriptions(
     return [hit["id"] for hit in result.get("hits", [])]
 
 
-async def get_total_count(q: str, filters: Optional[list[str]] = None) -> int:
+async def get_total_count(q: str, filters: list[str] | None = None) -> int:
     """Get total number of matching documents (for pagination)."""
     import anyio
     result = await anyio.to_thread.run_sync(

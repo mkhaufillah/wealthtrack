@@ -6,9 +6,9 @@ for backward compatibility with the existing codebase patterns.
 """
 
 import asyncio
-import asyncpg
-
 from contextlib import asynccontextmanager
+
+import asyncpg
 
 from app.core.config import settings
 
@@ -137,7 +137,6 @@ class CursorWrapper:
     async def commit(self):
         """No-op compatibility — asyncpg auto-commits each statement.
         Preserved for test compatibility."""
-        pass
 
     async def close(self):
         """Release the underlying connection back to the pool."""

@@ -15,7 +15,7 @@ Each test function:
 """
 
 import os
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import asyncpg
 import pytest
@@ -23,11 +23,11 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from passlib.context import CryptContext
 
-from app.database import get_db, CursorWrapper
-from app.main import app
 from app.core.security import create_access_token
 from app.core.vault import encode_dek, generate_dek
 from app.core.vault_row import pack_money
+from app.database import CursorWrapper, get_db
+from app.main import app
 
 TEST_DEK = generate_dek()
 TEST_DEK_B64 = encode_dek(TEST_DEK)

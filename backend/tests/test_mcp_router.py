@@ -1,11 +1,11 @@
 """TDD tests for MCP router - initialize handshake and tools/list discovery."""
-from fastapi.testclient import TestClient
 import json
+
 import pytest
+from fastapi.testclient import TestClient
 
-from app.main import app
 from app.core.security import get_current_user
-
+from app.main import app
 
 client = TestClient(app)
 

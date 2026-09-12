@@ -6,28 +6,27 @@ Delegates all business logic to TransactionService.
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional
 
-from app.database import get_db, CursorWrapper
 from app.core.security import get_current_user
+from app.core.vault_ctx import VaultRequiredError
+from app.database import CursorWrapper, get_db
 from app.schemas.transaction import (
+    PaginatedTransactions,
     TransactionCreate,
     TransactionUpdate,
-    PaginatedTransactions,
     TransferOwnerIn,
     TransferRequest,
     TransferResponse,
 )
 from app.services.transaction_service import (
-    TransactionService,
-    TransactionNotFoundError,
     CategoryNotFoundError,
-    NotHouseholdMemberError,
     ForbiddenError,
-    NoFieldsToUpdateError,
     InvalidOperationError,
+    NoFieldsToUpdateError,
+    NotHouseholdMemberError,
+    TransactionNotFoundError,
+    TransactionService,
 )
-from app.core.vault_ctx import VaultRequiredError
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +61,9 @@ def _get_service(db: CursorWrapper) -> TransactionService:
 async def list_household_transactions(
     page: int = Query(1, ge=1),
     per_page: int = Query(100, ge=1, le=200),
-    type: Optional[str] = Query(None, pattern="^(expense|income)$"),
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
+    type: str | None = Query(None, pattern="^(expense|income)$"),
+    date_from: str | None = None,
+    date_to: str | None = None,
     sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -89,13 +88,13 @@ async def list_household_transactions(
 async def list_transactions(
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=100),
-    type: Optional[str] = Query(None, pattern="^(expense|income)$"),
-    category_id: Optional[int] = None,
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
+    type: str | None = Query(None, pattern="^(expense|income)$"),
+    category_id: int | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     sort: str = Query("-date", pattern="^(date|-date|amount|-amount)$"),
-    q: Optional[str] = Query(None, description="Search by description"),
-    category_ids: Optional[str] = Query(None, description="Comma-separated category IDs"),
+    q: str | None = Query(None, description="Search by description"),
+    category_ids: str | None = Query(None, description="Comma-separated category IDs"),
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -200,6 +199,6 @@ async def delete_transaction(
     try:
         svc = _get_service(db)
         await svc.delete_transaction(txn_id, current_user["id"])
-        return None
+        return
     except Exception as e:
         _handle_service_error(e)

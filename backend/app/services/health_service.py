@@ -1,6 +1,6 @@
 """Health check service — encapsulates DB and Redis health logic."""
-from app.database import CursorWrapper
 from app.core.redis import get_redis
+from app.database import CursorWrapper
 
 
 class HealthService:

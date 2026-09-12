@@ -1,11 +1,10 @@
 """API key management for long-lived MCP authentication."""
-from typing import Optional
 
-from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from app.core.security import get_current_user
-from app.database import get_db, CursorWrapper
+from app.database import CursorWrapper, get_db
 from app.services.api_key_service import ApiKeyService
 
 router = APIRouter(prefix="/api-keys", tags=["api-keys"])
@@ -68,4 +67,4 @@ async def revoke_api_key(
     revoked = await service.revoke_key(current_user["id"], key_id)
     if not revoked:
         raise HTTPException(status_code=404, detail="API key not found")
-    return None
+    return

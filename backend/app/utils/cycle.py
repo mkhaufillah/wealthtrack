@@ -6,10 +6,9 @@ instead of the fixed calendar month (1st–last day).
 """
 
 from datetime import date, timedelta
-from typing import Tuple
 
 
-def get_cycle_range(today: date, cycle_start_day: int = 1) -> Tuple[date, date]:
+def get_cycle_range(today: date, cycle_start_day: int = 1) -> tuple[date, date]:
     """Return (start_date, end_date) for the current billing cycle.
 
     If cycle_start_day == 1: standard calendar month (1st to last day).
@@ -74,14 +73,14 @@ def _safe_date(year: int, month: int, day: int) -> date:
         return date(year, month + 1, 1) - timedelta(days=1)
 
 
-def _prev_month(year: int, month: int) -> Tuple[int, int]:
+def _prev_month(year: int, month: int) -> tuple[int, int]:
     """Return (year, month) of the previous month."""
     if month == 1:
         return year - 1, 12
     return year, month - 1
 
 
-def get_cycle_range_for_month(month: str, cycle_on: int) -> Tuple[date, date]:
+def get_cycle_range_for_month(month: str, cycle_on: int) -> tuple[date, date]:
     """Return (start_date, end_date) for a budget month with given cycle day.
 
     For cycle_on==1: standard calendar month (1st to last day).

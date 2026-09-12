@@ -87,8 +87,8 @@ def fake_post(monkeypatch):
 
 class TestChatFallback:
     async def test_falls_back_when_primary_is_limited(self, both_keys, fake_post, monkeypatch):
-        from app.services import ai_advisor_service as svc
         from app.core.llm import OPENCODE_URL, OPENROUTER_URL
+        from app.services import ai_advisor_service as svc
 
         calls, responses = fake_post
         responses[OPENCODE_URL] = _FakeResponse(429, {"error": "quota"})
@@ -102,8 +102,8 @@ class TestChatFallback:
         assert calls == [OPENCODE_URL, OPENROUTER_URL]
 
     async def test_all_providers_limited_raises_quota_message(self, both_keys, fake_post):
-        from app.services import ai_advisor_service as svc
         from app.core.llm import OPENCODE_URL, OPENROUTER_URL
+        from app.services import ai_advisor_service as svc
 
         calls, responses = fake_post
         responses[OPENCODE_URL] = _FakeResponse(429, {"error": "quota"})
@@ -115,8 +115,8 @@ class TestChatFallback:
         assert calls == [OPENCODE_URL, OPENROUTER_URL]
 
     async def test_network_error_on_primary_falls_back(self, both_keys, monkeypatch):
-        from app.services import ai_advisor_service as svc
         from app.core.llm import OPENCODE_URL, OPENROUTER_URL
+        from app.services import ai_advisor_service as svc
 
         calls: list[str] = []
 

@@ -4,8 +4,8 @@ import pytest
 from httpx import AsyncClient
 
 from app.database import CursorWrapper
-from app.services.kpr_engine import calculate_kpr, simulate_summary, RatePeriod
 from app.schemas.kpr import ExtraPaymentOut
+from app.services.kpr_engine import RatePeriod, calculate_kpr, simulate_summary
 
 
 def test_extra_payment_out_survives_missing_blob_fields():

@@ -5,8 +5,8 @@ import json
 import httpx
 import pytest
 from httpx import AsyncClient
-from app.core.config import settings
 
+from app.core.config import settings
 
 # ──────────────────────────────────────────────
 # Helpers for mocking the AI API

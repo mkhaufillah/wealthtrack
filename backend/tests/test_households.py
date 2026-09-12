@@ -1,6 +1,7 @@
 """Tests for /api/v1/households endpoints."""
 
 from httpx import AsyncClient
+
 from app.core.security import create_access_token, hash_password
 from app.database import CursorWrapper
 

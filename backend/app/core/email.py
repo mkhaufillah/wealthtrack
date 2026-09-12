@@ -4,8 +4,8 @@ Uses Python's built-in smtplib — no extra dependencies.
 Configure via SMTP_* env vars in backend/.env or ~/.hermes/.env.
 """
 
-import smtplib
 import random
+import smtplib
 import string
 from email.mime.text import MIMEText
 

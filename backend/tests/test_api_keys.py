@@ -2,14 +2,14 @@
 
 These tests use TestClient with mocked DB dependencies so they do not require
 a running PostgreSQL container."""
-import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock
 
-from app.main import app
+import pytest
+from fastapi.testclient import TestClient
+
 from app.core.security import get_current_user
 from app.database import get_db
-
+from app.main import app
 
 client = TestClient(app)
 
@@ -177,8 +177,8 @@ class TestApiKeyMcpAccess:
         _override_auth(scopes=["mcp:read"], auth_type="api_key")
         # Even in no-DB test env, scope check happens before DB fallback.
         # Force the handler to think a pool exists so it skips the permissive fallback.
-        from app import routers
         import app.routers.mcp as mcp_module
+        from app import routers
         original_pool = getattr(mcp_module, "pool", None)
         mcp_module.pool = "fake"  # type: ignore
         try:

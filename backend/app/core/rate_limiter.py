@@ -15,7 +15,9 @@ Usage:
     async def ocr_endpoint(...):
 """
 import time
+
 from fastapi import HTTPException
+
 from app.core.redis import get_redis
 
 # Lua script: atomic sliding window check-and-add.

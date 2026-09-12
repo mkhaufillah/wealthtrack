@@ -1,10 +1,9 @@
-from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, HTTPException
-from app.core.vault_ctx import VaultRequiredError
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.database import get_db, CursorWrapper
 from app.core.security import get_current_user
+from app.core.vault_ctx import VaultRequiredError
+from app.database import CursorWrapper, get_db
 from app.services.summary_service import SummaryService
 
 router = APIRouter(prefix="/summaries", tags=["summaries"])
@@ -12,8 +11,8 @@ router = APIRouter(prefix="/summaries", tags=["summaries"])
 
 @router.get("/daily")
 async def daily_summary(
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -31,8 +30,8 @@ async def daily_summary(
 
 @router.get("/household")
 async def household_summary(
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -47,11 +46,11 @@ async def household_summary(
 
 @router.get("/monthly")
 async def monthly_summary(
-    month: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
-    month_from: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
-    month_to: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
-    d_from_override: Optional[str] = Query(None, description="Explicit date_from (YYYY-MM-DD) for cycle support"),
-    d_to_override: Optional[str] = Query(None, description="Explicit date_to (YYYY-MM-DD) for cycle support"),
+    month: str | None = Query(None, pattern=r"^\d{4}-\d{2}$"),
+    month_from: str | None = Query(None, pattern=r"^\d{4}-\d{2}$"),
+    month_to: str | None = Query(None, pattern=r"^\d{4}-\d{2}$"),
+    d_from_override: str | None = Query(None, description="Explicit date_from (YYYY-MM-DD) for cycle support"),
+    d_to_override: str | None = Query(None, description="Explicit date_to (YYYY-MM-DD) for cycle support"),
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -77,7 +76,7 @@ async def monthly_summary(
 @router.get("/current-month")
 async def current_month_summary(
     use_cycle: bool = Query(False, description="Use user's billing cycle instead of calendar month"),
-    ref_date: Optional[str] = Query(None, description="Reference date (YYYY-MM-DD). Defaults to server today."),
+    ref_date: str | None = Query(None, description="Reference date (YYYY-MM-DD). Defaults to server today."),
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -92,7 +91,7 @@ async def current_month_summary(
 
 @router.get("/cycle-info")
 async def cycle_info(
-    ref_date_str: Optional[str] = Query(None, alias="date", description="Reference date (YYYY-MM-DD). Defaults to today."),
+    ref_date_str: str | None = Query(None, alias="date", description="Reference date (YYYY-MM-DD). Defaults to today."),
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):

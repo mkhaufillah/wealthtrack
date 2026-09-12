@@ -12,6 +12,7 @@ Usage::
 
 import io
 from calendar import month_abbr
+
 from app.database import CursorWrapper
 
 
@@ -72,7 +73,7 @@ class ExportService:
             (xlsx buffer, suggested filename like ``"wealthtrack_2026.xlsx"``)
         """
         import openpyxl
-        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
         grouped = await self._year_transactions(year, user_id)
 
@@ -90,7 +91,6 @@ class ExportService:
             bottom=Side(style="thin"),
         )
         summary_font = Font(bold=True, size=11)
-        summary_fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
 
         headers = ["Date", "Type", "Category", "Amount", "Description", "Note", "Owner"]
         col_widths = [14, 10, 20, 16, 30, 20, 16]

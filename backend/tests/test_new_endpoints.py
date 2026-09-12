@@ -10,12 +10,12 @@ Covers:
 """
 
 import json
+import os
 import struct
 import zlib
 
 import httpx
 import pytest
-import os
 from httpx import AsyncClient
 
 
@@ -560,8 +560,8 @@ class TestAllTimeCategoryBalance:
             "VALUES (101, 'Dana Darurat', 'expense', 'strokeRoundedInvoice01', 0, 11, '[]')",
         )
 
-        from tests.conftest import TEST_DEK
         from app.core.vault_row import pack_money
+        from tests.conftest import TEST_DEK
 
         async def _tx(typ, cat, amount, desc):
             p = pack_money(TEST_DEK, amount=amount, description=desc, category_id=cat, category_name="")
@@ -600,8 +600,8 @@ class TestAllTimeCategoryBalance:
             "VALUES (110, 'Tabungan & Investasi', 'expense', 'strokeRoundedMoneyBag01', 0, 10, '[]')",
         )
         # Only user 1 has a transaction; nahda (user 2) should see zeros
-        from tests.conftest import TEST_DEK
         from app.core.vault_row import pack_money
+        from tests.conftest import TEST_DEK
 
         p = pack_money(TEST_DEK, amount=500000, description="Filla investment", category_id=110)
         await db.execute(

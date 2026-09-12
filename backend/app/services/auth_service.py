@@ -7,19 +7,19 @@ and account deletion.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 import logging
+from datetime import UTC, datetime, timedelta
 
-from app.database import CursorWrapper
-from app.core.security import hash_password, verify_password, create_access_token
-from app.core.email import generate_otp, send_otp_email
 from app.core.config import settings
+from app.core.email import generate_otp, send_otp_email
+from app.core.security import create_access_token, hash_password, verify_password
+from app.database import CursorWrapper
 from app.schemas.user import (
-    UserRegister,
-    UserLogin,
+    ChangePasswordIn,
     TokenOut,
     UpdateProfileIn,
-    ChangePasswordIn,
+    UserLogin,
+    UserRegister,
 )
 
 logger = logging.getLogger(__name__)
@@ -156,7 +156,7 @@ class AuthService:
         """
         otp = generate_otp()
         expires_at = (
-            datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRE_MINUTES)
+            datetime.now(UTC) + timedelta(minutes=OTP_EXPIRE_MINUTES)
         ).isoformat()
 
         await self.db.execute(
@@ -213,7 +213,7 @@ class AuthService:
             raise OtpAlreadyUsedError()
 
         expires_at = datetime.fromisoformat(row["expires_at"])
-        if expires_at < datetime.now(timezone.utc):
+        if expires_at < datetime.now(UTC):
             raise OtpExpiredError()
 
         # Mark OTP as verified

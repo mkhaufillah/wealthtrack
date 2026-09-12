@@ -1,21 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional
 
-from app.database import get_db, CursorWrapper
+from fastapi import APIRouter, Depends, HTTPException, Query
+
 from app.core.security import get_current_user
+from app.database import CursorWrapper, get_db
 from app.schemas.budget import (
     BudgetCreate,
+    BudgetHealthResponse,
     BudgetResponse,
+    BudgetSuggestion,
+    BudgetSuggestionResponse,
     BudgetSummaryItem,
     BudgetSummaryResponse,
     UnbudgetedExpense,
-    BudgetSuggestion,
-    BudgetSuggestionResponse,
-    BudgetHealthResponse,
 )
 from app.services.budget_service import (
-    BudgetService,
     BudgetNotFoundError,
+    BudgetService,
     CategoryNotFoundError,
 )
 
@@ -77,8 +77,8 @@ async def delete_budget(
 async def budget_summary(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
     use_cycle: bool = Query(False, description="Use user's billing cycle for actuals date range"),
-    d_from_override: Optional[str] = Query(None, description="Override date_from for non-budget expense query"),
-    d_to_override: Optional[str] = Query(None, description="Override date_to for non-budget expense query"),
+    d_from_override: str | None = Query(None, description="Override date_from for non-budget expense query"),
+    d_to_override: str | None = Query(None, description="Override date_to for non-budget expense query"),
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):

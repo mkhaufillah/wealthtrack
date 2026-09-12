@@ -7,23 +7,21 @@ No FastAPI dependency.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from app.database import CursorWrapper
 from app.schemas.kpr import (
-    KPRSimulationCreate,
-    KPRSimulationUpdate,
-    KPRSimulationOut,
-    ExtraPaymentPreviewRequest,
     ExtraPaymentCreate,
+    ExtraPaymentPreviewRequest,
+    KPRSimulationCreate,
+    KPRSimulationOut,
+    KPRSimulationUpdate,
 )
 from app.services.kpr_engine import (
-    calculate_kpr,
-    simulate_summary,
-    apply_extra_payment,
-    preview_extra_payment,
-    RatePeriod,
     MonthlySchedule,
+    RatePeriod,
+    apply_extra_payment,
+    calculate_kpr,
+    preview_extra_payment,
+    simulate_summary,
 )
 
 
@@ -40,8 +38,8 @@ class KPRService:
 
     @staticmethod
     def _pack(amount: int, extra: dict | None = None) -> dict:
-        from app.core.vault_write import must_dek
         from app.core.vault_row import pack_money
+        from app.core.vault_write import must_dek
 
         return pack_money(must_dek(), amount=max(0, int(amount)), extra=extra)
 
@@ -481,7 +479,7 @@ class KPRService:
         db: CursorWrapper,
         sim_id: int,
         user_id: int,
-        month: Optional[int] = None,
+        month: int | None = None,
     ) -> list[dict] | dict:
         """Get schedule items for a simulation.
 

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import hashlib
 import re
-from typing import Optional
 
 # Play package → slug. User-supplied allow-list is the source of truth.
 BANK_PACKAGES: dict[str, str] = {
@@ -89,7 +88,7 @@ _AMOUNT_STRIP = re.compile(
 )
 
 
-def bank_for_package(package: str) -> Optional[str]:
+def bank_for_package(package: str) -> str | None:
     pkg = (package or "").strip()
     if not pkg:
         return None
@@ -101,7 +100,7 @@ def bank_for_package(package: str) -> Optional[str]:
     return slug or "other"
 
 
-def _normalize_number(raw: str) -> Optional[int]:
+def _normalize_number(raw: str) -> int | None:
     s = (raw or "").replace("\u00a0", " ").strip()
     s = re.sub(r",-+$", "", s)
     s = s.replace(" ", "")
@@ -134,7 +133,7 @@ def _normalize_number(raw: str) -> Optional[int]:
     return value
 
 
-def _first_amount(text: str, pattern: re.Pattern[str]) -> Optional[int]:
+def _first_amount(text: str, pattern: re.Pattern[str]) -> int | None:
     for match in pattern.finditer(text or ""):
         end = match.end()
         if end < len(text) and text[end] == "%":
@@ -145,7 +144,7 @@ def _first_amount(text: str, pattern: re.Pattern[str]) -> Optional[int]:
     return None
 
 
-def parse_amount(blob: str) -> Optional[int]:
+def parse_amount(blob: str) -> int | None:
     text = blob or ""
     for pattern in (_CURRENCY_BEFORE, _CURRENCY_AFTER, _CONTEXT_AMOUNT, _BARE_GROUPED_RE):
         value = _first_amount(text, pattern)
@@ -195,7 +194,7 @@ def parse_merchant(blob: str) -> str:
     return cleaned[:120]
 
 
-def fingerprint(package: str, posted_at: str, amount: Optional[int], blob: str) -> str:
+def fingerprint(package: str, posted_at: str, amount: int | None, blob: str) -> str:
     day = (posted_at or "")[:10]
     norm = re.sub(r"\s+", " ", (blob or "").lower()).strip()
     raw = f"{package}|{day}|{amount or 0}|{norm}"

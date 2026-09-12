@@ -1,5 +1,5 @@
-from typing import Optional
-from pydantic import BaseModel, Field, EmailStr
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserRegister(BaseModel):
@@ -26,10 +26,10 @@ class TokenOut(BaseModel):
 
 
 class UpdateProfileIn(BaseModel):
-    display_name: Optional[str] = Field(default=None, min_length=1, max_length=64)
-    cycle_start_day: Optional[int] = Field(default=None, ge=1, le=28)
-    email: Optional[EmailStr] = Field(default=None)
-    locale: Optional[str] = Field(default=None, max_length=16)
+    display_name: str | None = Field(default=None, min_length=1, max_length=64)
+    cycle_start_day: int | None = Field(default=None, ge=1, le=28)
+    email: EmailStr | None = Field(default=None)
+    locale: str | None = Field(default=None, max_length=16)
 
 
 class ChangePasswordIn(BaseModel):

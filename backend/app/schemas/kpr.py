@@ -1,5 +1,5 @@
+
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class RatePeriodIn(BaseModel):
@@ -41,15 +41,15 @@ class KPRSimulationCreate(BaseModel):
     rate_periods: list[RatePeriodIn] = []
     start_month: int = Field(1, ge=1, le=12)
     start_year: int = Field(2026, ge=2000, le=2100)
-    due_date: Optional[int] = Field(None, ge=1, le=31)
-    household_id: Optional[int] = None
+    due_date: int | None = Field(None, ge=1, le=31)
+    household_id: int | None = None
 
 
 class KPRSimulationUpdate(BaseModel):
-    name: Optional[str] = None
-    property_price: Optional[int] = None
-    down_payment: Optional[int] = None
-    tenor_months: Optional[int] = None
+    name: str | None = None
+    property_price: int | None = None
+    down_payment: int | None = None
+    tenor_months: int | None = None
 
 
 class KPRScheduleItemOut(BaseModel):
@@ -76,11 +76,11 @@ class KPRSimulationOut(BaseModel):
     monthly_payment: int = 0
     start_month: int = 1
     start_year: int = 2026
-    due_date: Optional[int] = None
+    due_date: int | None = None
     current_month_number: int = 1
     current_month_payment: int = 0
     current_remaining_balance: int = 0
-    household_id: Optional[int] = None
+    household_id: int | None = None
     display_order: int = 0
 
 

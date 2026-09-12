@@ -12,11 +12,10 @@ import asyncio
 import json
 import logging
 from calendar import monthrange
-from datetime import date, datetime, timezone, timedelta
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from datetime import date, datetime, timedelta, timezone
 
 import httpx
-
 from pydantic import BaseModel
 
 from app.database import CursorWrapper, background_tasks
@@ -47,7 +46,7 @@ class ChatRequest(BaseModel):
     question: str
     model: str = "flash"
     history: list[HistoryItem] = []
-    retry_parent_id: Optional[int] = None
+    retry_parent_id: int | None = None
 
 
 class ChatResponse(BaseModel):
@@ -61,7 +60,7 @@ class ChatMessageResponse(BaseModel):
     content: str
     status: str
     model: str
-    parent_message_id: Optional[int] = None
+    parent_message_id: int | None = None
     created_at: str
 
 
@@ -151,7 +150,7 @@ Gunakan kerangka analisis berikut secara konsisten:
 # ── Private Helpers ───────────────────────────────────────────────────
 
 
-async def _get_household_id(user_id: int, db: CursorWrapper) -> Optional[int]:
+async def _get_household_id(user_id: int, db: CursorWrapper) -> int | None:
     """Get the household ID for a user, or None if not in a household."""
     cursor = await db.execute(
         "SELECT household_id FROM household_members WHERE user_id = ?",
@@ -463,7 +462,7 @@ async def build_context(user_id: int, db: CursorWrapper, question: str = "") -> 
     # ── Web search (if question triggers it) ──
     search_text = ""
     if question:
-        from app.services.web_search import _should_search, search_web, format_search_results
+        from app.services.web_search import _should_search, format_search_results, search_web
 
         if _should_search(question):
             results = await search_web(question)
@@ -849,8 +848,8 @@ _SUMMARY_MAX_CHARS = 2500
 
 
 def _pack_ai_text(key: str, value: str) -> str:
-    from app.core.vault_write import must_dek
     from app.core.vault_row import pack_money
+    from app.core.vault_write import must_dek
 
     return pack_money(must_dek(), amount=0, extra={key: value or ""})["vault_blob"]
 
@@ -910,7 +909,7 @@ async def _prepare_chat_memory(
     user_id: int,
     db: CursorWrapper,
     client_history: list,
-    before_id: Optional[int] = None,
+    before_id: int | None = None,
 ) -> tuple[str, list[dict]]:
     """Return (summary_text, recent_history_msgs). May call Flash once on overflow."""
     skip = {"", "Mengumpulkan data keuangan..."}
@@ -955,7 +954,7 @@ async def _prepare_chat_memory(
 
 
 async def build_messages(
-    req: AdviseRequest, current_user: dict, db: CursorWrapper, before_id: Optional[int] = None
+    req: AdviseRequest, current_user: dict, db: CursorWrapper, before_id: int | None = None
 ) -> list:
     """Build the full messages array: system -> history -> current question."""
     ctx = await build_context(current_user["id"], db, question=req.question)
@@ -1066,7 +1065,7 @@ def _schedule_bg_ai(
                 )
             finally:
                 await bg_db.close()
-        except Exception as e:
+        except Exception:
             logger.exception("AI background failed")
             try:
                 from app.database import get_db_bg

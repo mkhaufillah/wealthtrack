@@ -1,16 +1,16 @@
-from fastapi import APIRouter, Depends, Query, HTTPException, Request
-from typing import Optional
 
-from app.database import get_db, CursorWrapper
-from app.core.security import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+
 from app.core.limiter import limiter
-from app.schemas.category import CategoryOut, CategoryCreate, CategoryUpdate
+from app.core.security import get_current_user
+from app.database import CursorWrapper, get_db
+from app.schemas.category import CategoryCreate, CategoryOut, CategoryUpdate
 from app.services.category_service import (
-    CategoryService,
-    CategoryNotFoundError,
-    CategoryNameConflictError,
-    DefaultCategoryEditError,
     CategoryInUseError,
+    CategoryNameConflictError,
+    CategoryNotFoundError,
+    CategoryService,
+    DefaultCategoryEditError,
     NotAuthorizedError,
 )
 
@@ -36,7 +36,7 @@ def _handle_service_error(exc: Exception) -> None:
 
 @router.get("", response_model=list[CategoryOut])
 async def list_categories(
-    type: Optional[str] = Query(None, pattern="^(expense|income)$"),
+    type: str | None = Query(None, pattern="^(expense|income)$"),
     db: CursorWrapper = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):

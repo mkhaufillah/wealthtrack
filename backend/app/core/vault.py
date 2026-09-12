@@ -7,9 +7,9 @@ category filter. No Redis. Never log DEK.
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import os
-import hashlib
 from base64 import b64decode, b64encode
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -81,7 +81,7 @@ def category_trace(dek: bytes, category_id: int) -> str:
 
 def word_trace(dek: bytes, token: str) -> str:
     norm = " ".join(token.lower().split())
-    return hmac.new(dek, f"w:{norm}".encode("utf-8"), hashlib.sha256).hexdigest()
+    return hmac.new(dek, f"w:{norm}".encode(), hashlib.sha256).hexdigest()
 
 
 def tokenize(text: str) -> list[str]:

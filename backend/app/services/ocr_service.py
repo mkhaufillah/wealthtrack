@@ -260,7 +260,8 @@ class OcrService:
                 set_dek(captured_dek)
                 bg_db = await get_db_bg()
                 try:
-                    raw_bytes = open(img_path, "rb").read()
+                    with open(img_path, "rb") as fh:
+                        raw_bytes = fh.read()
                     data_url = self._compress_image(raw_bytes)
                     categories_str = await self._load_categories(bg_db)
                     prompt = SYSTEM_PROMPT.format(categories=categories_str)
@@ -415,7 +416,7 @@ class OcrService:
         if len(raw_bytes) < 12:
             raise OcrImageError("Foto rusak atau gak lengkap")
 
-        for magic, fmt in IMAGE_MAGIC.items():
+        for magic in IMAGE_MAGIC:
             if raw_bytes[: len(magic)] == magic:
                 return
 

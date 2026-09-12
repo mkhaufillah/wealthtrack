@@ -8,31 +8,31 @@ exceptions to HTTP responses.
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from app.database import get_db, CursorWrapper
-from app.core.security import get_current_user
 from app.core.i18n import locale_from_request
 from app.core.limiter import limiter
+from app.core.security import get_current_user
+from app.database import CursorWrapper, get_db
 from app.schemas.user import (
-    UserRegister,
-    SendOtpIn,
-    UserLogin,
-    UpdateProfileIn,
     ChangePasswordIn,
+    SendOtpIn,
+    UpdateProfileIn,
+    UserLogin,
+    UserRegister,
 )
 from app.services.auth_service import (
     AuthService,
-    UsernameAlreadyExistsError,
+    EmailAlreadyInUseError,
     EmailAlreadyRegisteredError,
-    NoOtpSentError,
-    InvalidOtpError,
-    OtpAlreadyUsedError,
-    OtpExpiredError,
     EmailSendError,
     InvalidCredentialsError,
-    UserNotFoundError,
-    EmailAlreadyInUseError,
-    NoFieldsToUpdateError,
+    InvalidOtpError,
     InvalidPasswordError,
+    NoFieldsToUpdateError,
+    NoOtpSentError,
+    OtpAlreadyUsedError,
+    OtpExpiredError,
+    UsernameAlreadyExistsError,
+    UserNotFoundError,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -176,4 +176,4 @@ async def delete_account(
     """Delete the authenticated user and all associated data."""
     svc = AuthService(db)
     await svc.delete_account(current_user["id"])
-    return None
+    return

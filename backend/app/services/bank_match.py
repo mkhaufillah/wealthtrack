@@ -3,8 +3,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 
 def _keyword_hit(hay: str, token: str) -> bool:
@@ -19,7 +18,7 @@ def suggest_category_id(
     categories: list[dict],
     blob: str,
     txn_type: str,
-) -> Optional[int]:
+) -> int | None:
     hay = (blob or "").lower()
     if not hay:
         return None
@@ -42,4 +41,4 @@ def suggest_category_id(
 
 
 def utcnow() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")

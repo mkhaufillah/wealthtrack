@@ -7,19 +7,21 @@ Implements MCP over HTTP+SSE/JSON-RPC transport.
 Uses existing get_current_user for JWT/API-key auth scoping.
 Follows 2024-11-05 spec for initialize + capabilities + tools/list.
 """
-from fastapi import APIRouter, Depends, Request, HTTPException
-from fastapi.responses import StreamingResponse
-from fastapi.encoders import jsonable_encoder
-from app.core.security import get_current_user
-from app.core.config import settings
-from app.database import get_db, CursorWrapper
-from app.services.transaction_service import TransactionService
-from app.services.summary_service import SummaryService
-from app.services.budget_service import BudgetService
-from app.utils.cycle import get_cycle_range, get_cycle_range_for_month
-from datetime import date, timedelta
-import json
 import asyncio
+import json
+from datetime import date, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import StreamingResponse
+
+from app.core.config import settings
+from app.core.security import get_current_user
+from app.database import CursorWrapper, get_db
+from app.services.budget_service import BudgetService
+from app.services.summary_service import SummaryService
+from app.services.transaction_service import TransactionService
+from app.utils.cycle import get_cycle_range
 
 router = APIRouter()
 
@@ -218,18 +220,18 @@ async def mcp_jsonrpc(
         }
         return {"jsonrpc": "2.0", "id": req_id, "result": result}
 
-    elif method == "tools/list":
+    if method == "tools/list":
         # Tool discovery - strip internal scope metadata before returning
         public_tools = [
             {k: v for k, v in t.items() if k != "scope"} for t in MCP_TOOLS
         ]
         return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": public_tools}}
 
-    elif method == "notifications/initialized":
+    if method == "notifications/initialized":
         # Client notification after initialize - no response needed
         return {"jsonrpc": "2.0", "id": req_id, "result": None}
 
-    elif method == "tools/call":
+    if method == "tools/call":
         tool_name = params.get("name", "unknown")
         arguments = params.get("arguments", {})
 
@@ -300,7 +302,7 @@ async def mcp_jsonrpc(
                 },
             }
 
-        elif tool_name == "list_recent_transactions":
+        if tool_name == "list_recent_transactions":
             try:
                 limit = arguments.get("limit", 10)
                 if not isinstance(limit, int) or limit < 1:
@@ -337,9 +339,10 @@ async def mcp_jsonrpc(
                 },
             }
 
-        elif tool_name == "create_transaction":
+        if tool_name == "create_transaction":
             # Task 6: write tool with validation, household scoping, proper error handling (TDD)
             from pydantic import ValidationError
+
             from app.schemas.transaction import TransactionCreate
             from app.services.transaction_service import (
                 CategoryNotFoundError,
@@ -363,7 +366,7 @@ async def mcp_jsonrpc(
                 # Household scoping: ensure user belongs to a household
                 txn_service = TransactionService(db)
                 try:
-                    household_id, role = await txn_service._get_user_household(
+                    household_id, _ = await txn_service._get_user_household(
                         current_user["id"]
                     )
                 except NotHouseholdMemberError:
@@ -421,7 +424,7 @@ async def mcp_jsonrpc(
                 return {
                     "jsonrpc": "2.0",
                     "id": req_id,
-                    "error": {"code": -32603, "message": f"Internal error: {str(e)}"},
+                    "error": {"code": -32603, "message": f"Internal error: {e!s}"},
                 }
 
         elif tool_name == "get_household_balance":

@@ -94,6 +94,7 @@ def test_pack_negative_amount_still_encrypts():
 
 def test_pack_decimal_extra():
     from decimal import Decimal
+
     from app.core.vault_row import pack_money, unpack_money
 
     dek = generate_dek()
@@ -111,7 +112,7 @@ def test_tokenize_word_boundary():
 
 
 def test_word_traces_keyed():
-    from app.core.vault import generate_dek, word_traces, word_trace
+    from app.core.vault import generate_dek, word_trace, word_traces
 
     dek = generate_dek()
     other = generate_dek()

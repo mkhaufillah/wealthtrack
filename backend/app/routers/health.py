@@ -1,7 +1,7 @@
 """Health check endpoint — used by monitoring / load balancer."""
 from fastapi import APIRouter, Depends
 
-from app.database import get_db, CursorWrapper
+from app.database import CursorWrapper, get_db
 from app.services.health_service import HealthService
 
 router = APIRouter(tags=["health"])

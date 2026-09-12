@@ -8,7 +8,6 @@ from httpx import AsyncClient
 
 from app.database import CursorWrapper
 
-
 REDIS_KEYS = ("ui:bootstrap:id-ID", "ui:bootstrap:en-US")
 
 
@@ -85,6 +84,7 @@ class TestUiBootstrap:
         assert second.json()["copy"]["home.hero_title"] == "Uang kamu"
 
         import os
+
         import redis.asyncio as aioredis
         r = aioredis.Redis.from_url(
             os.getenv("REDIS_URL", "redis://localhost:6379/0"),

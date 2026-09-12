@@ -232,7 +232,6 @@ class TestProcessOcr:
         # Rate limiting is handled by app.core.rate_limiter.check_rate_limit
         # using Redis sorted sets. It's tested at the unit level — this
         # endpoint-level test is superseded by the mock fixture above.
-        pass
 
     async def test_ocr_missing_api_key(
         self, client: AsyncClient, filla_token: str, no_llm_keys

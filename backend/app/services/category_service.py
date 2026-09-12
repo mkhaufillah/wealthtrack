@@ -11,16 +11,14 @@ Usage::
 
 import json
 import re
-from typing import Optional
 
 from app.database import CursorWrapper
-
 
 ICON_RE = re.compile(r"^strokeRounded[A-Za-z0-9]{1,48}$")
 DEFAULT_ICON = "strokeRoundedInvoice01"
 
 
-def normalize_icon(icon: Optional[str]) -> str:
+def normalize_icon(icon: str | None) -> str:
     value = (icon or "").strip()
     if ICON_RE.fullmatch(value):
         return value
@@ -98,7 +96,7 @@ class CategoryService:
 
     async def list_categories(
         self,
-        type_filter: Optional[str] = None,
+        type_filter: str | None = None,
     ) -> list[dict]:
         """Return all categories, optionally filtered by *type_filter*.
 
@@ -124,7 +122,7 @@ class CategoryService:
         icon: str,
         keywords: list[str],
         sort_order: int,
-        name_en: Optional[str] = None,
+        name_en: str | None = None,
     ) -> dict:
         """Create a new category.
 
@@ -168,11 +166,11 @@ class CategoryService:
         self,
         current_user: dict,
         category_id: int,
-        name: Optional[str] = None,
-        icon: Optional[str] = None,
-        keywords: Optional[list[str]] = None,
-        sort_order: Optional[int] = None,
-        name_en: Optional[str] = None,
+        name: str | None = None,
+        icon: str | None = None,
+        keywords: list[str] | None = None,
+        sort_order: int | None = None,
+        name_en: str | None = None,
     ) -> dict:
         """Update an existing category.
 
@@ -281,7 +279,7 @@ class CategoryService:
         row = await cursor.fetchone()
         if not row:
             return DEFAULT_LOCALE
-        return normalize_locale(row["locale"] if "locale" in row.keys() else None)
+        return normalize_locale(dict(row).get("locale"))
 
     async def _upsert_copy(self, key: str, value: str, locale: str | None = None) -> None:
         from app.core.i18n import SUPPORTED_LOCALES, bust_bootstrap_cache, normalize_locale

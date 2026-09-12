@@ -1,5 +1,6 @@
 """Redis connection manager — singleton pool for async redis."""
 import redis.asyncio as aioredis
+
 from app.core.config import settings
 
 _redis: aioredis.Redis | None = None

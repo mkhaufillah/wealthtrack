@@ -4,11 +4,11 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 
+from app.core.i18n import bust_bootstrap_cache, normalize_locale
 from app.core.security import get_current_user
 from app.core.theme_presets import resolve_theme_preset
-from app.database import get_db, CursorWrapper
+from app.database import CursorWrapper, get_db
 from app.services.home_service import HomeService
-from app.core.i18n import bust_bootstrap_cache, normalize_locale
 from app.services.ui_bootstrap_service import UiBootstrapService
 
 router = APIRouter(tags=["ui"])

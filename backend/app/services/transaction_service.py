@@ -8,23 +8,24 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Optional
 
-from app.database import CursorWrapper
-from app.core.vault_query import append_category_filter
 from app.core.meilisearch import (
-    index_document,
     delete_document,
+    index_document,
     search_descriptions,
+)
+from app.core.meilisearch import (
     get_total_count as meili_total_count,
 )
+from app.core.vault_query import append_category_filter
+from app.database import CursorWrapper
 from app.schemas.transaction import (
+    PaginatedTransactions,
+    PaginationMeta,
     TransactionCreate,
     TransactionUpdate,
     TransferOwnerIn,
     TransferRequest,
-    PaginatedTransactions,
-    PaginationMeta,
 )
 
 logger = logging.getLogger(__name__)
@@ -377,7 +378,7 @@ class TransactionService:
                     offset=offset,
                     limit=per_page,
                 )
-                from app.core.vault_query import parse_cat_ids, append_category_filter
+                from app.core.vault_query import append_category_filter, parse_cat_ids
 
                 if matching_ids and parse_cat_ids(category_id, category_ids):
                     where = ["t.id IN (" + ",".join("?" * len(matching_ids)) + ")"]
@@ -571,7 +572,7 @@ class TransactionService:
                 meta=PaginationMeta(page=page, per_page=per_page, total=0, total_pages=0),
             )
 
-        from app.core.vault_query import parse_cat_ids, append_category_filter
+        from app.core.vault_query import append_category_filter, parse_cat_ids
 
         if parse_cat_ids(category_id, category_ids):
             where = ["t.id IN (" + ",".join("?" * len(matching_ids)) + ")"]

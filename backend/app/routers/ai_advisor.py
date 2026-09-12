@@ -15,17 +15,17 @@ from app.database import get_db
 from app.services.ai_advisor_service import (
     AdviseRequest,
     AdviseResponse,
+    ChatMessageResponse,
     ChatRequest,
     ChatResponse,
-    ChatMessageResponse,
     build_messages,
     call_model,
     call_model_stream,
-    start_chat,
-    get_chat_messages,
+    check_model_access,
     delete_chat_messages,
     ensure_api_key_configured,
-    check_model_access,
+    get_chat_messages,
+    start_chat,
 )
 
 router = APIRouter(prefix="/ai", tags=["ai"])

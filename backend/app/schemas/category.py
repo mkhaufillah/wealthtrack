@@ -1,5 +1,6 @@
+from typing import Literal
+
 from pydantic import BaseModel
-from typing import Optional, Literal
 
 
 class CategoryOut(BaseModel):
@@ -20,12 +21,12 @@ class CategoryCreate(BaseModel):
     icon: str = "strokeRoundedInvoice01"
     keywords: list[str] = []
     sort_order: int = 0
-    name_en: Optional[str] = None
+    name_en: str | None = None
 
 
 class CategoryUpdate(BaseModel):
-    name: Optional[str] = None
-    icon: Optional[str] = None
-    keywords: Optional[list[str]] = None
-    sort_order: Optional[int] = None
-    name_en: Optional[str] = None
+    name: str | None = None
+    icon: str | None = None
+    keywords: list[str] | None = None
+    sort_order: int | None = None
+    name_en: str | None = None

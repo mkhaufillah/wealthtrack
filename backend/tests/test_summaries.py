@@ -1,8 +1,8 @@
 """Tests for /api/v1/summaries endpoints."""
 
-import pytest
 from datetime import date
 
+import pytest
 from httpx import AsyncClient
 
 

@@ -1,24 +1,40 @@
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
 from slowapi import _rate_limit_exceeded_handler
-from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
-
-from contextlib import asynccontextmanager
-import asyncio
+from slowapi.middleware import SlowAPIMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import settings
 from app.core.i18n import error_body, locale_from_request
 from app.core.limiter import limiter
-from app.database import init_pool, close_pool, background_tasks
-from app.core.redis import init_redis, close_redis
-from app.core.meilisearch import init_meilisearch, close_meilisearch
+from app.core.meilisearch import close_meilisearch, init_meilisearch
+from app.core.redis import close_redis, init_redis
 from app.core.vault_ctx import VaultPendingError, VaultRequiredError
-from app.routers import auth, categories, transactions, summaries, health, households, exports, budgets, credit_cards, ocr, kpr, ai_advisor, mcp, api_keys, ui, bank_inbox
+from app.database import background_tasks, close_pool, init_pool
+from app.routers import (
+    ai_advisor,
+    api_keys,
+    auth,
+    bank_inbox,
+    budgets,
+    categories,
+    credit_cards,
+    exports,
+    health,
+    households,
+    kpr,
+    mcp,
+    ocr,
+    summaries,
+    transactions,
+    ui,
+)
 
 
 @asynccontextmanager

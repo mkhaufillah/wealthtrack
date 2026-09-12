@@ -1,10 +1,10 @@
 """Bank notification inbox — drafts until the user confirms."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from app.services.bank_parser import fingerprint, parse_notification
 from app.services.bank_match import suggest_category_id
+from app.services.bank_parser import fingerprint, parse_notification
 
 
 class BankInboxError(Exception):
@@ -15,7 +15,7 @@ class BankInboxError(Exception):
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 def _item(row: dict) -> dict:
@@ -49,8 +49,8 @@ class BankInboxService:
 
     @staticmethod
     def _pack(amount: int, title: str, text: str, merchant: str) -> dict:
-        from app.core.vault_write import must_dek
         from app.core.vault_row import pack_money
+        from app.core.vault_write import must_dek
 
         return pack_money(
             must_dek(),

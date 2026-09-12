@@ -8,8 +8,7 @@ Supports:
 """
 
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Optional
+from decimal import ROUND_HALF_UP, Decimal
 
 
 @dataclass
@@ -81,7 +80,7 @@ def _calculate_payment(
 def calculate_kpr(
     total_loan: int,
     tenor_months: int,
-    rate_periods: Optional[list[RatePeriod]] = None,
+    rate_periods: list[RatePeriod] | None = None,
     interest_type: str = "fixed",
     base_interest_rate: float = 0.075,
     graduated_increment: float = 0.005,
@@ -322,7 +321,6 @@ def apply_extra_payment(
 
         new_installment = new_schedule[0].payment if new_schedule else 0
         new_total_interest = sum(s.interest for s in new_schedule)
-        new_months = len(new_schedule)
 
     else:
         # Opsi B: Keep same installment, shorten tenor
@@ -340,7 +338,6 @@ def apply_extra_payment(
 
         new_installment = new_schedule[0].payment if new_schedule else 0
         new_total_interest = sum(s.interest for s in new_schedule)
-        new_months = len(new_schedule)
 
     total_interest_saved = original_total_interest - new_total_interest
     if total_interest_saved < 0:

@@ -3,7 +3,6 @@
 import pytest
 from httpx import AsyncClient
 
-
 # ── Credit Cards CRUD ────────────────────────────────────────────────
 
 

@@ -1,10 +1,10 @@
 """Guardrail: ui_seed.COPY_ID must stay in sync with copy_fallback.dart keys."""
 
-from pathlib import Path
 import re
+from pathlib import Path
 
-from app.core.ui_seed import COPY_ID
 from app.core.ui_copy_en import COPY_EN
+from app.core.ui_seed import COPY_ID
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 

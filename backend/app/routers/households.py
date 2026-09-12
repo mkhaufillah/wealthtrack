@@ -7,18 +7,25 @@ responses.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
-from app.database import get_db, CursorWrapper
 from app.core.security import get_current_user
+from app.core.vault_ctx import VaultRequiredError
+from app.database import CursorWrapper, get_db
 from app.schemas.household import (
     CreateHouseholdIn,
-    JoinHouseholdIn,
     HouseholdDetailOut,
     InviteCodeOut,
+    JoinHouseholdIn,
+)
+from app.services.household_service import (
+    AlreadyInHouseholdError,
+    HouseholdService,
+    InvalidInviteCodeError,
+    InviteCodeGenerationError,
+    NotInHouseholdError,
 )
 from app.services.vault_service import VaultService
-from app.core.vault_ctx import VaultRequiredError
-from pydantic import BaseModel
 
 
 class VaultWrapIn(BaseModel):
@@ -35,14 +42,6 @@ class VaultShareIn(BaseModel):
     target_user_id: int
     boxed_dek: str
 
-
-from app.services.household_service import (
-    HouseholdService,
-    AlreadyInHouseholdError,
-    NotInHouseholdError,
-    InvalidInviteCodeError,
-    InviteCodeGenerationError,
-)
 
 router = APIRouter(prefix="/households", tags=["households"])
 

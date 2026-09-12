@@ -1,26 +1,26 @@
 """OCR Pydantic response schemas."""
-from typing import Optional
+
 from pydantic import BaseModel
 
 
 class OcrResult(BaseModel):
-    amount: Optional[int] = None
-    description: Optional[str] = None
-    date: Optional[str] = None  # YYYY-MM-DD
-    category_name: Optional[str] = None
-    type: Optional[str] = None  # "expense" or "income"
-    note: Optional[str] = None
+    amount: int | None = None
+    description: str | None = None
+    date: str | None = None  # YYYY-MM-DD
+    category_name: str | None = None
+    type: str | None = None  # "expense" or "income"
+    note: str | None = None
     raw_text: str = ""
 
 
 class OcrAutoSaveResult(BaseModel):
     job_id: int
-    transaction_id: Optional[int] = None
+    transaction_id: int | None = None
     status: str = "processing"
 
 
 class OcrPendingCount(BaseModel):
     count: int
-    error: Optional[str] = None
+    error: str | None = None
     has_failure: bool = False
-    failed_job_id: Optional[int] = None
+    failed_job_id: int | None = None

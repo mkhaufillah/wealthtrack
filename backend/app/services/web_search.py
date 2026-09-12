@@ -5,8 +5,8 @@ Uses Brave Search API (free tier: 2,000 queries/month).
 Requires BRAVE_SEARCH_API_KEY in .env.
 """
 
-from typing import Optional
 import httpx
+
 from app.core.config import settings
 
 SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
@@ -208,11 +208,7 @@ def _should_search(question: str) -> bool:
             return True
 
     # MEDIUM — search if any keyword found
-    for kw in MEDIUM_KEYWORDS:
-        if kw in q:
-            return True
-
-    return False
+    return any(kw in q for kw in MEDIUM_KEYWORDS)
 
 
 async def search_web(query: str, count: int = 5) -> list[dict]:
@@ -266,8 +262,9 @@ def format_search_results(results: list[dict]) -> str:
         snippet = r.get("snippet", "")
         title = r.get("title", "")
         url = r.get("url", "")
+        source = f" — {url}" if url else ""
         if snippet:
-            lines.append(f"{i}. {title}: {snippet}")
+            lines.append(f"{i}. {title}{source}: {snippet}")
         else:
-            lines.append(f"{i}. {title}")
+            lines.append(f"{i}. {title}{source}")
     return "\n".join(lines)

@@ -1,5 +1,6 @@
 """AI-powered budget utilities: historical analysis, suggestions, projections."""
-from datetime import date, datetime, timezone
+from datetime import date
+
 from app.utils.cycle import get_cycle_range_for_month
 
 
@@ -38,7 +39,7 @@ async def get_historical_spending(
     for d_from, d_to in cycles:
         params.extend([d_from, d_to])
 
-    from app.core.vault_ctx import current_dek, current_sealed
+    from app.core.vault_ctx import current_dek
     from app.core.vault_row import unpack_money
 
     if current_dek():
@@ -112,9 +113,9 @@ async def get_projection(
     days_elapsed = max(1, (today - d_from_date).days)
     progress_pct = round(days_elapsed / total_days * 100, 1)
 
-    from app.core.vault_ctx import current_dek, current_sealed
     from app.core.vault import category_trace
-    from app.core.vault_row import open_row, ope_sum_to_plain
+    from app.core.vault_ctx import current_dek, current_sealed
+    from app.core.vault_row import ope_sum_to_plain, open_row
 
     cursor = await db.execute(
         """SELECT b.vault_blob
@@ -132,20 +133,7 @@ async def get_projection(
         budget = int(d.get("amount") or d.get("budget_amount") or 0)
         cid = d.get("category_id")
         actual = 0
-        if cid is not None and sealed and dek is not None:
-            tr = category_trace(dek, int(cid))
-            cur = await db.execute(
-                """SELECT COALESCE(SUM(t.amount_ord), 0) AS total, COUNT(*) AS count
-                   FROM transactions t
-                   WHERE t.user_id = ? AND t.type = 'expense' AND t.category_trace = ?
-                     AND COALESCE(t.date, LEFT(t.created_at::text, 10)) BETWEEN ? AND ?""",
-                (user_id, tr, d_from, d_to),
-            )
-            row = await cur.fetchone()
-            actual = ope_sum_to_plain(
-                dek, int(row["total"] or 0), int(row["count"] or 0)
-            ) if row else 0
-        elif cid is not None and dek is not None:
+        if (cid is not None and sealed and dek is not None) or (cid is not None and dek is not None):
             tr = category_trace(dek, int(cid))
             cur = await db.execute(
                 """SELECT COALESCE(SUM(t.amount_ord), 0) AS total, COUNT(*) AS count

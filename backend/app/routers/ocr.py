@@ -1,24 +1,21 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-
 # kept for test mock compatibility (test_ocr.py monkeypatches app.routers.ocr.httpx)
 import httpx  # noqa: F401
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
-from app.core.security import get_current_user
 from app.core.rate_limiter import check_rate_limit
+from app.core.security import get_current_user
 from app.database import get_db
-
-from app.schemas.ocr import OcrResult, OcrAutoSaveResult, OcrPendingCount
-
+from app.schemas.ocr import OcrAutoSaveResult, OcrPendingCount, OcrResult
 from app.services.ocr_service import (
-    OcrService,
+    OcrApiKeyError,
+    OcrBusyError,
     OcrError,
     OcrImageError,
-    OcrApiKeyError,
-    OcrVisionApiError,
+    OcrService,
     OcrTimeoutError,
-    OcrBusyError,
+    OcrVisionApiError,
 )
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])

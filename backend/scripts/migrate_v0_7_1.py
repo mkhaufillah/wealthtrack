@@ -3,7 +3,9 @@ Migration v0.7.1: Remove penalty_rate and penalty_amount columns from kpr_extra_
 
 Usage: python3 migrate_v0_7_1.py
 """
-import os, subprocess, sys
+import os
+import subprocess
+import sys
 
 # Read DATABASE_URL from .env
 env_path = os.path.expanduser('~/dev/wealthtrack/backend/.env')

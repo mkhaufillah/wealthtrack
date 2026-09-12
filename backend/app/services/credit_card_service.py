@@ -3,12 +3,11 @@
 from app.database import CursorWrapper
 from app.schemas.credit_card import (
     CreditCardCreate,
-    CreditCardUpdate,
     CreditCardInstallmentCreate,
     CreditCardTransactionCreate,
+    CreditCardUpdate,
     NextMonthProjection,
 )
-
 
 # ── Domain exceptions ───────────────────────────────────────────────
 
@@ -61,8 +60,8 @@ class CreditCardService:
 
     @staticmethod
     def _pack(amount: int, extra: dict | None = None) -> dict:
-        from app.core.vault_write import must_dek
         from app.core.vault_row import pack_money
+        from app.core.vault_write import must_dek
 
         return pack_money(must_dek(), amount=max(0, int(amount)), extra=extra)
 

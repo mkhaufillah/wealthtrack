@@ -9,11 +9,9 @@ Usage::
     budgets = await service.list_budgets(user_id=1, month="2026-05")
 """
 
-from typing import Optional
 
 from app.database import CursorWrapper
 from app.utils.cycle import get_cycle_range_for_month
-
 
 # ── Domain exceptions ────────────────────────────────────────────────
 
@@ -144,7 +142,7 @@ class BudgetService:
         month: str,
         category_id: int,
         amount: int,
-        cycle_on_override: Optional[int] = None,
+        cycle_on_override: int | None = None,
     ) -> dict:
         """Create or update (upsert) a budget.
 
@@ -243,8 +241,8 @@ class BudgetService:
         user_id: int,
         month: str,
         use_cycle: bool = False,
-        d_from_override: Optional[str] = None,
-        d_to_override: Optional[str] = None,
+        d_from_override: str | None = None,
+        d_to_override: str | None = None,
     ) -> dict:
         """Budgets vs actual spending for *month*.
 
@@ -277,13 +275,12 @@ class BudgetService:
             last_day = _cal.monthrange(y, mo)[1]
             d_to_str = f"{month}-{last_day:02d}"
 
-            budget_ids = [r["id"] for r in rows]
             cat_ids = [r["category_id"] for r in rows if r.get("category_id") is not None]
 
             actual_map: dict[int, int] = {}
             if cat_ids:
-                from app.core.vault_ctx import current_dek, current_sealed
                 from app.core.vault import category_trace
+                from app.core.vault_ctx import current_dek, current_sealed
                 from app.core.vault_row import ope_sum_to_plain
 
                 if current_dek():
@@ -317,8 +314,8 @@ class BudgetService:
                 results.append(self._build_summary_item(r, actual_spent))
         else:
             # ── Cycle-aware path — per-budget query ──
-            from app.core.vault_ctx import current_dek, current_sealed
             from app.core.vault import category_trace
+            from app.core.vault_ctx import current_dek, current_sealed
             from app.core.vault_row import ope_sum_to_plain
 
             sealed = current_sealed()
@@ -329,21 +326,7 @@ class BudgetService:
                 d_from_str = d_from.isoformat()
                 d_to_str = d_to.isoformat()
                 cid = r.get("category_id")
-                if sealed and dek is not None and cid is not None:
-                    tr = category_trace(dek, int(cid))
-                    cur = await self.db.execute(
-                        """SELECT COALESCE(SUM(t.amount_ord), 0) AS total, COUNT(*) AS count
-                           FROM transactions t
-                           WHERE t.category_trace = ? AND t.user_id = ? AND t.type = 'expense'
-                             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) >= ?
-                             AND COALESCE(t.date, LEFT(t.created_at::text, 10)) <= ?""",
-                        (tr, user_id, d_from_str, d_to_str),
-                    )
-                    row = await cur.fetchone()
-                    actual_spent = ope_sum_to_plain(
-                        dek, int(row["total"] or 0), int(row["count"] or 0)
-                    ) if row else 0
-                elif dek is not None and cid is not None:
+                if (sealed and dek is not None and cid is not None) or (dek is not None and cid is not None):
                     tr = category_trace(dek, int(cid))
                     cur = await self.db.execute(
                         """SELECT COALESCE(SUM(t.amount_ord), 0) AS total, COUNT(*) AS count
@@ -395,8 +378,8 @@ class BudgetService:
         user_id: int,
         month: str,
         use_cycle: bool,
-        d_from_override: Optional[str],
-        d_to_override: Optional[str],
+        d_from_override: str | None,
+        d_to_override: str | None,
         budget_rows: list,
     ) -> list[dict]:
         """Query expenses in categories that have no budget set."""
@@ -418,7 +401,7 @@ class BudgetService:
             last_day = _cal.monthrange(y, mo)[1]
             uncat_d_to = f"{month}-{last_day:02d}"
 
-        from app.core.vault_ctx import current_dek, current_sealed
+        from app.core.vault_ctx import current_dek
         from app.core.vault_row import unpack_money
 
         if current_dek():
@@ -546,7 +529,7 @@ class BudgetService:
 
         # Fetch total income for the period
         d_from, d_to = get_cycle_range_for_month(month, cycle_start_day)
-        from app.core.vault_ctx import current_dek, current_sealed
+        from app.core.vault_ctx import current_dek
         from app.core.vault_row import ope_sum_to_plain
 
         if current_dek():

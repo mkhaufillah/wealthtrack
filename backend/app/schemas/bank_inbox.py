@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -11,27 +10,27 @@ class BankInboxIn(BaseModel):
 
 
 class BankInboxConfirmIn(BaseModel):
-    category_id: Optional[int] = Field(default=None, gt=0)
+    category_id: int | None = Field(default=None, gt=0)
     internal: bool = False
-    pair_id: Optional[int] = Field(default=None, gt=0)
+    pair_id: int | None = Field(default=None, gt=0)
 
 
 class BankInboxItem(BaseModel):
     id: int
-    bank: Optional[str]
+    bank: str | None
     package: str
     title: str
     text: str
     posted_at: str
-    amount: Optional[int]
-    type: Optional[str]
+    amount: int | None
+    type: str | None
     merchant: str
     parsed: bool
     status: str
-    transaction_id: Optional[int]
+    transaction_id: int | None
     created_at: str
-    suggested_category_id: Optional[int] = None
-    pair_id: Optional[int] = None
+    suggested_category_id: int | None = None
+    pair_id: int | None = None
     internal_suggested: bool = False
 
 

@@ -1,13 +1,13 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional
-from jose import jwt, JWTError
-from passlib.context import CryptContext
+from datetime import UTC, datetime, timedelta
+
 from fastapi import Depends, HTTPException, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 from app.core.config import settings
 from app.database import get_db
-from app.services.api_key_service import ApiKeyService, API_KEY_PREFIX
+from app.services.api_key_service import API_KEY_PREFIX, ApiKeyService
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
@@ -22,7 +22,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def create_access_token(user_id: int, username: str, role: str = "user") -> str:
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(UTC) + timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": str(user_id),
         "username": username,
@@ -39,7 +39,7 @@ def decode_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
-async def _get_user_from_api_key(token: str, db) -> Optional[dict]:
+async def _get_user_from_api_key(token: str, db) -> dict | None:
     """Validate an API key and return user info if valid."""
     if not token.startswith(API_KEY_PREFIX):
         return None

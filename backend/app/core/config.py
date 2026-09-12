@@ -1,6 +1,8 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pathlib import Path
 import json
+import warnings
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -68,8 +70,6 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Warn about known insecure defaults — always, not just in DEBUG mode
-import warnings
-
 if settings.SECRET_KEY == "change-me-in-production-use-env":
     warnings.warn(
         "\u26a0\ufe0f  SECRET_KEY is still the default! Set a real key in backend/.env for production."

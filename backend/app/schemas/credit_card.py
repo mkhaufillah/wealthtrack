@@ -1,5 +1,5 @@
+
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class CreditCardCreate(BaseModel):
@@ -8,14 +8,14 @@ class CreditCardCreate(BaseModel):
     billing_date: int = Field(1, ge=1, le=31)
     due_date: int = Field(15, ge=1, le=31)
     credit_limit: int = 0
-    household_id: Optional[int] = None
+    household_id: int | None = None
 
 
 class CreditCardUpdate(BaseModel):
-    name: Optional[str] = None
-    billing_date: Optional[int] = None
-    due_date: Optional[int] = None
-    credit_limit: Optional[int] = None
+    name: str | None = None
+    billing_date: int | None = None
+    due_date: int | None = None
+    credit_limit: int | None = None
 
 
 class CreditCardOut(BaseModel):
@@ -29,14 +29,14 @@ class CreditCardOut(BaseModel):
     created_at: str
     active_installments: int = 0
     active_transactions: int = 0
-    household_id: Optional[int] = None
+    household_id: int | None = None
     display_order: int = 0
 
 
 class CreditCardTransactionCreate(BaseModel):
     description: str = ""
     amount: int = Field(ge=0)
-    category_id: Optional[int] = None
+    category_id: int | None = None
     transaction_date: str
 
 
@@ -45,10 +45,10 @@ class CreditCardTransactionOut(BaseModel):
     card_id: int
     description: str
     amount: int
-    category_id: Optional[int] = None
+    category_id: int | None = None
     transaction_date: str
     is_installment: bool = False
-    installment_id: Optional[int] = None
+    installment_id: int | None = None
     created_at: str
 
 

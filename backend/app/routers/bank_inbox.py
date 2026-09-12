@@ -92,6 +92,6 @@ async def delete_item(
     svc = BankInboxService(db)
     try:
         await svc.delete_item(item_id, current_user["id"])
-        return None
+        return
     except BankInboxError as exc:
         _raise(exc)

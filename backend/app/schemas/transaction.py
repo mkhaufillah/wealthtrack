@@ -1,5 +1,5 @@
+
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class TransactionCreate(BaseModel):
@@ -12,12 +12,12 @@ class TransactionCreate(BaseModel):
 
 
 class TransactionUpdate(BaseModel):
-    type: Optional[str] = Field(default=None, pattern=r"^(expense|income)$")
-    amount: Optional[int] = Field(default=None, gt=0)
-    description: Optional[str] = None
-    note: Optional[str] = None
-    category_id: Optional[int] = None
-    date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    type: str | None = Field(default=None, pattern=r"^(expense|income)$")
+    amount: int | None = Field(default=None, gt=0)
+    description: str | None = None
+    note: str | None = None
+    category_id: int | None = None
+    date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
 class CategoryBrief(BaseModel):

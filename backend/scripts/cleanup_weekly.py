@@ -13,11 +13,11 @@ Usage:
     python cleanup_weekly.py --run    # Actual cleanup
 """
 
+import argparse
 import asyncio
 import os
 import sys
-import argparse
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 
@@ -35,7 +35,7 @@ def load_env():
                         line = line.strip()
                         if line.startswith("DATABASE_URL="):
                             return line.split("=", 1)[1]
-            except (OSError, IOError) as e:
+            except OSError as e:
                 print(f"⚠  Could not read {env_path}: {e}")
                 continue
     return None
@@ -50,7 +50,7 @@ def cleanup_ocr_files(ocr_dir: Path, dry_run: bool):
         print()
         return
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    cutoff = datetime.now(UTC) - timedelta(days=7)
     deleted = 0
     errors = 0
 
@@ -65,7 +65,7 @@ def cleanup_ocr_files(ocr_dir: Path, dry_run: bool):
         if not f.is_file():
             continue
         try:
-            mtime = datetime.fromtimestamp(f.stat().st_mtime, tz=timezone.utc)
+            mtime = datetime.fromtimestamp(f.stat().st_mtime, tz=UTC)
             if mtime < cutoff:
                 if dry_run:
                     print(f"  [DRY-RUN] Would delete: {f.name}  (mtime: {mtime.strftime('%Y-%m-%d')})")
@@ -225,7 +225,7 @@ async def main():
             safe_url = f"{scheme_user}:****@{host_part}"
     print(f"Weekly Cleanup Script — {'❚ DRY RUN ❚' if dry_run else '⚠ LIVE RUN ⚠'}")
     print(f"  Database: {safe_url}")
-    print(f"  Time:     {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    print(f"  Time:     {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}")
     print()
 
     # ── 1. Clean OCR image files ──
@@ -234,7 +234,7 @@ async def main():
 
     # ── 2. Clean database ──
     try:
-        import asyncpg  # noqa: F811
+        import asyncpg
     except ImportError:
         print("ERROR: 'asyncpg' is not installed. Install with:")
         print("       pip install asyncpg")

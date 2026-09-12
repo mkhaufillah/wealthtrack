@@ -5,11 +5,9 @@ revoked at any time. The plaintext key is shown only once at creation time.
 """
 import secrets
 import string
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from app.database import CursorWrapper
-
 
 API_KEY_PREFIX = "wt_mcp_"
 API_KEY_LENGTH = 48
@@ -45,7 +43,7 @@ class ApiKeyService:
         self,
         user_id: int,
         name: str,
-        scopes: Optional[list[str]] = None,
+        scopes: list[str] | None = None,
     ) -> dict:
         """Create a new API key. Returns the plaintext key once."""
         plaintext = self.generate_key()
@@ -64,7 +62,7 @@ class ApiKeyService:
         row = await cursor.fetchone()
         if key_id is None and row is not None:
             key_id = row["id"]
-        created_at = row["created_at"] if row else datetime.now(timezone.utc).isoformat()
+        created_at = row["created_at"] if row else datetime.now(UTC).isoformat()
         if key_id is None:
             raise RuntimeError("Failed to create API key")
         return {
@@ -111,7 +109,7 @@ class ApiKeyService:
         )
         return (await cursor.fetchone()) is None
 
-    async def get_key_by_hash(self, key_hash: str) -> Optional[dict]:
+    async def get_key_by_hash(self, key_hash: str) -> dict | None:
         """Fetch a key by its hash."""
         cursor = await self.db.execute(
             """SELECT id, user_id, name, scopes, is_active, last_used_at
@@ -131,7 +129,7 @@ class ApiKeyService:
             "last_used_at": row["last_used_at"],
         }
 
-    async def find_and_verify_key(self, key: str) -> Optional[dict]:
+    async def find_and_verify_key(self, key: str) -> dict | None:
         """Find a key by plaintext and verify it. Updates last_used_at."""
         if not key.startswith(API_KEY_PREFIX):
             return None
@@ -143,7 +141,7 @@ class ApiKeyService:
         rows = await cursor.fetchall()
         for r in rows:
             if self.verify_key(key, r["key_hash"]):
-                now = datetime.now(timezone.utc).isoformat()
+                now = datetime.now(UTC).isoformat()
                 await self.db.execute(
                     "UPDATE api_keys SET last_used_at = ? WHERE id = ?",
                     (now, r["id"]),

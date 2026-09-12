@@ -29,7 +29,17 @@ select = [
 
 ignore = [
     "E501",    # line length: handled by the formatter, not linter
+    "SIM108",  # if/else blocks often read better than a long ternary
+    "RET504",  # assigning before return is clearer in long functions
+    "PERF401", # an explicit loop is clearer than a comprehension here
+    "RUF005",  # `params + [x]` is explicit and keeps SQL bind order obvious
     "SIM117",  # nested `with` blocks are often clearer than a long chain
+    # Blocking local file ops (receipt images, weekly cleanup script) run on
+    # small files; wrapping them in to_thread would complicate the flow more
+    # than it buys. Revisit only if those paths get hot.
+    "ASYNC230",
+    "ASYNC240",
+    "ASYNC221",
     "RUF001",  # unicode confusables: Indonesian copy is full of them
     "RUF002",
     "RUF003",
@@ -37,6 +47,6 @@ ignore = [
 
 [lint.per-file-ignores]
 # Tests lean on fixtures/imports for their side effects and long literals.
-"tests/**" = ["E402", "F401", "F841", "SIM", "RUF059"]
+"tests/**" = ["E402", "F401", "F841", "SIM", "RUF015", "RUF059"]
 # Scripts are one-shot operators; keep them readable rather than clever.
 "scripts/**" = ["E402", "PERF"]

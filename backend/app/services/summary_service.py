@@ -10,7 +10,6 @@ Usage::
 """
 
 from datetime import date, datetime
-from typing import Optional
 
 from app.database import CursorWrapper
 from app.utils.cycle import get_cycle_range
@@ -118,8 +117,8 @@ class SummaryService:
     async def get_daily_summary(
         self,
         user_id: int,
-        date_from: Optional[str] = None,
-        date_to: Optional[str] = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> dict:
         """Income / expense summary for a specific date range (single-user).
 
@@ -215,8 +214,8 @@ class SummaryService:
     async def get_household_summary(
         self,
         user_id: int,
-        date_from: Optional[str] = None,
-        date_to: Optional[str] = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> dict:
         """Household-wide summary across members of the current user's household."""
         # Jika tidak diberi tanggal, hitung SEMUA transaksi (bukan hanya hari ini)
@@ -353,11 +352,11 @@ class SummaryService:
     async def get_monthly_summary(
         self,
         user_id: int,
-        month: Optional[str] = None,
-        month_from: Optional[str] = None,
-        month_to: Optional[str] = None,
-        d_from_override: Optional[str] = None,
-        d_to_override: Optional[str] = None,
+        month: str | None = None,
+        month_from: str | None = None,
+        month_to: str | None = None,
+        d_from_override: str | None = None,
+        d_to_override: str | None = None,
     ) -> dict | list:
         """Monthly summary for a given month (YYYY-MM). Default: current month.
 
@@ -389,8 +388,8 @@ class SummaryService:
         user_id: int,
         month: str,
         today: date,
-        d_from_override: Optional[date] = None,
-        d_to_override: Optional[date] = None,
+        d_from_override: date | None = None,
+        d_to_override: date | None = None,
     ) -> dict:
         """Monthly summary for a single month (YYYY-MM).
 
@@ -559,7 +558,7 @@ class SummaryService:
         self,
         user_id: int,
         use_cycle: bool = False,
-        ref_date: Optional[str] = None,
+        ref_date: str | None = None,
     ) -> dict:
         """Shorthand — monthly summary for the current cycle or month."""
         today = self.parse_date_iso(ref_date) if ref_date else date.today()
@@ -581,7 +580,7 @@ class SummaryService:
     async def get_cycle_info(
         self,
         user_id: int,
-        ref_date_str: Optional[str] = None,
+        ref_date_str: str | None = None,
     ) -> dict:
         """Return the billing cycle date range for a given reference date."""
         cycle_start_day = await self._get_cycle_start_day(user_id)
@@ -781,19 +780,10 @@ class SummaryService:
             else:
                 visible_total += detail.get("kpr_shared", 0) + detail.get("cc_shared", 0)
 
-        # Also include shared household debt where household_id is set
-        cursor = await self.db.execute(
-            """SELECT COUNT(*) AS cnt
-               FROM kpr_simulations
-               WHERE household_id = ?
-                 AND user_id NOT IN (
-                     SELECT user_id FROM household_members WHERE household_id = ?
-                 )""",
-            (household_id, user_id),
-        )
-        extra_kpr_row = await cursor.fetchone()
-        extra_kpr = extra_kpr_row["cnt"] if extra_kpr_row else 0
-
+        # NOTE: a count of household-shared KPR owned by non-members used to be
+        # queried here and then discarded. It never reached the response, so the
+        # query is gone; if a "KPR dari luar anggota" counter is wanted, expose a
+        # real field in the response schema and wire it up.
         return {
             "total_debt": visible_total,
             "total_kpr": grand_total_kpr,
